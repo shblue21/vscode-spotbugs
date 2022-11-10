@@ -39,6 +39,9 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js"
   },
+  "extensionDependencies": [
+    "redhat.java"
+  ],
   "devDependencies": {
     "@types/vscode": "^1.72.0",
     "@types/glob": "^8.0.0",
