@@ -1,10 +1,20 @@
 {
-  "name": "spotbugs",
-  "displayName": "spotbugs",
-  "description": "",
+  "name": "vscode-spotbugs",
+  "displayName": "Spotbugs",
+  "description": "Visual Studio Code extension for Spotbugs",
   "version": "0.0.1",
+  "publisher": "JIHUN KIM",
+  "icon": "images/spotbugs_logo.png",
+  "author": {
+    "name": "JIHUN KIM",
+    "email": "jihunkimkw@gmail.com"
+  },
   "engines": {
     "vscode": "^1.72.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shblue21/vscode-spotbugs"
   },
   "categories": [
     "Other"
