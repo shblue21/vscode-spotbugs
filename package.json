@@ -19,15 +19,74 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "Java",
+    "Code Analysis",
+    "Spotbugs",
+    "FindBugs"
+  ],
   "activationEvents": [
     "onLanguage:java",
+    "workspaceContains:pom.xml",
+    "workspaceContains:build.gradle",
     "onCommand:spotbugs.findbugs",
     "onCommand:spotbugs.runFile",
     "onCommand:spotbugs.saveXml",
     "onCommand:spotbugs.loadXml"
   ],
   "main": "./out/extension.js",
+  "capabilities": {
+		"virtualWorkspaces": true,
+		"untrustedWorkspaces": {
+			"supported": "limited"
+		}
+	},
   "contributes": {
+    "configuration": [
+      {
+        "id": "general",
+        "title": "General",
+        "order": 0,
+        "properties": {
+          "spotbugs.effort": {
+            "type": "string",
+            "default": "Default",
+            "enum": [
+              "Default",
+              "Min",
+              "Less",
+              "Max"
+            ],
+            "enumDescriptions": [
+              "Run several analyses to find bugs",
+              "Disables several analyses that increase precision but also increase memory consumption.",
+              "Disables some analyses that increase precision but also increase memory consumption.",
+              "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
+            ],
+            "markdownDescription": "Set analysis effort level.",
+            "scope": "window",
+            "order": 10
+          },
+          "spotbugs.java.home": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null,
+            "description": "(Optional) Set the JAVA_HOME environment variable used to run Spotbugs.",
+            "scope": "machine-overridable"
+          }
+        }
+      },
+      {
+        "id": "report",
+        "title": "Report Configuration",
+        "order": 10,
+        "properties": {
+
+        }
+      }
+    ],
     "commands": [
       {
         "command": "spotbugs.findbugs",
