@@ -128,7 +128,10 @@
         "id": "spotbugs.context",
         "label": "Spotbugs"
       }
-    ]
+    ],
+    "javaExtensions": [
+      
+  ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
