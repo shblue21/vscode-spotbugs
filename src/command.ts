@@ -2,7 +2,7 @@
 
 import * as vscode from "vscode";
 
-export namespace Commands {
+export namespace Command {
 
     export const JAVA_EXECUTE_WORKSPACE_COMMAND = "java.execute.workspaceCommand";
 
@@ -18,5 +18,5 @@ export namespace Commands {
 }
 
 export async function executeJavaLanguageServerCommand<T>(...rest: any[]): Promise<T | undefined> {
-    return vscode.commands.executeCommand<T>(Commands.JAVA_EXECUTE_WORKSPACE_COMMAND, ...rest);
+    return vscode.commands.executeCommand<T>(Command.JAVA_EXECUTE_WORKSPACE_COMMAND, ...rest);
 }

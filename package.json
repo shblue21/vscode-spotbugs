@@ -29,6 +29,7 @@
     "onLanguage:java",
     "workspaceContains:pom.xml",
     "workspaceContains:build.gradle",
+    "onCommand:spotbugs.helloWorld",
     "onCommand:spotbugs.findbugs",
     "onCommand:spotbugs.runFile",
     "onCommand:spotbugs.saveXml",
@@ -103,6 +104,10 @@
       {
         "command": "spotbugs.loadXml",
         "title": "Load XML"
+      },
+      {
+        "command": "spotbugs.helloWorld",
+        "title": "Hello World"
       }
     ],
     "menus": {
