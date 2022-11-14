@@ -36,57 +36,57 @@
   ],
   "main": "./out/extension.js",
   "capabilities": {
-		"virtualWorkspaces": true,
-		"untrustedWorkspaces": {
-			"supported": "limited"
-		}
-	},
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": "limited"
+    }
+  },
   "contributes": {
-    "configuration": [
-      {
-        "id": "general",
-        "title": "General",
-        "order": 0,
-        "properties": {
-          "spotbugs.effort": {
-            "type": "string",
-            "default": "Default",
-            "enum": [
-              "Default",
-              "Min",
-              "Less",
-              "Max"
-            ],
-            "enumDescriptions": [
-              "Run several analyses to find bugs",
-              "Disables several analyses that increase precision but also increase memory consumption.",
-              "Disables some analyses that increase precision but also increase memory consumption.",
-              "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
-            ],
-            "markdownDescription": "Set analysis effort level.",
-            "scope": "window",
-            "order": 10
-          },
-          "spotbugs.java.home": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "default": null,
-            "description": "(Optional) Set the JAVA_HOME environment variable used to run Spotbugs.",
-            "scope": "machine-overridable"
-          }
-        }
-      },
-      {
-        "id": "report",
-        "title": "Report Configuration",
-        "order": 10,
-        "properties": {
-
+    "configuration": {
+      "type": "object",
+      "title": "Spotbugs",
+      "properties": {
+        "spotbugs.effort": {
+          "type": "string",
+          "default": "Default",
+          "enum": [
+            "Default",
+            "Min",
+            "Less",
+            "Max"
+          ],
+          "enumDescriptions": [
+            "Run several analyses to find bugs",
+            "Disables several analyses that increase precision but also increase memory consumption.",
+            "Disables some analyses that increase precision but also increase memory consumption.",
+            "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
+          ],
+          "markdownDescription": "Set analysis effort level.",
+          "scope": "window",
+          "order": 0
+        },
+        "spotbugs.java.home": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "(Optional) Set the JAVA_HOME environment variable used to run Spotbugs.",
+          "scope": "machine-overridable",
+          "order": 1
+        },
+        "spotbugs.plugins.file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "(Optional) Set the path to the Spotbugs plugins file.",
+          "scope": "machine-overridable",
+          "order": 2
         }
       }
-    ],
+    },
     "commands": [
       {
         "command": "spotbugs.findbugs",
