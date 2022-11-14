@@ -49,13 +49,18 @@
     "menus": {
       "explorer/context": [
         {
-          "submenu": "spotbugs.context",
-          "when": "resourceLangId == java"
+          "submenu": "spotbugs.context"
         }
       ],
-      "editor/context": [
+      "spotbugs.context": [
         {
-          "submenu": "spotbugs.context"
+          "command": "spotbugs.runFile"
+        },
+        {
+          "command": "spotbugs.saveXml"
+        },
+        {
+          "command": "spotbugs.loadXml"
         }
       ]
     },
@@ -63,17 +68,6 @@
       {
         "id": "spotbugs.context",
         "label": "Spotbugs"
-      }
-    ],
-    "spotbugs.context": [
-      {
-        "command": "spotbugs.runFile"
-      },
-      {
-        "command": "spotbugs.saveXml"
-      },
-      {
-        "command": "spotbugs.loadXml"
       }
     ]
   },
