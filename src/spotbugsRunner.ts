@@ -1,2 +1,2 @@
 'use strict';
-import { Command, executeJavaLanguageServerCommand } from './command';
+// import { Command, executeJavaLanguageServerCommand } from './command';
