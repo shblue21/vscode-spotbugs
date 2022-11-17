@@ -1,20 +1,13 @@
 import { Uri, workspace, Extension, extensions } from "vscode";
+import { JAVA_EXTENSION_ID } from "./constant";
 
 const configPrefix = "spotbugs";
 
-export function getRootWorkspacePath(): string {
-  const hasWorkspaceRoot =
-    workspace &&
-    workspace.workspaceFolders &&
-    workspace.workspaceFolders.length > 0;
-  return hasWorkspaceRoot ? workspace.workspaceFolders![0].uri.fsPath : "";
-}
-
 export function getJavaExtension(): Extension<any> | undefined {
-  return extensions.getExtension("redhat.java");
+  return extensions.getExtension(JAVA_EXTENSION_ID);
 }
 
-export async function getExtensionApi(): Promise<any> {
+export async function getJavaExtensionApi(): Promise<any> {
   const extension: Extension<any> | undefined = getJavaExtension();
   if (extension === undefined) {
     return undefined;

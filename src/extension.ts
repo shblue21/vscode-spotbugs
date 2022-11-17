@@ -1,15 +1,12 @@
-import { commands, ExtensionContext, window, workspace, WorkspaceConfiguration } from "vscode";
-import * as command from "./command";
+import { commands, Extension, ExtensionContext, window, workspace, WorkspaceConfiguration, Uri } from "vscode";
+import { Command } from "./command";
+import { getJavaExtensionApi } from './utils';
+import { isClassFileExists } from "./javsClass";
 
 export async function activate(context: ExtensionContext)  {
-  let disposable = commands.registerCommand("spotbugs.helloWorld", () => {
-    // The code you place here will be executed every time your command is executed
-    // Display a message box to the user
-    window.showInformationMessage("Hello World from spotbugs!");
-  });
 
   let autobuildTest = commands.registerCommand(
-    "spotbugs.runFile", autoBuildConfig  );
+    "spotbugs.runFile", oneCycle  );
 
   context.subscriptions.push(autobuildTest);
 }
@@ -18,7 +15,7 @@ export async function activate(context: ExtensionContext)  {
 export function deactivate() {}
 
 
-export async function autoBuildConfig() {
+export async function oneCycle(fileName: string | Uri) {
     const autobuildConfig: WorkspaceConfiguration = workspace.getConfiguration("java.autobuild");
     if (!autobuildConfig.enabled) {
         const ans = await window.showWarningMessage(
@@ -29,7 +26,17 @@ export async function autoBuildConfig() {
         }
     }
     try {
-      await commands.executeCommand(command.JAVA_BUILD_WORKSPACE, false);
+      await commands.executeCommand(Command.JAVA_BUILD_WORKSPACE, false);
+      if (!fileName && window.activeTextEditor) {
+        fileName = window.activeTextEditor.document.uri;
+      }
+      if(fileName instanceof Uri) {
+        await isClassFileExists(fileName.fsPath);
+      } else{
+        await isClassFileExists(fileName);
+      }
+
+      
       window.showInformationMessage("Build finished");
   } catch (err) {
       // do nothing.
