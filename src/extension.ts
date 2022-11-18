@@ -1,7 +1,7 @@
 import { commands, Extension, ExtensionContext, window, workspace, WorkspaceConfiguration, Uri } from "vscode";
 import { Command } from "./command";
 import { getJavaExtensionApi } from './utils';
-import { isClassFileExists } from "./javsClass";
+import { getClassFileFromJavaFile } from "./javsClass";
 
 export async function activate(context: ExtensionContext)  {
 
@@ -30,12 +30,14 @@ export async function oneCycle(fileName: string | Uri) {
       if (!fileName && window.activeTextEditor) {
         fileName = window.activeTextEditor.document.uri;
       }
+      let classFile: string;
       if(fileName instanceof Uri) {
-        await isClassFileExists(fileName.fsPath);
+        classFile=await getClassFileFromJavaFile(fileName.fsPath);
       } else{
-        await isClassFileExists(fileName);
+        classFile=await getClassFileFromJavaFile(fileName);
       }
 
+      
       
       window.showInformationMessage("Build finished");
   } catch (err) {
