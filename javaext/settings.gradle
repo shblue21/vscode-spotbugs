@@ -8,4 +8,3 @@
  */
 
 rootProject.name = 'vscode-java-spotbugs'
-include('lib')
