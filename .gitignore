@@ -7,3 +7,4 @@ javaext/.gradle/
 javaext/build/
 dist
 out
+*.class
