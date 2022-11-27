@@ -153,11 +153,12 @@
     "@types/node": "16.x",
     "@typescript-eslint/eslint-plugin": "^5.38.1",
     "@typescript-eslint/parser": "^5.38.1",
+    "@vscode/test-electron": "^2.1.5",
     "eslint": "^8.24.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
-    "typescript": "^4.8.4",
-    "@vscode/test-electron": "^2.1.5"
+    "rimraf": "^3.0.2",
+    "typescript": "^4.8.4"
   },
   "dependencies": {
     "vscode-extension-telemetry-wrapper": "^0.13.2"
