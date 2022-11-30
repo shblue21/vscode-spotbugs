@@ -136,12 +136,14 @@
     "javaExtensions": []
   },
   "scripts": {
+    "clean": "node ./node_modules/rimraf/bin.js out/",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "build-server": "node scripts/buildJdtlsExt.js"
   },
   "extensionDependencies": [
     "redhat.java"
