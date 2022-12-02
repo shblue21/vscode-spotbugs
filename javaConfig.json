@@ -1,0 +1,6 @@
+{
+    "projects": [
+        "./javaext/com.jihunkim.spotbugs"
+    ],
+    "targetPlatform": "./javaext/bundle.target"
+}

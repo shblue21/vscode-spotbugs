@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../vscode-lombok"
+		},
+		{
+			"path": "../../spotbugs/eclipsePlugin"
+		},
+		{
+			"path": "../../vscode-java-pmd"
+		},
+		{
+			"path": "../../prettier-vscode"
+		},
+		{
+			"path": "../../vscode-gitlens"
+		},
+		{
+			"path": "../../vscode-java-debug"
+		},
+		{
+			"path": "../../vscode-java"
+		}
+	],
+	"settings": {
+		"typescript.tsc.autoDetect": "off"
+	}
+}

@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<units size='1'>
+  <unit id='com.microsoft.java.lombok' version='0.1.0' generation='2'>
+    <update id='com.microsoft.java.lombok' range='[0.0.0,0.1.0)' severity='0'/>
+    <properties size='5'>
+      <property name='org.eclipse.equinox.p2.name' value='Lombok extension'/>
+      <property name='maven-groupId' value='com.microsoft.java'/>
+      <property name='maven-artifactId' value='com.microsoft.java.lombok'/>
+      <property name='maven-version' value='0.1.0'/>
+      <property name='maven-type' value='eclipse-plugin'/>
+    </properties>
+    <provides size='4'>
+      <provided namespace='org.eclipse.equinox.p2.iu' name='com.microsoft.java.lombok' version='0.1.0'/>
+      <provided namespace='osgi.bundle' name='com.microsoft.java.lombok' version='0.1.0'/>
+      <provided namespace='osgi.identity' name='com.microsoft.java.lombok' version='0.1.0'>
+        <properties size='1'>
+          <property name='type' value='osgi.bundle'/>
+        </properties>
+      </provided>
+      <provided namespace='org.eclipse.equinox.p2.eclipse.type' name='bundle' version='1.0.0'/>
+    </provides>
+    <requires size='9'>
+      <required namespace='osgi.bundle' name='org.eclipse.core.runtime' range='0.0.0'/>
+      <required namespace='osgi.bundle' name='org.eclipse.jdt.core' range='0.0.0'/>
+      <required namespace='osgi.bundle' name='org.eclipse.jdt.core.manipulation' range='0.0.0'/>
+      <required namespace='osgi.bundle' name='org.eclipse.jdt.ls.core' range='0.0.0'/>
+      <required namespace='osgi.bundle' name='org.eclipse.ltk.core.refactoring' range='0.0.0'/>
+      <required namespace='osgi.bundle' name='org.eclipse.text' range='3.6.0'/>
+      <required namespace='osgi.bundle' name='org.eclipse.lsp4j' range='0.0.0'/>
+      <required namespace='osgi.bundle' name='com.google.gson' range='0.0.0'/>
+      <requiredProperties namespace='osgi.ee' match='(&amp;(osgi.ee=JavaSE)(version=17))'>
+        <description>
+          com.microsoft.java.lombok
+        </description>
+      </requiredProperties>
+    </requires>
+    <artifacts size='1'>
+      <artifact classifier='osgi.bundle' id='com.microsoft.java.lombok' version='0.1.0'/>
+    </artifacts>
+    <touchpoint id='org.eclipse.equinox.p2.osgi' version='1.0.0'/>
+    <touchpointData size='1'>
+      <instructions size='1'>
+        <instruction key='manifest'>
+          Bundle-SymbolicName: com.microsoft.java.lombok;singleton:=true&#xA;Bundle-Version: 0.1.0&#xA;
+        </instruction>
+      </instructions>
+    </touchpointData>
+  </unit>
+</units>
