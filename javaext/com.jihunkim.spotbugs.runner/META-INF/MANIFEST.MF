@@ -1,10 +1,10 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Lombok extension
-Bundle-SymbolicName: com.microsoft.java.lombok;singleton:=true
-Bundle-Version: 0.1.0
-Bundle-Activator: com.microsoft.java.lombok.LombokPlugin
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-Name: SpotBugsPlugin
+Bundle-SymbolicName: com.jihunkim.spotbugs.runner;singleton:=true
+Bundle-Version: 0.0.1
+Bundle-Activator: com.jihunkim.spotbugs.runner.SpotBugsPlugin
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jdt.core,

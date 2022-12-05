@@ -19,6 +19,8 @@ export namespace Command {
   
   // vscode-java standardLanguageClient commands, true is full compile, false is incremental compile
   export const JAVA_BUILD_WORKSPACE = "java.workspace.compile";
+
+  export const JAVA_RUN_SPOTBUGS = "java.spotbugs.run";
 }
 
 export async function executeJavaLanguageServerCommand<T>(...rest: any[]): Promise<T | undefined> {

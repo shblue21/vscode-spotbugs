@@ -1,5 +1,5 @@
 import { commands, Extension, ExtensionContext, window, workspace, WorkspaceConfiguration, Uri } from "vscode";
-import { Command } from "./command";
+import { Command, executeJavaLanguageServerCommand } from "./command";
 import { getJavaExtensionApi } from './utils';
 import { getClassFileFromJavaFile } from "./javsClass";
 
@@ -37,7 +37,7 @@ export async function oneCycle(fileName: string | Uri) {
         classFile=await getClassFileFromJavaFile(fileName);
       }
 
-      
+      executeJavaLanguageServerCommand(Command.JAVA_RUN_SPOTBUGS, classFile);
       
       window.showInformationMessage("Build finished");
   } catch (err) {

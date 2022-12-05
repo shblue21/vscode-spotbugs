@@ -7,7 +7,7 @@ const fs = require('fs');
 
 const server_dir = path.resolve('./javaext');
 
-cp.execSync(gradlew() + ' clean build', {
+cp.execSync(mvnw() + ' clean package', {
     cwd: server_dir,
     stdio: [0, 1, 2]
 });
@@ -37,6 +37,6 @@ function isLinux() {
 	return /^linux/.test(process.platform);
 }
 
-function gradlew() {
-    return isWin() ? "gradlew.bat" : "./gradlew";
+function mvnw() {
+    return isWin() ? "mvnw.cmd" : "./mvnw";
 }
