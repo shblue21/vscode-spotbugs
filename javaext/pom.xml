@@ -10,7 +10,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <tycho.version>3.0.0</tycho.version>
+    <tycho.version>2.7.3</tycho.version>
     <tycho.extras.version>2.7.3</tycho.extras.version>
     <tycho.generateSourceReferences>false</tycho.generateSourceReferences>
     <tycho.test.platformArgs/>
@@ -70,12 +70,12 @@
             </sourceReferences>
           </configuration>
           <dependencies>
+            <dependency>
+              <groupId>org.eclipse.tycho.extras</groupId>
+              <artifactId>tycho-sourceref-jgit</artifactId>
+              <version>${tycho.extras.version}</version>
+            </dependency>
           </dependencies>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>plugins:maven-wrapper-plugin</artifactId>
-          <version>3.1.1</version>
         </plugin>
         <plugin>
           <groupId>org.eclipse.tycho</groupId>
