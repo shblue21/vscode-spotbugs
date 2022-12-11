@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
+//import edu.umd.cs.findbugs.config.*;
 
 public class JavaLombokDelegateCommandHandler implements IDelegateCommandHandler {
     public static final String JAVA_CODEACTION_LOMBOK_ANNOTATIONS = "java.codeAction.lombok.getAnnotations";
@@ -21,5 +22,11 @@ public class JavaLombokDelegateCommandHandler implements IDelegateCommandHandler
         }
         throw new UnsupportedOperationException(
                 String.format("Java lombok plugin doesn't support the command '%s'.", commandId));
+    }
+
+    private void oneCycletest(){
+//        final FindBugsProjects projects = new FindBugsProjects(project);
+
+
     }
 }

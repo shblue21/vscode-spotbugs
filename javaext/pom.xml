@@ -19,6 +19,7 @@
 
   <modules>
     <module>com.jihunkim.spotbugs.runner</module>
+    <module>com.jihunkim.spotbugs.analyzer</module>
   </modules>
 
   <repositories>
@@ -36,6 +37,15 @@
       <id>lsp4j</id>
       <layout>p2</layout>
       <url>https://download.eclipse.org/lsp4j/updates/releases/0.12.0/</url>
+    </repository>
+    <!-- maven central -->
+    <repository>
+      <id>central</id> 
+      <name>Maven Repository Switchboard</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
     </repositories>
     <build>
