@@ -7,19 +7,34 @@
         <artifactId>parent</artifactId>
         <version>0.0.1</version>
     </parent>
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spotBugsVersion>4.7.3</spotBugsVersion>
+    </properties>
     <artifactId>com.jihunkim.spotbugs.analyzer</artifactId>
     <packaging>jar</packaging>
-    <name>JDT LS :: analyzer</name>
+    <name>${base.name} :: Analyzer</name>
     <build>
-        <plugins>
-            
-        </plugins>
+        <plugins></plugins>
     </build>
     <dependencies>
-        <dependency> 
+        <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs</artifactId>
-            <version>4.7.3</version>
+            <version>${spotBugsVersion}</version>
         </dependency>
-      </dependencies> 
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>test-harness</artifactId>
+            <version>${spotBugsVersion}</version>
+            <scope>test</scope>
+          </dependency>
+        <dependency>
+            <groupId>com.jihunkim.spotbugs</groupId>
+            <artifactId>com.jihunkim.spotbugs.runner</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+    </dependencies>
 </project>

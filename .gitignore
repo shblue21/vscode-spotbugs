@@ -6,3 +6,7 @@ javaext/build/
 dist
 out
 *.class
+
+javaext/com.jihunkim.spotbugs.analyzer/target/
+
+javaext/com.jihunkim.spotbugs.runner/target/

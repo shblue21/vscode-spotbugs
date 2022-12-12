@@ -1,5 +1,8 @@
 package com.jihunkim.spotbugs.runner;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
@@ -15,6 +18,7 @@ public class SpotBugsPlugin implements BundleActivator {
 
     @Override
     public void stop(BundleContext context) throws Exception {
+        Map<String, String> test = new HashMap<String,String>();
     }
 
 }

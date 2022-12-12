@@ -5,9 +5,10 @@
   <artifactId>parent</artifactId>
   <version>0.0.1</version>
   <packaging>pom</packaging>
-  <name>VSCode Spotbugs :: parent</name>
+  <name>${base.name} :: parent</name>
   <description>VSCode Spotbugs parent</description>
   <properties>
+    <base.name>VSCode Spotbugs</base.name>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <tycho.version>2.7.3</tycho.version>

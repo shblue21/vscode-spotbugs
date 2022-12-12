@@ -9,7 +9,7 @@
     </parent>
     <artifactId>com.jihunkim.spotbugs.runner</artifactId>
     <packaging>eclipse-plugin</packaging>
-    <name>JDT LS :: Lombok</name>
+    <name>${base.name} :: Plugin</name>
     <build>
         <plugins>
             <plugin>
