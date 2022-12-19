@@ -28,11 +28,8 @@
   ],
   "activationEvents": [
     "onLanguage:java",
-    "onCommand:spotbugs.helloWorld",
     "onCommand:spotbugs.findbugs",
-    "onCommand:spotbugs.runFile",
-    "onCommand:spotbugs.saveXml",
-    "onCommand:spotbugs.loadXml"
+    "onCommand:spotbugs.runFile"
   ],
   "main": "./out/extension.js",
   "capabilities": {
@@ -95,35 +92,18 @@
       {
         "command": "spotbugs.runFile",
         "title": "Analyze Selected File"
-      },
-      {
-        "command": "spotbugs.saveXml",
-        "title": "Save XML"
-      },
-      {
-        "command": "spotbugs.loadXml",
-        "title": "Load XML"
-      },
-      {
-        "command": "spotbugs.helloWorld",
-        "title": "Hello World"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "submenu": "spotbugs.context"
+          "submenu": "spotbugs.context",
+          "when": "resourceLangId == java"
         }
       ],
       "spotbugs.context": [
         {
           "command": "spotbugs.runFile"
-        },
-        {
-          "command": "spotbugs.saveXml"
-        },
-        {
-          "command": "spotbugs.loadXml"
         }
       ]
     },

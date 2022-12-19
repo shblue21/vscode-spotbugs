@@ -1,33 +1,32 @@
 package com.jihunkim.spotbugs.runner;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AnalyzerLoader {
     
-    static String checkerClass = "com.shengchen.checkstyle.checker.CheckerService";
+    static String analyzerClass = "com.jihunkim.spotbugs.analyzer.AnalyzerService";
 
-    URLClassLoader checkerClassLoader = null;
+    URLClassLoader analyzerClassLoader = null;
 
     public ICheckerService loadCheckerService(String checkstyleJarPath, List<String> modulejarPaths) throws Exception {
-        if (checkerClassLoader != null) {
-            checkerClassLoader.close();
+        if (analyzerClassLoader != null) {
+            analyzerClassLoader.close();
         }
         final ArrayList<URL> jarUrls = new ArrayList<>();
-        jarUrls.add(Paths.get(getServerDir(), "com.shengchen.checkstyle.checker.jar").toUri().toURL());
+        jarUrls.add(Paths.get(getServerDir(), "com.jihunkim.spotbugs.analyzer.jar").toUri().toURL());
         jarUrls.add(Paths.get(checkstyleJarPath).toUri().toURL());
         for (final String module: modulejarPaths) {
             jarUrls.add(Paths.get(module).toUri().toURL());
         }
-        checkerClassLoader = new URLClassLoader(jarUrls.toArray(new URL[0]), getClass().getClassLoader());
-        final Constructor<?> constructor = checkerClassLoader.loadClass(checkerClass).getConstructor();
+        analyzerClassLoader = new URLClassLoader(jarUrls.toArray(new URL[0]), getClass().getClassLoader());
+        final Constructor<?> constructor = analyzerClassLoader.loadClass(analyzerClass).getConstructor();
         return (ICheckerService) constructor.newInstance();
-    }
-
-    public IQuickFixService loadQuickFixService() {
-        return new QuickFixService();
     }
 
     private String getServerDir() throws Exception {
