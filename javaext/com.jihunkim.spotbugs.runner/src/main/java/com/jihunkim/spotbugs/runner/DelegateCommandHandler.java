@@ -4,12 +4,12 @@ import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
-//import edu.umd.cs.findbugs.config.*;
 
-public class JavaLombokDelegateCommandHandler implements IDelegateCommandHandler {
+public class DelegateCommandHandler implements IDelegateCommandHandler {
     public static final String JAVA_CODEACTION_LOMBOK_ANNOTATIONS = "java.codeAction.lombok.getAnnotations";
     public static final String JAVA_SPOTBUGS_RUN = "java.spotbugs.run";
-    IProgressMonitor monitor;
+    
+    private AnalyzerLoader analyzerLoader = new AnalyzerLoader();
 
     @Override
     public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor progress) throws Exception {
@@ -24,9 +24,7 @@ public class JavaLombokDelegateCommandHandler implements IDelegateCommandHandler
                 String.format("Java lombok plugin doesn't support the command '%s'.", commandId));
     }
 
-    private void oneCycletest(){
-//        final FindBugsProjects projects = new FindBugsProjects(project);
-
-
+    protected void checkFiles(List<String> filesToCheckUris) throws Exception {
+        
     }
 }

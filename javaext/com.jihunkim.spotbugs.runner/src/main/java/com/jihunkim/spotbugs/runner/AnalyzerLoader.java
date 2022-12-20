@@ -14,7 +14,7 @@ public class AnalyzerLoader {
 
     URLClassLoader analyzerClassLoader = null;
 
-    public ICheckerService loadCheckerService(String checkstyleJarPath, List<String> modulejarPaths) throws Exception {
+    public ICheckerService loadAnalyzerService(String checkstyleJarPath, List<String> modulejarPaths) throws Exception {
         if (analyzerClassLoader != null) {
             analyzerClassLoader.close();
         }

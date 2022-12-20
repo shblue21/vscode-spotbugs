@@ -20,24 +20,27 @@ public class AnalyzerService {
         runner = new AnalyzerRunner();
     }
 
-    public void run(File file) {
+    public void work(List<String> files) {
+        for (String file : files) {
+            runFindBug(new File(file));
+        }
+    }
+
+    private void runFindBug(File file) {
         BugCollectionBugReporter bugReporter = runner.run(file.toPath());
         SortedBugCollection sortedBugCollection = (SortedBugCollection) bugReporter.getBugCollection();
         for (BugInstance bugInstance : sortedBugCollection) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("bugType", bugInstance.getType());
-            map.put("bugCategory", bugInstance.getBugPattern().getCategory());
-            map.put("bugAbbreviation", bugInstance.getBugPattern().getAbbrev());
-            map.put("bugMessage", bugInstance.getMessageWithoutPrefix());
-            map.put("bugRank", bugInstance.getBugRank());
-            map.put("className", bugInstance.getPrimaryClass().getClassName());
-            map.put("methodName", bugInstance.getPrimaryMethod().toString());
-            map.put("startLine", bugInstance.getPrimarySourceLineAnnotation().getStartLine());
-            map.put("endLine", bugInstance.getPrimarySourceLineAnnotation().getEndLine());
-
-            bugInstance.getBugPattern().getUri().ifPresentOrElse(uri -> map.put("externalUrl", uri.toString()), () -> map.put("externalUrl", ""));
-
-            System.out.println(map);
+            AnalyzerResult analyzerResult = new AnalyzerResult();
+            analyzerResult.setBugType(bugInstance.getType());
+            analyzerResult.setBugCategory(bugInstance.getBugPattern().getCategory());
+            analyzerResult.setBugAbbreviation(bugInstance.getBugPattern().getAbbrev());
+            analyzerResult.setBugMessage(bugInstance.getMessageWithoutPrefix());
+            analyzerResult.setBugRank(bugInstance.getBugRank());
+            analyzerResult.setClassName(bugInstance.getPrimaryClass().getClassName());
+            analyzerResult.setMethodName(bugInstance.getPrimaryMethod().toString());
+            analyzerResult.setStartLine(bugInstance.getPrimarySourceLineAnnotation().getStartLine());
+            analyzerResult.setEndLine(bugInstance.getPrimarySourceLineAnnotation().getEndLine());
+            bugInstance.getBugPattern().getUri().ifPresentOrElse(uri -> analyzerResult.setExternalUrl(uri.toString()), () -> analyzerResult.setExternalUrl(""));            
         }
     }
 }

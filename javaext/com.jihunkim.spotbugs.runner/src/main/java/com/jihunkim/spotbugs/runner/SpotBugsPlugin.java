@@ -18,7 +18,7 @@ public class SpotBugsPlugin implements BundleActivator {
 
     @Override
     public void stop(BundleContext context) throws Exception {
-        Map<String, String> test = new HashMap<String,String>();
+        SpotBugsPlugin.context = null;
     }
 
 }
