@@ -4,6 +4,7 @@
 const cp = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const fse = require('fs-extra');
 
 const server_dir = path.resolve('./javaext');
 
@@ -11,19 +12,24 @@ cp.execSync(mvnw() + ' clean package', {
     cwd: server_dir,
     stdio: [0, 1, 2]
 });
-// copy(path.join(server_dir, 'com.microsoft.java.lombok/target'), path.resolve('plugins'), (file) => {
-//     return /^com.microsoft.java.lombok.*.jar$/.test(file);
-// });
 
-// function copy(sourceFolder, targetFolder, fileFilter) {
-//     const jars = fs.readdirSync(sourceFolder).filter(file => fileFilter(file));
-//     if (!fs.existsSync(targetFolder)) {
-//         fs.mkdirSync(targetFolder);
-//     }
-//     for (const jar of jars) {
-//         fs.copyFileSync(path.join(sourceFolder, jar), path.join(targetFolder, path.basename(jar)));
-//     }
-// }
+buildBundle();
+
+
+function buildBundle() {
+    copy(path.join(server_dir, 'com.jihunkim.spotbugs.analyzer/target'), path.resolve('server'));
+    copy(path.join(server_dir, 'com.jihunkim.spotbugs.runner/target'), path.resolve('server'));
+}
+
+function copy(sourceFolder, targetFolder) {
+    const jars = fse.readdirSync(sourceFolder).filter(file => path.extname(file) === '.jar');
+    fse.ensureDirSync(targetFolder);
+    for (const jar of jars) {
+        // remove version from name
+        const renamedJar = path.basename(jar).substring(0, path.basename(jar).lastIndexOf('-')) + '.jar';
+        fse.copyFileSync(path.join(sourceFolder, jar), path.join(targetFolder, renamedJar));
+    }
+}
 
 function isWin() {
 	return /^win/.test(process.platform);

@@ -1,7 +1,9 @@
 package com.jihunkim.spotbugs.analyzer;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugRanker;
@@ -13,12 +15,12 @@ import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class AnalyzerRunner {
 
-    public BugCollectionBugReporter run(Path... files) {
+    public BugCollectionBugReporter run(List<File> files) {
         DetectorFactoryCollection.resetInstance(new DetectorFactoryCollection());
 
         try (FindBugs2 engine = new FindBugs2(); Project project = new Project()) {
-            for (Path file : files) {
-                project.addFile(file.toAbsolutePath().toString());
+            for (File file : files) {
+                project.addFile(file.getAbsolutePath());
             }
             engine.setProject(project);
 

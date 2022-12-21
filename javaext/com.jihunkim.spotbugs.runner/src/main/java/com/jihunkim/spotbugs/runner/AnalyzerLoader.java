@@ -8,13 +8,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jihunkim.spotbugs.runner.api.IAnalyzerService;
+
 public class AnalyzerLoader {
     
     static String analyzerClass = "com.jihunkim.spotbugs.analyzer.AnalyzerService";
 
     URLClassLoader analyzerClassLoader = null;
 
-    public ICheckerService loadAnalyzerService(String checkstyleJarPath, List<String> modulejarPaths) throws Exception {
+    public IAnalyzerService loadAnalyzerService(String checkstyleJarPath, List<String> modulejarPaths) throws Exception {
         if (analyzerClassLoader != null) {
             analyzerClassLoader.close();
         }
@@ -26,7 +28,7 @@ public class AnalyzerLoader {
         }
         analyzerClassLoader = new URLClassLoader(jarUrls.toArray(new URL[0]), getClass().getClassLoader());
         final Constructor<?> constructor = analyzerClassLoader.loadClass(analyzerClass).getConstructor();
-        return (ICheckerService) constructor.newInstance();
+        return (IAnalyzerService) constructor.newInstance();
     }
 
     private String getServerDir() throws Exception {

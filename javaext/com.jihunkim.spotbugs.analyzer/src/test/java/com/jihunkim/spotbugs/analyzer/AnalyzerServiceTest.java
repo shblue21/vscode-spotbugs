@@ -18,7 +18,7 @@ public class AnalyzerServiceTest {
     @Test
     public void testAnalyzerService() {
         Path path = Paths.get("C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
-        analyzerService.run(path.toFile());
+        // analyzerService.run(path.toFile());
         System.out.println("testAnalyzerService");
     }
 }

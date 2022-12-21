@@ -1,33 +1,26 @@
 package com.jihunkim.spotbugs.analyzer;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import com.jihunkim.spotbugs.runner.api.AnalyzerResult;
+import com.jihunkim.spotbugs.runner.api.IAnalyzerService;
 
-import edu.umd.cs.findbugs.BugCollection;
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.SortedBugCollection;
 
-public class AnalyzerService {
-    private AnalyzerRunner runner;
-    private List<AnalyzerResult> result;
+public class AnalyzerService implements IAnalyzerService {
 
-    public AnalyzerService() {
-        runner = new AnalyzerRunner();
-    }
+    @Override
+    public List<AnalyzerResult> analyze(List<File> filesToCheck) throws Exception {
+        AnalyzerRunner runner = new AnalyzerRunner();
+        List<AnalyzerResult> result = new ArrayList<>();
 
-    public void work(List<String> files) {
-        for (String file : files) {
-            runFindBug(new File(file));
-        }
-    }
+        // String[] files to Path[] filePaths
 
-    private void runFindBug(File file) {
-        BugCollectionBugReporter bugReporter = runner.run(file.toPath());
+        BugCollectionBugReporter bugReporter = runner.run(filesToCheck);
         SortedBugCollection sortedBugCollection = (SortedBugCollection) bugReporter.getBugCollection();
         for (BugInstance bugInstance : sortedBugCollection) {
             AnalyzerResult analyzerResult = new AnalyzerResult();
@@ -41,6 +34,9 @@ public class AnalyzerService {
             analyzerResult.setStartLine(bugInstance.getPrimarySourceLineAnnotation().getStartLine());
             analyzerResult.setEndLine(bugInstance.getPrimarySourceLineAnnotation().getEndLine());
             bugInstance.getBugPattern().getUri().ifPresentOrElse(uri -> analyzerResult.setExternalUrl(uri.toString()), () -> analyzerResult.setExternalUrl(""));            
+
+            result.add(analyzerResult);
         }
+        return result;
     }
 }
