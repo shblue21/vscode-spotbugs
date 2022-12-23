@@ -16,16 +16,14 @@ public class AnalyzerLoader {
 
     URLClassLoader analyzerClassLoader = null;
 
-    public IAnalyzerService loadAnalyzerService(String checkstyleJarPath, List<String> modulejarPaths) throws Exception {
+    public IAnalyzerService loadAnalyzerService(String checkstyleJarPath) throws Exception {
         if (analyzerClassLoader != null) {
             analyzerClassLoader.close();
         }
         final ArrayList<URL> jarUrls = new ArrayList<>();
         jarUrls.add(Paths.get(getServerDir(), "com.jihunkim.spotbugs.analyzer.jar").toUri().toURL());
         jarUrls.add(Paths.get(checkstyleJarPath).toUri().toURL());
-        for (final String module: modulejarPaths) {
-            jarUrls.add(Paths.get(module).toUri().toURL());
-        }
+
         analyzerClassLoader = new URLClassLoader(jarUrls.toArray(new URL[0]), getClass().getClassLoader());
         final Constructor<?> constructor = analyzerClassLoader.loadClass(analyzerClass).getConstructor();
         return (IAnalyzerService) constructor.newInstance();

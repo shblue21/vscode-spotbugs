@@ -15,25 +15,22 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
     private AnalyzerLoader analyzerLoader = new AnalyzerLoader();
     private IAnalyzerService analyzerService = null;
 
-    // public DelegateCommandHandler() {
+    public DelegateCommandHandler() throws Exception {
 
-    //     final String jarPath = String.format("%s/checkstyle-%s-all.jar", jarStorage, version);
-    //     final List<String> modules = (List<String>) config.get("modules");
-    //     if (checkerService != null) {
-    //         checkerService.dispose();
-    //     }
-    //     if (!version.equals(getVersion())) { // If not equal, load new version
-    //         checkerService = checkstyleLoader.loadCheckerService(jarPath, modules);
-    //     }
-    //     try {
-    //         checkerService.initialize();
-    //         checkerService.setConfiguration(config);
-    //     } catch (Throwable throwable) { // Initialization faild
-    //         checkerService.dispose(); // Unwind what's already initialized
-    //         checkerService = null;    // Remove checkerService
-    //         throw throwable;          // Resend the exception or error out
-    //     }
-    // }
+        final String jarPath = String.format("%s/checkstyle-%s-all.jar", "test", "8.29");
+        analyzerService = analyzerLoader.loadAnalyzerService(jarPath);
+
+        // if (!version.equals(getVersion())) { // If not equal, load new version
+        // }
+        // try {
+        //     checkerService.initialize();
+        //     checkerService.setConfiguration(config);
+        // } catch (Throwable throwable) { // Initialization faild
+        //     checkerService.dispose(); // Unwind what's already initialized
+        //     checkerService = null;    // Remove checkerService
+        //     throw throwable;          // Resend the exception or error out
+        // }
+    }
 
     @Override
     public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor progress) throws Exception {
