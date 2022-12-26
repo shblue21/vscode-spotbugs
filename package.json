@@ -113,7 +113,9 @@
         "label": "Spotbugs"
       }
     ],
-    "javaExtensions": []
+    "javaExtensions": [
+      "./server/com.jihunkim.spotbugs.runner.jar"
+  ]
   },
   "scripts": {
     "clean": "node ./node_modules/rimraf/bin.js out/",

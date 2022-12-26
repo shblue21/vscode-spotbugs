@@ -22,7 +22,7 @@ public class AnalyzerLoader {
         }
         final ArrayList<URL> jarUrls = new ArrayList<>();
         jarUrls.add(Paths.get(getServerDir(), "com.jihunkim.spotbugs.analyzer.jar").toUri().toURL());
-        jarUrls.add(Paths.get(checkstyleJarPath).toUri().toURL());
+        // jarUrls.add(Paths.get(getServerDir(),"spotbugs-4.7.3.jar").toUri().toURL());
 
         analyzerClassLoader = new URLClassLoader(jarUrls.toArray(new URL[0]), getClass().getClassLoader());
         final Constructor<?> constructor = analyzerClassLoader.loadClass(analyzerClass).getConstructor();

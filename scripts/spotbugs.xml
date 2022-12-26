@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<BugCollection version="4.7.3" sequence="0" timestamp="1670852920398" analysisTimestamp="1671781582482" release="">
+  <Project projectName="">
+    <Jar>C:\sourcecode\vscode-spotbugs\javaext\com.jihunkim.spotbugs.analyzer\src\test\resource\PepperBoxKafkaSampler.class</Jar>
+  </Project>
+  <BugInstance type="DM_DEFAULT_ENCODING" priority="1" rank="19" abbrev="Dm" category="I18N" instanceHash="6cc087191b4a7fd94069f0fb816cd69" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
+    <ShortMessage>Reliance on default encoding</ShortMessage>
+    <LongMessage>Found reliance on default encoding in com.gslab.pepper.sampler.PepperBoxKafkaSampler.getBrokerServers(JavaSamplerContext): new String(byte[])</LongMessage>
+    <Class classname="com.gslab.pepper.sampler.PepperBoxKafkaSampler" primary="true">
+      <SourceLine classname="com.gslab.pepper.sampler.PepperBoxKafkaSampler" start="37" end="247" sourcefile="PepperBoxKafkaSampler.java" sourcepath="com/gslab/pepper/sampler/PepperBoxKafkaSampler.java">
+        <Message>At PepperBoxKafkaSampler.java:[lines 37-247]</Message>
+      </SourceLine>
+      <Message>In class com.gslab.pepper.sampler.PepperBoxKafkaSampler</Message>
+    </Class>
+    <Method classname="com.gslab.pepper.sampler.PepperBoxKafkaSampler" name="getBrokerServers" signature="(Lorg/apache/jmeter/protocol/java/sampler/JavaSamplerContext;)Ljava/lang/String;" isStatic="false" primary="true">
+      <SourceLine classname="com.gslab.pepper.sampler.PepperBoxKafkaSampler" start="202" end="247" startBytecode="0" endBytecode="585" sourcefile="PepperBoxKafkaSampler.java" sourcepath="com/gslab/pepper/sampler/PepperBoxKafkaSampler.java"/>
+      <Message>In method com.gslab.pepper.sampler.PepperBoxKafkaSampler.getBrokerServers(JavaSamplerContext)</Message>
+    </Method>
+    <Method classname="java.lang.String" name="&lt;init&gt;" signature="([B)V" isStatic="false" role="METHOD_CALLED">
+      <SourceLine classname="java.lang.String" start="614" end="615" startBytecode="0" endBytecode="64" sourcefile="String.java" sourcepath="java/lang/String.java"/>
+      <Message>Called method new String(byte[])</Message>
+    </Method>
+    <SourceLine classname="com.gslab.pepper.sampler.PepperBoxKafkaSampler" primary="true" start="215" end="215" startBytecode="106" endBytecode="106" sourcefile="PepperBoxKafkaSampler.java" sourcepath="com/gslab/pepper/sampler/PepperBoxKafkaSampler.java">
+      <Message>At PepperBoxKafkaSampler.java:[line 215]</Message>
+    </SourceLine>
+  </BugInstance>
+  <BugCategory category="I18N">
+    <Description>Internationalization</Description>
+  </BugCategory>
+  <BugPattern type="DM_DEFAULT_ENCODING" abbrev="Dm" category="I18N">
+    <ShortDescription>Reliance on default encoding</ShortDescription>
+    <Details><![CDATA[
+
+<p> Found a call to a method which will perform a byte to String (or String to byte) conversion,
+and will assume that the default platform encoding is suitable. This will cause the application
+behavior to vary between platforms. Use an alternative API and specify a charset name or Charset
+object explicitly.</p>
+
+      ]]></Details>
+  </BugPattern>
+  <BugCode abbrev="Dm">
+    <Description>Dubious method used</Description>
+  </BugCode>
+  <Errors errors="0" missingClasses="18">
+    <MissingClass>com.eclipsesource.json.Json</MissingClass>
+    <MissingClass>com.eclipsesource.json.JsonObject</MissingClass>
+    <MissingClass>com.eclipsesource.json.JsonValue</MissingClass>
+    <MissingClass>com.gslab.pepper.util.ProducerKeys</MissingClass>
+    <MissingClass>org.apache.jmeter.config.Arguments</MissingClass>
+    <MissingClass>org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient</MissingClass>
+    <MissingClass>org.apache.jmeter.protocol.java.sampler.JavaSamplerContext</MissingClass>
+    <MissingClass>org.apache.jmeter.samplers.SampleResult</MissingClass>
+    <MissingClass>org.apache.jmeter.threads.JMeterContext</MissingClass>
+    <MissingClass>org.apache.jmeter.threads.JMeterContextService</MissingClass>
+    <MissingClass>org.apache.jmeter.threads.JMeterVariables</MissingClass>
+    <MissingClass>org.apache.jorphan.logging.LoggingManager</MissingClass>
+    <MissingClass>org.apache.kafka.clients.producer.KafkaProducer</MissingClass>
+    <MissingClass>org.apache.kafka.clients.producer.ProducerRecord</MissingClass>
+    <MissingClass>org.apache.kafka.common.protocol.SecurityProtocol</MissingClass>
+    <MissingClass>org.apache.log.Logger</MissingClass>
+    <MissingClass>org.apache.zookeeper.KeeperException</MissingClass>
+    <MissingClass>org.apache.zookeeper.ZooKeeper</MissingClass>
+  </Errors>
+  <FindBugsSummary timestamp="Mon, 12 Dec 2022 22:48:40 +0900" total_classes="1" referenced_classes="22" total_bugs="1" total_size="129" num_packages="1" java_version="11.0.17" vm_version="11.0.17+8" cpu_seconds="0.92" clock_seconds="1.39" peak_mbytes="214.76" alloc_mbytes="4016.00" gc_seconds="0.01" priority_1="1">
+    <FileStats path="com/gslab/pepper/sampler/PepperBoxKafkaSampler.java" bugCount="1" size="129" bugHash="02c4c3301e50ca3f46cee347d6c3d02d"/>
+    <PackageStats package="com.gslab.pepper.sampler" total_bugs="1" total_types="1" total_size="129" priority_1="1">
+      <ClassStats class="com.gslab.pepper.sampler.PepperBoxKafkaSampler" sourceFile="PepperBoxKafkaSampler.java" interface="false" size="129" bugs="1" priority_1="1"/>
+    </PackageStats>
+    <FindBugsProfile>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.ClassInfoAnalysisEngine" totalMilliseconds="302" invocations="444" avgMicrosecondsPerInvocation="681" maxMicrosecondsPerInvocation="15408" standardDeviationMicrosecondsPerInvocation="1515"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FieldItemSummary" totalMilliseconds="56" invocations="22" avgMicrosecondsPerInvocation="2586" maxMicrosecondsPerInvocation="14403" standardDeviationMicrosecondsPerInvocation="3736"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FindNoSideEffectMethods" totalMilliseconds="40" invocations="22" avgMicrosecondsPerInvocation="1832" maxMicrosecondsPerInvocation="9710" standardDeviationMicrosecondsPerInvocation="2200"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.ValueNumberDataflowFactory" totalMilliseconds="39" invocations="9" avgMicrosecondsPerInvocation="4335" maxMicrosecondsPerInvocation="15040" standardDeviationMicrosecondsPerInvocation="4633"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.ClassDataAnalysisEngine" totalMilliseconds="36" invocations="449" avgMicrosecondsPerInvocation="81" maxMicrosecondsPerInvocation="3295" standardDeviationMicrosecondsPerInvocation="204"/>
+      <ClassProfile name="edu.umd.cs.findbugs.OpcodeStack$JumpInfoFactory" totalMilliseconds="35" invocations="64" avgMicrosecondsPerInvocation="553" maxMicrosecondsPerInvocation="4076" standardDeviationMicrosecondsPerInvocation="666"/>
+      <ClassProfile name="edu.umd.cs.findbugs.util.TopologicalSort" totalMilliseconds="32" invocations="389" avgMicrosecondsPerInvocation="83" maxMicrosecondsPerInvocation="2438" standardDeviationMicrosecondsPerInvocation="195"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.EqualsOperandShouldHaveClassCompatibleWithThis" totalMilliseconds="28" invocations="22" avgMicrosecondsPerInvocation="1313" maxMicrosecondsPerInvocation="23155" standardDeviationMicrosecondsPerInvocation="4781"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.TypeDataflowFactory" totalMilliseconds="28" invocations="9" avgMicrosecondsPerInvocation="3163" maxMicrosecondsPerInvocation="6758" standardDeviationMicrosecondsPerInvocation="2528"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.JavaClassAnalysisEngine" totalMilliseconds="26" invocations="69" avgMicrosecondsPerInvocation="381" maxMicrosecondsPerInvocation="12436" standardDeviationMicrosecondsPerInvocation="1534"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.IsNullValueDataflowFactory" totalMilliseconds="25" invocations="8" avgMicrosecondsPerInvocation="3233" maxMicrosecondsPerInvocation="9190" standardDeviationMicrosecondsPerInvocation="3479"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.MethodGenFactory" totalMilliseconds="24" invocations="8" avgMicrosecondsPerInvocation="3031" maxMicrosecondsPerInvocation="20410" standardDeviationMicrosecondsPerInvocation="6577"/>
+      <ClassProfile name="edu.umd.cs.findbugs.ba.npe.NullDerefAndRedundantComparisonFinder" totalMilliseconds="23" invocations="8" avgMicrosecondsPerInvocation="2900" maxMicrosecondsPerInvocation="9244" standardDeviationMicrosecondsPerInvocation="3025"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.UnconditionalValueDerefDataflowFactory" totalMilliseconds="20" invocations="8" avgMicrosecondsPerInvocation="2621" maxMicrosecondsPerInvocation="7257" standardDeviationMicrosecondsPerInvocation="2334"/>
+      <ClassProfile name="edu.umd.cs.findbugs.classfile.engine.bcel.CFGFactory" totalMilliseconds="20" invocations="8" avgMicrosecondsPerInvocation="2586" maxMicrosecondsPerInvocation="8851" standardDeviationMicrosecondsPerInvocation="2656"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.NoteDirectlyRelevantTypeQualifiers" totalMilliseconds="18" invocations="22" avgMicrosecondsPerInvocation="854" maxMicrosecondsPerInvocation="3872" standardDeviationMicrosecondsPerInvocation="1057"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.FunctionsThatMightBeMistakenForProcedures" totalMilliseconds="16" invocations="22" avgMicrosecondsPerInvocation="757" maxMicrosecondsPerInvocation="3484" standardDeviationMicrosecondsPerInvocation="1019"/>
+      <ClassProfile name="edu.umd.cs.findbugs.detect.OverridingEqualsNotSymmetrical" totalMilliseconds="16" invocations="22" avgMicrosecondsPerInvocation="741" maxMicrosecondsPerInvocation="8653" standardDeviationMicrosecondsPerInvocation="1780"/>
+    </FindBugsProfile>
+  </FindBugsSummary>
+  <ClassFeatures></ClassFeatures>
+  <History></History>
+</BugCollection>

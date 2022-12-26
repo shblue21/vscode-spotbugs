@@ -8,7 +8,7 @@ const fse = require('fs-extra');
 
 const server_dir = path.resolve('./javaext');
 
-cp.execSync(mvnw() + ' clean package', {
+cp.execSync(mvnw() + ' clean package -DskipTests', {
     cwd: server_dir,
     stdio: [0, 1, 2]
 });
