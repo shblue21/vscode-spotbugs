@@ -5,16 +5,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.jihunkim.spotbugs.runner.api.AnalyzerResult;
-import com.jihunkim.spotbugs.runner.api.IAnalyzerService;
-
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.SortedBugCollection;
 
-public class AnalyzerService implements IAnalyzerService {
+public class AnalyzerService {
 
-    @Override
     public List<AnalyzerResult> analyze(List<File> filesToCheck) throws Exception {
         AnalyzerRunner runner = new AnalyzerRunner();
         List<AnalyzerResult> result = new ArrayList<>();
