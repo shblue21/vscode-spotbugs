@@ -13,13 +13,7 @@ cp.execSync(mvnw() + ' clean package -DskipTests', {
     stdio: [0, 1, 2]
 });
 
-buildBundle();
-
-
-function buildBundle() {
-    copy(path.join(server_dir, 'com.jihunkim.spotbugs.analyzer/target'), path.resolve('server'));
-    copy(path.join(server_dir, 'com.jihunkim.spotbugs.runner/target'), path.resolve('server'));
-}
+copy(path.join(server_dir, 'com.jihunkim.spotbugs.runner/target'), path.resolve('server'));
 
 function copy(sourceFolder, targetFolder) {
     const jars = fse.readdirSync(sourceFolder).filter(file => path.extname(file) === '.jar');

@@ -2,7 +2,6 @@ package com.jihunkim.spotbugs.analyzer;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 import edu.umd.cs.findbugs.BugCollectionBugReporter;

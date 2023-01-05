@@ -23,7 +23,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
 
     public DelegateCommandHandler() throws Exception {
 
-        analyzerService = analyzerLoader.loadAnalyzerService("");
+        // analyzerService = analyzerLoader.loadAnalyzerService("");
 
         // if (!version.equals(getVersion())) { // If not equal, load new version
         // }
@@ -58,7 +58,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
 
                     List<String> filesToCheck = new ArrayList<>();
                     filesToCheck.add("C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
-                    analyze(filesToCheck);
+                    // analyze(filesToCheck);
                 } catch (Exception e) {
                     FileWriter fileWriter = new FileWriter(logFile, true);
                     fileWriter.write(e.getMessage());
@@ -74,14 +74,14 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
                 String.format("Java lombok plugin doesn't support the command '%s'.", commandId));
     }
 
-    public List<AnalyzerResult> analyze(List<String> filesToCheck) throws Exception {
+    // public List<AnalyzerResult> analyze(List<String> filesToCheck) throws Exception {
 
-        if (filesToCheck.isEmpty() || analyzerService == null) {
-            return Collections.emptyList();
-        }
-        final List<File> filesToCheckFiles = filesToCheck.stream().map(File::new).collect(Collectors.toList());
+    //     if (filesToCheck.isEmpty() || analyzerService == null) {
+    //         return Collections.emptyList();
+    //     }
+    //     final List<File> filesToCheckFiles = filesToCheck.stream().map(File::new).collect(Collectors.toList());
 
-        return analyzerService.analyze(filesToCheckFiles);
-    }
+    //     return analyzerService.analyze(filesToCheckFiles);
+    // }
 
 }
