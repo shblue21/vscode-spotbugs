@@ -1,106 +1,58 @@
 package com.jihunkim.spotbugs.runner.api;
 
 public class AnalyzerResult {
-    private String bugType;
-    private String bugCategory;
-    private String bugAbbreviation;
-    private int bugRank;
-    private String bugMessage;
+    private int line;
+    private int column;
+    private String message;
+    private String severity;
+    private String sourceName;
 
-    private String className;
-    private String methodName;
-
-    private int startLine;
-    private int endLine;
-
-    private String externalUrl;
-
-    public String getBugType() {
-        return bugType;
+    public AnalyzerResult(int line, int column, String msg, String severity, String sourceName) {
+        this.line = line;
+        this.column = column;
+        this.message = msg;
+        this.severity = severity;
+        this.sourceName = sourceName;
     }
 
-    public void setBugType(String bugType) {
-        this.bugType = bugType;
+    public int getLine() {
+        return line;
     }
 
-    public String getBugCategory() {
-        return bugCategory;
+    public void setLine(int line) {
+        this.line = line;
     }
 
-    public void setBugCategory(String bugCategory) {
-        this.bugCategory = bugCategory;
+    public int getColumn() {
+        return column;
     }
 
-    public String getBugAbbreviation() {
-        return bugAbbreviation;
+    public void setColumn(int column) {
+        this.column = column;
     }
 
-    public void setBugAbbreviation(String bugAbbreviation) {
-        this.bugAbbreviation = bugAbbreviation;
+    public String getMsg() {
+        return message;
     }
 
-    public int getBugRank() {
-        return bugRank;
+    public void setMsg(String msg) {
+        this.message = msg;
     }
 
-    public void setBugRank(int bugRank) {
-        this.bugRank = bugRank;
+    public String getSeverity() {
+        return severity;
     }
 
-    public String getBugMessage() {
-        return bugMessage;
+    public void setSeverity(String severity) {
+        this.severity = severity;
     }
 
-    public void setBugMessage(String bugMessage) {
-        this.bugMessage = bugMessage;
+    public String getSourceName() {
+        return sourceName;
     }
 
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
-    }
-
-    public int getStartLine() {
-        return startLine;
-    }
-
-    public void setStartLine(int startLine) {
-        this.startLine = startLine;
-    }
-
-    public int getEndLine() {
-        return endLine;
-    }
-
-    public void setEndLine(int endLine) {
-        this.endLine = endLine;
-    }
-
-    public String getExternalUrl() {
-        return externalUrl;
-    }
-
-    public void setExternalUrl(String externalUrl) {
-        this.externalUrl = externalUrl;
-    }
-
-    @Override
-    public String toString() {
-        return "AnalyzerResult [bugType=" + bugType + ", bugCategory=" + bugCategory + ", bugAbbreviation="
-                + bugAbbreviation + ", bugRank=" + bugRank + ", bugMessage=" + bugMessage + ", className=" + className
-                + ", methodName=" + methodName + ", startLine=" + startLine + ", endLine=" + endLine + ", externalUrl="
-                + externalUrl + "]";
+    public void setSourceName(String sourceName) {
+        this.sourceName = sourceName;
     }
 
 }

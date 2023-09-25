@@ -1,49 +1,73 @@
 package com.jihunkim.spotbugs.analyzer;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Map;
 
-import edu.umd.cs.findbugs.BugCollectionBugReporter;
-import edu.umd.cs.findbugs.BugInstance;
-import edu.umd.cs.findbugs.SortedBugCollection;
+import com.jihunkim.spotbugs.runner.IAnalyzerService;
 
-public class AnalyzerService {
+import edu.umd.cs.findbugs.Project;
+import edu.umd.cs.findbugs.config.UserPreferences;
 
-    public List<AnalyzerResult> analyze(List<File> filesToCheck) throws Exception {
-        AnalyzerRunner runner = new AnalyzerRunner();
-        List<AnalyzerResult> result = new ArrayList<>();
+public class AnalyzerService implements IAnalyzerService {
 
-        // String[] files to Path[] filePaths
+    private UserPreferences userPreferences;
+    private SimpleFindbugsExecutor simpleFindbugsExecutor;
 
-        BugCollectionBugReporter bugReporter = runner.run(filesToCheck);
-        SortedBugCollection sortedBugCollection = (SortedBugCollection) bugReporter.getBugCollection();
-        for (BugInstance bugInstance : sortedBugCollection) {
-            AnalyzerResult analyzerResult = new AnalyzerResult();
-            analyzerResult.setBugType(bugInstance.getType());
-            analyzerResult.setBugCategory(bugInstance.getBugPattern().getCategory());
-            analyzerResult.setBugAbbreviation(bugInstance.getBugPattern().getAbbrev());
-            analyzerResult.setBugMessage(bugInstance.getMessageWithoutPrefix());
-            analyzerResult.setBugRank(bugInstance.getBugRank());
-            analyzerResult.setClassName(bugInstance.getPrimaryClass().getClassName());
-            analyzerResult.setMethodName(bugInstance.getPrimaryMethod().toString());
-            analyzerResult.setStartLine(bugInstance.getPrimarySourceLineAnnotation().getStartLine());
-            analyzerResult.setEndLine(bugInstance.getPrimarySourceLineAnnotation().getEndLine());
-            bugInstance.getBugPattern().getUri().ifPresentOrElse(uri -> analyzerResult.setExternalUrl(uri.toString()), () -> analyzerResult.setExternalUrl(""));            
+    public void setConfiguration(Map<String, Object> config) throws IOException {
+        this.userPreferences = UserPreferences.createDefaultUserPreferences();
+        this.userPreferences.setEffort("default");
 
-            // create temp text file 't.txt' and append bugInstance.getType()
-            File file = new File("t.txt");
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            java.io.FileWriter fw = new java.io.FileWriter(file, true);
-            fw.write(new Date() + " " + bugInstance.getType());
-            fw.flush();
-            fw.close();
-
-            result.add(analyzerResult);
-        }
-        return result;
     }
+
+    public void analyze() throws IOException, InterruptedException {
+        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
+        fw.write("analyze : " + java.time.LocalDateTime.now() + "\n");
+        fw.close();
+
+        try {
+            FileWriter fw4 = new FileWriter("C://test//spotbugs.log", true);
+            fw4.write("analyze start : " + java.time.LocalDateTime.now() + "\n");
+            fw4.close();
+            Project project = new Project();
+            project.addFile(
+                    "C:\\sourcecode\\vscode-spotbugs\\javaext_back\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
+            FileWriter fw5 = new FileWriter("C://test//spotbugs.log", true);
+            fw5.write("project add file : " + java.time.LocalDateTime.now() + "\n");
+            fw5.close();
+            simpleFindbugsExecutor = new SimpleFindbugsExecutor(userPreferences, project);
+            simpleFindbugsExecutor.execute();
+        } catch (Exception e) {
+            FileWriter fw3 = new FileWriter("C://test//spotbugs.log", true);
+            fw3.write("analyze error : " + java.time.LocalDateTime.now() + "\n");
+            fw3.close();
+            FileWriter fw4 = new FileWriter("C://test//spotbugs.log", true);
+            fw4.write("error : " + e.getMessage() + "\n");
+            fw4.close();
+
+        }
+        FileWriter fw2 = new FileWriter("C://test//spotbugs.log", true);
+        fw2.write("analyze end : " + java.time.LocalDateTime.now() + "\n");
+        fw2.close();
+
+    }
+
+    @Override
+    public void initialize() throws Exception {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'initialize'");
+    }
+
+    @Override
+    public void dispose() throws Exception {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'dispose'");
+    }
+
+    @Override
+    public String getVersion() throws Exception {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getVersion'");
+    }
+
 }

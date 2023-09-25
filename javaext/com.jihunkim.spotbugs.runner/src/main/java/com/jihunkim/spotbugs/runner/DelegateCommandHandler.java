@@ -1,87 +1,98 @@
 package com.jihunkim.spotbugs.runner;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.jihunkim.spotbugs.runner.api.CheckResult;
+import com.jihunkim.spotbugs.runner.api.ICheckerService;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
-
-import com.jihunkim.spotbugs.runner.api.AnalyzerResult;
-import com.jihunkim.spotbugs.runner.api.IAnalyzerService;
+import java.io.FileWriter;
+import java.util.List;
+import java.util.Map;
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
-    public static final String JAVA_SPOTBUGS_RUN = "java.spotbugs.run";
 
-    private AnalyzerLoader analyzerLoader = new AnalyzerLoader();
+    private static final String JAVA_SPOTBUGS_RUN = "java.spotbugs.run";
+
+    private CheckstyleLoader checkstyleLoader = new CheckstyleLoader();
+    private ICheckerService checkerService = null;
     private IAnalyzerService analyzerService = null;
 
-    public DelegateCommandHandler() throws Exception {
-
-        // analyzerService = analyzerLoader.loadAnalyzerService("");
-
-        // if (!version.equals(getVersion())) { // If not equal, load new version
-        // }
-        // try {
-        // checkerService.initialize();
-        // checkerService.setConfiguration(config);
-        // } catch (Throwable throwable) { // Initialization faild
-        // checkerService.dispose(); // Unwind what's already initialized
-        // checkerService = null; // Remove checkerService
-        // throw throwable; // Resend the exception or error out
-        // }
-    }
-
     @Override
-    public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor progress) throws Exception {
-        // create txt file and write start time
-        final String logPath = String.format("%s\\%s",
-                "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource",
-                "log.txt");
-        final File logFile = new File(logPath);
-        if (!logFile.exists()) {
-            logFile.createNewFile();
+    public synchronized Object executeCommand(
+            String commandId,
+            List<Object> arguments,
+            IProgressMonitor monitor) throws Exception {
+        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
+        fw.write("execute command : " + commandId + " : " + java.time.LocalDateTime.now() + "\n");
+        fw.close();
+        try {
+            this.setConfiguration(null);
+        } catch (Throwable e) {
+
+            e.printStackTrace();
         }
         switch (commandId) {
             case JAVA_SPOTBUGS_RUN:
-                try {
-                    final String startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+                return this.analyze();
 
-                    final FileWriter fileWriter = new FileWriter(logFile);
-                    fileWriter.write(startTime);
-                    fileWriter.close();
-
-                    List<String> filesToCheck = new ArrayList<>();
-                    filesToCheck.add("C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
-                    // analyze(filesToCheck);
-                } catch (Exception e) {
-                    FileWriter fileWriter = new FileWriter(logFile, true);
-                    fileWriter.write(e.getMessage());
-                    fileWriter.close();
-                }
-
-
-                return null;
             default:
-                break;
+                return null;
         }
-        throw new UnsupportedOperationException(
-                String.format("Java lombok plugin doesn't support the command '%s'.", commandId));
     }
 
-    // public List<AnalyzerResult> analyze(List<String> filesToCheck) throws Exception {
+    @SuppressWarnings("unchecked")
+    protected void setConfiguration(Map<String, Object> config) throws Throwable {
+        // final String jarStorage = (String) config.get("jarStorage");
+        // final String version = (String) config.get("version");
+        final String jarPath = "C:\\sourcecode\\vscode-spotbugs\\server\\spotbugs-4.7.3.jar";
+        // create log file to 'C://test//spotbugs.log'
+        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
+        fw.write("set configuration : " + java.time.LocalDateTime.now() + "\n");
+        fw.close();
 
-    //     if (filesToCheck.isEmpty() || analyzerService == null) {
-    //         return Collections.emptyList();
-    //     }
-    //     final List<File> filesToCheckFiles = filesToCheck.stream().map(File::new).collect(Collectors.toList());
+        if (analyzerService != null) {
+            analyzerService.dispose();
+        }
+        // if (!version.equals(getVersion())) { // If not equal, load new version
+        analyzerService = checkstyleLoader.loadAnalyzerService(jarPath);
+        // }
+        try {
+            // analyzerService.initialize();
+            // analyzerService.setConfiguration(config);
+        } catch (Throwable throwable) { // Initialization faild
+            analyzerService.dispose(); // Unwind what's already initialized
+            analyzerService = null; // Remove analyzerService
+            throw throwable; // Resend the exception or error out
+        }
+    }
 
-    //     return analyzerService.analyze(filesToCheckFiles);
-    // }
+    protected String getVersion() throws Exception {
+        if (checkerService != null) {
+            return checkerService.getVersion();
+        }
+        return null;
+    }
 
+    protected Map<String, List<CheckResult>> analyze() throws Exception {
+        // if (filesToCheckUris.isEmpty() || analyzerService == null) {
+        // return Collections.emptyMap();
+        // }
+        // final List<File> filesToCheck =
+        // filesToCheckUris.stream().map(File::new).collect(Collectors.toList());
+        // final IFile resource =
+        // JDTUtils.findFile(filesToCheck.get(0).toURI().toString());
+        
+        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
+        fw.write("DelegateCommandHandler analyze : " + java.time.LocalDateTime.now() + "\n");
+        fw.close();
+        try {
+            analyzerService.analyze();
+
+        } catch (Exception e) {
+            FileWriter fw2 = new FileWriter("C://test//spotbugs.log", true);
+            fw2.write("DelegateCommandHandler analyze error : " + e.getMessage() + "\n");
+            fw2.close();
+        }
+        return null;
+    }
 }
