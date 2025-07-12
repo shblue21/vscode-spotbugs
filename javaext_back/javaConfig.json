@@ -1,7 +1,7 @@
 {
     "projects": [
-        "com.jihunkim.spotbugs.analyzer",
-        "com.jihunkim.spotbugs.runner"
+        "com.spotbugs.analyzer",
+        "com.spotbugs.runner"
     ],
    "targetPlatform": "java.debug.target"
 }

@@ -1,4 +1,4 @@
-package com.jihunkim.spotbugs.analyzer;
+package com.spotbugs.analyzer;
 
 public class AnalyzerResult {
     private String bugType;

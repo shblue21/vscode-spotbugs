@@ -1,4 +1,4 @@
-package com.jihunkim.spotbugs.runner;
+package com.spotbugs.runner;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
 
-import com.jihunkim.spotbugs.runner.api.AnalyzerResult;
-import com.jihunkim.spotbugs.runner.api.IAnalyzerService;
+import com.spotbugs.runner.api.AnalyzerResult;
+import com.spotbugs.runner.api.IAnalyzerService;
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
     public static final String JAVA_SPOTBUGS_RUN = "java.spotbugs.run";
@@ -41,7 +41,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
     public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor progress) throws Exception {
         // create txt file and write start time
         final String logPath = String.format("%s\\%s",
-                "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource",
+                "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.spotbugs.analyzer\\src\\test\\resource",
                 "log.txt");
         final File logFile = new File(logPath);
         if (!logFile.exists()) {
@@ -58,7 +58,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
 
                     List<String> filesToCheck = new ArrayList<>();
                     filesToCheck.add(
-                            "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
+                            "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
                     // analyze(filesToCheck);
                 } catch (Exception e) {
                     FileWriter fileWriter = new FileWriter(logFile, true);

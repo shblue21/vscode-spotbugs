@@ -15,14 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.jihunkim.spotbugs.runner;
+package com.spotbugs.runner;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
 public class CheckstylePlugin implements BundleActivator {
 
-    public static final String PLUGIN_ID = "com.jihunkim.spotbugs.runner";
+    public static final String PLUGIN_ID = "com.spotbugs.runner";
     public static BundleContext context = null;
 
     @Override

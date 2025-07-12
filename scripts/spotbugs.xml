@@ -2,7 +2,7 @@
 
 <BugCollection version="4.7.3" sequence="0" timestamp="1670852920398" analysisTimestamp="1671781582482" release="">
   <Project projectName="">
-    <Jar>C:\sourcecode\vscode-spotbugs\javaext\com.jihunkim.spotbugs.analyzer\src\test\resource\PepperBoxKafkaSampler.class</Jar>
+    <Jar>C:\sourcecode\vscode-spotbugs\javaext\com.spotbugs.analyzer\src\test\resource\PepperBoxKafkaSampler.class</Jar>
   </Project>
   <BugInstance type="DM_DEFAULT_ENCODING" priority="1" rank="19" abbrev="Dm" category="I18N" instanceHash="6cc087191b4a7fd94069f0fb816cd69" instanceOccurrenceNum="0" instanceOccurrenceMax="0">
     <ShortMessage>Reliance on default encoding</ShortMessage>

@@ -2,7 +2,7 @@
 <?eclipse version="3.4"?>
 <plugin>
   <extension point="org.eclipse.jdt.ls.core.delegateCommandHandler">
-    <delegateCommandHandler class="com.jihunkim.spotbugs.runner.DelegateCommandHandler">
+    <delegateCommandHandler class="com.spotbugs.runner.DelegateCommandHandler">
       <command id="java.spotbugs.run"/>
     </delegateCommandHandler>
   </extension>

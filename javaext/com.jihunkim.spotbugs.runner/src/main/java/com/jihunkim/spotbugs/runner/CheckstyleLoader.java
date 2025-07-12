@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.jihunkim.spotbugs.runner;
+package com.spotbugs.runner;
 
-import com.jihunkim.spotbugs.runner.api.ICheckerService;
+import com.spotbugs.runner.api.ICheckerService;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -29,7 +29,7 @@ import java.util.ArrayList;
 
 public class CheckstyleLoader {
 
-    static String checkerClass = "com.jihunkim.spotbugs.analyzer.AnalyzerService";
+    static String checkerClass = "com.spotbugs.analyzer.AnalyzerService";
 
     URLClassLoader analyzerClassLoader = null;
 
@@ -44,7 +44,7 @@ public class CheckstyleLoader {
 
         try {
             final ArrayList<URL> jarUrls = new ArrayList<>();
-            jarUrls.add(Paths.get(getServerDir(), "com.jihunkim.spotbugs.analyzer.jar").toUri().toURL());
+            jarUrls.add(Paths.get(getServerDir(), "com.spotbugs.analyzer.jar").toUri().toURL());
             jarUrls.add(Paths.get(checkstyleJarPath).toUri().toURL());
             analyzerClassLoader = new URLClassLoader(jarUrls.toArray(new URL[0]), getClass().getClassLoader());
             final Constructor<?> constructor = analyzerClassLoader.loadClass(checkerClass).getConstructor();

@@ -1,11 +1,11 @@
-package com.jihunkim.spotbugs.runner;
+package com.spotbugs.runner;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.jihunkim.spotbugs.runner.api.CheckResult;
+import com.spotbugs.runner.api.CheckResult;
 
 public interface IAnalyzerService {
 

@@ -1,7 +1,7 @@
-package com.jihunkim.spotbugs.runner;
+package com.spotbugs.runner;
 
-import com.jihunkim.spotbugs.runner.api.CheckResult;
-import com.jihunkim.spotbugs.runner.api.ICheckerService;
+import com.spotbugs.runner.api.CheckResult;
+import com.spotbugs.runner.api.ICheckerService;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;

@@ -1,4 +1,4 @@
-package com.jihunkim.spotbugs.analyzer;
+package com.spotbugs.analyzer;
 
 import java.io.File;
 import java.io.IOException;

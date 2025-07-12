@@ -114,7 +114,7 @@
       }
     ],
     "javaExtensions": [
-      "./server/com.jihunkim.spotbugs.runner.jar"
+      "./server/com.spotbugs.runner.jar"
   ]
   },
   "scripts": {

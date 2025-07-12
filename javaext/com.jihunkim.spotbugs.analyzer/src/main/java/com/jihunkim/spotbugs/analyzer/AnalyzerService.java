@@ -1,10 +1,10 @@
-package com.jihunkim.spotbugs.analyzer;
+package com.spotbugs.analyzer;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 
-import com.jihunkim.spotbugs.runner.IAnalyzerService;
+import com.spotbugs.runner.IAnalyzerService;
 
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.config.UserPreferences;
@@ -31,7 +31,7 @@ public class AnalyzerService implements IAnalyzerService {
             fw4.close();
             Project project = new Project();
             project.addFile(
-                    "C:\\sourcecode\\vscode-spotbugs\\javaext_back\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
+                    "C:\\sourcecode\\vscode-spotbugs\\javaext_back\\com.spotbugs.analyzer\\src\\test\\resource\\PepperBoxKafkaSampler.class");
             FileWriter fw5 = new FileWriter("C://test//spotbugs.log", true);
             fw5.write("project add file : " + java.time.LocalDateTime.now() + "\n");
             fw5.close();

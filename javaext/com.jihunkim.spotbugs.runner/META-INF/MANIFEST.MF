@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: com.jihunkim.spotbugs.runner
-Bundle-SymbolicName: com.jihunkim.spotbugs.runner;singleton:=true
+Bundle-Name: com.spotbugs.runner
+Bundle-SymbolicName: com.spotbugs.runner;singleton:=true
 Bundle-Version: 0.0.1
-Bundle-Activator: com.jihunkim.spotbugs.runner.CheckstylePlugin
+Bundle-Activator: com.spotbugs.runner.CheckstylePlugin
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Import-Package: org.eclipse.jdt.core,
  org.eclipse.jdt.launching,
@@ -18,4 +18,4 @@ Require-Bundle: org.eclipse.jdt.core,
  org.eclipse.jdt.core.manipulation,
  org.eclipse.text
 Bundle-ClassPath: .
-Automatic-Module-Name: com.jihunkim.spotbugs.runner
+Automatic-Module-Name: com.spotbugs.runner

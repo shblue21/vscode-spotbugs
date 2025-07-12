@@ -12,10 +12,10 @@
       "port": 1044,
       "timeout": 30000,
       "sourcePaths": [
-        "${workspaceRoot}/com.jihunkim.spotbugs.analyzer/src/main/java",
-        "${workspaceRoot}/com.jihunkim.spotbugs.runner/src/main/java"
+        "${workspaceRoot}/com.spotbugs.analyzer/src/main/java",
+        "${workspaceRoot}/com.spotbugs.runner/src/main/java"
       ],
-      "projectName": "com.jihunkim.spotbugs",
+      "projectName": "com.spotbugs",
     }
   ]
 }

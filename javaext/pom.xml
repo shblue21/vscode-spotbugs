@@ -2,7 +2,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.jihunkim.spotbugs</groupId>
+    <groupId>com.spotbugs</groupId>
     <artifactId>parent</artifactId>
     <name>${base.name} :: Parent</name>
     <version>0.0.1</version>
@@ -15,9 +15,9 @@
         <spotbugs-version>4.7.3</spotbugs-version>
     </properties>
     <modules>
-        <module>com.jihunkim.spotbugs.runner</module>
-        <module>com.jihunkim.spotbugs.analyzer</module>
-        <module>com.jihunkim.spotbugs.target</module>
+        <module>com.spotbugs.runner</module>
+        <module>com.spotbugs.analyzer</module>
+        <module>com.spotbugs.target</module>
     </modules>
     <build>
         <pluginManagement>
@@ -54,8 +54,8 @@
                         <resolver>p2</resolver>
                         <target>
                             <artifact>
-                                <groupId>com.jihunkim.spotbugs</groupId>
-                                <artifactId>com.jihunkim.spotbugs.target</artifactId>
+                                <groupId>com.spotbugs</groupId>
+                                <artifactId>com.spotbugs.target</artifactId>
                                 <version>${project.version}</version>
                             </artifact>
                         </target>

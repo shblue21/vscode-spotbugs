@@ -1,4 +1,4 @@
-package com.jihunkim.spotbugs.analyzer;
+package com.spotbugs.analyzer;
 
 import edu.umd.cs.findbugs.BugCollection;
 import edu.umd.cs.findbugs.BugCollectionBugReporter;

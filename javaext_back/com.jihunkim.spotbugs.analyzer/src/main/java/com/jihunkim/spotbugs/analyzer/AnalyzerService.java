@@ -1,4 +1,4 @@
-package com.jihunkim.spotbugs.analyzer;
+package com.spotbugs.analyzer;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -20,7 +20,7 @@ public class AnalyzerService {
         // String[] files to Path[] filePaths
         // create temp text file 't.txt' and append bugInstance.getType()
         final String logPath = String.format("%s\\%s",
-                "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.jihunkim.spotbugs.analyzer\\src\\test\\resource",
+                "C:\\sourcecode\\vscode-spotbugs\\javaext\\com.spotbugs.analyzer\\src\\test\\resource",
                 "log2.txt");
         final File logFile = new File(logPath);
         if (!logFile.exists()) {

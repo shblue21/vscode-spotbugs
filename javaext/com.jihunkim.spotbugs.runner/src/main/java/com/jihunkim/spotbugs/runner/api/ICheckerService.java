@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.jihunkim.spotbugs.runner.api;
+package com.spotbugs.runner.api;
 
 import java.io.File;
 import java.util.List;

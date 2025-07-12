@@ -1,4 +1,4 @@
-package com.jihunkim.spotbugs.runner.api;
+package com.spotbugs.runner.api;
 
 public class AnalyzerResult {
     private int line;

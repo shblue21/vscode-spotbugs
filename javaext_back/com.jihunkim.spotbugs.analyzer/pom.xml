@@ -3,11 +3,11 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.jihunkim.spotbugs</groupId>
+        <groupId>com.spotbugs</groupId>
         <artifactId>parent</artifactId>
         <version>0.0.1</version>
     </parent>
-    <artifactId>com.jihunkim.spotbugs.analyzer</artifactId>
+    <artifactId>com.spotbugs.analyzer</artifactId>
     <packaging>jar</packaging>
     <name>${base.name} :: Analyzer</name>
     <properties>
