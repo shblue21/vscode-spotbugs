@@ -1,7 +1,0 @@
-{
-    "projects": [
-        "com.spotbugs.analyzer",
-        "com.spotbugs.runner"
-    ],
-   "targetPlatform": "java.debug.target"
-}

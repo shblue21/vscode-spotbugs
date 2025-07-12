@@ -1,10 +1,9 @@
-"use strict";
+'use strict';
 import { Uri } from "vscode";
 import * as path from "path";
-import { getJavaExtensionApi, getJavaExtension } from "./utils";
+import { getJavaExtensionApi } from "./utils";
 import { Command, executeJavaLanguageServerCommand } from "./command";
-import * as util from "util";
-import * as glob from "glob";
+import { glob } from "glob";
 
 export async function isClassFileExists(javaFile: string): Promise<boolean> {
   const projectUris: string[] = await getAllJavaProjects();
@@ -15,15 +14,14 @@ export async function isClassFileExists(javaFile: string): Promise<boolean> {
       scope: "runtime",
     });
     for (const classPath of classpathResult.classpaths) {
-      glob(classPath.replace(/\\/g, "/") + "/**/*.class", (err, files) => {
-        for (const file of files) {
-          if (
-            path.basename(file, ".class") === path.basename(javaFile, ".java")
-          ) {
-            return true;
-          }
+      const files = await glob(classPath.replace(/\\/g, "/") + "/**/*.class");
+      for (const file of files) {
+        if (
+          path.basename(file, ".class") === path.basename(javaFile, ".java")
+        ) {
+          return true;
         }
-      });
+      }
     }
   }
   return false;
@@ -47,8 +45,6 @@ async function getAllJavaProjects(
 export async function getClassFileFromJavaFile(
   javaFile: string
 ): Promise<string> {
-  const globPromise = util.promisify(glob);
-
   const projectUris: string[] = await getAllJavaProjects();
   const javaExtensionApi = await getJavaExtensionApi();
 
@@ -58,7 +54,7 @@ export async function getClassFileFromJavaFile(
     });
     for (const classPath of classpathResult.classpaths) {
       const replaceBackslash = classPath.replace(/\\/g, "/");
-      const files = await globPromise(replaceBackslash + "/**/*.class");
+      const files = await glob(replaceBackslash + "/**/*.class");
       for (const file of files) {
         if (
           path.basename(file, ".class") === path.basename(javaFile, ".java")
