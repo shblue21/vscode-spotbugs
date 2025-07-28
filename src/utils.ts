@@ -1,37 +1,14 @@
-import { Uri, workspace, Extension, extensions } from "vscode";
-import { JAVA_EXTENSION_ID } from "./constant";
+import { extensions, Extension } from 'vscode';
 
-const configPrefix = "spotbugs";
+const JAVA_EXTENSION_ID = 'redhat.java';
 
-export function getJavaExtension(): Extension<any> | undefined {
-  return extensions.getExtension(JAVA_EXTENSION_ID);
-}
-
-export async function getJavaExtensionApi(): Promise<any> {
-  const extension: Extension<any> | undefined = getJavaExtension();
-  if (extension === undefined) {
-    return undefined;
-  }
-  const extensionApi: any = await extension.activate();
-  if (extensionApi.getClasspaths === undefined) {
-    throw undefined;
-  }
-  return extensionApi;
-}
-
-export function getConfig(uri?: Uri): Config {
-  const config = workspace.getConfiguration(
-    configPrefix,
-    uri
-  ) as unknown as Config;
-
-  if (!workspace.isTrusted) {
-    const newConfig = {
-      ...config,
-      effort: "default",
-    };
-    return newConfig;
-  }
-
-  return config;
+export async function getJavaExtension(): Promise<Extension<any> | undefined> {
+    const javaExtension = extensions.getExtension(JAVA_EXTENSION_ID);
+    if (!javaExtension) {
+        return undefined;
+    }
+    if (!javaExtension.isActive) {
+        await javaExtension.activate();
+    }
+    return javaExtension;
 }

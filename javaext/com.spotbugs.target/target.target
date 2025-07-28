@@ -1,29 +1,27 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><?pde version="3.8"?><target name="JDTLS.EXT" sequenceNumber="38">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+<target name="Spotbugs for JDT.LS">
     <locations>
-        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
-            <unit id="org.eclipse.equinox.core.feature.feature.group" version="0.0.0"/>
-            <unit id="org.eclipse.equinox.core.sdk.feature.group" version="0.0.0"/>
-            <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
-            <unit id="org.eclipse.equinox.p2.core.feature.source.feature.group" version="0.0.0"/>
-            <unit id="org.eclipse.equinox.sdk.feature.group" version="0.0.0"/>
-            <unit id="org.eclipse.jdt.source.feature.group" version="0.0.0"/>
-            <unit id="org.eclipse.sdk.feature.group" version="0.0.0"/>
-            <unit id="org.mockito.mockito-core" version="0.0.0"/>
-            <repository location="https://download.eclipse.org/eclipse/updates/4.27/R-4.27-202303020300/"/>
+        <!-- Eclipse SDK 4.32 (2024-12) : JDT Core·Platform 제공 -->
+        <location includeAllPlatforms="false"
+                  includeConfigurePhase="false"
+                  includeMode="planner"
+                  includeSource="true"
+                  type="InstallableUnit">
+            <repository location="https://download.eclipse.org/eclipse/updates/4.32/"/>
+            <unit id="org.eclipse.jdt.feature.group"       version="0.0.0"/>
+            <unit id="org.eclipse.platform.feature.group"  version="0.0.0"/>
         </location>
-        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
-            <unit id="org.eclipse.xtext.xbase.lib" version="0.0.0"/>
-            <repository location="https://download.eclipse.org/releases/2022-12/"/>
-        </location>
-        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
-            <unit id="org.eclipse.jdt.ls.core" version="0.0.0"/>
-            <!-- add jdtlstest -->
-            <unit id="org.eclipse.jdt.ls.tests" version="0.0.0"/>
-            <repository location="https://download.eclipse.org/jdtls/snapshots/repository/latest/"/>
-        </location>
-        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
-           <repository location="https://download.eclipse.org/lsp4j/updates/releases/0.21.0/"/>
-           <unit id="org.eclipse.lsp4j.sdk.feature.group" version="0.0.0"/>
+
+        <!-- JDT LS 1.46.x 전용 플러그인 -->
+        <location includeAllPlatforms="false"
+                  includeConfigurePhase="false"
+                  includeMode="planner"
+                  includeSource="true"
+                  type="InstallableUnit">
+            <repository location="https://download.eclipse.org/jdtls/milestones/1.47.0/repository/"/>
+            <unit id="org.eclipse.jdt.ls.core"               version="0.0.0"/>
+            <unit id="org.eclipse.jdt.ls.filesystem"         version="0.0.0"/>
         </location>
     </locations>
 </target>

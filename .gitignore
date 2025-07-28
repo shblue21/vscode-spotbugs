@@ -10,3 +10,8 @@ out
 javaext/com.spotbugs.analyzer/target/
 
 javaext/com.spotbugs.runner/target/
+
+server/com.spotbugs.runner-0.0.1.jar
+
+*.jar
+*.tsbuildinfo

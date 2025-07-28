@@ -1,13 +1,16 @@
 'use strict';
 import { Uri } from "vscode";
 import * as path from "path";
-import { getJavaExtensionApi } from "./utils";
-import { Command, executeJavaLanguageServerCommand } from "./command";
+import { getJavaExtension } from "./utils";
+import { executeJavaLanguageServerCommand } from "./command";
+import { JavaLanguageServerCommands } from "./constants/commands";
 import { glob } from "glob";
 
 export async function isClassFileExists(javaFile: string): Promise<boolean> {
   const projectUris: string[] = await getAllJavaProjects();
-  const javaExtensionApi = await getJavaExtensionApi();
+  const javaExtension = await getJavaExtension();
+  if (!javaExtension) { return false; }
+  const javaExtensionApi = javaExtension.exports;
 
   for (const projectUri of projectUris) {
     const classpathResult = await javaExtensionApi.getClasspaths(projectUri, {
@@ -31,7 +34,7 @@ async function getAllJavaProjects(
   excludeDefaultProject: boolean = true
 ): Promise<string[]> {
   let projectUris: string[] = (await executeJavaLanguageServerCommand(
-    Command.GET_ALL_JAVA_PROJECTS
+    JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
   )) as string[];
   if (excludeDefaultProject) {
     projectUris = projectUris.filter((uriString) => {
@@ -46,7 +49,9 @@ export async function getClassFileFromJavaFile(
   javaFile: string
 ): Promise<string> {
   const projectUris: string[] = await getAllJavaProjects();
-  const javaExtensionApi = await getJavaExtensionApi();
+  const javaExtension = await getJavaExtension();
+  if (!javaExtension) { return ""; }
+  const javaExtensionApi = javaExtension.exports;
 
   for (const projectUri of projectUris) {
     const classpathResult = await javaExtensionApi.getClasspaths(projectUri, {

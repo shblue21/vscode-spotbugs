@@ -5,18 +5,16 @@
     <groupId>com.spotbugs</groupId>
     <artifactId>parent</artifactId>
     <name>${base.name} :: Parent</name>
-    <version>0.0.1</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <properties>
         <base.name>Java Spotbugs Runner</base.name>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <tycho-version>2.7.5</tycho-version>
-        <checkstyle-version>9.0</checkstyle-version>
-        <spotbugs-version>4.7.3</spotbugs-version>
-    </properties>
+        <tycho-version>4.0.13</tycho-version>
+        <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
+  </properties>
     <modules>
         <module>com.spotbugs.runner</module>
-        <module>com.spotbugs.analyzer</module>
         <module>com.spotbugs.target</module>
     </modules>
     <build>
@@ -24,60 +22,10 @@
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.15</version>
-                    <executions>
-                        <!-- Ensures that both integration-test and verify
-                            goals of the Failsafe Maven plugin are executed. -->
-                        <execution>
-                            <id>integration-tests</id>
-                            <goals>
-                                <goal>integration-test</goal>
-                                <goal>verify</goal>
-                            </goals>
-                            <configuration>
-                                <!-- Sets the VM argument line used when
-                                    integration tests are run. -->
-                                <argLine>${failsafeArgLine}</argLine>
-                                <!-- Skips integration tests if the value
-                                    of skip.integration.tests property is true -->
-                                <skipTests>${skip.integration.tests}</skipTests>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.eclipse.tycho</groupId>
-                    <artifactId>target-platform-configuration</artifactId>
-                    <version>${tycho-version}</version>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
                     <configuration>
-                        <resolver>p2</resolver>
-                        <target>
-                            <artifact>
-                                <groupId>com.spotbugs</groupId>
-                                <artifactId>com.spotbugs.target</artifactId>
-                                <version>${project.version}</version>
-                            </artifact>
-                        </target>
-                        <environments>
-                            <environment>
-                                <os>linux</os>
-                                <ws>gtk</ws>
-                                <arch>x86_64</arch>
-                            </environment>
-                            <environment>
-                                <os>win32</os>
-                                <ws>win32</ws>
-                                <arch>x86_64</arch>
-                            </environment>
-                            <environment>
-                                <os>macosx</os>
-                                <ws>cocoa</ws>
-                                <arch>x86_64</arch>
-                            </environment>
-                        </environments>
-                        <dependency-resolution>
-                        </dependency-resolution>
+                        <release>8</release>
                     </configuration>
                 </plugin>
             </plugins>
@@ -92,6 +40,16 @@
         </plugins>
     </build>
     <repositories>
+        <repository>
+            <id>eclipse-updates</id>
+            <url>https://download.eclipse.org/eclipse/updates/4.32/</url>
+            <layout>p2</layout>
+        </repository>
+        <repository>
+            <id>jdt-ls-milestones</id>
+            <url>https://download.eclipse.org/jdtls/milestones/1.47.0/repository/</url>
+            <layout>p2</layout>
+        </repository>
         <repository>
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>

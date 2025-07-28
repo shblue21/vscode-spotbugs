@@ -1,98 +1,50 @@
 package com.spotbugs.vscode.runner;
 
-import com.spotbugs.runner.api.CheckResult;
-import com.spotbugs.runner.api.ICheckerService;
-
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
+
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
-import java.util.Map;
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
 
-    private static final String JAVA_SPOTBUGS_RUN = "java.spotbugs.run";
+    private final String LOG_FILE = "/tmp/spotbugs_delegate_debug.log";
 
-    private CheckstyleLoader checkstyleLoader = new CheckstyleLoader();
-    private ICheckerService checkerService = null;
-    private IAnalyzerService analyzerService = null;
+    public DelegateCommandHandler() {
+        log("DelegateCommandHandler INSTANTIATED.");
+    }
+
+    private void log(String message) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE, true))) {
+            writer.println(java.time.LocalDateTime.now() + ": " + message);
+        } catch (IOException e) {
+            System.err.println("DELEGATE_LOG_ERROR: " + message);
+        }
+    }
 
     @Override
-    public synchronized Object executeCommand(
-            String commandId,
-            List<Object> arguments,
-            IProgressMonitor monitor) throws Exception {
-        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
-        fw.write("execute command : " + commandId + " : " + java.time.LocalDateTime.now() + "\n");
-        fw.close();
-        try {
-            this.setConfiguration(null);
-        } catch (Throwable e) {
-
-            e.printStackTrace();
+    public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor monitor) {
+        log("executeCommand received: " + commandId + " (VERSION: 2)");
+        if ("java.spotbugs.run".equals(commandId)) {
+            try {
+                if (arguments != null && !arguments.isEmpty()) {
+                    String filePath = (String) arguments.get(0);
+                    log("Analyzing file: " + filePath);
+                    
+                    AnalyzerService analyzerService = new AnalyzerService();
+                    analyzerService.setConfiguration(new java.util.HashMap<>());
+                    String result = analyzerService.analyze(filePath);
+                    log("Analysis call finished. Result: " + result);
+                    return result;
+                }
+            } catch (Exception e) {
+                log("ERROR in executeCommand: " + e.toString());
+            }
+            return "[]"; // Return empty JSON array on error
         }
-        switch (commandId) {
-            case JAVA_SPOTBUGS_RUN:
-                return this.analyze();
-
-            default:
-                return null;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    protected void setConfiguration(Map<String, Object> config) throws Throwable {
-        // final String jarStorage = (String) config.get("jarStorage");
-        // final String version = (String) config.get("version");
-        final String jarPath = "C:\\sourcecode\\vscode-spotbugs\\server\\spotbugs-4.7.3.jar";
-        // create log file to 'C://test//spotbugs.log'
-        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
-        fw.write("set configuration : " + java.time.LocalDateTime.now() + "\n");
-        fw.close();
-
-        if (analyzerService != null) {
-            analyzerService.dispose();
-        }
-        // if (!version.equals(getVersion())) { // If not equal, load new version
-        analyzerService = checkstyleLoader.loadAnalyzerService(jarPath);
-        // }
-        try {
-            // analyzerService.initialize();
-            // analyzerService.setConfiguration(config);
-        } catch (Throwable throwable) { // Initialization faild
-            analyzerService.dispose(); // Unwind what's already initialized
-            analyzerService = null; // Remove analyzerService
-            throw throwable; // Resend the exception or error out
-        }
-    }
-
-    protected String getVersion() throws Exception {
-        if (checkerService != null) {
-            return checkerService.getVersion();
-        }
-        return null;
-    }
-
-    protected Map<String, List<CheckResult>> analyze() throws Exception {
-        // if (filesToCheckUris.isEmpty() || analyzerService == null) {
-        // return Collections.emptyMap();
-        // }
-        // final List<File> filesToCheck =
-        // filesToCheckUris.stream().map(File::new).collect(Collectors.toList());
-        // final IFile resource =
-        // JDTUtils.findFile(filesToCheck.get(0).toURI().toString());
-        
-        FileWriter fw = new FileWriter("C://test//spotbugs.log", true);
-        fw.write("DelegateCommandHandler analyze : " + java.time.LocalDateTime.now() + "\n");
-        fw.close();
-        try {
-            analyzerService.analyze();
-
-        } catch (Exception e) {
-            FileWriter fw2 = new FileWriter("C://test//spotbugs.log", true);
-            fw2.write("DelegateCommandHandler analyze error : " + e.getMessage() + "\n");
-            fw2.close();
-        }
-        return null;
+        log("Command not recognized: " + commandId);
+        return "Command not recognized";
     }
 }

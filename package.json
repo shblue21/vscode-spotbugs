@@ -4,7 +4,7 @@
   "description": "Visual Studio Code extension for Spotbugs",
   "version": "0.0.1",
   "publisher": "JIHUN KIM",
-  "icon": "images/spotbugs_logo.png",
+  "icon": "images/spotbugs_icon.png",
   "author": {
     "name": "JIHUN KIM",
     "email": "jihunkimkw@gmail.com",
@@ -39,6 +39,23 @@
     }
   },
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "spotbugs-container",
+          "title": "Spotbugs",
+          "icon": "images/spotbugs_icon.png"
+        }
+      ]
+    },
+    "views": {
+      "spotbugs-container": [
+        {
+          "id": "spotbugs-view",
+          "name": "Spotbugs"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "Spotbugs",
@@ -90,20 +107,48 @@
         "title": "Find bugs"
       },
       {
-        "command": "spotbugs.runFile",
-        "title": "Analyze Selected File"
+        "command": "java.spotbugs.run",
+        "title": "Analyze selected File"
+      },
+      {
+        "command": "java.spotbugs.run",
+        "title": "Analyze Folder",
+        "when": "explorerResourceIsFolder"
+      },
+      {
+        "command": "java.spotbugs.analyze.folder",
+        "title": "Analyze Folder"
+      },
+      {
+        "command": "java.spotbugs.runWorkspace",
+        "title": "Analyze this workspace",
+        "icon": "$(search)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "java.spotbugs.runWorkspace",
+          "when": "view == spotbugs-view",
+          "group": "navigation"
+        }
+      ],
       "explorer/context": [
         {
           "submenu": "spotbugs.context",
-          "when": "resourceLangId == java"
+          "when": "resourceLangId == java || resourceExtname == .jar || explorerResourceIsFolder"
         }
       ],
       "spotbugs.context": [
         {
-          "command": "spotbugs.runFile"
+          "command": "java.spotbugs.run",
+          "when": "!explorerResourceIsFolder",
+          "group": "1_spotbugs@1"
+        },
+        {
+          "command": "java.spotbugs.run",
+          "when": "explorerResourceIsFolder",
+          "group": "1_spotbugs@1"
         }
       ]
     },
@@ -114,17 +159,18 @@
       }
     ],
     "javaExtensions": [
-      "./server/com.spotbugs.runner.jar"
+      "./server/com.spotbugs.runner-0.0.1-SNAPSHOT.jar",
+      "./server/spotbugs-runner-all.jar"
     ]
   },
   "scripts": {
-    "clean": "node ./node_modules/rimraf/bin.js out/",
+    "clean": "rimraf out tsconfig.tsbuildinfo",
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -b -v",
+    "watch": "tsc -b -v --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
+    "test": "node ./out/client/test/runTest.js",
     "build-server": "node scripts/buildJdtlsExt.js"
   },
   "extensionDependencies": [
