@@ -3,14 +3,20 @@ import { SpotbugsTreeDataProvider } from './spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
+import { dispose as disposeTelemetryWrapper, initializeFromJsonFile, instrumentOperation, instrumentOperationAsVsCodeCommand } from 'vscode-extension-telemetry-wrapper';
 
 export async function activate(context: ExtensionContext) {
+  await initializeFromJsonFile(context.asAbsolutePath('./package.json'), { firstParty: true });
+  await instrumentOperation('activation', doActivate)(context);
+}
+
+export async function deactivate(): Promise<void> {
+  await disposeTelemetryWrapper();
+}
+
+async function doActivate(_operationId: string, context: ExtensionContext): Promise<void> {
   try {
-    const javaExtension = await getJavaExtension();
-    if (!javaExtension) {
-      window.showErrorMessage("Language Support for Java(TM) by Red Hat extension is not enabled. Please enable it for Spotbugs to work.");
-      return;
-    }
+    await getJavaExtension();
 
     const spotbugsTreeDataProvider = new SpotbugsTreeDataProvider();
 
@@ -19,11 +25,11 @@ export async function activate(context: ExtensionContext) {
         treeDataProvider: spotbugsTreeDataProvider
       }),
 
-      commands.registerCommand(SpotBugsCommands.RUN_ANALYSIS, async (uri: Uri | undefined) => {
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_ANALYSIS, async (uri: Uri | undefined) => {
         await checkCode(spotbugsTreeDataProvider, uri);
       }),
 
-      commands.registerCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
         await runWorkspaceAnalysis();
       })
     );
@@ -32,5 +38,3 @@ export async function activate(context: ExtensionContext) {
     window.showErrorMessage(`Failed to activate Spotbugs extension: ${errorMessage}`);
   }
 }
-
-export function deactivate() {}

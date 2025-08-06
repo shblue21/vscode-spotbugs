@@ -12,3 +12,17 @@ export async function getJavaExtension(): Promise<Extension<any> | undefined> {
     }
     return javaExtension;
 }
+
+async function waitForLsReady(): Promise<void> {
+  const javaLanguageSupport: Extension<any> | undefined = extensions.getExtension('redhat.java');
+  if (javaLanguageSupport?.isActive) {
+    const extensionApi: any = javaLanguageSupport.exports;
+    if (!extensionApi) {
+      throw new Error('Failed to get the extension API from redhat.java');
+    }
+
+    return extensionApi.serverReady();
+  }
+
+  throw new Error('redhat.java is not installed or activated');
+}
