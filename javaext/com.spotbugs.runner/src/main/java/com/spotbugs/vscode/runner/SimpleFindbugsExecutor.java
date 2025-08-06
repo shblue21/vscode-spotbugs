@@ -52,15 +52,7 @@ public class SimpleFindbugsExecutor {
         List<BugInfo> bugList = new ArrayList<>();
 
         for (BugInstance bug : bugs) {
-            BugInfo bugInfo = new BugInfo();
-            bugInfo.setType(bug.getType());
-            bugInfo.setRank(bug.getBugRank());
-            bugInfo.setPriority(bug.getPriorityString());
-            bugInfo.setMessage(bug.getMessage());
-            bugInfo.setSourceFile(bug.getPrimarySourceLineAnnotation().getSourceFile());
-            bugInfo.setStartLine(bug.getPrimarySourceLineAnnotation().getStartLine());
-            bugInfo.setEndLine(bug.getPrimarySourceLineAnnotation().getEndLine());
-            bugList.add(bugInfo);
+            bugList.add(new BugInfo(bug));
         }
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
