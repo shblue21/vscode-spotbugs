@@ -5,6 +5,7 @@ import { getJavaExtension } from './utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
 import { executeJavaLanguageServerCommand } from './command';
 import { Config } from './config';
+import { Logger } from './logger';
 import { dispose as disposeTelemetryWrapper, initializeFromJsonFile, instrumentOperation, instrumentOperationAsVsCodeCommand } from 'vscode-extension-telemetry-wrapper';
 
 export async function activate(context: ExtensionContext) {
@@ -17,6 +18,9 @@ export async function deactivate(): Promise<void> {
 }
 
 async function doActivate(_operationId: string, context: ExtensionContext): Promise<void> {
+  Logger.initialize();
+  Logger.log("Spotbugs extension is now active.");
+
   try {
     await getJavaExtension();
 

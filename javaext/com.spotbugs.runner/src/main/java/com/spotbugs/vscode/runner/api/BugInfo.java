@@ -12,6 +12,7 @@ public class BugInfo {
     private final String sourceFile;
     private final int startLine;
     private final int endLine;
+    private final String realSourcePath;
 
     public BugInfo(BugInstance bugInstance) {
         this.type = bugInstance.getType();
@@ -23,6 +24,7 @@ public class BugInfo {
         this.sourceFile = bugInstance.getPrimarySourceLineAnnotation().getSourceFile();
         this.startLine = bugInstance.getPrimarySourceLineAnnotation().getStartLine();
         this.endLine = bugInstance.getPrimarySourceLineAnnotation().getEndLine();
+        this.realSourcePath = bugInstance.getPrimarySourceLineAnnotation().getRealSourcePath();
     }
 
     // #region Getters
@@ -60,6 +62,10 @@ public class BugInfo {
 
     public int getEndLine() {
         return endLine;
+    }
+
+    public String getRealSourcePath() {
+        return realSourcePath;
     }
     // #endregion
 }

@@ -2,12 +2,13 @@ import { commands, window, Uri, workspace } from 'vscode';
 import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
 import { BugInfo } from '../bugInfo';
 import { Config } from '../config';
+import { Logger } from '../logger';
 import { executeJavaLanguageServerCommand } from '../command';
 import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
 
 export async function checkCode(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider, uri: Uri | undefined): Promise<void> {
-  commands.executeCommand('spotbugs-view.focus');
-  console.log('Command spotbugs.run triggered.');
+  Logger.show();
+  Logger.log('Command spotbugs.run triggered.');
 
   let fileUri = uri;
   if (!fileUri && window.activeTextEditor) {
@@ -25,35 +26,44 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
       if (result) {
         try {
           const bugs = JSON.parse(result) as BugInfo[];
+          Logger.log(`Successfully parsed ${bugs.length} bugs from analysis result.`);
           spotbugsTreeDataProvider.showResults(bugs);
         } catch (e) {
-          window.showErrorMessage(`Failed to parse Spotbugs analysis results: ${e}`);
+          Logger.error('Failed to parse Spotbugs analysis results', e);
+          window.showErrorMessage('Failed to parse Spotbugs analysis results. See Spotbugs output channel for details.');
         }
       } else {
         spotbugsTreeDataProvider.showResults([]);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      window.showErrorMessage(`An error occurred during Spotbugs analysis: ${errorMessage}`);
+      Logger.error('An error occurred during Spotbugs analysis', err);
+      window.showErrorMessage('An error occurred during Spotbugs analysis. See Spotbugs output channel for details.');
       spotbugsTreeDataProvider.showResults([]);
     }
   } else {
     window.showErrorMessage("No Java file selected for Spotbugs analysis.");
+    Logger.log('No Java file selected for analysis.');
   }
 }
 
 export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider): Promise<void> {
+  Logger.show();
+  Logger.log('Command spotbugs.runWorkspace triggered.');
   try {
     window.showInformationMessage('Starting Java workspace build...');
+    Logger.log('Starting Java workspace build...');
     const buildResult = await commands.executeCommand<number>(JavaLanguageServerCommands.BUILD_WORKSPACE);
     if (buildResult !== 0) {
+      Logger.error('Java workspace build failed.');
       window.showErrorMessage("Build failed. Please build project manually and then run Spotbugs analysis.");
       return;
     }
 
     window.showInformationMessage('Build completed successfully. Analyzing workspace...');
+    Logger.log('Build completed successfully. Analyzing workspace...');
     const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
     if (!workspaceFolder) {
+      Logger.error('No workspace folder found.');
       window.showErrorMessage("No workspace folder found.");
       return;
     }
@@ -64,10 +74,12 @@ export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvi
       // Call checkCode with the workspace output folder and config
       await checkCode(config, spotbugsTreeDataProvider, outputFolderUri);
     } else {
+      Logger.error('Could not determine the output folder for the Java project.');
       window.showErrorMessage("Could not determine the output folder for the Java project.");
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    Logger.error('An error occurred during workspace analysis', error);
     window.showErrorMessage(`An error occurred during workspace analysis: ${errorMessage}`);
   }
 }
