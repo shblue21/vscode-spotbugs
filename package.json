@@ -32,6 +32,7 @@
     "onCommand:spotbugs.runFile"
   ],
   "main": "./out/extension.js",
+  "enabledApiProposals": ["extensionRuntime", "treeViewActiveItem"],
   "capabilities": {
     "virtualWorkspaces": true,
     "untrustedWorkspaces": {
@@ -62,17 +63,15 @@
       "properties": {
         "spotbugs.effort": {
           "type": "string",
-          "default": "Default",
+          "default": "default",
           "enum": [
-            "Default",
-            "Min",
-            "Less",
-            "Max"
+            "min",
+            "default",
+            "max"
           ],
           "enumDescriptions": [
-            "Run several analyses to find bugs",
             "Disables several analyses that increase precision but also increase memory consumption.",
-            "Disables some analyses that increase precision but also increase memory consumption.",
+            "Run several analyses to find bugs",
             "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
           ],
           "markdownDescription": "Set analysis effort level.",

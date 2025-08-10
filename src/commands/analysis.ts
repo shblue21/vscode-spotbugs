@@ -17,7 +17,11 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
   if (fileUri) {
     spotbugsTreeDataProvider.showLoading();
     try {
-      const result = await executeJavaLanguageServerCommand<string>(SpotBugsCommands.RUN_ANALYSIS, fileUri.fsPath);
+      const result = await executeJavaLanguageServerCommand<string>(
+        SpotBugsCommands.RUN_ANALYSIS,
+        fileUri.fsPath,
+        JSON.stringify(config)
+      );
       if (result) {
         try {
           const bugs = JSON.parse(result) as BugInfo[];
@@ -38,29 +42,32 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
   }
 }
 
-export async function runWorkspaceAnalysis(config: Config): Promise<void> {
+export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider): Promise<void> {
   try {
     window.showInformationMessage('Starting Java workspace build...');
-    const result = await commands.executeCommand<number>(JavaLanguageServerCommands.BUILD_WORKSPACE);
-    if (result === 0) {
-      window.showInformationMessage('Build completed successfully.');
-      const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
-      if (!workspaceFolder) {
-        window.showErrorMessage("No workspace folder found.");
-        return;
-      }
-      const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS, workspaceFolder.uri.toString());
-      if (classpathsResult && classpathsResult.output) {
-        const outputFolderUri = classpathsResult.output;
-        commands.executeCommand(SpotBugsCommands.RUN_ANALYSIS, outputFolderUri);
-      } else {
-        window.showErrorMessage("Could not determine the output folder for the Java project.");
-      }
-    } else {
+    const buildResult = await commands.executeCommand<number>(JavaLanguageServerCommands.BUILD_WORKSPACE);
+    if (buildResult !== 0) {
       window.showErrorMessage("Build failed. Please build project manually and then run Spotbugs analysis.");
+      return;
+    }
+
+    window.showInformationMessage('Build completed successfully. Analyzing workspace...');
+    const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
+    if (!workspaceFolder) {
+      window.showErrorMessage("No workspace folder found.");
+      return;
+    }
+
+    const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS, workspaceFolder.uri.toString());
+    if (classpathsResult && classpathsResult.output) {
+      const outputFolderUri = Uri.file(classpathsResult.output);
+      // Call checkCode with the workspace output folder and config
+      await checkCode(config, spotbugsTreeDataProvider, outputFolderUri);
+    } else {
+      window.showErrorMessage("Could not determine the output folder for the Java project.");
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    window.showErrorMessage(`An error occurred during build: ${errorMessage}`);
+    window.showErrorMessage(`An error occurred during workspace analysis: ${errorMessage}`);
   }
 }
