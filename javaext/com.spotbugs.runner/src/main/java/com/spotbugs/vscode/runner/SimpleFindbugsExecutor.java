@@ -1,29 +1,28 @@
 package com.spotbugs.vscode.runner;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.spotbugs.vscode.runner.api.BugInfo;
-import edu.umd.cs.findbugs.*;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.spotbugs.vscode.runner.api.BugInfo;
+
+import edu.umd.cs.findbugs.BugCollectionBugReporter;
+import edu.umd.cs.findbugs.BugInstance;
+import edu.umd.cs.findbugs.DetectorFactoryCollection;
+import edu.umd.cs.findbugs.FindBugs2;
+import edu.umd.cs.findbugs.Project;
 
 public class SimpleFindbugsExecutor {
 
     private final FindBugs2 findBugs;
     private final Project project;
     private final BugCollectionBugReporter bugReporter;
-    private final String LOG_FILE = "/tmp/spotbugs_debug.log";
 
     private void log(String message) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE, true))) {
-            writer.println(java.time.LocalDateTime.now() + ": " + message);
-        } catch (IOException e) {
-            System.err.println("Failed to write to log file: " + message);
-        }
+        System.out.println("[Spotbugs-Executor] " + message);
     }
 
     public SimpleFindbugsExecutor(FindBugs2 findBugs, Project project) {
@@ -31,17 +30,17 @@ public class SimpleFindbugsExecutor {
         this.project = project;
         this.bugReporter = new BugCollectionBugReporter(project);
         this.bugReporter.setPriorityThreshold(1);
-        log("SimpleFindbugsExecutor initialized.");
+        log("Created.");
     }
 
     public String execute() throws IOException, InterruptedException {
-        log("Executor configuring FindBugs2...");
+        log("Configuring FindBugs2...");
         findBugs.setProject(project);
         findBugs.setBugReporter(bugReporter);
         findBugs.setDetectorFactoryCollection(DetectorFactoryCollection.instance());
 
         findBugs.execute();
-        log("FindBugs2 execution finished.");
+        log("Execution finished.");
 
         return getBugsAsJson();
     }

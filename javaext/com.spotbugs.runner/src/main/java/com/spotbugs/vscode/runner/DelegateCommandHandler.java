@@ -1,36 +1,27 @@
 package com.spotbugs.vscode.runner;
 
+import java.util.List;
+import java.util.Map;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
 
 import com.google.gson.Gson;
 import com.spotbugs.vscode.runner.api.Config;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.List;
-import java.util.Map;
-
 public class DelegateCommandHandler implements IDelegateCommandHandler {
 
-    private final String LOG_FILE = "/tmp/spotbugs_debug.log";
-
     public DelegateCommandHandler() {
-        log("DelegateCommandHandler INSTANTIATED.");
+        log("Handler created.");
     }
 
     private void log(String message) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE, true))) {
-            writer.println(java.time.LocalDateTime.now() + ": " + message);
-        } catch (IOException e) {
-            System.err.println("DELEGATE_LOG_ERROR: " + message);
-        }
+        System.out.println("[Spotbugs-Runner] " + message);
     }
 
     @Override
     public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor monitor) {
-        log("executeCommand received: " + commandId + " (VERSION: 2)");
+        log("Received command: " + commandId);
         if ("java.spotbugs.run".equals(commandId)) {
             try {
                 if (arguments != null && arguments.size() > 1) {
@@ -40,28 +31,26 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
                     Gson gson = new Gson();
                     Config config = gson.fromJson(configJson, Config.class);
 
-                    log("Analyzing file: " + filePath);
-                    log("With Config: " + config.toString());
-                    
+                    log("-> Analyzing: " + filePath);
+                    log("-> With Config: " + config.toString());
+
                     AnalyzerService analyzerService = new AnalyzerService();
 
                     Map<String, Object> configMap = new java.util.HashMap<>();
                     configMap.put("effort", config.getEffort());
-                    // We can add other properties like javaHome, pluginsFile here in the future
 
                     analyzerService.setConfiguration(configMap);
-                    String result = analyzerService.analyze(filePath);
-                    log("Analysis call finished. Result: " + result);
-                    return result;
+                    return analyzerService.analyze(filePath);
                 } else {
-                    log("Invalid arguments for java.spotbugs.run");
+                    log("-> Error: Invalid arguments for " + commandId);
                 }
             } catch (Exception e) {
-                log("ERROR in executeCommand: " + e.toString());
+                // Print stack trace to stderr so it can be seen in the LS log
+                e.printStackTrace();
             }
             return "[]"; // Return empty JSON array on error
         }
-        log("Command not recognized: " + commandId);
+        log("-> Error: Command not recognized: " + commandId);
         return "Command not recognized";
     }
 }
