@@ -1,10 +1,11 @@
 import { commands, window, Uri, workspace } from 'vscode';
 import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
 import { BugInfo } from '../bugInfo';
+import { Config } from '../config';
 import { executeJavaLanguageServerCommand } from '../command';
 import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
 
-export async function checkCode(spotbugsTreeDataProvider: SpotbugsTreeDataProvider, uri: Uri | undefined): Promise<void> {
+export async function checkCode(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider, uri: Uri | undefined): Promise<void> {
   commands.executeCommand('spotbugs-view.focus');
   console.log('Command spotbugs.run triggered.');
 
@@ -37,7 +38,7 @@ export async function checkCode(spotbugsTreeDataProvider: SpotbugsTreeDataProvid
   }
 }
 
-export async function runWorkspaceAnalysis(): Promise<void> {
+export async function runWorkspaceAnalysis(config: Config): Promise<void> {
   try {
     window.showInformationMessage('Starting Java workspace build...');
     const result = await commands.executeCommand<number>(JavaLanguageServerCommands.BUILD_WORKSPACE);

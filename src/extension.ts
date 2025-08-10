@@ -3,6 +3,7 @@ import { SpotbugsTreeDataProvider } from './spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
+import { Config } from './config';
 import { dispose as disposeTelemetryWrapper, initializeFromJsonFile, instrumentOperation, instrumentOperationAsVsCodeCommand } from 'vscode-extension-telemetry-wrapper';
 
 export async function activate(context: ExtensionContext) {
@@ -18,6 +19,7 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
   try {
     await getJavaExtension();
 
+    const config = new Config(context);
     const spotbugsTreeDataProvider = new SpotbugsTreeDataProvider();
 
     context.subscriptions.push(
@@ -26,11 +28,11 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
       }),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_ANALYSIS, async (uri: Uri | undefined) => {
-        await checkCode(spotbugsTreeDataProvider, uri);
+        await checkCode(config, spotbugsTreeDataProvider, uri);
       }),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
-        await runWorkspaceAnalysis();
+        await runWorkspaceAnalysis(config);
       })
     );
   } catch (error) {
