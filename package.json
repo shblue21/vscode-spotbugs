@@ -3,11 +3,11 @@
   "displayName": "Spotbugs",
   "description": "Visual Studio Code extension for Spotbugs",
   "version": "0.0.1",
-  "publisher": "JIHUN KIM",
+  "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
-    "name": "JIHUN KIM",
-    "email": "jihunkimkw@gmail.com",
+    "name": "shblue21",
+    "email": "shblue21@naver.com.com",
     "url": "https://shblue21.github.io"
   },
   "engines": {

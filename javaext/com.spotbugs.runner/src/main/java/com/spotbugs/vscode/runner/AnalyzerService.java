@@ -33,7 +33,7 @@ public class AnalyzerService {
 
     public void setConfiguration(Map<String, Object> config) {
         log("Setting configuration...");
-        String effort = (String) config.getOrDefault("effort", "default");
+        String effort = (String) config.getOrDefault("effort", "max");
         this.userPreferences.setEffort(effort);
         log("Configuration set with effort: " + effort);
     }
