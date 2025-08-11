@@ -26,7 +26,10 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
       if (result) {
         try {
           const bugs = JSON.parse(result) as BugInfo[];
-          Logger.log(`Successfully parsed ${bugs.length} bugs from analysis result.`);
+          Logger.log(`Successfully parsed ${bugs.length} bugs. Details:`);
+          for (const bug of bugs) {
+            Logger.log(JSON.stringify(bug, null, 2));
+          }
           spotbugsTreeDataProvider.showResults(bugs);
         } catch (e) {
           Logger.error('Failed to parse Spotbugs analysis results', e);
