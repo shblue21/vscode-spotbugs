@@ -1,4 +1,6 @@
 import { commands, window, Uri, workspace } from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
 import { BugInfo } from '../bugInfo';
 import { Config } from '../config';
@@ -26,11 +28,12 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
       if (result) {
         try {
           const bugs = JSON.parse(result) as BugInfo[];
-          Logger.log(`Successfully parsed ${bugs.length} bugs. Details:`);
-          for (const bug of bugs) {
+          const enrichedBugs = await enrichBugsWithFullPaths(bugs);
+          Logger.log(`Successfully parsed and enriched ${enrichedBugs.length} bugs. Details:`);
+          for (const bug of enrichedBugs) {
             Logger.log(JSON.stringify(bug, null, 2));
           }
-          spotbugsTreeDataProvider.showResults(bugs);
+          spotbugsTreeDataProvider.showResults(enrichedBugs);
         } catch (e) {
           Logger.error('Failed to parse Spotbugs analysis results', e);
           window.showErrorMessage('Failed to parse Spotbugs analysis results. See Spotbugs output channel for details.');
@@ -70,11 +73,11 @@ export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvi
       window.showErrorMessage("No workspace folder found.");
       return;
     }
-
-    const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS, workspaceFolder.uri.toString());
+    // For workspace analysis, we can directly call checkCode with the workspace folder's output directory.
+    // The full path enrichment will be handled inside checkCode.
+    const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
     if (classpathsResult && classpathsResult.output) {
       const outputFolderUri = Uri.file(classpathsResult.output);
-      // Call checkCode with the workspace output folder and config
       await checkCode(config, spotbugsTreeDataProvider, outputFolderUri);
     } else {
       Logger.error('Could not determine the output folder for the Java project.');
@@ -85,4 +88,50 @@ export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvi
     Logger.error('An error occurred during workspace analysis', error);
     window.showErrorMessage(`An error occurred during workspace analysis: ${errorMessage}`);
   }
+}
+
+async function enrichBugsWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
+  if (!bugs.length) {
+    return [];
+  }
+
+  try {
+    const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
+    if (!workspaceFolder) {
+      Logger.log('Cannot resolve full paths without an active workspace.');
+      return bugs;
+    }
+
+    const classpathsResult = await commands.executeCommand<any>(
+      JavaLanguageServerCommands.GET_CLASSPATHS
+    );
+
+    if (classpathsResult && classpathsResult.sourcepaths) {
+      const sourcepaths: string[] = classpathsResult.sourcepaths;
+      Logger.log(`Found source paths: ${sourcepaths.join(', ')}`);
+
+      for (const bug of bugs) {
+        if (!bug.realSourcePath) continue;
+
+        for (const sourcePath of sourcepaths) {
+          const candidatePath = path.join(sourcePath, bug.realSourcePath);
+          try {
+            // Use async file access to avoid blocking
+            await fs.promises.access(candidatePath);
+            bug.fullPath = candidatePath;
+            break; // Found it, move to the next bug
+          } catch {
+            // File does not exist at this candidate path, try next source path
+          }
+        }
+        if (!bug.fullPath) {
+          Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
+        }
+      }
+    }
+  } catch (e) {
+    Logger.error('Failed to enrich bugs with full paths', e);
+  }
+
+  return bugs;
 }

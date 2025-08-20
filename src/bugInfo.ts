@@ -11,4 +11,5 @@ export interface BugInfo {
     startLine: number;
     endLine: number;
     realSourcePath: string;
+    fullPath?: string;
 }
