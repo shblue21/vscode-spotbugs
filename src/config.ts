@@ -7,6 +7,7 @@ export class Config {
   public effort!: string;
   public javaHome!: string | null;
   public pluginsFile!: string | null;
+  public classpaths!: string[] | null;
 
   public constructor(ctx: ExtensionContext) {
     this._ctx = ctx;
@@ -19,6 +20,7 @@ export class Config {
     this.effort = config.get<string>('effort', 'Default');
     this.javaHome = config.get<string | null>('java.home', null);
     this.pluginsFile = config.get<string | null>('plugins.file', null);
+    this.classpaths = null; // Will be set dynamically during analysis
 
     this.resolvePaths();
   }
@@ -30,5 +32,9 @@ export class Config {
         this.pluginsFile = path.join(workspaceRoot, this.pluginsFile);
       }
     }
+  }
+
+  public setClasspaths(classpaths: string[]): void {
+    this.classpaths = classpaths;
   }
 }

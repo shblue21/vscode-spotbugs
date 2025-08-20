@@ -38,6 +38,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
 
                     Map<String, Object> configMap = new java.util.HashMap<>();
                     configMap.put("effort", config.getEffort());
+                    configMap.put("classpaths", config.getClasspaths());
 
                     analyzerService.setConfiguration(configMap);
                     return analyzerService.analyze(filePath);

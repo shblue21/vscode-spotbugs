@@ -8,6 +8,18 @@ import { Logger } from '../logger';
 import { executeJavaLanguageServerCommand } from '../command';
 import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
 
+/**
+ * Checks if the Java Language Server is ready and has classpath information available
+ */
+async function isJavaLanguageServerReady(): Promise<boolean> {
+  try {
+    const projects = await commands.executeCommand<any[]>('java.project.getAll');
+    return Array.isArray(projects) && projects.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function checkCode(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider, treeView: TreeView<TreeItem>, uri: Uri | undefined): Promise<void> {
   Logger.show();
   Logger.log('Command spotbugs.run triggered.');
@@ -23,6 +35,26 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
   if (fileUri) {
     spotbugsTreeDataProvider.showLoading();
     try {
+      // Get project classpaths and set them in config (only for Java files)
+      if (fileUri.fsPath.endsWith('.java') || fileUri.fsPath.endsWith('.class')) {
+        const isReady = await isJavaLanguageServerReady();
+        if (isReady) {
+          try {
+            const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
+            if (classpathsResult && classpathsResult.classpaths && Array.isArray(classpathsResult.classpaths) && classpathsResult.classpaths.length > 0) {
+              config.setClasspaths(classpathsResult.classpaths);
+              Logger.log(`Set ${classpathsResult.classpaths.length} classpaths for analysis`);
+            } else {
+              Logger.log('No classpaths returned from Java Language Server, using system classpath');
+            }
+          } catch (error) {
+            Logger.log(`Warning: Could not get project classpaths (${error instanceof Error ? error.message : String(error)}), using system classpath`);
+          }
+        } else {
+          Logger.log('Java Language Server not ready, using system classpath for analysis');
+        }
+      }
+
       const result = await executeJavaLanguageServerCommand<string>(
         SpotBugsCommands.RUN_ANALYSIS,
         fileUri.fsPath,
@@ -79,15 +111,35 @@ export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvi
       window.showErrorMessage("No workspace folder found.");
       return;
     }
-    // For workspace analysis, we can directly call checkCode with the workspace folder's output directory.
-    // The full path enrichment will be handled inside checkCode.
-    const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
-    if (classpathsResult && classpathsResult.output) {
-      const outputFolderUri = Uri.file(classpathsResult.output);
-      await checkCode(config, spotbugsTreeDataProvider, treeView, outputFolderUri);
-    } else {
-      Logger.error('Could not determine the output folder for the Java project.');
-      window.showErrorMessage("Could not determine the output folder for the Java project.");
+    // Check if Java Language Server is ready before getting classpaths
+    const isReady = await isJavaLanguageServerReady();
+    if (!isReady) {
+      Logger.error('Java Language Server is not ready or no Java projects found.');
+      window.showErrorMessage("Java Language Server is not ready. Make sure you have a valid Java project open and wait for it to initialize.");
+      return;
+    }
+
+    // Get project classpaths and output directory
+    try {
+      const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
+      if (classpathsResult && classpathsResult.output) {
+        // Set classpaths in config before analysis
+        if (classpathsResult.classpaths && Array.isArray(classpathsResult.classpaths) && classpathsResult.classpaths.length > 0) {
+          config.setClasspaths(classpathsResult.classpaths);
+          Logger.log(`Set ${classpathsResult.classpaths.length} classpaths for workspace analysis`);
+        } else {
+          Logger.log('No classpaths available for workspace analysis, using system classpath');
+        }
+        
+        const outputFolderUri = Uri.file(classpathsResult.output);
+        await checkCode(config, spotbugsTreeDataProvider, treeView, outputFolderUri);
+      } else {
+        Logger.error('Could not determine the output folder for the Java project.');
+        window.showErrorMessage("Could not determine the output folder for the Java project.");
+      }
+    } catch (error) {
+      Logger.error('Failed to get project information from Java Language Server', error);
+      window.showErrorMessage("Failed to get project information. Make sure you have a valid Java project open.");
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -108,35 +160,46 @@ async function enrichBugsWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
       return bugs;
     }
 
-    const classpathsResult = await commands.executeCommand<any>(
-      JavaLanguageServerCommands.GET_CLASSPATHS
-    );
+    const isReady = await isJavaLanguageServerReady();
+    if (isReady) {
+      try {
+        const classpathsResult = await commands.executeCommand<any>(
+          JavaLanguageServerCommands.GET_CLASSPATHS
+        );
 
-    if (classpathsResult && classpathsResult.sourcepaths) {
-      const sourcepaths: string[] = classpathsResult.sourcepaths;
-      Logger.log(`Found source paths: ${sourcepaths.join(', ')}`);
+        if (classpathsResult && classpathsResult.sourcepaths && Array.isArray(classpathsResult.sourcepaths) && classpathsResult.sourcepaths.length > 0) {
+          const sourcepaths: string[] = classpathsResult.sourcepaths;
+          Logger.log(`Found source paths: ${sourcepaths.join(', ')}`);
 
-      for (const bug of bugs) {
-        if (!bug.realSourcePath) continue;
+          for (const bug of bugs) {
+            if (!bug.realSourcePath) continue;
 
-        for (const sourcePath of sourcepaths) {
-          const candidatePath = path.join(sourcePath, bug.realSourcePath);
-          try {
-            // Use async file access to avoid blocking
-            await fs.promises.access(candidatePath);
-            bug.fullPath = candidatePath;
-            break; // Found it, move to the next bug
-          } catch {
-            // File does not exist at this candidate path, try next source path
+            for (const sourcePath of sourcepaths) {
+              const candidatePath = path.join(sourcePath, bug.realSourcePath);
+              try {
+                // Use async file access to avoid blocking
+                await fs.promises.access(candidatePath);
+                bug.fullPath = candidatePath;
+                break; // Found it, move to the next bug
+              } catch {
+                // File does not exist at this candidate path, try next source path
+              }
+            }
+            if (!bug.fullPath) {
+              Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
+            }
           }
+        } else {
+          Logger.log('No source paths available from Java Language Server, skipping path enrichment');
         }
-        if (!bug.fullPath) {
-          Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
-        }
+      } catch (error) {
+        Logger.log(`Warning: Could not get source paths for path enrichment (${error instanceof Error ? error.message : String(error)})`);
       }
+    } else {
+      Logger.log('Java Language Server not ready, skipping path enrichment');
     }
   } catch (e) {
-    Logger.error('Failed to enrich bugs with full paths', e);
+    Logger.log(`Warning: Failed to enrich bugs with full paths (${e instanceof Error ? e.message : String(e)})`);
   }
 
   return bugs;
