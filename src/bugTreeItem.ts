@@ -1,5 +1,6 @@
-import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
+import { TreeItem, TreeItemCollapsibleState, ThemeIcon, Command } from 'vscode';
 import { BugInfo } from './bugInfo';
+import { SpotBugsCommands } from './constants/commands';
 
 export class PriorityGroupItem extends TreeItem {
     public bugs: BugInfo[];
@@ -18,7 +19,15 @@ export class BugInfoItem extends TreeItem {
         const label = `[${bug.rank}] ${bug.message}`;
         super(label, TreeItemCollapsibleState.None);
         this.bug = bug;
-        this.tooltip = `File: ${bug.sourceFile}\nLine: ${bug.startLine}\nType: ${bug.type}`;
+        const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
+        this.tooltip = `File: ${filePath}\nLine: ${bug.startLine}-${bug.endLine}\nType: ${bug.type}\nPriority: ${bug.priority}\nCategory: ${bug.category}`;
         this.iconPath = new ThemeIcon('bug');
+        
+        // Set command to navigate to source file when clicked
+        this.command = {
+            command: SpotBugsCommands.OPEN_BUG_LOCATION,
+            title: 'Open Bug Location',
+            arguments: [bug]
+        };
     }
 }

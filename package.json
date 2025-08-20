@@ -122,6 +122,10 @@
         "command": "java.spotbugs.runWorkspace",
         "title": "Analyze this workspace",
         "icon": "$(search)"
+      },
+      {
+        "command": "spotbugs.openBugLocation",
+        "title": "Open Bug Location"
       }
     ],
     "menus": {

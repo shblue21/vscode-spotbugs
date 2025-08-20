@@ -13,7 +13,7 @@ export namespace JavaLanguageServerCommands {
 export namespace SpotBugsCommands {
     export const RUN_ANALYSIS: string = 'java.spotbugs.run';
     export const RUN_WORKSPACE: string = 'java.spotbugs.runWorkspace';
-    
+    export const OPEN_BUG_LOCATION: string = 'spotbugs.openBugLocation';
 }
 
 export namespace VsCodeCommands {

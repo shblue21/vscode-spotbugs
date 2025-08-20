@@ -1,4 +1,4 @@
-import { commands, window, Uri, workspace } from 'vscode';
+import { commands, window, Uri, workspace, TreeView, TreeItem } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
@@ -8,9 +8,12 @@ import { Logger } from '../logger';
 import { executeJavaLanguageServerCommand } from '../command';
 import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
 
-export async function checkCode(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider, uri: Uri | undefined): Promise<void> {
+export async function checkCode(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider, treeView: TreeView<TreeItem>, uri: Uri | undefined): Promise<void> {
   Logger.show();
   Logger.log('Command spotbugs.run triggered.');
+  
+  // Reveal the Spotbugs tree view to focus the panel
+  await commands.executeCommand('spotbugs-view.focus');
 
   let fileUri = uri;
   if (!fileUri && window.activeTextEditor) {
@@ -52,9 +55,12 @@ export async function checkCode(config: Config, spotbugsTreeDataProvider: Spotbu
   }
 }
 
-export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider): Promise<void> {
+export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvider: SpotbugsTreeDataProvider, treeView: TreeView<TreeItem>): Promise<void> {
   Logger.show();
   Logger.log('Command spotbugs.runWorkspace triggered.');
+  
+  // Reveal the Spotbugs tree view to focus the panel
+  await commands.executeCommand('spotbugs-view.focus');
   try {
     window.showInformationMessage('Starting Java workspace build...');
     Logger.log('Starting Java workspace build...');
@@ -78,7 +84,7 @@ export async function runWorkspaceAnalysis(config: Config, spotbugsTreeDataProvi
     const classpathsResult = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
     if (classpathsResult && classpathsResult.output) {
       const outputFolderUri = Uri.file(classpathsResult.output);
-      await checkCode(config, spotbugsTreeDataProvider, outputFolderUri);
+      await checkCode(config, spotbugsTreeDataProvider, treeView, outputFolderUri);
     } else {
       Logger.error('Could not determine the output folder for the Java project.');
       window.showErrorMessage("Could not determine the output folder for the Java project.");

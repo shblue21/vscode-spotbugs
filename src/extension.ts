@@ -3,6 +3,7 @@ import { SpotbugsTreeDataProvider } from './spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
+import { openBugLocation } from './commands/navigation';
 import { executeJavaLanguageServerCommand } from './command';
 import { Config } from './config';
 import { Logger } from './logger';
@@ -28,17 +29,23 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
 
     const spotbugsTreeDataProvider = new SpotbugsTreeDataProvider();
 
+    const spotbugsTreeView = window.createTreeView('spotbugs-view', {
+      treeDataProvider: spotbugsTreeDataProvider
+    });
+
     context.subscriptions.push(
-      window.createTreeView('spotbugs-view', {
-        treeDataProvider: spotbugsTreeDataProvider
-      }),
+      spotbugsTreeView,
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_ANALYSIS, async (uri: Uri | undefined) => {
-        await checkCode(config, spotbugsTreeDataProvider, uri);
+        await checkCode(config, spotbugsTreeDataProvider, spotbugsTreeView, uri);
       }),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
-        await runWorkspaceAnalysis(config, spotbugsTreeDataProvider);
+        await runWorkspaceAnalysis(config, spotbugsTreeDataProvider, spotbugsTreeView);
+      }),
+
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_BUG_LOCATION, async (bug) => {
+        await openBugLocation(bug);
       })
     );
   } catch (error) {
