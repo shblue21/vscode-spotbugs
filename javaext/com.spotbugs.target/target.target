@@ -19,9 +19,20 @@
                   includeMode="planner"
                   includeSource="true"
                   type="InstallableUnit">
-            <repository location="https://download.eclipse.org/jdtls/milestones/1.47.0/repository/"/>
+            <repository location="https://download.eclipse.org/jdtls/milestones/1.38.0/repository/"/>
             <unit id="org.eclipse.jdt.ls.core"               version="0.0.0"/>
             <unit id="org.eclipse.jdt.ls.filesystem"         version="0.0.0"/>
+        </location>
+
+        <!-- LSP4J Dependencies -->
+        <location includeAllPlatforms="false"
+                  includeConfigurePhase="false"
+                  includeMode="planner"
+                  includeSource="true"
+                  type="InstallableUnit">
+            <repository location="https://download.eclipse.org/lsp4j/updates/releases/0.22.0/"/>
+            <unit id="org.eclipse.lsp4j"           version="0.0.0"/>
+            <unit id="org.eclipse.lsp4j.jsonrpc"   version="0.0.0"/>
         </location>
     </locations>
 </target>
