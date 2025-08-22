@@ -47,6 +47,14 @@
   <dependencies>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
+      <artifactId>com.google.gson</artifactId>
+      <version>2.9.1.v20220915-1632</version>
+      <type>eclipse-plugin</type>
+      <scope>system</scope>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\com.google.gson\2.9.1.v20220915-1632\com.google.gson-2.9.1.v20220915-1632.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>p2.eclipse.plugin</groupId>
       <artifactId>com.google.guava</artifactId>
       <version>30.1.0.v20221112-0806</version>
       <type>eclipse-plugin</type>
@@ -56,278 +64,36 @@
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.ls.core</artifactId>
-      <version>1.38.0.202408011337</version>
+      <version>1.9.0.202203031534</version>
       <type>eclipse-plugin</type>
       <classifier>lib/jsoup-1.14.2.jar</classifier>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.ls.core-1.38.0.202408011337.jar\lib\jsoup-1.14.2.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.ls.core-1.9.0.202203031534.jar\lib\jsoup-1.14.2.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.ls.core</artifactId>
-      <version>1.38.0.202408011337</version>
+      <version>1.9.0.202203031534</version>
       <type>eclipse-plugin</type>
       <classifier>lib/remark-1.2.0.jar</classifier>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.ls.core-1.38.0.202408011337.jar\lib\remark-1.2.0.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.ls.core-1.9.0.202203031534.jar\lib\remark-1.2.0.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.ls.core</artifactId>
-      <version>1.38.0.202408011337</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/java-decompiler-engine-231.9011.34.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.ls.core-1.38.0.202408011337.jar\lib\java-decompiler-engine-231.9011.34.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.ls.core</artifactId>
-      <version>1.38.0.202408011337</version>
+      <version>1.9.0.202203031534</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.ls.core\1.38.0.202408011337\org.eclipse.jdt.ls.core-1.38.0.202408011337.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.ls.core\1.9.0.202203031534\org.eclipse.jdt.ls.core-1.9.0.202203031534.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.runtime</artifactId>
-      <version>3.31.100.v20240524-2010</version>
+      <version>3.26.100.v20221021-0005</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.runtime\3.31.100.v20240524-2010\org.eclipse.core.runtime-3.31.100.v20240524-2010.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-antlr.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-antlr.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-bcel.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-bcel.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-bsf.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-bsf.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-log4j.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-log4j.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-oro.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-oro.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-regexp.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-regexp.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-resolver.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-resolver.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-apache-xalan2.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-apache-xalan2.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-commons-logging.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-commons-logging.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-commons-net.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-commons-net.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-imageio.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-imageio.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-jakartamail.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-jakartamail.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-javamail.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-javamail.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-jdepend.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-jdepend.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-jmf.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-jmf.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-jsch.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-jsch.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-junit.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-junit.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-junit4.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-junit4.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-junitlauncher.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-junitlauncher.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-launcher.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-launcher.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-netrexx.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-netrexx.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-swing.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-swing.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-testutil.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-testutil.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant-xz.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant-xz.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <classifier>lib/ant.jar</classifier>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.apache.ant-1.10.14.v20230922-1200.jar\lib\ant.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.apache.ant.source</artifactId>
-      <version>1.10.14.v20230922-1200</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.apache.ant.source\1.10.14.v20230922-1200\org.apache.ant.source-1.10.14.v20230922-1200.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.runtime\3.26.100.v20221021-0005\org.eclipse.core.runtime-3.26.100.v20221021-0005.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
@@ -335,432 +101,232 @@
       <version>3.13.0</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\AppData\Local\Temp\file not yet available12315940217813369989.tmp</systemPath>
+      <systemPath>C:\Users\shblu\AppData\Local\Temp\file not yet available9057970633216781194.tmp</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.commands</artifactId>
-      <version>3.12.100.v20240424-0956</version>
+      <version>3.10.400.v20230220-0932</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.commands\3.12.100.v20240424-0956\org.eclipse.core.commands-3.12.100.v20240424-0956.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.commands\3.10.400.v20230220-0932\org.eclipse.core.commands-3.10.400.v20230220-0932.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.equinox.common</artifactId>
-      <version>3.19.100.v20240524-2011</version>
+      <version>3.17.100.v20230202-1341</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.common\3.19.100.v20240524-2011\org.eclipse.equinox.common-3.19.100.v20240524-2011.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.commands.source</artifactId>
-      <version>3.12.100.v20240424-0956</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.commands.source\3.12.100.v20240424-0956\org.eclipse.core.commands.source-3.12.100.v20240424-0956.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.common\3.17.100.v20230202-1341\org.eclipse.equinox.common-3.17.100.v20230202-1341.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.contenttype</artifactId>
-      <version>3.9.400.v20240507-1301</version>
+      <version>3.8.200.v20220817-1539</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.contenttype\3.9.400.v20240507-1301\org.eclipse.core.contenttype-3.9.400.v20240507-1301.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.contenttype\3.8.200.v20220817-1539\org.eclipse.core.contenttype-3.8.200.v20220817-1539.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.equinox.preferences</artifactId>
-      <version>3.11.100.v20240327-0645</version>
+      <version>3.10.200.v20230120-0604</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.preferences\3.11.100.v20240327-0645\org.eclipse.equinox.preferences-3.11.100.v20240327-0645.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.preferences\3.10.200.v20230120-0604\org.eclipse.equinox.preferences-3.10.200.v20230120-0604.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.equinox.registry</artifactId>
-      <version>3.12.100.v20240524-2011</version>
+      <version>3.11.200.v20220817-1601</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.registry\3.12.100.v20240524-2011\org.eclipse.equinox.registry-3.12.100.v20240524-2011.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.registry\3.11.200.v20220817-1601\org.eclipse.equinox.registry-3.11.200.v20220817-1601.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.osgi</artifactId>
-      <version>3.20.0.v20240509-1421</version>
+      <version>3.18.300.v20230220-1352</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.osgi\3.20.0.v20240509-1421\org.eclipse.osgi-3.20.0.v20240509-1421.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.contenttype.source</artifactId>
-      <version>3.9.400.v20240507-1301</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.contenttype.source\3.9.400.v20240507-1301\org.eclipse.core.contenttype.source-3.9.400.v20240507-1301.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.osgi\3.18.300.v20230220-1352\org.eclipse.osgi-3.18.300.v20230220-1352.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.expressions</artifactId>
-      <version>3.9.400.v20240413-1529</version>
+      <version>3.8.200.v20220613-1047</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.expressions\3.9.400.v20240413-1529\org.eclipse.core.expressions-3.9.400.v20240413-1529.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.expressions.source</artifactId>
-      <version>3.9.400.v20240413-1529</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.expressions.source\3.9.400.v20240413-1529\org.eclipse.core.expressions.source-3.9.400.v20240413-1529.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.expressions\3.8.200.v20220613-1047\org.eclipse.core.expressions-3.8.200.v20220613-1047.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.filebuffers</artifactId>
-      <version>3.8.300.v20240207-1054</version>
+      <version>3.7.200.v20220202-1008</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.filebuffers\3.8.300.v20240207-1054\org.eclipse.core.filebuffers-3.8.300.v20240207-1054.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.filebuffers\3.7.200.v20220202-1008\org.eclipse.core.filebuffers-3.7.200.v20220202-1008.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.text</artifactId>
-      <version>3.14.100.v20240524-2010</version>
+      <version>3.12.300.v20220921-1010</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.text\3.14.100.v20240524-2010\org.eclipse.text-3.14.100.v20240524-2010.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.text\3.12.300.v20220921-1010\org.eclipse.text-3.12.300.v20220921-1010.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.filesystem</artifactId>
-      <version>1.10.400.v20240426-1040</version>
+      <version>1.9.500.v20220817-1539</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.filesystem\1.10.400.v20240426-1040\org.eclipse.core.filesystem-1.10.400.v20240426-1040.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.filebuffers.source</artifactId>
-      <version>3.8.300.v20240207-1054</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.filebuffers.source\3.8.300.v20240207-1054\org.eclipse.core.filebuffers.source-3.8.300.v20240207-1054.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.filesystem.source</artifactId>
-      <version>1.10.400.v20240426-1040</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.filesystem.source\1.10.400.v20240426-1040\org.eclipse.core.filesystem.source-1.10.400.v20240426-1040.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.filesystem\1.9.500.v20220817-1539\org.eclipse.core.filesystem-1.9.500.v20220817-1539.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.jobs</artifactId>
-      <version>3.15.300.v20240418-0734</version>
+      <version>3.13.300.v20230111-0823</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.jobs\3.15.300.v20240418-0734\org.eclipse.core.jobs-3.15.300.v20240418-0734.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.jobs.source</artifactId>
-      <version>3.15.300.v20240418-0734</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.jobs.source\3.15.300.v20240418-0734\org.eclipse.core.jobs.source-3.15.300.v20240418-0734.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.jobs\3.13.300.v20230111-0823\org.eclipse.core.jobs-3.13.300.v20230111-0823.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.net</artifactId>
-      <version>1.5.400.v20240413-1529</version>
+      <version>1.4.0.v20220813-1037</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.net\1.5.400.v20240413-1529\org.eclipse.core.net-1.5.400.v20240413-1529.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.net\1.4.0.v20220813-1037\org.eclipse.core.net-1.4.0.v20220813-1037.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.equinox.security</artifactId>
-      <version>1.4.300.v20240419-2334</version>
+      <version>1.3.1000.v20220801-1135</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.security\1.4.300.v20240419-2334\org.eclipse.equinox.security-1.4.300.v20240419-2334.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.net.source</artifactId>
-      <version>1.5.400.v20240413-1529</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.net.source\1.5.400.v20240413-1529\org.eclipse.core.net.source-1.5.400.v20240413-1529.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.security\1.3.1000.v20220801-1135\org.eclipse.equinox.security-1.3.1000.v20220801-1135.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.resources</artifactId>
-      <version>3.20.200.v20240513-1323</version>
+      <version>3.18.200.v20230209-0754</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.resources\3.20.200.v20240513-1323\org.eclipse.core.resources-3.20.200.v20240513-1323.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.resources.source</artifactId>
-      <version>3.20.200.v20240513-1323</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.resources.source\3.20.200.v20240513-1323\org.eclipse.core.resources.source-3.20.200.v20240513-1323.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.resources\3.18.200.v20230209-0754\org.eclipse.core.resources-3.18.200.v20230209-0754.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.equinox.app</artifactId>
-      <version>1.7.100.v20240321-1445</version>
+      <version>1.6.200.v20220720-2012</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.app\1.7.100.v20240321-1445\org.eclipse.equinox.app-1.7.100.v20240321-1445.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.runtime.source</artifactId>
-      <version>3.31.100.v20240524-2010</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.runtime.source\3.31.100.v20240524-2010\org.eclipse.core.runtime.source-3.31.100.v20240524-2010.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.app\1.6.200.v20220720-2012\org.eclipse.equinox.app-1.6.200.v20220720-2012.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.core.variables</artifactId>
-      <version>3.6.400.v20240413-1529</version>
+      <version>3.5.100.v20210721-1355</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.variables\3.6.400.v20240413-1529\org.eclipse.core.variables-3.6.400.v20240413-1529.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.core.variables.source</artifactId>
-      <version>3.6.400.v20240413-1529</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.variables.source\3.6.400.v20240413-1529\org.eclipse.core.variables.source-3.6.400.v20240413-1529.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.core.variables\3.5.100.v20210721-1355\org.eclipse.core.variables-3.5.100.v20210721-1355.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.debug.core</artifactId>
-      <version>3.21.400.v20240415-0528</version>
+      <version>3.20.100.v20230124-1239</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.debug.core\3.21.400.v20240415-0528\org.eclipse.debug.core-3.21.400.v20240415-0528.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.debug.core.source</artifactId>
-      <version>3.21.400.v20240415-0528</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.debug.core.source\3.21.400.v20240415-0528\org.eclipse.debug.core.source-3.21.400.v20240415-0528.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.equinox.app.source</artifactId>
-      <version>1.7.100.v20240321-1445</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.app.source\1.7.100.v20240321-1445\org.eclipse.equinox.app.source-1.7.100.v20240321-1445.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.equinox.common.source</artifactId>
-      <version>3.19.100.v20240524-2011</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.common.source\3.19.100.v20240524-2011\org.eclipse.equinox.common.source-3.19.100.v20240524-2011.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.equinox.preferences.source</artifactId>
-      <version>3.11.100.v20240327-0645</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.preferences.source\3.11.100.v20240327-0645\org.eclipse.equinox.preferences.source-3.11.100.v20240327-0645.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.equinox.registry.source</artifactId>
-      <version>3.12.100.v20240524-2011</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.registry.source\3.12.100.v20240524-2011\org.eclipse.equinox.registry.source-3.12.100.v20240524-2011.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.equinox.security.source</artifactId>
-      <version>1.4.300.v20240419-2334</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.equinox.security.source\1.4.300.v20240419-2334\org.eclipse.equinox.security.source-1.4.300.v20240419-2334.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.apt.core</artifactId>
-      <version>3.8.400.v20240326-0804</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.apt.core\3.8.400.v20240326-0804\org.eclipse.jdt.apt.core-3.8.400.v20240326-0804.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.debug.core\3.20.100.v20230124-1239\org.eclipse.debug.core-3.20.100.v20230124-1239.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.core</artifactId>
-      <version>3.38.0.v20240528-0618</version>
+      <version>3.33.0.v20230222-1748</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core\3.38.0.v20240528-0618\org.eclipse.jdt.core-3.38.0.v20240528-0618.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.apt.core.source</artifactId>
-      <version>3.8.400.v20240326-0804</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.apt.core.source\3.8.400.v20240326-0804\org.eclipse.jdt.apt.core.source-3.8.400.v20240326-0804.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core\3.33.0.v20230222-1748\org.eclipse.jdt.core-3.33.0.v20230222-1748.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.core.compiler.batch</artifactId>
-      <version>3.38.0.v20240524-2033</version>
+      <version>3.33.0.v20230218-1114</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.compiler.batch\3.38.0.v20240524-2033\org.eclipse.jdt.core.compiler.batch-3.38.0.v20240524-2033.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.core.source</artifactId>
-      <version>3.38.0.v20240528-0618</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.source\3.38.0.v20240528-0618\org.eclipse.jdt.core.source-3.38.0.v20240528-0618.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.core.compiler.batch.source</artifactId>
-      <version>3.38.0.v20240524-2033</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.compiler.batch.source\3.38.0.v20240524-2033\org.eclipse.jdt.core.compiler.batch.source-3.38.0.v20240524-2033.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.compiler.batch\3.33.0.v20230218-1114\org.eclipse.jdt.core.compiler.batch-3.33.0.v20230218-1114.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.core.manipulation</artifactId>
-      <version>1.21.100.v20240524-2038</version>
+      <version>1.18.0.v20230209-2203</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.manipulation\1.21.100.v20240524-2038\org.eclipse.jdt.core.manipulation-1.21.100.v20240524-2038.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.manipulation\1.18.0.v20230209-2203\org.eclipse.jdt.core.manipulation-1.18.0.v20230209-2203.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.ltk.core.refactoring</artifactId>
-      <version>3.14.400.v20240321-1245</version>
+      <version>3.13.100.v20230117-1625</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.ltk.core.refactoring\3.14.400.v20240321-1245\org.eclipse.ltk.core.refactoring-3.14.400.v20240321-1245.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.ltk.core.refactoring\3.13.100.v20230117-1625\org.eclipse.ltk.core.refactoring-3.13.100.v20230117-1625.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.launching</artifactId>
-      <version>3.22.0.v20240424-1830</version>
+      <version>3.19.900.v20230209-1222</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.launching\3.22.0.v20240424-1830\org.eclipse.jdt.launching-3.22.0.v20240424-1830.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.search.core</artifactId>
-      <version>3.16.200.v20240502-1134</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.search.core\3.16.200.v20240502-1134\org.eclipse.search.core-3.16.200.v20240502-1134.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.core.manipulation.source</artifactId>
-      <version>1.21.100.v20240524-2038</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.core.manipulation.source\1.21.100.v20240524-2038\org.eclipse.jdt.core.manipulation.source-1.21.100.v20240524-2038.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.launching\3.19.900.v20230209-1222\org.eclipse.jdt.launching-3.19.900.v20230209-1222.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.jdt.debug</artifactId>
-      <version>3.21.400.v20240418-1414</version>
+      <version>3.20.100.v20230119-1127</version>
       <type>eclipse-plugin</type>
       <classifier>jdimodel.jar</classifier>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.debug-3.21.400.v20240418-1414.jar\jdimodel.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\.cache\tycho\org.eclipse.jdt.debug-3.20.100.v20230119-1127.jar\jdimodel.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.debug.source</artifactId>
-      <version>3.21.400.v20240418-1414</version>
+      <artifactId>org.eclipse.lsp4j</artifactId>
+      <version>0.19.0.v20221118-0359</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.debug.source\3.21.400.v20240418-1414\org.eclipse.jdt.debug.source-3.21.400.v20240418-1414.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.lsp4j\0.19.0.v20221118-0359\org.eclipse.lsp4j-0.19.0.v20221118-0359.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.launching.source</artifactId>
-      <version>3.22.0.v20240424-1830</version>
+      <artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
+      <version>0.19.0.v20221118-0359</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.launching.source\3.22.0.v20240424-1830\org.eclipse.jdt.launching.source-3.22.0.v20240424-1830.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.lsp4j.jsonrpc\0.19.0.v20221118-0359\org.eclipse.lsp4j.jsonrpc-0.19.0.v20221118-0359.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>p2.eclipse.plugin</groupId>
+      <artifactId>org.eclipse.xtend.lib</artifactId>
+      <version>2.28.0.v20220829-0436</version>
+      <type>eclipse-plugin</type>
+      <scope>system</scope>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.xtend.lib\2.28.0.v20220829-0436\org.eclipse.xtend.lib-2.28.0.v20220829-0436.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
       <artifactId>org.eclipse.xtext.xbase.lib</artifactId>
-      <version>2.31.0.v20230529-0659</version>
+      <version>2.28.0.v20220829-0436</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.xtext.xbase.lib\2.31.0.v20230529-0659\org.eclipse.xtext.xbase.lib-2.31.0.v20230529-0659.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.xtext.xbase.lib\2.28.0.v20220829-0436\org.eclipse.xtext.xbase.lib-2.28.0.v20220829-0436.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.jdt.ls.core.source</artifactId>
-      <version>1.38.0.202408011337</version>
+      <artifactId>org.eclipse.xtend.lib.macro</artifactId>
+      <version>2.28.0.v20220829-0436</version>
       <type>eclipse-plugin</type>
       <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.jdt.ls.core.source\1.38.0.202408011337\org.eclipse.jdt.ls.core.source-1.38.0.202408011337.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.ltk.core.refactoring.source</artifactId>
-      <version>3.14.400.v20240321-1245</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.ltk.core.refactoring.source\3.14.400.v20240321-1245\org.eclipse.ltk.core.refactoring.source-3.14.400.v20240321-1245.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.osgi.source</artifactId>
-      <version>3.20.0.v20240509-1421</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.osgi.source\3.20.0.v20240509-1421\org.eclipse.osgi.source-3.20.0.v20240509-1421.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.search.core.source</artifactId>
-      <version>3.16.200.v20240502-1134</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.search.core.source\3.16.200.v20240502-1134\org.eclipse.search.core.source-3.16.200.v20240502-1134.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>p2.eclipse.plugin</groupId>
-      <artifactId>org.eclipse.text.source</artifactId>
-      <version>3.14.100.v20240524-2010</version>
-      <type>eclipse-plugin</type>
-      <scope>system</scope>
-      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.text.source\3.14.100.v20240524-2010\org.eclipse.text.source-3.14.100.v20240524-2010.jar</systemPath>
+      <systemPath>C:\Users\shblu\.m2\repository\p2\osgi\bundle\org.eclipse.xtend.lib.macro\2.28.0.v20220829-0436\org.eclipse.xtend.lib.macro-2.28.0.v20220829-0436.jar</systemPath>
     </dependency>
   </dependencies>
 </project>
