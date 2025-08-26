@@ -5,7 +5,6 @@ export namespace JavaLanguageServerCommands {
     export const GET_CLASSPATHS: string = 'java.project.getClasspaths';
     export const CODEACTION_LOMBOK: string = 'codeAction.lombok';
     export const CODEACTION_LOMBOK_ANNOTATIONS: string = 'java.codeAction.lombok.getAnnotations';
-    export const GET_ALL_JAVA_PROJECTS: string = 'java.project.getAll';
     export const ORGANIZE_IMPORTS_SILENTLY = "java.edit.organizeImports"; 
 }
 
