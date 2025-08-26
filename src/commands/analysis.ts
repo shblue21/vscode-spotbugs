@@ -1,4 +1,13 @@
-import { commands, window, Uri, workspace, TreeView, TreeItem, extensions } from "vscode";
+import {
+  commands,
+  window,
+  Uri,
+  workspace,
+  TreeView,
+  TreeItem,
+  extensions,
+  ProgressLocation,
+} from "vscode";
 import { getJavaExtension } from "../utils";
 import * as path from "path";
 import * as fs from "fs";
@@ -190,52 +199,110 @@ export async function runWorkspaceAnalysis(
       window.showErrorMessage("No workspace folder found.");
       return;
     }
-    // Get project classpaths and output directory
+    // Collect project URIs
+    let projectUris: string[] = [];
     try {
-      const classpathsResult = await getClasspathsWithFallback(workspaceFolder.uri);
-      if (classpathsResult) {
-        // Set classpaths in config before analysis
-        const cps = classpathsResult.classpaths;
-        const sps = classpathsResult.sourcepaths;
-        Logger.log(
-          `Classpaths result - output:${classpathsResult.output ?? "n/a"}, classpaths:${Array.isArray(cps) ? cps.length : 0}, sourcepaths:${Array.isArray(sps) ? sps.length : 0}`,
-        );
-        if (Array.isArray(cps) && cps.length > 0) {
-          config.setClasspaths(cps);
-          Logger.log(`Set ${cps.length} classpaths for workspace analysis`);
-        } else {
-          Logger.log("No classpaths available for workspace analysis; using system classpath");
-        }
+      projectUris =
+        (await commands.executeCommand<string[]>(
+          JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS,
+        )) || [];
+    } catch {
+      projectUris = [];
+    }
+    // Filter out default pseudo project
+    projectUris = projectUris.filter((uriString) => {
+      try {
+        const p = Uri.parse(uriString).fsPath;
+        return path.basename(p) !== "jdt.ls-java-project";
+      } catch {
+        return true;
+      }
+    });
+    if (projectUris.length === 0) {
+      projectUris = [workspaceFolder.uri.toString()];
+      Logger.log("No Java projects from LS; falling back to workspace folder analysis.");
+    } else {
+      Logger.log(`Workspace contains ${projectUris.length} Java projects.`);
+    }
 
-        // Determine output folder
-        let outputPath: string | undefined = classpathsResult.output;
-        if (!outputPath && Array.isArray(cps)) {
-          outputPath = await pickCandidateOutputFolderFromClasspaths(
-            cps,
-            workspaceFolder.uri.fsPath,
-          );
-          if (outputPath) {
-            Logger.log(`Derived output folder from classpaths: ${outputPath}`);
+    // Show per-project progress in the tree and notification
+    spotbugsTreeDataProvider.showWorkspaceProgress(projectUris);
+    const aggregated: BugInfo[] = [];
+
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "SpotBugs: Analyzing workspace",
+        cancellable: true,
+      },
+      async (progress, token) => {
+        const total = projectUris.length;
+        for (let i = 0; i < projectUris.length; i++) {
+          const uriString = projectUris[i];
+          if (token.isCancellationRequested) {
+            Logger.log("Workspace analysis cancelled by user.");
+            break;
+          }
+          progress.report({ message: `${i + 1}/${total} ${uriString}` });
+          spotbugsTreeDataProvider.updateProjectStatus(uriString, "running");
+
+          try {
+            const preferred = Uri.parse(uriString);
+            const classpathsResult = await getClasspathsWithFallback(preferred);
+            let cps: string[] | undefined;
+            let sps: string[] | undefined;
+            if (classpathsResult) {
+              cps = classpathsResult.classpaths;
+              sps = classpathsResult.sourcepaths;
+              Logger.log(
+                `Project CP - output:${classpathsResult.output ?? "n/a"}, classpaths:${Array.isArray(cps) ? cps.length : 0}, sourcepaths:${Array.isArray(sps) ? sps.length : 0}`,
+              );
+              if (Array.isArray(cps) && cps.length > 0) {
+                config.setClasspaths(cps);
+              }
+            }
+
+            // Determine output folder
+            let outputPath: string | undefined = classpathsResult?.output;
+            if (!outputPath && Array.isArray(cps)) {
+              outputPath = await pickCandidateOutputFolderFromClasspaths(
+                cps,
+                workspaceFolder.uri.fsPath,
+              );
+            }
+
+            if (!outputPath) {
+              throw new Error("No output folder determined");
+            }
+
+            const resultJson = await executeJavaLanguageServerCommand<string>(
+              SpotBugsCommands.RUN_ANALYSIS,
+              outputPath,
+              JSON.stringify(config),
+            );
+            let projectBugs: BugInfo[] = [];
+            if (resultJson) {
+              try {
+                projectBugs = JSON.parse(resultJson) as BugInfo[];
+              } catch (e) {
+                Logger.error("Failed to parse project analysis result", e);
+              }
+            }
+            const enriched = await enrichBugsWithFullPaths(projectBugs);
+            aggregated.push(...enriched);
+            spotbugsTreeDataProvider.updateProjectStatus(uriString, "done", {
+              count: enriched.length,
+            });
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            Logger.log(`Project analysis failed for ${uriString}: ${msg}`);
+            spotbugsTreeDataProvider.updateProjectStatus(uriString, "failed", { error: msg });
           }
         }
+      },
+    );
 
-        if (outputPath) {
-          const outputFolderUri = Uri.file(outputPath);
-          await checkCode(config, spotbugsTreeDataProvider, treeView, outputFolderUri);
-        } else {
-          Logger.error("Could not determine the output folder for the Java project.");
-          window.showErrorMessage("Could not determine the output folder for the Java project.");
-        }
-      } else {
-        Logger.error("Failed to obtain classpaths from Java Language Server.");
-        window.showErrorMessage("Failed to obtain classpaths from Java Language Server.");
-      }
-    } catch (error) {
-      Logger.error("Failed to get project information from Java Language Server", error);
-      window.showErrorMessage(
-        "Failed to get project information. Make sure you have a valid Java project open.",
-      );
-    }
+    spotbugsTreeDataProvider.showResults(aggregated);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error("An error occurred during workspace analysis", error);

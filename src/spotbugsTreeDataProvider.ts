@@ -1,13 +1,15 @@
 "use strict";
 
-import { Event, EventEmitter, TreeDataProvider, TreeItem } from "vscode";
+import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from "vscode";
 import { BugInfo } from "./bugInfo";
 import {
   CategoryGroupItem,
   PatternGroupItem,
   BugInfoItem,
   buildPatternGroupLabel,
+  ProjectStatusItem,
 } from "./bugTreeItem";
+import * as path from "path";
 
 export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> = new EventEmitter<
@@ -17,6 +19,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this._onDidChangeTreeData.event;
 
   private viewItems: TreeItem[] = [];
+  private projectItems: Map<string, ProjectStatusItem> = new Map();
 
   constructor() {
     this.showInitialMessage();
@@ -44,6 +47,40 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   public showLoading(): void {
     this.viewItems = [new TreeItem("Analyzing...")];
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public showWorkspaceProgress(projectUris: string[]): void {
+    this.projectItems.clear();
+    const items: ProjectStatusItem[] = [];
+    for (const uriString of projectUris) {
+      const label = this.toDisplayName(uriString);
+      const item = new ProjectStatusItem(uriString, label);
+      items.push(item);
+      this.projectItems.set(uriString, item);
+    }
+    this.viewItems = items;
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public updateProjectStatus(
+    uriString: string,
+    status: "pending" | "running" | "done" | "failed",
+    extra?: { count?: number; error?: string },
+  ): void {
+    const item = this.projectItems.get(uriString);
+    if (item) {
+      item.setStatus(status, extra);
+      this._onDidChangeTreeData.fire(item);
+    }
+  }
+
+  private toDisplayName(uriString: string): string {
+    try {
+      const u = Uri.parse(uriString);
+      return path.basename(u.fsPath) || uriString;
+    } catch {
+      return uriString;
+    }
   }
 
   public showResults(bugs: BugInfo[]): void {

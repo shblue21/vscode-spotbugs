@@ -105,3 +105,37 @@ export function buildPatternGroupLabel(bug: BugInfo): string {
   }
   return `[${pattern}] ${msg}`;
 }
+
+export class ProjectStatusItem extends TreeItem {
+  public idKey: string;
+  public status: "pending" | "running" | "done" | "failed" = "pending";
+  public count?: number;
+
+  constructor(idKey: string, label: string) {
+    super(label, TreeItemCollapsibleState.None);
+    this.idKey = idKey;
+    this.iconPath = new ThemeIcon("clock");
+    this.description = "Pending";
+  }
+
+  public setStatus(
+    status: "pending" | "running" | "done" | "failed",
+    extra?: { count?: number; error?: string },
+  ) {
+    this.status = status;
+    if (status === "pending") {
+      this.iconPath = new ThemeIcon("clock");
+      this.description = "Pending";
+    } else if (status === "running") {
+      this.iconPath = new ThemeIcon("sync");
+      this.description = "Analyzing…";
+    } else if (status === "done") {
+      this.iconPath = new ThemeIcon("check");
+      this.count = extra?.count;
+      this.description = typeof this.count === "number" ? `Done (${this.count})` : "Done";
+    } else if (status === "failed") {
+      this.iconPath = new ThemeIcon("error");
+      this.description = extra?.error ? `Failed: ${extra.error}` : "Failed";
+    }
+  }
+}
