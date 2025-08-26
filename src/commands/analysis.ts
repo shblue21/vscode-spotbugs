@@ -184,11 +184,16 @@ export async function runWorkspaceAnalysis(
     Logger.log(`Build duration: ${t1 - t0} ms`);
 
     if (buildResult !== 0) {
-      Logger.error(`Java workspace build failed. Return code: ${String(buildResult)}`);
-      window.showErrorMessage(
-        "Build failed. Please build project manually and then run Spotbugs analysis.",
+      Logger.log(
+        `Java workspace build returned non-zero (${String(
+          buildResult,
+        )}). Proceeding with best-effort analysis...`,
       );
-      return;
+      window.showWarningMessage(
+        `Java build returned ${String(
+          buildResult,
+        )}. Continuing SpotBugs analysis with available outputs. Results may be partial.`,
+      );
     }
 
     window.showInformationMessage("Build completed successfully. Analyzing workspace...");
