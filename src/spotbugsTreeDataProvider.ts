@@ -2,7 +2,7 @@
 
 import { Event, EventEmitter, TreeDataProvider, TreeItem } from 'vscode';
 import { BugInfo } from './bugInfo';
-import { PriorityGroupItem, BugInfoItem } from './bugTreeItem';
+import { CategoryGroupItem, PatternGroupItem, BugInfoItem, buildPatternGroupLabel } from './bugTreeItem';
 
 export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
@@ -20,7 +20,10 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
 
     getChildren(element?: TreeItem): Thenable<TreeItem[]> {
-        if (element instanceof PriorityGroupItem) {
+        if (element instanceof CategoryGroupItem) {
+            return Promise.resolve(element.patterns);
+        }
+        if (element instanceof PatternGroupItem) {
             return Promise.resolve(element.bugs.map(bug => new BugInfoItem(bug)));
         }
         return Promise.resolve(this.viewItems);
@@ -40,23 +43,33 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
         if (!bugs || bugs.length === 0) {
             this.viewItems = [new TreeItem("No issues found.")];
         } else {
-            const groupedByPriority = this.groupBugsByPriority(bugs);
-            this.viewItems = Object.keys(groupedByPriority).map(priority => {
-                return new PriorityGroupItem(priority, groupedByPriority[priority]);
+            const categoryMap = this.groupBugsByCategoryAndPattern(bugs);
+            const categories = Object.keys(categoryMap).sort();
+            this.viewItems = categories.map(category => {
+                const patterns = Object.keys(categoryMap[category]).sort().map(patternKey => {
+                    const entry = categoryMap[category][patternKey];
+                    return new PatternGroupItem(entry.label, entry.bugs);
+                });
+                const total = patterns.reduce((acc, p) => acc + p.bugs.length, 0);
+                return new CategoryGroupItem(category, patterns, total);
             });
         }
         this._onDidChangeTreeData.fire(undefined);
     }
 
-    private groupBugsByPriority(bugs: BugInfo[]): { [key: string]: BugInfo[] } {
-        const groups: { [key: string]: BugInfo[] } = {};
-        bugs.forEach(bug => {
-            const priority = bug.priority || 'Unknown';
-            if (!groups[priority]) {
-                groups[priority] = [];
+    private groupBugsByCategoryAndPattern(bugs: BugInfo[]): { [category: string]: { [patternKey: string]: { label: string, bugs: BugInfo[] } } } {
+        const map: { [category: string]: { [patternKey: string]: { label: string, bugs: BugInfo[] } } } = {};
+        for (const bug of bugs) {
+            const category = bug.category || 'Uncategorized';
+            const patternKey = (bug.abbrev || bug.type || 'Unknown').toUpperCase();
+            if (!map[category]) {
+                map[category] = {};
             }
-            groups[priority].push(bug);
-        });
-        return groups;
+            if (!map[category][patternKey]) {
+                map[category][patternKey] = { label: buildPatternGroupLabel(bug), bugs: [] };
+            }
+            map[category][patternKey].bugs.push(bug);
+        }
+        return map;
     }
 }

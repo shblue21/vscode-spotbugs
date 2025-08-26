@@ -3,13 +3,24 @@ import { BugInfo } from './bugInfo';
 import { SpotBugsCommands } from './constants/commands';
 import * as path from 'path';
 
-export class PriorityGroupItem extends TreeItem {
+export class CategoryGroupItem extends TreeItem {
+    public patterns: PatternGroupItem[];
+
+    constructor(category: string, patterns: PatternGroupItem[], totalCount: number) {
+        super(`${category} (${totalCount})`, TreeItemCollapsibleState.Expanded);
+        this.patterns = patterns;
+        this.iconPath = new ThemeIcon('folder');
+        this.description = `${patterns.length} pattern${patterns.length !== 1 ? 's' : ''}`;
+    }
+}
+
+export class PatternGroupItem extends TreeItem {
     public bugs: BugInfo[];
 
-    constructor(priority: string, bugs: BugInfo[]) {
-        super(`${priority} Priority (${bugs.length})`, TreeItemCollapsibleState.Expanded);
+    constructor(label: string, bugs: BugInfo[]) {
+        super(`${label} (${bugs.length})`, TreeItemCollapsibleState.Collapsed);
         this.bugs = bugs;
-        this.iconPath = new ThemeIcon('tag');
+        this.iconPath = new ThemeIcon('list-tree');
     }
 }
 
@@ -70,4 +81,22 @@ function severityIcon(bug: BugInfo): ThemeIcon {
         return new ThemeIcon('warning');
     }
     return new ThemeIcon('info');
+}
+
+export function buildPatternGroupLabel(bug: BugInfo): string {
+    const pattern = bug.abbrev || bug.type || 'Pattern';
+    const raw = bug.message || '';
+    let msg = raw.trim();
+    const prefix = `${pattern}:`;
+    if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
+        msg = msg.substring(prefix.length).trim();
+    }
+    const inIdx = msg.indexOf(' in ');
+    if (inIdx > 0) {
+        msg = msg.substring(0, inIdx).trim();
+    }
+    if (!msg) {
+        msg = bug.type || 'SpotBugs Pattern';
+    }
+    return `[${pattern}] ${msg}`;
 }
