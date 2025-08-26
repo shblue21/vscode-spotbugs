@@ -1,4 +1,4 @@
-import { OutputChannel, window } from 'vscode';
+import { OutputChannel, window } from "vscode";
 
 /**
  * A simple logger class that writes to a dedicated VS Code OutputChannel.
@@ -37,7 +37,7 @@ export class Logger {
    */
   public static error(message: string, error?: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    this.log(`[ERROR] ${message}${error ? `: ${errorMessage}` : ''}`);
+    this.log(`[ERROR] ${message}${error ? `: ${errorMessage}` : ""}`);
   }
 
   /**

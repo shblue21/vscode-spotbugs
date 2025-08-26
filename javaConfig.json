@@ -1,6 +1,4 @@
 {
-    "projects": [
-        "./javaext"
-    ],
-    "targetPlatform": "./javaext/com.spotbugs.target/target.target"
+  "projects": ["./javaext"],
+  "targetPlatform": "./javaext/com.spotbugs.target/target.target"
 }

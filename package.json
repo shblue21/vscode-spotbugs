@@ -32,7 +32,10 @@
     "onCommand:spotbugs.runFile"
   ],
   "main": "./out/extension.js",
-  "enabledApiProposals": ["extensionRuntime", "treeViewActiveItem"],
+  "enabledApiProposals": [
+    "extensionRuntime",
+    "treeViewActiveItem"
+  ],
   "capabilities": {
     "virtualWorkspaces": true,
     "untrustedWorkspaces": {
@@ -173,6 +176,8 @@
     "watch": "tsc -b -v --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
+    "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\"",
     "test": "node ./out/client/test/runTest.js",
     "build-server": "node scripts/buildJdtlsExt.js"
   },
@@ -187,8 +192,11 @@
     "@typescript-eslint/parser": "^8.36.0",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.31.0",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-prettier": "^5.5.4",
     "glob": "^11.0.3",
     "mocha": "^11.7.1",
+    "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3"
   },

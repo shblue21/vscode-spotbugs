@@ -1,0 +1,10 @@
+out
+dist
+server
+**/*.jar
+**/*.zip
+javaext/**/target
+javaext/**/build
+node_modules
+tsconfig.tsbuildinfo
+
