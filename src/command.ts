@@ -1,11 +1,13 @@
-"use strict";
+'use strict';
 
-import * as vscode from "vscode";
-import { JavaLanguageServerCommands } from "./constants/commands";
+import * as vscode from 'vscode';
+import { JavaLanguageServerCommands } from './constants/commands';
 
-export async function executeJavaLanguageServerCommand<T>(...rest: any[]): Promise<T | undefined> {
+export async function executeJavaLanguageServerCommand<T>(
+  ...rest: any[]
+): Promise<T | undefined> {
   return vscode.commands.executeCommand<T>(
     JavaLanguageServerCommands.EXECUTE_WORKSPACE_COMMAND,
-    ...rest,
+    ...rest
   );
 }

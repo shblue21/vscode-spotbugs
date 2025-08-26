@@ -176,8 +176,8 @@
     "watch": "tsc -b -v --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "test": "node ./out/client/test/runTest.js",
     "build-server": "node scripts/buildJdtlsExt.js"
   },

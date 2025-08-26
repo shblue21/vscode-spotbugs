@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 export interface BugInfo {
   type: string;

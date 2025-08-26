@@ -1,20 +1,19 @@
-"use strict";
+'use strict';
 
-import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from "vscode";
-import { BugInfo } from "./bugInfo";
+import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from 'vscode';
+import { BugInfo } from './bugInfo';
 import {
   CategoryGroupItem,
   PatternGroupItem,
   BugInfoItem,
   buildPatternGroupLabel,
   ProjectStatusItem,
-} from "./bugTreeItem";
-import * as path from "path";
+} from './bugTreeItem';
+import * as path from 'path';
 
 export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
-  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> = new EventEmitter<
-    TreeItem | undefined | null
-  >();
+  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
+    new EventEmitter<TreeItem | undefined | null>();
   readonly onDidChangeTreeData: Event<TreeItem | undefined | null> =
     this._onDidChangeTreeData.event;
 
@@ -40,12 +39,12 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   public showInitialMessage(): void {
-    this.viewItems = [new TreeItem("Ready to analyze. Click the search icon to start.")];
+    this.viewItems = [new TreeItem('Ready to analyze. Click the search icon to start.')];
     this._onDidChangeTreeData.fire(undefined);
   }
 
   public showLoading(): void {
-    this.viewItems = [new TreeItem("Analyzing...")];
+    this.viewItems = [new TreeItem('Analyzing...')];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -64,8 +63,8 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public updateProjectStatus(
     uriString: string,
-    status: "pending" | "running" | "done" | "failed",
-    extra?: { count?: number; error?: string },
+    status: 'pending' | 'running' | 'done' | 'failed',
+    extra?: { count?: number; error?: string }
   ): void {
     const item = this.projectItems.get(uriString);
     if (item) {
@@ -85,7 +84,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showResults(bugs: BugInfo[]): void {
     if (!bugs || bugs.length === 0) {
-      this.viewItems = [new TreeItem("No issues found.")];
+      this.viewItems = [new TreeItem('No issues found.')];
     } else {
       const categoryMap = this.groupBugsByCategoryAndPattern(bugs);
       const categories = Object.keys(categoryMap).sort();
@@ -110,8 +109,8 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       [category: string]: { [patternKey: string]: { label: string; bugs: BugInfo[] } };
     } = {};
     for (const bug of bugs) {
-      const category = bug.category || "Uncategorized";
-      const patternKey = (bug.abbrev || bug.type || "Unknown").toUpperCase();
+      const category = bug.category || 'Uncategorized';
+      const patternKey = (bug.abbrev || bug.type || 'Unknown').toUpperCase();
       if (!map[category]) {
         map[category] = {};
       }

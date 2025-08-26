@@ -7,28 +7,28 @@ import {
   TreeItem,
   extensions,
   ProgressLocation,
-} from "vscode";
-import { getJavaExtension } from "../utils";
-import * as path from "path";
-import * as fs from "fs";
-import { SpotbugsTreeDataProvider } from "../spotbugsTreeDataProvider";
-import { BugInfo } from "../bugInfo";
-import { Config } from "../config";
-import { Logger } from "../logger";
-import { executeJavaLanguageServerCommand } from "../command";
-import { JavaLanguageServerCommands, SpotBugsCommands } from "../constants/commands";
+} from 'vscode';
+import { getJavaExtension } from '../utils';
+import * as path from 'path';
+import * as fs from 'fs';
+import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
+import { BugInfo } from '../bugInfo';
+import { Config } from '../config';
+import { Logger } from '../logger';
+import { executeJavaLanguageServerCommand } from '../command';
+import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
 
 export async function checkCode(
   config: Config,
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider,
   treeView: TreeView<TreeItem>,
-  uri: Uri | undefined,
+  uri: Uri | undefined
 ): Promise<void> {
   Logger.show();
-  Logger.log("Command spotbugs.run triggered.");
+  Logger.log('Command spotbugs.run triggered.');
 
   // Reveal the Spotbugs tree view to focus the panel
-  await commands.executeCommand("spotbugs-view.focus");
+  await commands.executeCommand('spotbugs-view.focus');
 
   let fileUri = uri;
   if (!fileUri && window.activeTextEditor) {
@@ -39,7 +39,7 @@ export async function checkCode(
     spotbugsTreeDataProvider.showLoading();
     try {
       // Get project classpaths and set them in config (only for Java/class files)
-      if (fileUri.fsPath.endsWith(".java") || fileUri.fsPath.endsWith(".class")) {
+      if (fileUri.fsPath.endsWith('.java') || fileUri.fsPath.endsWith('.class')) {
         try {
           const preferred = fileUri;
           const classpathsResult = await getClasspathsWithFallback(preferred);
@@ -49,13 +49,17 @@ export async function checkCode(
             classpathsResult.classpaths.length > 0
           ) {
             config.setClasspaths(classpathsResult.classpaths);
-            Logger.log(`Set ${classpathsResult.classpaths.length} classpaths for analysis`);
+            Logger.log(
+              `Set ${classpathsResult.classpaths.length} classpaths for analysis`
+            );
           } else {
-            Logger.log("No classpaths returned from Java Language Server; using system classpath");
+            Logger.log(
+              'No classpaths returned from Java Language Server; using system classpath'
+            );
           }
         } catch (error) {
           Logger.log(
-            `Warning: Could not get project classpaths (${error instanceof Error ? error.message : String(error)}), using system classpath`,
+            `Warning: Could not get project classpaths (${error instanceof Error ? error.message : String(error)}), using system classpath`
           );
         }
       }
@@ -63,80 +67,82 @@ export async function checkCode(
       const result = await executeJavaLanguageServerCommand<string>(
         SpotBugsCommands.RUN_ANALYSIS,
         fileUri.fsPath,
-        JSON.stringify(config),
+        JSON.stringify(config)
       );
       if (result) {
         try {
           const bugs = JSON.parse(result) as BugInfo[];
           const enrichedBugs = await enrichBugsWithFullPaths(bugs);
-          Logger.log(`Successfully parsed and enriched ${enrichedBugs.length} bugs. Details:`);
+          Logger.log(
+            `Successfully parsed and enriched ${enrichedBugs.length} bugs. Details:`
+          );
           for (const bug of enrichedBugs) {
             Logger.log(JSON.stringify(bug, null, 2));
           }
           spotbugsTreeDataProvider.showResults(enrichedBugs);
         } catch (e) {
-          Logger.error("Failed to parse Spotbugs analysis results", e);
+          Logger.error('Failed to parse Spotbugs analysis results', e);
           window.showErrorMessage(
-            "Failed to parse Spotbugs analysis results. See Spotbugs output channel for details.",
+            'Failed to parse Spotbugs analysis results. See Spotbugs output channel for details.'
           );
         }
       } else {
         spotbugsTreeDataProvider.showResults([]);
       }
     } catch (err) {
-      Logger.error("An error occurred during Spotbugs analysis", err);
+      Logger.error('An error occurred during Spotbugs analysis', err);
       window.showErrorMessage(
-        "An error occurred during Spotbugs analysis. See Spotbugs output channel for details.",
+        'An error occurred during Spotbugs analysis. See Spotbugs output channel for details.'
       );
       spotbugsTreeDataProvider.showResults([]);
     }
   } else {
-    window.showErrorMessage("No Java file selected for Spotbugs analysis.");
-    Logger.log("No Java file selected for analysis.");
+    window.showErrorMessage('No Java file selected for Spotbugs analysis.');
+    Logger.log('No Java file selected for analysis.');
   }
 }
 
 export async function runWorkspaceAnalysis(
   config: Config,
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider,
-  treeView: TreeView<TreeItem>,
+  treeView: TreeView<TreeItem>
 ): Promise<void> {
   Logger.show();
-  Logger.log("Command spotbugs.runWorkspace triggered.");
+  Logger.log('Command spotbugs.runWorkspace triggered.');
 
   // Reveal the Spotbugs tree view to focus the panel
-  await commands.executeCommand("spotbugs-view.focus");
+  await commands.executeCommand('spotbugs-view.focus');
   try {
-    window.showInformationMessage("Starting Java workspace build...");
-    Logger.log("Starting Java workspace build...");
+    window.showInformationMessage('Starting Java workspace build...');
+    Logger.log('Starting Java workspace build...');
 
     // Log Java extension presence and readiness
-    const javaExt = extensions.getExtension("redhat.java");
+    const javaExt = extensions.getExtension('redhat.java');
     if (!javaExt) {
-      Logger.log("Java extension redhat.java not found. Build may fail.");
+      Logger.log('Java extension redhat.java not found. Build may fail.');
     } else {
       Logger.log(
-        `redhat.java present. Active=${javaExt.isActive}, Version=${(javaExt as any).packageJSON?.version ?? "unknown"}`,
+        `redhat.java present. Active=${javaExt.isActive}, Version=${(javaExt as any).packageJSON?.version ?? 'unknown'}`
       );
       if (!javaExt.isActive) {
         try {
           await javaExt.activate();
-          Logger.log("Activated redhat.java extension.");
+          Logger.log('Activated redhat.java extension.');
         } catch (e) {
           Logger.log(
-            `Warning: Failed to activate redhat.java (${e instanceof Error ? e.message : String(e)})`,
+            `Warning: Failed to activate redhat.java (${e instanceof Error ? e.message : String(e)})`
           );
         }
       }
       const api: any = javaExt.exports;
-      if (api && typeof api.serverReady === "function") {
+      if (api && typeof api.serverReady === 'function') {
         try {
-          Logger.log("Waiting for Java Language Server to be ready...");
+          Logger.log('Waiting for Java Language Server to be ready...');
           await api.serverReady();
-          Logger.log("Java Language Server reported ready.");
+          Logger.log('Java Language Server reported ready.');
         } catch (e) {
           Logger.log(
-            `Warning: serverReady() failed (${e instanceof Error ? e.message : String(e)})`,
+            `Warning: serverReady() failed (${e instanceof Error ? e.message : String(e)})`
           );
         }
       }
@@ -155,28 +161,28 @@ export async function runWorkspaceAnalysis(
     const t0 = Date.now();
     let buildResult: number | undefined;
     try {
-      Logger.log("Invoking java.project.build(false) - incremental build");
+      Logger.log('Invoking java.project.build(false) - incremental build');
       buildResult = await commands.executeCommand<number>(
         JavaLanguageServerCommands.BUILD_WORKSPACE,
-        false,
+        false
       );
       Logger.log(`java.project.build(false) returned: ${String(buildResult)}`);
     } catch (e) {
       Logger.log(
-        `Error during java.project.build(false): ${e instanceof Error ? e.message : String(e)}`,
+        `Error during java.project.build(false): ${e instanceof Error ? e.message : String(e)}`
       );
     }
     if (buildResult !== 0) {
       try {
-        Logger.log("Retrying with java.project.build(true) - full build");
+        Logger.log('Retrying with java.project.build(true) - full build');
         buildResult = await commands.executeCommand<number>(
           JavaLanguageServerCommands.BUILD_WORKSPACE,
-          true,
+          true
         );
         Logger.log(`java.project.build(true) returned: ${String(buildResult)}`);
       } catch (e) {
         Logger.log(
-          `Error during java.project.build(true): ${e instanceof Error ? e.message : String(e)}`,
+          `Error during java.project.build(true): ${e instanceof Error ? e.message : String(e)}`
         );
       }
     }
@@ -186,22 +192,24 @@ export async function runWorkspaceAnalysis(
     if (buildResult !== 0) {
       Logger.log(
         `Java workspace build returned non-zero (${String(
-          buildResult,
-        )}). Proceeding with best-effort analysis...`,
+          buildResult
+        )}). Proceeding with best-effort analysis...`
       );
       window.showWarningMessage(
         `Java build returned ${String(
-          buildResult,
-        )}. Continuing SpotBugs analysis with available outputs. Results may be partial.`,
+          buildResult
+        )}. Continuing SpotBugs analysis with available outputs. Results may be partial.`
       );
     }
 
-    window.showInformationMessage("Build completed successfully. Analyzing workspace...");
-    Logger.log("Build completed successfully. Analyzing workspace...");
-    const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
+    window.showInformationMessage('Build completed successfully. Analyzing workspace...');
+    Logger.log('Build completed successfully. Analyzing workspace...');
+    const workspaceFolder = workspace.workspaceFolders
+      ? workspace.workspaceFolders[0]
+      : undefined;
     if (!workspaceFolder) {
-      Logger.error("No workspace folder found.");
-      window.showErrorMessage("No workspace folder found.");
+      Logger.error('No workspace folder found.');
+      window.showErrorMessage('No workspace folder found.');
       return;
     }
     // Collect project URIs
@@ -209,7 +217,7 @@ export async function runWorkspaceAnalysis(
     try {
       projectUris =
         (await commands.executeCommand<string[]>(
-          JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS,
+          JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
         )) || [];
     } catch {
       projectUris = [];
@@ -218,14 +226,14 @@ export async function runWorkspaceAnalysis(
     projectUris = projectUris.filter((uriString) => {
       try {
         const p = Uri.parse(uriString).fsPath;
-        return path.basename(p) !== "jdt.ls-java-project";
+        return path.basename(p) !== 'jdt.ls-java-project';
       } catch {
         return true;
       }
     });
     if (projectUris.length === 0) {
       projectUris = [workspaceFolder.uri.toString()];
-      Logger.log("No Java projects from LS; falling back to workspace folder analysis.");
+      Logger.log('No Java projects from LS; falling back to workspace folder analysis.');
     } else {
       Logger.log(`Workspace contains ${projectUris.length} Java projects.`);
     }
@@ -237,7 +245,7 @@ export async function runWorkspaceAnalysis(
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: "SpotBugs: Analyzing workspace",
+        title: 'SpotBugs: Analyzing workspace',
         cancellable: true,
       },
       async (progress, token) => {
@@ -245,11 +253,11 @@ export async function runWorkspaceAnalysis(
         for (let i = 0; i < projectUris.length; i++) {
           const uriString = projectUris[i];
           if (token.isCancellationRequested) {
-            Logger.log("Workspace analysis cancelled by user.");
+            Logger.log('Workspace analysis cancelled by user.');
             break;
           }
           progress.report({ message: `${i + 1}/${total} ${uriString}` });
-          spotbugsTreeDataProvider.updateProjectStatus(uriString, "running");
+          spotbugsTreeDataProvider.updateProjectStatus(uriString, 'running');
 
           try {
             const preferred = Uri.parse(uriString);
@@ -260,7 +268,7 @@ export async function runWorkspaceAnalysis(
               cps = classpathsResult.classpaths;
               sps = classpathsResult.sourcepaths;
               Logger.log(
-                `Project CP - output:${classpathsResult.output ?? "n/a"}, classpaths:${Array.isArray(cps) ? cps.length : 0}, sourcepaths:${Array.isArray(sps) ? sps.length : 0}`,
+                `Project CP - output:${classpathsResult.output ?? 'n/a'}, classpaths:${Array.isArray(cps) ? cps.length : 0}, sourcepaths:${Array.isArray(sps) ? sps.length : 0}`
               );
               if (Array.isArray(cps) && cps.length > 0) {
                 config.setClasspaths(cps);
@@ -272,46 +280,50 @@ export async function runWorkspaceAnalysis(
             if (!outputPath && Array.isArray(cps)) {
               outputPath = await pickCandidateOutputFolderFromClasspaths(
                 cps,
-                workspaceFolder.uri.fsPath,
+                workspaceFolder.uri.fsPath
               );
             }
 
             if (!outputPath) {
-              throw new Error("No output folder determined");
+              throw new Error('No output folder determined');
             }
 
             const resultJson = await executeJavaLanguageServerCommand<string>(
               SpotBugsCommands.RUN_ANALYSIS,
               outputPath,
-              JSON.stringify(config),
+              JSON.stringify(config)
             );
             let projectBugs: BugInfo[] = [];
             if (resultJson) {
               try {
                 projectBugs = JSON.parse(resultJson) as BugInfo[];
               } catch (e) {
-                Logger.error("Failed to parse project analysis result", e);
+                Logger.error('Failed to parse project analysis result', e);
               }
             }
             const enriched = await enrichBugsWithFullPaths(projectBugs);
             aggregated.push(...enriched);
-            spotbugsTreeDataProvider.updateProjectStatus(uriString, "done", {
+            spotbugsTreeDataProvider.updateProjectStatus(uriString, 'done', {
               count: enriched.length,
             });
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
             Logger.log(`Project analysis failed for ${uriString}: ${msg}`);
-            spotbugsTreeDataProvider.updateProjectStatus(uriString, "failed", { error: msg });
+            spotbugsTreeDataProvider.updateProjectStatus(uriString, 'failed', {
+              error: msg,
+            });
           }
         }
-      },
+      }
     );
 
     spotbugsTreeDataProvider.showResults(aggregated);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.error("An error occurred during workspace analysis", error);
-    window.showErrorMessage(`An error occurred during workspace analysis: ${errorMessage}`);
+    Logger.error('An error occurred during workspace analysis', error);
+    window.showErrorMessage(
+      `An error occurred during workspace analysis: ${errorMessage}`
+    );
   }
 }
 
@@ -321,9 +333,11 @@ async function enrichBugsWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
   }
 
   try {
-    const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
+    const workspaceFolder = workspace.workspaceFolders
+      ? workspace.workspaceFolders[0]
+      : undefined;
     if (!workspaceFolder) {
-      Logger.log("Cannot resolve full paths without an active workspace.");
+      Logger.log('Cannot resolve full paths without an active workspace.');
       return bugs;
     }
 
@@ -341,7 +355,7 @@ async function enrichBugsWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
         classpathsResult.sourcepaths.length > 0
       ) {
         const sourcepaths: string[] = classpathsResult.sourcepaths;
-        Logger.log(`Found source paths: ${sourcepaths.join(", ")}`);
+        Logger.log(`Found source paths: ${sourcepaths.join(', ')}`);
 
         for (const bug of bugs) {
           if (!bug.realSourcePath) {
@@ -364,16 +378,18 @@ async function enrichBugsWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
           }
         }
       } else {
-        Logger.log("No source paths available from Java Language Server; skipping path enrichment");
+        Logger.log(
+          'No source paths available from Java Language Server; skipping path enrichment'
+        );
       }
     } catch (error) {
       Logger.log(
-        `Warning: Could not get source paths for path enrichment (${error instanceof Error ? error.message : String(error)})`,
+        `Warning: Could not get source paths for path enrichment (${error instanceof Error ? error.message : String(error)})`
       );
     }
   } catch (e) {
     Logger.log(
-      `Warning: Failed to enrich bugs with full paths (${e instanceof Error ? e.message : String(e)})`,
+      `Warning: Failed to enrich bugs with full paths (${e instanceof Error ? e.message : String(e)})`
     );
   }
 
@@ -398,28 +414,32 @@ async function getClasspathsWithFallback(preferredUri?: Uri): Promise<any | unde
     if (cmds.includes(JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS)) {
       try {
         const uris = await commands.executeCommand<string[]>(
-          JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS,
+          JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
         );
         if (Array.isArray(uris) && uris.length > 0) {
           Logger.log(`java.project.getAll returned ${uris.length} projects.`);
           for (const u of uris) {
             // Avoid duplicates
-            if (!attempts.find((a) => a.arg && a.arg.toString && a.arg.toString() === u)) {
+            if (
+              !attempts.find((a) => a.arg && a.arg.toString && a.arg.toString() === u)
+            ) {
               attempts.push({ label: `project:${u}`, arg: u });
             }
           }
         } else {
-          Logger.log("java.project.getAll returned no projects.");
+          Logger.log('java.project.getAll returned no projects.');
         }
       } catch (e) {
-        Logger.log(`java.project.getAll failed: ${e instanceof Error ? e.message : String(e)}`);
+        Logger.log(
+          `java.project.getAll failed: ${e instanceof Error ? e.message : String(e)}`
+        );
       }
     }
   } catch {
     // ignore
   }
   // Finally, try without args (legacy behavior)
-  attempts.push({ label: "no-arg" });
+  attempts.push({ label: 'no-arg' });
 
   const javaExt = await getJavaExtension().catch(() => undefined);
   const api: any = javaExt?.exports;
@@ -428,7 +448,7 @@ async function getClasspathsWithFallback(preferredUri?: Uri): Promise<any | unde
       Logger.log(`Trying getClasspaths with ${attempt.label} ...`);
       let param: any = attempt.arg;
       // The Java LS expects a URI string, not a VS Code Uri object
-      if (param && typeof (param as any).scheme === "string") {
+      if (param && typeof (param as any).scheme === 'string') {
         try {
           param = (param as Uri).toString();
         } catch {
@@ -441,11 +461,11 @@ async function getClasspathsWithFallback(preferredUri?: Uri): Promise<any | unde
         try {
           res = await commands.executeCommand<any>(
             JavaLanguageServerCommands.GET_CLASSPATHS,
-            param,
+            param
           );
         } catch (e) {
           Logger.log(
-            `getClasspaths(${attempt.label}) direct failed: ${e instanceof Error ? e.message : String(e)}`,
+            `getClasspaths(${attempt.label}) direct failed: ${e instanceof Error ? e.message : String(e)}`
           );
         }
         if (!res) {
@@ -453,37 +473,39 @@ async function getClasspathsWithFallback(preferredUri?: Uri): Promise<any | unde
             res = await commands.executeCommand<any>(
               JavaLanguageServerCommands.GET_CLASSPATHS,
               param,
-              "runtime",
+              'runtime'
             );
           } catch (e2) {
             Logger.log(
-              `getClasspaths(${attempt.label}, runtime) failed: ${e2 instanceof Error ? e2.message : String(e2)}`,
+              `getClasspaths(${attempt.label}, runtime) failed: ${e2 instanceof Error ? e2.message : String(e2)}`
             );
           }
         }
       }
       if (!res) {
         try {
-          res = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
+          res = await commands.executeCommand<any>(
+            JavaLanguageServerCommands.GET_CLASSPATHS
+          );
         } catch (e3) {
           Logger.log(
-            `getClasspaths(no-arg within ${attempt.label}) failed: ${e3 instanceof Error ? e3.message : String(e3)}`,
+            `getClasspaths(no-arg within ${attempt.label}) failed: ${e3 instanceof Error ? e3.message : String(e3)}`
           );
         }
       }
       // Try extension API as a fallback (may not provide 'output')
-      if (!res && api && typeof api.getClasspaths === "function" && param) {
+      if (!res && api && typeof api.getClasspaths === 'function' && param) {
         try {
-          const cpRes = await api.getClasspaths(param, { scope: "runtime" });
+          const cpRes = await api.getClasspaths(param, { scope: 'runtime' });
           if (cpRes) {
             res = { classpaths: cpRes.classpaths, sourcepaths: cpRes.sourcepaths ?? [] };
             Logger.log(
-              `Using extension API getClasspaths for ${attempt.label}: classpaths=${Array.isArray(res.classpaths) ? res.classpaths.length : 0}`,
+              `Using extension API getClasspaths for ${attempt.label}: classpaths=${Array.isArray(res.classpaths) ? res.classpaths.length : 0}`
             );
           }
         } catch (e4) {
           Logger.log(
-            `extensionApi.getClasspaths(${attempt.label}) failed: ${e4 instanceof Error ? e4.message : String(e4)}`,
+            `extensionApi.getClasspaths(${attempt.label}) failed: ${e4 instanceof Error ? e4.message : String(e4)}`
           );
         }
       }
@@ -491,14 +513,14 @@ async function getClasspathsWithFallback(preferredUri?: Uri): Promise<any | unde
         const cps = Array.isArray(res.classpaths) ? res.classpaths.length : 0;
         const sps = Array.isArray(res.sourcepaths) ? res.sourcepaths.length : 0;
         Logger.log(
-          `getClasspaths(${attempt.label}) succeeded: output=${res.output ?? "n/a"}, classpaths=${cps}, sourcepaths=${sps}`,
+          `getClasspaths(${attempt.label}) succeeded: output=${res.output ?? 'n/a'}, classpaths=${cps}, sourcepaths=${sps}`
         );
         return res;
       }
       Logger.log(`getClasspaths(${attempt.label}) returned empty result`);
     } catch (e) {
       Logger.log(
-        `getClasspaths(${attempt.label}) failed: ${e instanceof Error ? e.message : String(e)}`,
+        `getClasspaths(${attempt.label}) failed: ${e instanceof Error ? e.message : String(e)}`
       );
     }
   }
@@ -507,10 +529,10 @@ async function getClasspathsWithFallback(preferredUri?: Uri): Promise<any | unde
 
 async function pickCandidateOutputFolderFromClasspaths(
   classpaths: string[],
-  workspacePath: string,
+  workspacePath: string
 ): Promise<string | undefined> {
   const jarsExcluded = classpaths.filter(
-    (p) => !p.toLowerCase().endsWith(".jar") && !p.toLowerCase().endsWith(".zip"),
+    (p) => !p.toLowerCase().endsWith('.jar') && !p.toLowerCase().endsWith('.zip')
   );
 
   // Prefer well-known output suffixes

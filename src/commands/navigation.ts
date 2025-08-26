@@ -1,8 +1,16 @@
-import { window, Uri, Range, Position, TextDocumentShowOptions, workspace, commands } from "vscode";
-import { BugInfo } from "../bugInfo";
-import { Logger } from "../logger";
-import { JavaLanguageServerCommands } from "../constants/commands";
-import * as path from "path";
+import {
+  window,
+  Uri,
+  Range,
+  Position,
+  TextDocumentShowOptions,
+  workspace,
+  commands,
+} from 'vscode';
+import { BugInfo } from '../bugInfo';
+import { Logger } from '../logger';
+import { JavaLanguageServerCommands } from '../constants/commands';
+import * as path from 'path';
 
 /**
  * Resolves the absolute path for a bug's source file
@@ -15,20 +23,20 @@ async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
 
   // If we don't have a realSourcePath, we can't resolve
   if (!bug.realSourcePath) {
-    Logger.error("No realSourcePath available for bug");
+    Logger.error('No realSourcePath available for bug');
     return null;
   }
 
   // Try to resolve using Java Language Server classpaths
   try {
     const classpathsResult = await commands.executeCommand<any>(
-      JavaLanguageServerCommands.GET_CLASSPATHS,
+      JavaLanguageServerCommands.GET_CLASSPATHS
     );
 
     if (classpathsResult && classpathsResult.sourcepaths) {
       const sourcepaths: string[] = classpathsResult.sourcepaths;
       Logger.log(
-        `Resolving path for ${bug.realSourcePath} using source paths: ${sourcepaths.join(", ")}`,
+        `Resolving path for ${bug.realSourcePath} using source paths: ${sourcepaths.join(', ')}`
       );
 
       for (const sourcePath of sourcepaths) {
@@ -43,15 +51,17 @@ async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
       }
     }
   } catch (error) {
-    Logger.error("Failed to get classpaths", error);
+    Logger.error('Failed to get classpaths', error);
   }
 
   // Try common Java project structure fallbacks
-  const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
+  const workspaceFolder = workspace.workspaceFolders
+    ? workspace.workspaceFolders[0]
+    : undefined;
   if (workspaceFolder) {
     const commonPaths = [
-      path.join(workspaceFolder.uri.fsPath, "src", "main", "java", bug.realSourcePath), // Maven standard
-      path.join(workspaceFolder.uri.fsPath, "src", bug.realSourcePath), // Simple src structure
+      path.join(workspaceFolder.uri.fsPath, 'src', 'main', 'java', bug.realSourcePath), // Maven standard
+      path.join(workspaceFolder.uri.fsPath, 'src', bug.realSourcePath), // Simple src structure
       path.join(workspaceFolder.uri.fsPath, bug.realSourcePath), // Direct workspace relative
     ];
 
@@ -81,7 +91,7 @@ export async function openBugLocation(bug: BugInfo): Promise<void> {
     const filePath = await resolveBugFilePath(bug);
 
     if (!filePath) {
-      const errorMsg = `Cannot open file: Could not resolve path for ${bug.realSourcePath || "unknown file"}`;
+      const errorMsg = `Cannot open file: Could not resolve path for ${bug.realSourcePath || 'unknown file'}`;
       Logger.error(errorMsg);
       window.showErrorMessage(errorMsg);
       return;
@@ -96,7 +106,7 @@ export async function openBugLocation(bug: BugInfo): Promise<void> {
     // Create range for selection (highlight the bug lines)
     const range = new Range(
       new Position(startLineZeroBased, 0),
-      new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER),
+      new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER)
     );
 
     const options: TextDocumentShowOptions = {
@@ -109,7 +119,7 @@ export async function openBugLocation(bug: BugInfo): Promise<void> {
     await window.showTextDocument(fileUri, options);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.error("Failed to open bug location", error);
+    Logger.error('Failed to open bug location', error);
     window.showErrorMessage(`Failed to open file: ${errorMessage}`);
   }
 }

@@ -1,18 +1,18 @@
-import * as path from "path";
-import * as Mocha from "mocha";
-import { glob } from "glob";
+import * as path from 'path';
+import * as Mocha from 'mocha';
+import { glob } from 'glob';
 
 export async function run(): Promise<void> {
   // Create the mocha test
   const mocha = new Mocha({
-    ui: "tdd",
+    ui: 'tdd',
     color: true,
   });
 
-  const testsRoot = path.resolve(__dirname, "..");
+  const testsRoot = path.resolve(__dirname, '..');
 
   try {
-    const files = await glob("**/**.test.js", { cwd: testsRoot });
+    const files = await glob('**/**.test.js', { cwd: testsRoot });
 
     // Add files to the test suite
     files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
