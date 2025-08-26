@@ -17,6 +17,8 @@ import { Config } from '../config';
 import { Logger } from '../logger';
 import { executeJavaLanguageServerCommand } from '../command';
 import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
+import { analyzeFile } from '../services/analyzer';
+import { deriveOutputFolder, getClasspaths } from '../services/classpathService';
 
 export async function checkCode(
   config: Config,
@@ -38,57 +40,8 @@ export async function checkCode(
   if (fileUri) {
     spotbugsTreeDataProvider.showLoading();
     try {
-      // Get project classpaths and set them in config (only for Java/class files)
-      if (fileUri.fsPath.endsWith('.java') || fileUri.fsPath.endsWith('.class')) {
-        try {
-          const preferred = fileUri;
-          const classpathsResult = await getClasspathsWithFallback(preferred);
-          if (
-            classpathsResult &&
-            Array.isArray(classpathsResult.classpaths) &&
-            classpathsResult.classpaths.length > 0
-          ) {
-            config.setClasspaths(classpathsResult.classpaths);
-            Logger.log(
-              `Set ${classpathsResult.classpaths.length} classpaths for analysis`
-            );
-          } else {
-            Logger.log(
-              'No classpaths returned from Java Language Server; using system classpath'
-            );
-          }
-        } catch (error) {
-          Logger.log(
-            `Warning: Could not get project classpaths (${error instanceof Error ? error.message : String(error)}), using system classpath`
-          );
-        }
-      }
-
-      const result = await executeJavaLanguageServerCommand<string>(
-        SpotBugsCommands.RUN_ANALYSIS,
-        fileUri.fsPath,
-        JSON.stringify(config)
-      );
-      if (result) {
-        try {
-          const bugs = JSON.parse(result) as BugInfo[];
-          const enrichedBugs = await enrichBugsWithFullPaths(bugs);
-          Logger.log(
-            `Successfully parsed and enriched ${enrichedBugs.length} bugs. Details:`
-          );
-          for (const bug of enrichedBugs) {
-            Logger.log(JSON.stringify(bug, null, 2));
-          }
-          spotbugsTreeDataProvider.showResults(enrichedBugs);
-        } catch (e) {
-          Logger.error('Failed to parse Spotbugs analysis results', e);
-          window.showErrorMessage(
-            'Failed to parse Spotbugs analysis results. See Spotbugs output channel for details.'
-          );
-        }
-      } else {
-        spotbugsTreeDataProvider.showResults([]);
-      }
+      const findings = await analyzeFile(config, fileUri);
+      spotbugsTreeDataProvider.showResults(findings);
     } catch (err) {
       Logger.error('An error occurred during Spotbugs analysis', err);
       window.showErrorMessage(
@@ -261,7 +214,7 @@ export async function runWorkspaceAnalysis(
 
           try {
             const preferred = Uri.parse(uriString);
-            const classpathsResult = await getClasspathsWithFallback(preferred);
+            const classpathsResult = await getClasspaths(preferred);
             let cps: string[] | undefined;
             let sps: string[] | undefined;
             if (classpathsResult) {
@@ -278,7 +231,7 @@ export async function runWorkspaceAnalysis(
             // Determine output folder
             let outputPath: string | undefined = classpathsResult?.output;
             if (!outputPath && Array.isArray(cps)) {
-              outputPath = await pickCandidateOutputFolderFromClasspaths(
+              outputPath = await deriveOutputFolder(
                 cps,
                 workspaceFolder.uri.fsPath
               );
@@ -346,7 +299,7 @@ async function enrichBugsWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
         ? workspace.workspaceFolders[0]
         : undefined;
       const preferred = workspaceFolder?.uri;
-      const classpathsResult = await getClasspathsWithFallback(preferred);
+      const classpathsResult = await getClasspaths(preferred);
 
       if (
         classpathsResult &&
