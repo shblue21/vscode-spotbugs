@@ -5,12 +5,12 @@ import {
   Position,
   TextDocumentShowOptions,
   workspace,
-  commands,
 } from 'vscode';
 import { BugInfo } from '../bugInfo';
 import { Logger } from '../logger';
 import { JavaLanguageServerCommands } from '../constants/commands';
 import * as path from 'path';
+import { getClasspaths } from '../services/classpathService';
 
 /**
  * Resolves the absolute path for a bug's source file
@@ -27,18 +27,17 @@ async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
     return null;
   }
 
-  // Try to resolve using Java Language Server classpaths
+  // Try to resolve using Java Language Server source paths via service (best-effort)
   try {
-    const classpathsResult = await commands.executeCommand<any>(
-      JavaLanguageServerCommands.GET_CLASSPATHS
-    );
-
-    if (classpathsResult && classpathsResult.sourcepaths) {
-      const sourcepaths: string[] = classpathsResult.sourcepaths;
+    const workspaceFolder = workspace.workspaceFolders
+      ? workspace.workspaceFolders[0]
+      : undefined;
+    const cp = await getClasspaths(workspaceFolder?.uri);
+    if (cp && Array.isArray(cp.sourcepaths) && cp.sourcepaths.length > 0) {
+      const sourcepaths: string[] = cp.sourcepaths;
       Logger.log(
         `Resolving path for ${bug.realSourcePath} using source paths: ${sourcepaths.join(', ')}`
       );
-
       for (const sourcePath of sourcepaths) {
         const candidatePath = path.join(sourcePath, bug.realSourcePath);
         try {
@@ -46,12 +45,16 @@ async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
           Logger.log(`Found file at: ${candidatePath}`);
           return candidatePath;
         } catch {
-          // File doesn't exist at this path, try next
+          // try next source path
         }
       }
+    } else {
+      Logger.log('No source paths from Java Language Server; trying fallbacks');
     }
   } catch (error) {
-    Logger.error('Failed to get classpaths', error);
+    // Do not treat as hard error; fall back to common project paths
+    const msg = error instanceof Error ? error.message : String(error);
+    Logger.log(`Could not get source paths for navigation: ${msg}`);
   }
 
   // Try common Java project structure fallbacks

@@ -17,7 +17,7 @@ import { Config } from '../config';
 import { Logger } from '../logger';
 import { executeJavaLanguageServerCommand } from '../command';
 import { JavaLanguageServerCommands, SpotBugsCommands } from '../constants/commands';
-import { analyzeFile } from '../services/analyzer';
+import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services/analyzer';
 import { deriveOutputFolder, getClasspaths } from '../services/classpathService';
 
 export async function checkCode(
@@ -165,35 +165,10 @@ export async function runWorkspaceAnalysis(
       window.showErrorMessage('No workspace folder found.');
       return;
     }
-    // Collect project URIs
-    let projectUris: string[] = [];
-    try {
-      projectUris =
-        (await commands.executeCommand<string[]>(
-          JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
-        )) || [];
-    } catch {
-      projectUris = [];
-    }
-    // Filter out default pseudo project
-    projectUris = projectUris.filter((uriString) => {
-      try {
-        const p = Uri.parse(uriString).fsPath;
-        return path.basename(p) !== 'jdt.ls-java-project';
-      } catch {
-        return true;
-      }
-    });
-    if (projectUris.length === 0) {
-      projectUris = [workspaceFolder.uri.toString()];
-      Logger.log('No Java projects from LS; falling back to workspace folder analysis.');
-    } else {
-      Logger.log(`Workspace contains ${projectUris.length} Java projects.`);
-    }
-
-    // Show per-project progress in the tree and notification
+    // Enumerate projects via service
+    const projectUris = await getWorkspaceProjects(workspaceFolder.uri);
     spotbugsTreeDataProvider.showWorkspaceProgress(projectUris);
-    const aggregated: BugInfo[] = [];
+    let aggregated: BugInfo[] = [];
 
     await window.withProgress(
       {
@@ -202,72 +177,25 @@ export async function runWorkspaceAnalysis(
         cancellable: true,
       },
       async (progress, token) => {
-        const total = projectUris.length;
-        for (let i = 0; i < projectUris.length; i++) {
-          const uriString = projectUris[i];
-          if (token.isCancellationRequested) {
-            Logger.log('Workspace analysis cancelled by user.');
-            break;
-          }
-          progress.report({ message: `${i + 1}/${total} ${uriString}` });
-          spotbugsTreeDataProvider.updateProjectStatus(uriString, 'running');
-
-          try {
-            const preferred = Uri.parse(uriString);
-            const classpathsResult = await getClasspaths(preferred);
-            let cps: string[] | undefined;
-            let sps: string[] | undefined;
-            if (classpathsResult) {
-              cps = classpathsResult.classpaths;
-              sps = classpathsResult.sourcepaths;
-              Logger.log(
-                `Project CP - output:${classpathsResult.output ?? 'n/a'}, classpaths:${Array.isArray(cps) ? cps.length : 0}, sourcepaths:${Array.isArray(sps) ? sps.length : 0}`
-              );
-              if (Array.isArray(cps) && cps.length > 0) {
-                config.setClasspaths(cps);
-              }
-            }
-
-            // Determine output folder
-            let outputPath: string | undefined = classpathsResult?.output;
-            if (!outputPath && Array.isArray(cps)) {
-              outputPath = await deriveOutputFolder(
-                cps,
-                workspaceFolder.uri.fsPath
-              );
-            }
-
-            if (!outputPath) {
-              throw new Error('No output folder determined');
-            }
-
-            const resultJson = await executeJavaLanguageServerCommand<string>(
-              SpotBugsCommands.RUN_ANALYSIS,
-              outputPath,
-              JSON.stringify(config)
-            );
-            let projectBugs: BugInfo[] = [];
-            if (resultJson) {
-              try {
-                projectBugs = JSON.parse(resultJson) as BugInfo[];
-              } catch (e) {
-                Logger.error('Failed to parse project analysis result', e);
-              }
-            }
-            const enriched = await enrichBugsWithFullPaths(projectBugs);
-            aggregated.push(...enriched);
-            spotbugsTreeDataProvider.updateProjectStatus(uriString, 'done', {
-              count: enriched.length,
-            });
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            Logger.log(`Project analysis failed for ${uriString}: ${msg}`);
-            spotbugsTreeDataProvider.updateProjectStatus(uriString, 'failed', {
-              error: msg,
-            });
-          }
-        }
-      }
+        const res = await analyzeWorkspace(
+          config,
+          workspaceFolder.uri,
+          {
+            onStart: (u, idx, total) => {
+              progress.report({ message: `${idx}/${total} ${u}` });
+              spotbugsTreeDataProvider.updateProjectStatus(u, 'running');
+            },
+            onDone: (u, count) => {
+              spotbugsTreeDataProvider.updateProjectStatus(u, 'done', { count });
+            },
+            onFail: (u, message) => {
+              spotbugsTreeDataProvider.updateProjectStatus(u, 'failed', { error: message });
+            },
+          },
+          token,
+        );
+        aggregated = res.results.flatMap((r) => r.findings);
+      },
     );
 
     spotbugsTreeDataProvider.showResults(aggregated);
