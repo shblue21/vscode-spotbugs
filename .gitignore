@@ -4,7 +4,6 @@ out/
 javaext/.gradle/
 javaext/build/
 dist
-out
 *.class
 
 javaext/com.spotbugs.analyzer/target/
@@ -14,6 +13,7 @@ javaext/com.spotbugs.runner/target/
 server/com.spotbugs.runner-0.0.1.jar
 
 *.jar
+!javaext/.mvn/wrapper/maven-wrapper.jar
 *.tsbuildinfo
 
-javaext/com.spotbugs.runner/dependency-reduced-pom.xml
+**/dependency-reduced-pom.xml
