@@ -5,6 +5,7 @@ import {
   Position,
   TextDocumentShowOptions,
   workspace,
+  commands,
 } from 'vscode';
 import { BugInfo } from '../bugInfo';
 import { Logger } from '../logger';
@@ -62,19 +63,44 @@ async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
     ? workspace.workspaceFolders[0]
     : undefined;
   if (workspaceFolder) {
-    const commonPaths = [
-      path.join(workspaceFolder.uri.fsPath, 'src', 'main', 'java', bug.realSourcePath), // Maven standard
-      path.join(workspaceFolder.uri.fsPath, 'src', bug.realSourcePath), // Simple src structure
-      path.join(workspaceFolder.uri.fsPath, bug.realSourcePath), // Direct workspace relative
+    // Gather candidate roots from real Java projects, then workspace folder
+    let projectUris: string[] = [];
+    try {
+      projectUris = (await commands.executeCommand<string[]>('java.project.getAll')) || [];
+    } catch {
+      projectUris = [];
+    }
+    const rootCandidates: string[] = [];
+    for (const p of projectUris) {
+      try {
+        const fsPath = Uri.parse(p).fsPath;
+        rootCandidates.push(fsPath);
+      } catch {
+        // ignore parse errors
+      }
+    }
+    if (rootCandidates.length === 0) {
+      rootCandidates.push(workspaceFolder.uri.fsPath);
+    }
+
+    const sourceRoots = [
+      ['src', 'main', 'java'],
+      ['src', 'test', 'java'],
+      ['src'],
+      [],
     ];
 
-    for (const candidatePath of commonPaths) {
-      try {
-        await workspace.fs.stat(Uri.file(candidatePath));
-        Logger.log(`Found file at fallback path: ${candidatePath}`);
-        return candidatePath;
-      } catch {
-        // Continue to next candidate
+    for (const root of rootCandidates) {
+      for (const segs of sourceRoots) {
+        const base = path.join(root, ...segs);
+        const candidatePath = path.join(base, bug.realSourcePath);
+        try {
+          await workspace.fs.stat(Uri.file(candidatePath));
+          Logger.log(`Found file at fallback path: ${candidatePath}`);
+          return candidatePath;
+        } catch {
+          // Continue to next candidate
+        }
       }
     }
   }

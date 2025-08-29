@@ -67,22 +67,50 @@ export async function getClasspaths(project?: ProjectRef): Promise<ClasspathResu
       }
       let res: any | undefined;
       if (param !== undefined) {
+        // Newer API: expects an object argument { uri, scope }
+        const objArg = { uri: param };
+        const objArgRuntime = { uri: param, scope: 'runtime' } as any;
         try {
           res = await commands.executeCommand<any>(
             JavaLanguageServerCommands.GET_CLASSPATHS,
-            param,
+            objArgRuntime,
           );
         } catch (e) {
           Logger.log(
-            `getClasspaths(${attempt.label}) direct failed: ${e instanceof Error ? e.message : String(e)}`,
+            `getClasspaths(${attempt.label}) {uri,scope} failed: ${e instanceof Error ? e.message : String(e)}`,
           );
         }
         if (!res) {
           try {
             res = await commands.executeCommand<any>(
               JavaLanguageServerCommands.GET_CLASSPATHS,
+              objArg,
+            );
+          } catch (e0) {
+            Logger.log(
+              `getClasspaths(${attempt.label}) {uri} failed: ${e0 instanceof Error ? e0.message : String(e0)}`,
+            );
+          }
+        }
+        // Legacy signatures: (uriString) and (uriString, 'runtime')
+        if (!res) {
+          try {
+            res = await commands.executeCommand<any>(
+              JavaLanguageServerCommands.GET_CLASSPATHS,
               param,
-              "runtime",
+            );
+          } catch (e1) {
+            Logger.log(
+              `getClasspaths(${attempt.label}) direct failed: ${e1 instanceof Error ? e1.message : String(e1)}`,
+            );
+          }
+        }
+        if (!res) {
+          try {
+            res = await commands.executeCommand<any>(
+              JavaLanguageServerCommands.GET_CLASSPATHS,
+              param,
+              'runtime',
             );
           } catch (e2) {
             Logger.log(
@@ -185,4 +213,3 @@ function toUriString(ref: ProjectRef): string {
   if (typeof ref === "string") return ref;
   return ref.toString();
 }
-
