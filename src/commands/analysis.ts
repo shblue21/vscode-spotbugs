@@ -1,9 +1,10 @@
-import { commands, window, Uri, workspace, extensions, ProgressLocation } from 'vscode';
+import { commands, window, Uri, workspace, ProgressLocation } from 'vscode';
 import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
 import { BugInfo } from '../bugInfo';
 import { Config } from '../config';
 import { Logger } from '../logger';
 import { JavaLanguageServerCommands } from '../constants/commands';
+import { ensureJavaCommandsAvailable } from '../utils';
 import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services/analyzer';
 
 export async function checkCode(
@@ -59,37 +60,12 @@ export async function runWorkspaceAnalysis(
     window.showInformationMessage('Starting Java workspace build...');
     Logger.log('Starting Java workspace build...');
 
-    // Log Java extension presence and readiness
-    const javaExt = extensions.getExtension('redhat.java');
-    if (!javaExt) {
-      Logger.log('Java extension redhat.java not found. Build may fail.');
-    } else {
-      Logger.log(
-        `redhat.java present. Active=${javaExt.isActive}, Version=${(javaExt as any).packageJSON?.version ?? 'unknown'}`
-      );
-      if (!javaExt.isActive) {
-        try {
-          await javaExt.activate();
-          Logger.log('Activated redhat.java extension.');
-        } catch (e) {
-          Logger.log(
-            `Warning: Failed to activate redhat.java (${e instanceof Error ? e.message : String(e)})`
-          );
-        }
-      }
-      const api: any = javaExt.exports;
-      if (api && typeof api.serverReady === 'function') {
-        try {
-          Logger.log('Waiting for Java Language Server to be ready...');
-          await api.serverReady();
-          Logger.log('Java Language Server reported ready.');
-        } catch (e) {
-          Logger.log(
-            `Warning: serverReady() failed (${e instanceof Error ? e.message : String(e)})`
-          );
-        }
-      }
-    }
+    // Ensure required Java commands are available (best-effort, no exports usage)
+    const waited = await ensureJavaCommandsAvailable([
+      JavaLanguageServerCommands.BUILD_WORKSPACE,
+      JavaLanguageServerCommands.GET_CLASSPATHS,
+    ]);
+    Logger.log(`Checked Java command availability (waited=${waited})`);
 
     // Check command availability
     try {
