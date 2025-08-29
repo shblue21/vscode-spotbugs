@@ -17,6 +17,7 @@ public class AnalyzerService {
     private final FindBugs2 findBugs;
     private final UserPreferences userPreferences;
     private List<String> projectClasspaths;
+    private String effort = "default";
 
     public AnalyzerService() {
         log("Service created.");
@@ -26,23 +27,24 @@ public class AnalyzerService {
     }
 
     private void log(String message) {
-        System.out.println("[Spotbugs-Service] " + message);
+        System.out.println("[SpotBugs][Service] " + message);
     }
 
     @SuppressWarnings("unchecked")
     public void setConfiguration(Map<String, Object> config) {
         log("Setting configuration...");
         String effortRaw = (String) config.getOrDefault("effort", "default");
-        String effort = effortRaw == null ? "default" : effortRaw.toLowerCase();
-        if (!"min".equals(effort) && !"default".equals(effort) && !"max".equals(effort)) {
-            effort = "default";
+        String normalized = effortRaw == null ? "default" : effortRaw.toLowerCase();
+        if (!"min".equals(normalized) && !"default".equals(normalized) && !"max".equals(normalized)) {
+            normalized = "default";
         }
-        this.userPreferences.setEffort(effort);
-        log("-> Effort set to: " + effort);
+        this.effort = normalized;
+        this.userPreferences.setEffort(this.effort);
+        log("-> Effort set to: " + this.effort);
 
         this.projectClasspaths = (List<String>) config.get("classpaths");
         if (this.projectClasspaths != null) {
-            log("-> Project classpaths provided: " + this.projectClasspaths.size() + " entries");
+            log("-> Project classpaths: " + this.projectClasspaths.size() + " entries");
         } else {
             log("-> No project classpaths provided, will use system classpath as fallback");
         }
@@ -55,7 +57,7 @@ public class AnalyzerService {
                 log("-> Error: No files provided for analysis.");
                 return "[]";
             }
-            log("Requested analysis for: " + String.join(", ", filePaths));
+            log("Requested analysis for: " + String.join(", ", filePaths) + ", effort=" + this.effort);
 
             Project project = new Project();
 
@@ -65,7 +67,7 @@ public class AnalyzerService {
                 log("-> No analysis targets could be resolved from inputs; returning empty result.");
                 return "[]";
             }
-            log("Resolved " + targets.size() + " analysis target(s).");
+            log("Resolved targets: count=" + targets.size());
             for (String t : targets) {
                 project.addFile(t);
             }
@@ -90,7 +92,7 @@ public class AnalyzerService {
             SimpleFindbugsExecutor executor = new SimpleFindbugsExecutor(this.findBugs, project);
             String result = executor.execute();
             final long t1 = System.currentTimeMillis();
-            log("Analysis completed in " + (t1 - t0) + " ms.");
+            log("Analysis finished: elapsedMs=" + (t1 - t0) + ", targets=" + targets.size() + ", effort=" + this.effort);
             return result;
         } catch (Exception e) {
             e.printStackTrace();

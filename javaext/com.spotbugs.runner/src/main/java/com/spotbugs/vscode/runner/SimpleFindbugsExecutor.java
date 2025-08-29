@@ -22,7 +22,7 @@ public class SimpleFindbugsExecutor {
     private final BugCollectionBugReporter bugReporter;
 
     private void log(String message) {
-        System.out.println("[Spotbugs-Executor] " + message);
+        System.out.println("[SpotBugs][Executor] " + message);
     }
 
     public SimpleFindbugsExecutor(FindBugs2 findBugs, Project project) {
@@ -47,7 +47,7 @@ public class SimpleFindbugsExecutor {
 
     private String getBugsAsJson() {
         Collection<BugInstance> bugs = bugReporter.getBugCollection().getCollection();
-        log("Found " + bugs.size() + " bugs.");
+        log("Found bugs: count=" + bugs.size());
         List<BugInfo> bugList = new ArrayList<>();
 
         for (BugInstance bug : bugs) {

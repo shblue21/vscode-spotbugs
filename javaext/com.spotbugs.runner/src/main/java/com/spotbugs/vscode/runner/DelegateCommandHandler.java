@@ -16,7 +16,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
     }
 
     private void log(String message) {
-        System.out.println("[Spotbugs-Runner] " + message);
+        System.out.println("[SpotBugs][Runner] " + message);
     }
 
     @Override
@@ -31,8 +31,8 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
                     Gson gson = new Gson();
                     Config config = gson.fromJson(configJson, Config.class);
 
-                    log("-> Analyzing: " + filePath);
-                    log("-> With Config: " + config.toString());
+                    log("-> Analyzing path: " + filePath);
+                    log("-> Config: " + config.toString());
 
                     AnalyzerService analyzerService = new AnalyzerService();
 

@@ -12,6 +12,7 @@ export async function checkCode(
   uri: Uri | undefined
 ): Promise<void> {
   Logger.show();
+  const t0 = Date.now();
   Logger.log('Command spotbugs.run triggered.');
 
   // Reveal the Spotbugs tree view to focus the panel
@@ -27,6 +28,10 @@ export async function checkCode(
     try {
       const findings = await analyzeFile(config, fileUri);
       spotbugsTreeDataProvider.showResults(findings);
+      const t1 = Date.now();
+      Logger.log(
+        `File analysis finished: elapsedMs=${t1 - t0}, file=${fileUri.fsPath}, findings=${findings.length}`
+      );
     } catch (err) {
       Logger.error('An error occurred during Spotbugs analysis', err);
       window.showErrorMessage(
@@ -45,6 +50,7 @@ export async function runWorkspaceAnalysis(
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider
 ): Promise<void> {
   Logger.show();
+  const t0 = Date.now();
   Logger.log('Command spotbugs.runWorkspace triggered.');
 
   // Reveal the Spotbugs tree view to focus the panel
@@ -183,6 +189,10 @@ export async function runWorkspaceAnalysis(
     );
 
     spotbugsTreeDataProvider.showResults(aggregated);
+    const t2 = Date.now();
+    Logger.log(
+      `Workspace analysis finished: elapsedMs=${t2 - t0}, projects=${spotbugsTreeDataProvider ? 'multiple' : 'n/a'}, findings=${aggregated.length}`
+    );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('An error occurred during workspace analysis', error);
