@@ -47,6 +47,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
                 }
             } catch (Exception e) {
                 // Print stack trace to stderr so it can be seen in the LS log
+                System.err.println("[SpotBugs][Runner] Command handling failed: " + e.getMessage());
                 e.printStackTrace();
             }
             return "[]"; // Return empty JSON array on error

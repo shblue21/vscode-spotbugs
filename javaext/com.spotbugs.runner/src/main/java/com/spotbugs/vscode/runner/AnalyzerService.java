@@ -95,6 +95,7 @@ public class AnalyzerService {
             log("Analysis finished: elapsedMs=" + (t1 - t0) + ", targets=" + targets.size() + ", effort=" + this.effort);
             return result;
         } catch (Exception e) {
+            System.err.println("[SpotBugs][Service] Analysis failed: " + e.getMessage());
             e.printStackTrace();
             return "[]";
         }
