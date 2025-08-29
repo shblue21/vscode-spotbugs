@@ -7,6 +7,7 @@ import { Logger } from "../logger";
 import { Config } from "../config";
 import { BugInfo } from "../bugInfo";
 import { ClasspathResult, ProjectRef, deriveOutputFolder, getClasspaths } from "./classpathService";
+import { JavaLsClient } from "./javaLsClient";
 import { resolveSourceFullPath } from "./pathResolver";
 
 export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> {
@@ -77,14 +78,7 @@ export interface WorkspaceResult {
 }
 
 export async function getWorkspaceProjects(workspaceFolder: Uri): Promise<string[]> {
-  let projectUris: string[] = [];
-  try {
-    projectUris = (await commands.executeCommand<string[]>(
-      'java.project.getAll'
-    )) || [];
-  } catch {
-    projectUris = [];
-  }
+  let projectUris: string[] = await JavaLsClient.getAllProjects();
   // filter out default pseudo project
   projectUris = projectUris.filter((uriString) => {
     try {

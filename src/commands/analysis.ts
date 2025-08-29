@@ -7,6 +7,7 @@ import { JavaLanguageServerCommands } from '../constants/commands';
 import { ensureJavaCommandsAvailable } from '../utils';
 import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services/analyzer';
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
+import { JavaLsClient } from '../services/javaLsClient';
 
 export async function checkCode(
   config: Config,
@@ -103,37 +104,8 @@ async function ensureJavaReadyAndBuild(): Promise<number | undefined> {
     // ignore
   }
 
-  const t0 = Date.now();
-  let buildResult: number | undefined;
-  try {
-    Logger.log('Invoking java.project.build(false) - incremental build');
-    buildResult = await commands.executeCommand<number>(
-      JavaLanguageServerCommands.BUILD_WORKSPACE,
-      false
-    );
-    Logger.log(`java.project.build(false) returned: ${String(buildResult)}`);
-  } catch (e) {
-    Logger.log(
-      `Error during java.project.build(false): ${e instanceof Error ? e.message : String(e)}`
-    );
-  }
-  if (buildResult !== 0) {
-    try {
-      Logger.log('Retrying with java.project.build(true) - full build');
-      buildResult = await commands.executeCommand<number>(
-        JavaLanguageServerCommands.BUILD_WORKSPACE,
-        true
-      );
-      Logger.log(`java.project.build(true) returned: ${String(buildResult)}`);
-    } catch (e) {
-      Logger.log(
-        `Error during java.project.build(true): ${e instanceof Error ? e.message : String(e)}`
-      );
-    }
-  }
-  const t1 = Date.now();
-  Logger.log(`Build duration: ${t1 - t0} ms`);
-  return buildResult;
+  const result = await JavaLsClient.buildWorkspace('auto');
+  return result;
 }
 
 function handleBuildResult(buildResult: number | undefined): void {
