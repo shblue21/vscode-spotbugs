@@ -1,4 +1,4 @@
-import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
+import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 
 export interface WorkspaceProgressReporter {
   onStart(uriString: string, index: number, total: number): void;
@@ -21,4 +21,3 @@ export class TreeViewProgressReporter implements WorkspaceProgressReporter {
     this.provider.updateProjectStatus(uriString, 'failed', { error: message });
   }
 }
-

@@ -1,11 +1,11 @@
 import { ExtensionContext, window, Uri } from 'vscode';
-import { SpotbugsTreeDataProvider } from './spotbugsTreeDataProvider';
+import { SpotbugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
-import { getJavaExtension } from './utils';
+import { getJavaExtension } from './core/utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
 import { openBugLocation } from './commands/navigation';
-import { Config } from './config';
-import { Logger } from './logger';
+import { Config } from './core/config';
+import { Logger } from './core/logger';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,

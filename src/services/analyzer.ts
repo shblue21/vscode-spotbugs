@@ -1,11 +1,11 @@
 import { CancellationToken, Uri, workspace, commands } from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { executeJavaLanguageServerCommand } from "../command";
+import { executeJavaLanguageServerCommand } from "../core/command";
 import { SpotBugsCommands } from "../constants/commands";
-import { Logger } from "../logger";
-import { Config } from "../config";
-import { BugInfo } from "../bugInfo";
+import { Logger } from "../core/logger";
+import { Config } from "../core/config";
+import { BugInfo } from "../models/bugInfo";
 import { ClasspathResult, ProjectRef, deriveOutputFolder, getClasspaths } from "./classpathService";
 import { JavaLsClient } from "./javaLsClient";
 import { resolveSourceFullPath } from "./pathResolver";

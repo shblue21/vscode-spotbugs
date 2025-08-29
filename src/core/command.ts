@@ -1,7 +1,7 @@
 'use strict';
 
 import * as vscode from 'vscode';
-import { JavaLanguageServerCommands } from './constants/commands';
+import { JavaLanguageServerCommands } from '../constants/commands';
 
 export async function executeJavaLanguageServerCommand<T>(
   ...rest: any[]

@@ -1,7 +1,7 @@
 import { commands, Uri, workspace } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Logger } from '../logger';
+import { Logger } from '../core/logger';
 import { getClasspaths } from './classpathService';
 
 /**
@@ -75,4 +75,3 @@ export async function resolveSourceFullPath(realSourcePath: string): Promise<str
 
   return null;
 }
-

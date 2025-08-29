@@ -1,10 +1,10 @@
 import { commands, window, Uri, workspace, ProgressLocation } from 'vscode';
-import { SpotbugsTreeDataProvider } from '../spotbugsTreeDataProvider';
-import { BugInfo } from '../bugInfo';
-import { Config } from '../config';
-import { Logger } from '../logger';
+import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
+import { BugInfo } from '../models/bugInfo';
+import { Config } from '../core/config';
+import { Logger } from '../core/logger';
 import { JavaLanguageServerCommands } from '../constants/commands';
-import { ensureJavaCommandsAvailable } from '../utils';
+import { ensureJavaCommandsAvailable } from '../core/utils';
 import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services/analyzer';
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { JavaLsClient } from '../services/javaLsClient';

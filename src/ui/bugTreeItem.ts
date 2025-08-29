@@ -1,6 +1,6 @@
 import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
-import { BugInfo } from './bugInfo';
-import { SpotBugsCommands } from './constants/commands';
+import { BugInfo } from '../models/bugInfo';
+import { SpotBugsCommands } from '../constants/commands';
 import * as path from 'path';
 
 export class CategoryGroupItem extends TreeItem {
@@ -43,7 +43,6 @@ export class BugInfoItem extends TreeItem {
     this.tooltip = `Pattern: ${bug.abbrev || bug.type}\nCategory: ${bug.category}\nPriority: ${bug.priority}\nFile: ${filePath}${lineInfo ? `\nLine: ${lineInfo}` : ''}`;
     this.iconPath = severityIcon(bug);
 
-    // Set command to navigate to source file when clicked
     this.command = {
       command: SpotBugsCommands.OPEN_BUG_LOCATION,
       title: 'Open Bug Location',
@@ -55,36 +54,25 @@ export class BugInfoItem extends TreeItem {
 function buildReadableLabel(bug: BugInfo): string {
   const pattern = bug.abbrev || bug.type || 'Bug';
   const raw = bug.message || '';
-
-  // Remove leading "PATTERN: " prefix if duplicated in message
   let msg = raw.trim();
   const prefix = `${pattern}:`;
   if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
     msg = msg.substring(prefix.length).trim();
   }
-
-  // Trim trailing context like " in com.foo.Bar.method(...)" to keep it concise
   const inIdx = msg.indexOf(' in ');
   if (inIdx > 0) {
     msg = msg.substring(0, inIdx).trim();
   }
-
-  // Fallback if message is empty
   if (!msg) {
     msg = bug.type || 'SpotBugs finding';
   }
-
   return `[${pattern}] ${msg}`;
 }
 
 function severityIcon(bug: BugInfo): ThemeIcon {
   const rank = typeof bug.rank === 'number' ? bug.rank : 20;
-  if (rank <= 4) {
-    return new ThemeIcon('error');
-  }
-  if (rank <= 9) {
-    return new ThemeIcon('warning');
-  }
+  if (rank <= 4) return new ThemeIcon('error');
+  if (rank <= 9) return new ThemeIcon('warning');
   return new ThemeIcon('info');
 }
 
@@ -139,3 +127,4 @@ export class ProjectStatusItem extends TreeItem {
     }
   }
 }
+

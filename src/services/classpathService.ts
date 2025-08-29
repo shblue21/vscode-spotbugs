@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { Logger } from "../logger";
+import { Logger } from "../core/logger";
 import { JavaLsClient } from "./javaLsClient";
 import { Uri } from "vscode";
 

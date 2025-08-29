@@ -1,7 +1,7 @@
 'use strict';
 
 import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from 'vscode';
-import { BugInfo } from './bugInfo';
+import { BugInfo } from '../models/bugInfo';
 import {
   CategoryGroupItem,
   PatternGroupItem,

@@ -1,8 +1,8 @@
 import { commands, extensions, Uri, workspace } from 'vscode';
-import { Logger } from '../logger';
+import { Logger } from '../core/logger';
 import { JavaLanguageServerCommands } from '../constants/commands';
 import { ClasspathResult, ProjectRef } from './classpathService';
-import { getJavaExtension } from '../utils';
+import { getJavaExtension } from '../core/utils';
 
 export class JavaLsClient {
   static async getAllProjects(): Promise<string[]> {

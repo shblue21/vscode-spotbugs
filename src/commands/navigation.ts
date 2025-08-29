@@ -1,6 +1,6 @@
 import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
-import { BugInfo } from '../bugInfo';
-import { Logger } from '../logger';
+import { BugInfo } from '../models/bugInfo';
+import { Logger } from '../core/logger';
 import { resolveSourceFullPath } from '../services/pathResolver';
 
 async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
