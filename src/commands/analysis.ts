@@ -6,6 +6,7 @@ import { Logger } from '../logger';
 import { JavaLanguageServerCommands } from '../constants/commands';
 import { ensureJavaCommandsAvailable } from '../utils';
 import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services/analyzer';
+import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 
 export async function checkCode(
   config: Config,
@@ -51,124 +52,24 @@ export async function runWorkspaceAnalysis(
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider
 ): Promise<void> {
   Logger.show();
-  const t0 = Date.now();
   Logger.log('Command spotbugs.runWorkspace triggered.');
-
-  // Reveal the Spotbugs tree view to focus the panel
-  await commands.executeCommand('spotbugs-view.focus');
+  await focusSpotbugsTree();
   try {
-    window.showInformationMessage('Starting Java workspace build...');
-    Logger.log('Starting Java workspace build...');
+    await showBuildStart();
+    const buildResult = await ensureJavaReadyAndBuild();
+    handleBuildResult(buildResult);
 
-    // Ensure required Java commands are available (best-effort, no exports usage)
-    const waited = await ensureJavaCommandsAvailable([
-      JavaLanguageServerCommands.BUILD_WORKSPACE,
-      JavaLanguageServerCommands.GET_CLASSPATHS,
-    ]);
-    Logger.log(`Checked Java command availability (waited=${waited})`);
+    const wsFolder = getPrimaryWorkspaceFolder();
+    if (!wsFolder) return;
 
-    // Check command availability
-    try {
-      const available = await commands.getCommands(true);
-      const hasBuild = available.includes(JavaLanguageServerCommands.BUILD_WORKSPACE);
-      const hasGetCp = available.includes(JavaLanguageServerCommands.GET_CLASSPATHS);
-      Logger.log(`Commands available - build:${hasBuild} getClasspaths:${hasGetCp}`);
-    } catch {
-      // Ignore inability to list commands
-    }
-
-    const t0 = Date.now();
-    let buildResult: number | undefined;
-    try {
-      Logger.log('Invoking java.project.build(false) - incremental build');
-      buildResult = await commands.executeCommand<number>(
-        JavaLanguageServerCommands.BUILD_WORKSPACE,
-        false
-      );
-      Logger.log(`java.project.build(false) returned: ${String(buildResult)}`);
-    } catch (e) {
-      Logger.log(
-        `Error during java.project.build(false): ${e instanceof Error ? e.message : String(e)}`
-      );
-    }
-    if (buildResult !== 0) {
-      try {
-        Logger.log('Retrying with java.project.build(true) - full build');
-        buildResult = await commands.executeCommand<number>(
-          JavaLanguageServerCommands.BUILD_WORKSPACE,
-          true
-        );
-        Logger.log(`java.project.build(true) returned: ${String(buildResult)}`);
-      } catch (e) {
-        Logger.log(
-          `Error during java.project.build(true): ${e instanceof Error ? e.message : String(e)}`
-        );
-      }
-    }
-    const t1 = Date.now();
-    Logger.log(`Build duration: ${t1 - t0} ms`);
-
-    if (buildResult !== 0) {
-      Logger.log(
-        `Java workspace build returned non-zero (${String(
-          buildResult
-        )}). Proceeding with best-effort analysis...`
-      );
-      window.showWarningMessage(
-        `Java build returned ${String(
-          buildResult
-        )}. Continuing SpotBugs analysis with available outputs. Results may be partial.`
-      );
-    }
-
-    window.showInformationMessage('Build completed successfully. Analyzing workspace...');
-    Logger.log('Build completed successfully. Analyzing workspace...');
-    const workspaceFolder = workspace.workspaceFolders
-      ? workspace.workspaceFolders[0]
-      : undefined;
-    if (!workspaceFolder) {
-      Logger.error('No workspace folder found.');
-      window.showErrorMessage('No workspace folder found.');
-      return;
-    }
-    // Enumerate projects via service
-    const projectUris = await getWorkspaceProjects(workspaceFolder.uri);
+    const projectUris = await getWorkspaceProjects(wsFolder.uri);
     spotbugsTreeDataProvider.showWorkspaceProgress(projectUris);
-    let aggregated: BugInfo[] = [];
 
-    await window.withProgress(
-      {
-        location: ProgressLocation.Notification,
-        title: 'SpotBugs: Analyzing workspace',
-        cancellable: true,
-      },
-      async (progress, token) => {
-        const res = await analyzeWorkspace(
-          config,
-          workspaceFolder.uri,
-          {
-            onStart: (u, idx, total) => {
-              progress.report({ message: `${idx}/${total} ${u}` });
-              spotbugsTreeDataProvider.updateProjectStatus(u, 'running');
-            },
-            onDone: (u, count) => {
-              spotbugsTreeDataProvider.updateProjectStatus(u, 'done', { count });
-            },
-            onFail: (u, message) => {
-              spotbugsTreeDataProvider.updateProjectStatus(u, 'failed', { error: message });
-            },
-          },
-          token,
-        );
-        aggregated = res.results.flatMap((r) => r.findings);
-      },
+    const reporter: WorkspaceProgressReporter = new TreeViewProgressReporter(
+      spotbugsTreeDataProvider
     );
-
+    const aggregated = await analyzeWorkspaceWithProgress(config, wsFolder.uri, reporter);
     spotbugsTreeDataProvider.showResults(aggregated);
-    const t2 = Date.now();
-    Logger.log(
-      `Workspace analysis finished: elapsedMs=${t2 - t0}, projects=${spotbugsTreeDataProvider ? 'multiple' : 'n/a'}, findings=${aggregated.length}`
-    );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('An error occurred during workspace analysis', error);
@@ -176,6 +77,124 @@ export async function runWorkspaceAnalysis(
       `An error occurred during workspace analysis: ${errorMessage}`
     );
   }
+}
+
+async function focusSpotbugsTree(): Promise<void> {
+  await commands.executeCommand('spotbugs-view.focus');
+}
+
+async function showBuildStart(): Promise<void> {
+  window.showInformationMessage('Starting Java workspace build...');
+  Logger.log('Starting Java workspace build...');
+}
+
+async function ensureJavaReadyAndBuild(): Promise<number | undefined> {
+  const waited = await ensureJavaCommandsAvailable([
+    JavaLanguageServerCommands.BUILD_WORKSPACE,
+    JavaLanguageServerCommands.GET_CLASSPATHS,
+  ]);
+  Logger.log(`Checked Java command availability (waited=${waited})`);
+  try {
+    const available = await commands.getCommands(true);
+    const hasBuild = available.includes(JavaLanguageServerCommands.BUILD_WORKSPACE);
+    const hasGetCp = available.includes(JavaLanguageServerCommands.GET_CLASSPATHS);
+    Logger.log(`Commands available - build:${hasBuild} getClasspaths:${hasGetCp}`);
+  } catch {
+    // ignore
+  }
+
+  const t0 = Date.now();
+  let buildResult: number | undefined;
+  try {
+    Logger.log('Invoking java.project.build(false) - incremental build');
+    buildResult = await commands.executeCommand<number>(
+      JavaLanguageServerCommands.BUILD_WORKSPACE,
+      false
+    );
+    Logger.log(`java.project.build(false) returned: ${String(buildResult)}`);
+  } catch (e) {
+    Logger.log(
+      `Error during java.project.build(false): ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+  if (buildResult !== 0) {
+    try {
+      Logger.log('Retrying with java.project.build(true) - full build');
+      buildResult = await commands.executeCommand<number>(
+        JavaLanguageServerCommands.BUILD_WORKSPACE,
+        true
+      );
+      Logger.log(`java.project.build(true) returned: ${String(buildResult)}`);
+    } catch (e) {
+      Logger.log(
+        `Error during java.project.build(true): ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+  const t1 = Date.now();
+  Logger.log(`Build duration: ${t1 - t0} ms`);
+  return buildResult;
+}
+
+function handleBuildResult(buildResult: number | undefined): void {
+  if (buildResult !== 0) {
+    Logger.log(
+      `Java workspace build returned non-zero (${String(
+        buildResult
+      )}). Proceeding with best-effort analysis...`
+    );
+    window.showWarningMessage(
+      `Java build returned ${String(
+        buildResult
+      )}. Continuing SpotBugs analysis with available outputs. Results may be partial.`
+    );
+  }
+  window.showInformationMessage('Build completed successfully. Analyzing workspace...');
+  Logger.log('Build completed successfully. Analyzing workspace...');
+}
+
+function getPrimaryWorkspaceFolder(): { uri: Uri } | undefined {
+  const workspaceFolder = workspace.workspaceFolders
+    ? workspace.workspaceFolders[0]
+    : undefined;
+  if (!workspaceFolder) {
+    Logger.error('No workspace folder found.');
+    window.showErrorMessage('No workspace folder found.');
+    return undefined;
+  }
+  return workspaceFolder;
+}
+
+async function analyzeWorkspaceWithProgress(
+  config: Config,
+  workspaceFolderUri: Uri,
+  reporter: WorkspaceProgressReporter,
+): Promise<BugInfo[]> {
+  let aggregated: BugInfo[] = [];
+  await window.withProgress(
+    {
+      location: ProgressLocation.Notification,
+      title: 'SpotBugs: Analyzing workspace',
+      cancellable: true,
+    },
+    async (progress, token) => {
+      const res = await analyzeWorkspace(
+        config,
+        workspaceFolderUri,
+        {
+          onStart: (u, idx, total) => {
+            progress.report({ message: `${idx}/${total} ${u}` });
+            reporter.onStart(u, idx, total);
+          },
+          onDone: (u, count) => reporter.onDone(u, count),
+          onFail: (u, message) => reporter.onFail(u, message),
+        },
+        token,
+      );
+      aggregated = res.results.flatMap((r) => r.findings);
+    },
+  );
+  return aggregated;
 }
 
 // Note: duplicate helpers removed; classpath/path enrichment lives in services.
