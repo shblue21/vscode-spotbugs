@@ -1,6 +1,7 @@
 package com.spotbugs.vscode.runner.api;
 
 import edu.umd.cs.findbugs.BugInstance;
+import edu.umd.cs.findbugs.SourceLineAnnotation;
 
 public class BugInfo {
     private final String type;
@@ -15,16 +16,26 @@ public class BugInfo {
     private final String realSourcePath;
 
     public BugInfo(BugInstance bugInstance) {
-        this.type = bugInstance.getType();
+        this.type = safeString(bugInstance.getType());
         this.rank = bugInstance.getBugRank();
-        this.priority = bugInstance.getPriorityString();
-        this.category = bugInstance.getBugPattern().getCategory();
-        this.abbrev = bugInstance.getAbbrev();
-        this.message = bugInstance.getMessage();
-        this.sourceFile = bugInstance.getPrimarySourceLineAnnotation().getSourceFile();
-        this.startLine = bugInstance.getPrimarySourceLineAnnotation().getStartLine();
-        this.endLine = bugInstance.getPrimarySourceLineAnnotation().getEndLine();
-        this.realSourcePath = bugInstance.getPrimarySourceLineAnnotation().getRealSourcePath();
+        this.priority = safeString(bugInstance.getPriorityString());
+        this.category = safeString(bugInstance.getBugPattern() != null ? bugInstance.getBugPattern().getCategory() : null);
+        this.abbrev = safeString(bugInstance.getAbbrev());
+        this.message = safeString(bugInstance.getMessage());
+        SourceLineAnnotation sla = bugInstance.getPrimarySourceLineAnnotation();
+        if (sla != null) {
+            this.sourceFile = safeString(sla.getSourceFile());
+            int s = sla.getStartLine();
+            int e = sla.getEndLine();
+            this.startLine = s > 0 ? s : 1;
+            this.endLine = e > 0 ? e : this.startLine;
+            this.realSourcePath = safeString(sla.getRealSourcePath());
+        } else {
+            this.sourceFile = "";
+            this.startLine = 1;
+            this.endLine = 1;
+            this.realSourcePath = "";
+        }
     }
 
     // #region Getters
@@ -68,4 +79,7 @@ public class BugInfo {
         return realSourcePath;
     }
     // #endregion
+    private static String safeString(String s) {
+        return s == null ? "" : s;
+    }
 }

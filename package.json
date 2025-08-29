@@ -28,8 +28,8 @@
   ],
   "activationEvents": [
     "onLanguage:java",
-    "onCommand:spotbugs.findbugs",
-    "onCommand:spotbugs.runFile"
+    "onCommand:java.spotbugs.run",
+    "onCommand:java.spotbugs.runWorkspace"
   ],
   "main": "./out/extension.js",
   "enabledApiProposals": [
@@ -80,46 +80,13 @@
           "markdownDescription": "Set analysis effort level.",
           "scope": "window",
           "order": 0
-        },
-        "spotbugs.java.home": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "(Optional) Set the JAVA_HOME environment variable used to run Spotbugs.",
-          "scope": "machine-overridable",
-          "order": 1
-        },
-        "spotbugs.plugins.file": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "(Optional) Set the path to the Spotbugs plugins file.",
-          "scope": "machine-overridable",
-          "order": 2
         }
       }
     },
     "commands": [
       {
-        "command": "spotbugs.findbugs",
-        "title": "Find bugs"
-      },
-      {
         "command": "java.spotbugs.run",
-        "title": "Analyze selected File"
-      },
-      {
-        "command": "java.spotbugs.run",
-        "title": "Analyze Folder",
-        "when": "explorerResourceIsFolder"
-      },
-      {
-        "command": "java.spotbugs.analyze.folder",
-        "title": "Analyze Folder"
+        "title": "Analyze File/Folder"
       },
       {
         "command": "java.spotbugs.runWorkspace",
@@ -178,7 +145,7 @@
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "test": "node ./out/client/test/runTest.js",
+    "test": "node ./out/test/runTest.js",
     "build-server": "node scripts/buildJdtlsExt.js"
   },
   "extensionDependencies": [

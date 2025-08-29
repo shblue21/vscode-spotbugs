@@ -1,10 +1,9 @@
-import { commands, ExtensionContext, window, Uri } from 'vscode';
+import { ExtensionContext, window, Uri } from 'vscode';
 import { SpotbugsTreeDataProvider } from './spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
 import { openBugLocation } from './commands/navigation';
-import { executeJavaLanguageServerCommand } from './command';
 import { Config } from './config';
 import { Logger } from './logger';
 import {
@@ -49,12 +48,12 @@ async function doActivate(
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.RUN_ANALYSIS,
         async (uri: Uri | undefined) => {
-          await checkCode(config, spotbugsTreeDataProvider, spotbugsTreeView, uri);
+          await checkCode(config, spotbugsTreeDataProvider, uri);
         }
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
-        await runWorkspaceAnalysis(config, spotbugsTreeDataProvider, spotbugsTreeView);
+        await runWorkspaceAnalysis(config, spotbugsTreeDataProvider);
       }),
 
       instrumentOperationAsVsCodeCommand(
