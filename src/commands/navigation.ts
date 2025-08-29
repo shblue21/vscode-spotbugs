@@ -1,112 +1,19 @@
-import {
-  window,
-  Uri,
-  Range,
-  Position,
-  TextDocumentShowOptions,
-  workspace,
-  commands,
-} from 'vscode';
+import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
 import { BugInfo } from '../bugInfo';
 import { Logger } from '../logger';
-import { JavaLanguageServerCommands } from '../constants/commands';
-import * as path from 'path';
-import { getClasspaths } from '../services/classpathService';
+import { resolveSourceFullPath } from '../services/pathResolver';
 
-/**
- * Resolves the absolute path for a bug's source file
- */
 async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
-  // If we already have a full path, use it
-  if (bug.fullPath) {
-    return bug.fullPath;
-  }
-
-  // If we don't have a realSourcePath, we can't resolve
+  if (bug.fullPath) return bug.fullPath;
   if (!bug.realSourcePath) {
     Logger.error('No realSourcePath available for bug');
     return null;
   }
-
-  // Try to resolve using Java Language Server source paths via service (best-effort)
-  try {
-    const workspaceFolder = workspace.workspaceFolders
-      ? workspace.workspaceFolders[0]
-      : undefined;
-    const cp = await getClasspaths(workspaceFolder?.uri);
-    if (cp && Array.isArray(cp.sourcepaths) && cp.sourcepaths.length > 0) {
-      const sourcepaths: string[] = cp.sourcepaths;
-      Logger.log(
-        `Resolving path for ${bug.realSourcePath} using source paths: ${sourcepaths.join(', ')}`
-      );
-      for (const sourcePath of sourcepaths) {
-        const candidatePath = path.join(sourcePath, bug.realSourcePath);
-        try {
-          await workspace.fs.stat(Uri.file(candidatePath));
-          Logger.log(`Found file at: ${candidatePath}`);
-          return candidatePath;
-        } catch {
-          // try next source path
-        }
-      }
-    } else {
-      Logger.log('No source paths from Java Language Server; trying fallbacks');
-    }
-  } catch (error) {
-    // Do not treat as hard error; fall back to common project paths
-    const msg = error instanceof Error ? error.message : String(error);
-    Logger.log(`Could not get source paths for navigation: ${msg}`);
+  const full = await resolveSourceFullPath(bug.realSourcePath);
+  if (!full) {
+    Logger.error(`Could not resolve file path for: ${bug.realSourcePath}`);
   }
-
-  // Try common Java project structure fallbacks
-  const workspaceFolder = workspace.workspaceFolders
-    ? workspace.workspaceFolders[0]
-    : undefined;
-  if (workspaceFolder) {
-    // Gather candidate roots from real Java projects, then workspace folder
-    let projectUris: string[] = [];
-    try {
-      projectUris = (await commands.executeCommand<string[]>('java.project.getAll')) || [];
-    } catch {
-      projectUris = [];
-    }
-    const rootCandidates: string[] = [];
-    for (const p of projectUris) {
-      try {
-        const fsPath = Uri.parse(p).fsPath;
-        rootCandidates.push(fsPath);
-      } catch {
-        // ignore parse errors
-      }
-    }
-    if (rootCandidates.length === 0) {
-      rootCandidates.push(workspaceFolder.uri.fsPath);
-    }
-
-    const sourceRoots = [
-      ['src', 'main', 'java'],
-      ['src', 'test', 'java'],
-      ['src'],
-      [],
-    ];
-
-    for (const root of rootCandidates) {
-      for (const segs of sourceRoots) {
-        const base = path.join(root, ...segs);
-        const candidatePath = path.join(base, bug.realSourcePath);
-        try {
-          await workspace.fs.stat(Uri.file(candidatePath));
-          Logger.log(`Found file at fallback path: ${candidatePath}`);
-          return candidatePath;
-        } catch {
-          // Continue to next candidate
-        }
-      }
-    }
-  }
-
-  Logger.error(`Could not resolve file path for: ${bug.realSourcePath}`);
-  return null;
+  return full;
 }
 
 /**

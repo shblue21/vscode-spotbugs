@@ -7,6 +7,7 @@ import { Logger } from "../logger";
 import { Config } from "../config";
 import { BugInfo } from "../bugInfo";
 import { ClasspathResult, ProjectRef, deriveOutputFolder, getClasspaths } from "./classpathService";
+import { resolveSourceFullPath } from "./pathResolver";
 
 export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> {
   try {
@@ -48,49 +49,19 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
 
 export async function enrichWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
   if (!bugs.length) return [];
-  try {
-    const workspaceFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
-    if (!workspaceFolder) {
-      Logger.log("Cannot resolve full paths without an active workspace.");
-      return bugs;
-    }
-    let cp: ClasspathResult | undefined;
+  for (const bug of bugs) {
+    if (!bug.realSourcePath) continue;
     try {
-      cp = await getClasspaths(workspaceFolder.uri);
-    } catch (error) {
-      Logger.log(
-        `Warning: Could not get source paths for path enrichment (${error instanceof Error ? error.message : String(error)})`,
-      );
-    }
-
-    if (cp && cp.sourcepaths && Array.isArray(cp.sourcepaths) && cp.sourcepaths.length > 0) {
-      const sourcepaths: string[] = cp.sourcepaths;
-      Logger.log(`Found source paths: ${sourcepaths.join(", ")}`);
-      for (const bug of bugs) {
-        if (!bug.realSourcePath) {
-          continue;
-        }
-        for (const sourcePath of sourcepaths) {
-          const candidatePath = path.join(sourcePath, bug.realSourcePath);
-          try {
-            await fs.promises.access(candidatePath);
-            bug.fullPath = candidatePath;
-            break;
-          } catch {
-            // try next
-          }
-        }
-        if (!bug.fullPath) {
-          Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
-        }
+      const full = await resolveSourceFullPath(bug.realSourcePath);
+      if (full) {
+        bug.fullPath = full;
+      } else {
+        Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
       }
-    } else {
-      Logger.log("No source paths available from Java Language Server; skipping path enrichment");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      Logger.log(`Path resolve failed for ${bug.realSourcePath}: ${msg}`);
     }
-  } catch (e) {
-    Logger.log(
-      `Warning: Failed to enrich bugs with full paths (${e instanceof Error ? e.message : String(e)})`,
-    );
   }
   return bugs;
 }
