@@ -1,0 +1,115 @@
+name: PreRelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.0-alpha.1)'
+        required: true
+      notes:
+        description: 'Release notes (optional)'
+        required: false
+  push:
+    tags:
+      - 'v*'
+      - '*-alpha*'
+      - '*-beta*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Setup Java (build JDK for Tycho)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Java backend
+        run: npm run build-server
+
+      - name: Clean
+        run: npm run clean
+
+      - name: Build TypeScript
+        run: npm run compile
+
+      - name: Lint
+        run: npm run lint
+
+
+      - name: Install vsce
+        run: npm i -g @vscode/vsce
+
+      - name: Package VSIX (pre-release)
+        id: pkg
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          NAME="$(jq -r '.name' package.json)"
+          VSIX="${NAME}-${TAG}.vsix"
+          vsce package --pre-release --out "${VSIX}"
+          echo "vsix=${VSIX}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: ${{ steps.pkg.outputs.vsix }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix
+          path: dist
+
+      - name: Create GitHub Pre-Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.vsix
+          name: ${{ github.event.inputs.version || github.ref_name }}
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          prerelease: true
+          draft: false
+          body: ${{ github.event.inputs.notes || 'Pre-release build' }}
+
+      - name: Publish to VS Code Marketplace (pre-release, optional)
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        if: ${{ env.VSCE_PAT != '' }}
+        run: |
+          npm i -g @vscode/vsce
+          VSIX_PATH=$(ls dist/*.vsix | head -n1)
+          if [[ -z "$VSIX_PATH" ]]; then
+            echo "No VSIX found to publish" >&2
+            exit 1
+          fi
+          if [[ -z "$VSCE_PAT" ]]; then
+            echo "VSCE_PAT not set; skipping publish" >&2
+            exit 0
+          fi
+          vsce publish --pre-release --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
