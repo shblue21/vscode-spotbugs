@@ -1,15 +1,13 @@
 package com.spotbugs.vscode.runner;
 
 import java.util.List;
-import java.util.Map;
-
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
-
-import com.google.gson.Gson;
-import com.spotbugs.vscode.runner.api.Config;
+ 
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
+
+    private final CommandFacade facade = new CommandFacade();
 
     public DelegateCommandHandler() {
         log("Handler created.");
@@ -25,28 +23,11 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
         if ("java.spotbugs.run".equals(commandId)) {
             try {
                 if (arguments != null && arguments.size() > 1) {
-                    String filePath = (String) arguments.get(0);
-                    String configJson = (String) arguments.get(1);
-
-                    Gson gson = new Gson();
-                    Config config = gson.fromJson(configJson, Config.class);
-
-                    log("-> Analyzing path: " + filePath);
-                    log("-> Config: " + config.toString());
-
-                    AnalyzerService analyzerService = new AnalyzerService();
-
-                    Map<String, Object> configMap = new java.util.HashMap<>();
-                    configMap.put("effort", config.getEffort());
-                    configMap.put("classpaths", config.getClasspaths());
-
-                    analyzerService.setConfiguration(configMap);
-                    return analyzerService.analyze(filePath);
+                    return facade.runAnalysis(arguments.get(0), arguments.get(1));
                 } else {
                     log("-> Error: Invalid arguments for " + commandId);
                 }
             } catch (Exception e) {
-                // Print stack trace to stderr so it can be seen in the LS log
                 System.err.println("[SpotBugs][Runner] Command handling failed: " + e.getMessage());
                 e.printStackTrace();
             }
