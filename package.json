@@ -1,0 +1,173 @@
+{
+  "name": "vscode-spotbugs",
+  "displayName": "Spotbugs",
+  "description": "Visual Studio Code extension for Spotbugs",
+  "version": "0.0.1",
+  "publisher": "shblue21",
+  "icon": "images/spotbugs_icon.png",
+  "author": {
+    "name": "shblue21",
+    "email": "shblue21@naver.com.com",
+    "url": "https://shblue21.github.io"
+  },
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shblue21/vscode-spotbugs"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "Java",
+    "Code Analysis",
+    "Spotbugs",
+    "FindBugs"
+  ],
+  "activationEvents": [
+    "onLanguage:java",
+    "onCommand:java.spotbugs.run",
+    "onCommand:java.spotbugs.runWorkspace"
+  ],
+  "main": "./out/extension.js",
+  "enabledApiProposals": [
+    "extensionRuntime",
+    "treeViewActiveItem"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": "limited"
+    }
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "spotbugs-container",
+          "title": "Spotbugs",
+          "icon": "images/spotbugs_icon.png"
+        }
+      ]
+    },
+    "views": {
+      "spotbugs-container": [
+        {
+          "id": "spotbugs-view",
+          "name": "Spotbugs"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Spotbugs",
+      "properties": {
+        "spotbugs.effort": {
+          "type": "string",
+          "default": "default",
+          "enum": [
+            "min",
+            "default",
+            "max"
+          ],
+          "enumDescriptions": [
+            "Disables several analyses that increase precision but also increase memory consumption.",
+            "Run several analyses to find bugs",
+            "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
+          ],
+          "markdownDescription": "Set analysis effort level.",
+          "scope": "window",
+          "order": 0
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "java.spotbugs.run",
+        "title": "Analyze File/Folder"
+      },
+      {
+        "command": "java.spotbugs.runWorkspace",
+        "title": "Analyze this workspace",
+        "icon": "$(search)"
+      },
+      {
+        "command": "spotbugs.openBugLocation",
+        "title": "Open Bug Location"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "java.spotbugs.runWorkspace",
+          "when": "view == spotbugs-view",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "spotbugs.context",
+          "when": "resourceLangId == java || resourceExtname == .jar || explorerResourceIsFolder"
+        }
+      ],
+      "spotbugs.context": [
+        {
+          "command": "java.spotbugs.run",
+          "when": "!explorerResourceIsFolder",
+          "group": "1_spotbugs@1"
+        },
+        {
+          "command": "java.spotbugs.run",
+          "when": "explorerResourceIsFolder",
+          "group": "1_spotbugs@1"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "spotbugs.context",
+        "label": "Spotbugs"
+      }
+    ],
+    "javaExtensions": [
+      "./server/com.spotbugs.runner.jar",
+      "./server/spotbugs-runner-all.jar"
+    ]
+  },
+  "scripts": {
+    "clean": "rimraf out tsconfig.tsbuildinfo",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b -v",
+    "watch": "tsc -b -v --watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "build-server": "node scripts/buildJdtlsExt.js"
+  },
+  "extensionDependencies": [
+    "redhat.java"
+  ],
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.0.13",
+    "@types/vscode": "^1.102.0",
+    "@typescript-eslint/eslint-plugin": "^8.36.0",
+    "@typescript-eslint/parser": "^8.36.0",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-prettier": "^5.5.4",
+    "glob": "^11.0.3",
+    "mocha": "^11.7.1",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "fs-extra": "^11.3.0",
+    "vscode-extension-telemetry-wrapper": "^0.14.0"
+  }
+}
