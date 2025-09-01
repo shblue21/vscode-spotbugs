@@ -7,14 +7,14 @@ import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { JavaLsClient } from '../services/javaLsClient';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
-import { VsCodeNotifier } from '../core/notifier';
+import { defaultNotifier, Notifier } from '../core/notifier';
 
 export async function checkCode(
   config: Config,
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider,
   uri: Uri | undefined
 ): Promise<void> {
-  const notifier = new VsCodeNotifier();
+  const notifier = defaultNotifier;
   Logger.show();
   const t0 = Date.now();
   Logger.log('Command spotbugs.run triggered.');
@@ -54,7 +54,7 @@ export async function runWorkspaceAnalysis(
   Logger.show();
   Logger.log('Command spotbugs.runWorkspace triggered.');
   await focusSpotbugsTree();
-  const notifier = new VsCodeNotifier();
+  const notifier = defaultNotifier;
   try {
     const buildResult = await buildWorkspaceAuto(notifier);
     handleBuildResult(buildResult, notifier);
@@ -83,7 +83,7 @@ async function focusSpotbugsTree(): Promise<void> {
 
 // build orchestration moved to workspaceBuildService
 
-function handleBuildResult(buildResult: number | undefined, notifier: VsCodeNotifier): void {
+function handleBuildResult(buildResult: number | undefined, notifier: Notifier): void {
   if (buildResult !== 0) {
     Logger.log(
       `Java workspace build returned non-zero (${String(
@@ -96,7 +96,7 @@ function handleBuildResult(buildResult: number | undefined, notifier: VsCodeNoti
   Logger.log('Build completed successfully. Analyzing workspace...');
 }
 
-function getPrimaryWorkspaceFolder(notifier: VsCodeNotifier): { uri: Uri } | undefined {
+function getPrimaryWorkspaceFolder(notifier: Notifier): { uri: Uri } | undefined {
   const workspaceFolder = workspace.workspaceFolders
     ? workspace.workspaceFolders[0]
     : undefined;

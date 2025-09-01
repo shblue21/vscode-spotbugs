@@ -6,15 +6,12 @@ export interface Notifier {
   error(message: string): void;
 }
 
-export class VsCodeNotifier implements Notifier {
-  info(message: string): void {
-    window.showInformationMessage(message);
-  }
-  warn(message: string): void {
-    window.showWarningMessage(message);
-  }
-  error(message: string): void {
-    window.showErrorMessage(message);
-  }
-}
+export const defaultNotifier: Notifier = {
+  info: (message: string) => window.showInformationMessage(message),
+  warn: (message: string) => window.showWarningMessage(message),
+  error: (message: string) => window.showErrorMessage(message),
+};
 
+export const notifyInfo = (message: string): void => defaultNotifier.info(message);
+export const notifyWarn = (message: string): void => defaultNotifier.warn(message);
+export const notifyError = (message: string): void => defaultNotifier.error(message);

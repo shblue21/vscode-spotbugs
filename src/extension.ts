@@ -6,7 +6,7 @@ import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
 import { openBugLocation } from './commands/navigation';
 import { Config } from './core/config';
 import { Logger } from './core/logger';
-import { VsCodeNotifier } from './core/notifier';
+import { defaultNotifier } from './core/notifier';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,
@@ -66,7 +66,6 @@ async function doActivate(
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const notifier = new VsCodeNotifier();
-    notifier.error(`Failed to activate Spotbugs extension: ${errorMessage}`);
+    defaultNotifier.error(`Failed to activate Spotbugs extension: ${errorMessage}`);
   }
 }

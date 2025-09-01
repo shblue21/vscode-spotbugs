@@ -132,7 +132,7 @@
       }
     ],
     "javaExtensions": [
-      "./server/com.spotbugs.runner-0.0.1-SNAPSHOT.jar",
+      "./server/com.spotbugs.runner.jar",
       "./server/spotbugs-runner-all.jar"
     ]
   },
