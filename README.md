@@ -1,71 +1,53 @@
-# spotbugs README
+> ⚠️ This extension is under active development. Frequent changes and updates are expected.
 
-This is the README for your extension "spotbugs". After writing up a brief description, we recommend including the following sections.
+<div align="center">
+
+# SpotBugs for VS Code
+
+Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicated tree view and jump to offending lines with one click.
+
+![SpotBugs demo](images/spotbugs-demo.gif)
+
+</div>
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- Analyze a single file or an entire workspace (Maven/Gradle projects)
+- Group findings by category and pattern with severity icons
+- Navigate to bug locations in source files
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Java 11 or later (JDK)
+- VS Code extension: “Language Support for Java by Red Hat” (redhat.java)
 
-## Extension Settings
+## Getting Started
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+1) Open a Java project folder in VS Code
+2) Run a command:
+   - “SpotBugs: Analyze this workspace” (`java.spotbugs.runWorkspace`)
+   - “SpotBugs: Analyze File/Folder” (context menu, `java.spotbugs.run`)
+3) Review results in the “SpotBugs” view (Activity Bar)
 
-For example:
+## Commands
 
-This extension contributes the following settings:
+- `SpotBugs: Analyze File/Folder` — Analyze selected file or folder
+- `SpotBugs: Analyze this workspace` — Build then analyze all projects in the workspace
 
-- `myExtension.enable`: Enable/disable this extension.
-- `myExtension.thing`: Set to `blah` to do something.
+## Settings
 
-## Known Issues
+- `spotbugs.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## How It Works
 
-## Release Notes
+The TypeScript client triggers analysis and renders results. A bundled Java plugin (loaded by jdt.ls) runs SpotBugs, returning findings as JSON. Classpaths and builds are resolved via the Java Language Server.
 
-Users appreciate release notes as you update your extension.
+## Troubleshooting
 
-### 1.0.0
+- Ensure the Red Hat Java extension is installed and the workspace builds without errors
+- If analysis returns no results, try “Analyze this workspace” to trigger a full build
+- Check the “SpotBugs” output channel for diagnostics
 
-Initial release of ...
+## Contributing
 
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-- Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-- Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-- Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-- [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-- [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Issues and PRs are welcome. Before submitting, run: `npm run compile`, `npm run lint`, `npm test`. For backend changes, run `npm run build-server`.
