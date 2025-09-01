@@ -59,7 +59,7 @@ export async function runWorkspaceAnalysis(
     const buildResult = await buildWorkspaceAuto(notifier);
     handleBuildResult(buildResult, notifier);
 
-    const wsFolder = getPrimaryWorkspaceFolder();
+    const wsFolder = getPrimaryWorkspaceFolder(notifier);
     if (!wsFolder) return;
 
     const projectUris = await getWorkspaceProjects(wsFolder.uri);
@@ -96,13 +96,13 @@ function handleBuildResult(buildResult: number | undefined, notifier: VsCodeNoti
   Logger.log('Build completed successfully. Analyzing workspace...');
 }
 
-function getPrimaryWorkspaceFolder(): { uri: Uri } | undefined {
+function getPrimaryWorkspaceFolder(notifier: VsCodeNotifier): { uri: Uri } | undefined {
   const workspaceFolder = workspace.workspaceFolders
     ? workspace.workspaceFolders[0]
     : undefined;
   if (!workspaceFolder) {
     Logger.error('No workspace folder found.');
-    window.showErrorMessage('No workspace folder found.');
+    notifier.error('No workspace folder found.');
     return undefined;
   }
   return workspaceFolder;

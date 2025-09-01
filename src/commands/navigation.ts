@@ -2,6 +2,7 @@ import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
 import { BugInfo } from '../models/bugInfo';
 import { Logger } from '../core/logger';
 import { resolveSourceFullPath } from '../services/pathResolver';
+import { VsCodeNotifier } from '../core/notifier';
 
 async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
   if (bug.fullPath) return bug.fullPath;
@@ -23,13 +24,14 @@ async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
 export async function openBugLocation(bug: BugInfo): Promise<void> {
   try {
     Logger.log(`Opening bug location: ${bug.message} at line ${bug.startLine}`);
+    const notifier = new VsCodeNotifier();
 
     const filePath = await resolveBugFilePath(bug);
 
     if (!filePath) {
       const errorMsg = `Cannot open file: Could not resolve path for ${bug.realSourcePath || 'unknown file'}`;
       Logger.error(errorMsg);
-      window.showErrorMessage(errorMsg);
+      notifier.error(errorMsg);
       return;
     }
 
@@ -56,6 +58,7 @@ export async function openBugLocation(bug: BugInfo): Promise<void> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('Failed to open bug location', error);
-    window.showErrorMessage(`Failed to open file: ${errorMessage}`);
+    const notifier = new VsCodeNotifier();
+    notifier.error(`Failed to open file: ${errorMessage}`);
   }
 }
