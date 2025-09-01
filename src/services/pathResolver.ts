@@ -1,7 +1,6 @@
 import { commands, Uri, workspace } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Logger } from '../core/logger';
 import { getClasspaths } from './classpathService';
 
 /**
@@ -17,9 +16,9 @@ export async function resolveSourceFullPath(realSourcePath: string): Promise<str
 
   // 1) Try Java LS sourcepaths via classpathService
   try {
-    const cp = await getClasspaths(wsFolder?.uri);
-    if (cp && Array.isArray(cp.sourcepaths) && cp.sourcepaths.length > 0) {
-      for (const sourcePath of cp.sourcepaths) {
+    const sourcepaths = await getSourcepathsCached(wsFolder?.uri);
+    if (sourcepaths && sourcepaths.length > 0) {
+      for (const sourcePath of sourcepaths) {
         const candidatePath = path.join(sourcePath, realSourcePath);
         try {
           await fs.promises.access(candidatePath);
@@ -28,12 +27,9 @@ export async function resolveSourceFullPath(realSourcePath: string): Promise<str
           // try next source path
         }
       }
-    } else {
-      Logger.log('No source paths from Java Language Server; trying fallbacks');
     }
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    Logger.log(`Could not get source paths for path resolution: ${msg}`);
+    // ignore; fall back to workspace scans
   }
 
   // 2) Fallback: scan common Java project layout roots under known project/workspace roots
@@ -50,8 +46,10 @@ export async function resolveSourceFullPath(realSourcePath: string): Promise<str
   } catch {
     // ignore
   }
-  if (rootCandidates.length === 0 && wsFolder) {
-    rootCandidates.push(wsFolder.uri.fsPath);
+  if (rootCandidates.length === 0 && workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+    for (const f of workspace.workspaceFolders) {
+      rootCandidates.push(f.uri.fsPath);
+    }
   }
 
   const sourceRoots = [
@@ -74,4 +72,23 @@ export async function resolveSourceFullPath(realSourcePath: string): Promise<str
   }
 
   return null;
+}
+
+// Simple in-memory cache to avoid repeated LS calls while resolving many paths
+let cachedSourcepaths: string[] | undefined;
+let cachedAt = 0;
+const CACHE_MS = 5000;
+
+async function getSourcepathsCached(preferred?: Uri): Promise<string[] | undefined> {
+  const now = Date.now();
+  if (cachedSourcepaths && now - cachedAt < CACHE_MS) {
+    return cachedSourcepaths;
+  }
+  const cp = await getClasspaths(preferred);
+  const res = cp && Array.isArray(cp.sourcepaths) ? cp.sourcepaths : undefined;
+  if (res) {
+    cachedSourcepaths = res;
+    cachedAt = now;
+  }
+  return res;
 }

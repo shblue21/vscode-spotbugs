@@ -14,9 +14,6 @@ export type ProjectRef = string | Uri | undefined;
 
 export async function getClasspaths(project?: ProjectRef): Promise<ClasspathResult | undefined> {
   const res = await JavaLsClient.getClasspaths(project);
-  if (!res) {
-    Logger.log('getClasspaths returned empty result');
-  }
   return res;
 }
 

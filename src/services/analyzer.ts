@@ -37,10 +37,7 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
 
     const bugs = JSON.parse(result) as BugInfo[];
     const enriched = await enrichWithFullPaths(bugs);
-    Logger.log(`Successfully parsed and enriched ${enriched.length} bugs. Details:`);
-    for (const bug of enriched) {
-      Logger.log(JSON.stringify(bug, null, 2));
-    }
+    Logger.log(`Successfully parsed and enriched ${enriched.length} bugs.`);
     return enriched;
   } catch (e) {
     Logger.error("Analyzer: analyzeFile failed", e);
