@@ -1,0 +1,16 @@
+# Restrict Prettier to only TypeScript in src/
+**/*
+!src/**/*.ts
+src/**/*.d.ts
+
+# You can remove the above restrictions later if you want Prettier
+# to manage more file types. Existing exclusions kept for clarity:
+out
+dist
+server
+**/*.jar
+**/*.zip
+javaext/**/target
+javaext/**/build
+node_modules
+tsconfig.tsbuildinfo
