@@ -7,7 +7,10 @@ import { getClasspaths } from './classpathService';
  * Resolve a SpotBugs realSourcePath (e.g., com/foo/Bar.java) to a full filesystem path.
  * Tries Java LS sourcepaths first, then common workspace fallbacks.
  */
-export async function resolveSourceFullPath(realSourcePath: string): Promise<string | null> {
+export async function resolveSourceFullPath(
+  realSourcePath: string,
+  preferredProject?: Uri,
+): Promise<string | null> {
   if (!realSourcePath) {
     return null;
   }
@@ -16,7 +19,7 @@ export async function resolveSourceFullPath(realSourcePath: string): Promise<str
 
   // 1) Try Java LS sourcepaths via classpathService
   try {
-    const sourcepaths = await getSourcepathsCached(wsFolder?.uri);
+    const sourcepaths = await getSourcepathsCached(preferredProject ?? wsFolder?.uri);
     if (sourcepaths && sourcepaths.length > 0) {
       for (const sourcePath of sourcepaths) {
         const candidatePath = path.join(sourcePath, realSourcePath);

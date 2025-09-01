@@ -45,12 +45,12 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
   }
 }
 
-export async function enrichWithFullPaths(bugs: BugInfo[]): Promise<BugInfo[]> {
+export async function enrichWithFullPaths(bugs: BugInfo[], preferredProject?: Uri): Promise<BugInfo[]> {
   if (!bugs.length) return [];
   for (const bug of bugs) {
     if (!bug.realSourcePath) continue;
     try {
-      const full = await resolveSourceFullPath(bug.realSourcePath);
+      const full = await resolveSourceFullPath(bug.realSourcePath, preferredProject);
       if (full) {
         bug.fullPath = full;
       } else {
@@ -128,7 +128,7 @@ export async function analyzeProject(
         Logger.error('Failed to parse project analysis result', e);
       }
     }
-    const enriched = await enrichWithFullPaths(findings);
+    const enriched = await enrichWithFullPaths(findings, (project as Uri));
     return { projectUri: projectUriString, findings: enriched };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

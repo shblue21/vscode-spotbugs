@@ -3,11 +3,11 @@ import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { BugInfo } from '../models/bugInfo';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
-import { JavaLanguageServerCommands } from '../constants/commands';
-import { ensureJavaCommandsAvailable } from '../core/utils';
 import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services/analyzer';
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { JavaLsClient } from '../services/javaLsClient';
+import { buildWorkspaceAuto } from '../services/workspaceBuildService';
+import { VsCodeNotifier } from '../core/notifier';
 
 export async function checkCode(
   config: Config,
@@ -56,8 +56,8 @@ export async function runWorkspaceAnalysis(
   Logger.log('Command spotbugs.runWorkspace triggered.');
   await focusSpotbugsTree();
   try {
-    await showBuildStart();
-    const buildResult = await ensureJavaReadyAndBuild();
+    const notifier = new VsCodeNotifier();
+    const buildResult = await buildWorkspaceAuto(notifier);
     handleBuildResult(buildResult);
 
     const wsFolder = getPrimaryWorkspaceFolder();
@@ -84,29 +84,7 @@ async function focusSpotbugsTree(): Promise<void> {
   await commands.executeCommand('spotbugs-view.focus');
 }
 
-async function showBuildStart(): Promise<void> {
-  window.showInformationMessage('Starting Java workspace build...');
-  Logger.log('Starting Java workspace build...');
-}
-
-async function ensureJavaReadyAndBuild(): Promise<number | undefined> {
-  const waited = await ensureJavaCommandsAvailable([
-    JavaLanguageServerCommands.BUILD_WORKSPACE,
-    JavaLanguageServerCommands.GET_CLASSPATHS,
-  ]);
-  Logger.log(`Checked Java command availability (waited=${waited})`);
-  try {
-    const available = await commands.getCommands(true);
-    const hasBuild = available.includes(JavaLanguageServerCommands.BUILD_WORKSPACE);
-    const hasGetCp = available.includes(JavaLanguageServerCommands.GET_CLASSPATHS);
-    Logger.log(`Commands available - build:${hasBuild} getClasspaths:${hasGetCp}`);
-  } catch {
-    // ignore
-  }
-
-  const result = await JavaLsClient.buildWorkspace('auto');
-  return result;
-}
+// build orchestration moved to workspaceBuildService
 
 function handleBuildResult(buildResult: number | undefined): void {
   if (buildResult !== 0) {
