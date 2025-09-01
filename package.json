@@ -7,7 +7,7 @@
   "icon": "images/spotbugs_icon.png",
   "author": {
     "name": "shblue21",
-    "email": "shblue21@naver.com.com",
+    "email": "shblue21@naver.com",
     "url": "https://shblue21.github.io"
   },
   "engines": {
@@ -33,10 +33,6 @@
     "onCommand:java.spotbugs.runWorkspace"
   ],
   "main": "./out/extension.js",
-  "enabledApiProposals": [
-    "extensionRuntime",
-    "treeViewActiveItem"
-  ],
   "capabilities": {
     "virtualWorkspaces": true,
     "untrustedWorkspaces": {
