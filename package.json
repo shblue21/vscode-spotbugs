@@ -145,7 +145,6 @@
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "test": "node ./out/test/runTest.js",
     "build-server": "node scripts/buildJdtlsExt.js"
   },
   "extensionDependencies": [
