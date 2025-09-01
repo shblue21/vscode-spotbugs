@@ -14,6 +14,7 @@ export async function checkCode(
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider,
   uri: Uri | undefined
 ): Promise<void> {
+  const notifier = new VsCodeNotifier();
   Logger.show();
   const t0 = Date.now();
   Logger.log('Command spotbugs.run triggered.');
@@ -37,13 +38,11 @@ export async function checkCode(
       );
     } catch (err) {
       Logger.error('An error occurred during Spotbugs analysis', err);
-      window.showErrorMessage(
-        'An error occurred during Spotbugs analysis. See Spotbugs output channel for details.'
-      );
+      notifier.error('An error occurred during Spotbugs analysis. See Spotbugs output channel for details.');
       spotbugsTreeDataProvider.showResults([]);
     }
   } else {
-    window.showErrorMessage('No Java file selected for Spotbugs analysis.');
+    notifier.error('No Java file selected for Spotbugs analysis.');
     Logger.log('No Java file selected for analysis.');
   }
 }
@@ -55,10 +54,10 @@ export async function runWorkspaceAnalysis(
   Logger.show();
   Logger.log('Command spotbugs.runWorkspace triggered.');
   await focusSpotbugsTree();
+  const notifier = new VsCodeNotifier();
   try {
-    const notifier = new VsCodeNotifier();
     const buildResult = await buildWorkspaceAuto(notifier);
-    handleBuildResult(buildResult);
+    handleBuildResult(buildResult, notifier);
 
     const wsFolder = getPrimaryWorkspaceFolder();
     if (!wsFolder) return;
@@ -74,9 +73,7 @@ export async function runWorkspaceAnalysis(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('An error occurred during workspace analysis', error);
-    window.showErrorMessage(
-      `An error occurred during workspace analysis: ${errorMessage}`
-    );
+    notifier.error(`An error occurred during workspace analysis: ${errorMessage}`);
   }
 }
 
@@ -86,20 +83,16 @@ async function focusSpotbugsTree(): Promise<void> {
 
 // build orchestration moved to workspaceBuildService
 
-function handleBuildResult(buildResult: number | undefined): void {
+function handleBuildResult(buildResult: number | undefined, notifier: VsCodeNotifier): void {
   if (buildResult !== 0) {
     Logger.log(
       `Java workspace build returned non-zero (${String(
         buildResult
       )}). Proceeding with best-effort analysis...`
     );
-    window.showWarningMessage(
-      `Java build returned ${String(
-        buildResult
-      )}. Continuing SpotBugs analysis with available outputs. Results may be partial.`
-    );
+    notifier.warn(`Java build returned ${String(buildResult)}. Continuing SpotBugs analysis with available outputs. Results may be partial.`);
   }
-  window.showInformationMessage('Build completed successfully. Analyzing workspace...');
+  notifier.info('Build completed successfully. Analyzing workspace...');
   Logger.log('Build completed successfully. Analyzing workspace...');
 }
 

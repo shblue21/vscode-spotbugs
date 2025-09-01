@@ -57,7 +57,7 @@ export class JavaLsClient {
   }
 
   static async getClasspaths(project?: ProjectRef, opts?: { verbose?: boolean }): Promise<ClasspathResult | undefined> {
-    const verbose = !!opts?.verbose;
+    const verbose = opts?.verbose ?? envVerbose();
     const attempts: Array<{ label: string; arg?: any }> = [];
     if (project) attempts.push({ label: `preferred:${toUriString(project)}`, arg: project });
     const folders = workspace.workspaceFolders ?? [];
@@ -176,4 +176,13 @@ function toUriString(ref: ProjectRef): string {
   if (!ref) return '';
   if (typeof ref === 'string') return ref;
   return ref.toString();
+}
+
+function envVerbose(): boolean {
+  try {
+    const v = (process.env.SPOTBUGS_LS_VERBOSE || '').toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes';
+  } catch {
+    return false;
+  }
 }
