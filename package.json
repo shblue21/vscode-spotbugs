@@ -17,6 +17,7 @@
     "type": "git",
     "url": "https://github.com/shblue21/vscode-spotbugs"
   },
+  "license": "MIT",
   "categories": [
     "Linters"
   ],
