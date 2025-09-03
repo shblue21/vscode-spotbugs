@@ -37,17 +37,3 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 ## Settings
 
 - `spotbugs.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
-
-## How It Works
-
-The TypeScript client triggers analysis and renders results. A bundled Java plugin (loaded by jdt.ls) runs SpotBugs, returning findings as JSON. Classpaths and builds are resolved via the Java Language Server.
-
-## Troubleshooting
-
-- Ensure the Red Hat Java extension is installed and the workspace builds without errors
-- If analysis returns no results, try “Analyze this workspace” to trigger a full build
-- Check the “SpotBugs” output channel for diagnostics
-
-## Contributing
-
-Issues and PRs are welcome. Before submitting, run: `npm run compile`, `npm run lint`, `npm test`. For backend changes, run `npm run build-server`.
