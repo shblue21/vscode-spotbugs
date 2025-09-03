@@ -2,7 +2,7 @@ import { CancellationToken, Uri, workspace, commands } from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { executeJavaLanguageServerCommand } from "../core/command";
-import { SpotBugsCommands } from "../constants/commands";
+import { SpotBugsLSCommands } from "../constants/commands";
 import { Logger } from "../core/logger";
 import { Config } from "../core/config";
 import { BugInfo } from "../models/bugInfo";
@@ -29,7 +29,7 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
     }
 
     const result = await executeJavaLanguageServerCommand<string>(
-      SpotBugsCommands.RUN_ANALYSIS,
+      SpotBugsLSCommands.RUN_ANALYSIS,
       uri.fsPath,
       JSON.stringify(config),
     );
@@ -128,7 +128,7 @@ export async function analyzeProject(
       throw new Error('No output folder determined');
     }
     const resultJson = await executeJavaLanguageServerCommand<string>(
-      SpotBugsCommands.RUN_ANALYSIS,
+      SpotBugsLSCommands.RUN_ANALYSIS,
       outputPath,
       JSON.stringify(config),
     );

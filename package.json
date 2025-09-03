@@ -29,8 +29,9 @@
   ],
   "activationEvents": [
     "onLanguage:java",
-    "onCommand:java.spotbugs.run",
-    "onCommand:java.spotbugs.runWorkspace"
+    "onView:spotbugs-view",
+    "onCommand:spotbugs.run",
+    "onCommand:spotbugs.runWorkspace"
   ],
   "main": "./out/extension.js",
   "capabilities": {
@@ -82,11 +83,11 @@
     },
     "commands": [
       {
-        "command": "java.spotbugs.run",
+        "command": "spotbugs.run",
         "title": "Analyze File/Folder"
       },
       {
-        "command": "java.spotbugs.runWorkspace",
+        "command": "spotbugs.runWorkspace",
         "title": "Analyze this workspace",
         "icon": "$(search)"
       },
@@ -98,7 +99,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "java.spotbugs.runWorkspace",
+          "command": "spotbugs.runWorkspace",
           "when": "view == spotbugs-view",
           "group": "navigation"
         }
@@ -111,12 +112,12 @@
       ],
       "spotbugs.context": [
         {
-          "command": "java.spotbugs.run",
+          "command": "spotbugs.run",
           "when": "!explorerResourceIsFolder",
           "group": "1_spotbugs@1"
         },
         {
-          "command": "java.spotbugs.run",
+          "command": "spotbugs.run",
           "when": "explorerResourceIsFolder",
           "group": "1_spotbugs@1"
         }

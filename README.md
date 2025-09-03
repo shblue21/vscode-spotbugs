@@ -25,8 +25,8 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 1) Open a Java project folder in VS Code
 2) Run a command:
-   - “SpotBugs: Analyze this workspace” (`java.spotbugs.runWorkspace`)
-   - “SpotBugs: Analyze File/Folder” (context menu, `java.spotbugs.run`)
+   - “SpotBugs: Analyze this workspace” (`spotbugs.runWorkspace`)
+   - “SpotBugs: Analyze File/Folder” (context menu, `spotbugs.run`)
 3) Review results in the “SpotBugs” view (Activity Bar)
 
 ## Commands

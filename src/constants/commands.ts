@@ -10,10 +10,16 @@ export namespace JavaLanguageServerCommands {
   export const ORGANIZE_IMPORTS_SILENTLY = 'java.edit.organizeImports';
 }
 
+// VS Code command IDs owned by this extension (used in menus/UI)
 export namespace SpotBugsCommands {
-  export const RUN_ANALYSIS: string = 'java.spotbugs.run';
-  export const RUN_WORKSPACE: string = 'java.spotbugs.runWorkspace';
+  export const RUN_ANALYSIS: string = 'spotbugs.run';
+  export const RUN_WORKSPACE: string = 'spotbugs.runWorkspace';
   export const OPEN_BUG_LOCATION: string = 'spotbugs.openBugLocation';
+}
+
+// Java Language Server delegate command IDs (handled by the JDT LS plugin)
+export namespace SpotBugsLSCommands {
+  export const RUN_ANALYSIS: string = 'java.spotbugs.run';
 }
 
 export namespace VsCodeCommands {
