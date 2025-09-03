@@ -6,7 +6,7 @@
 
 Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicated tree view and jump to offending lines with one click.
 
-![SpotBugs demo](images/spotbugs-demo.gif)
+![SpotBugs demo](https://raw.githubusercontent.com/shblue21/vscode-spotbugs/main/images/spotbugs_demo.gif)
 
 </div>
 
