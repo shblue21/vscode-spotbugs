@@ -27,12 +27,7 @@
     "Spotbugs",
     "FindBugs"
   ],
-  "activationEvents": [
-    "onLanguage:java",
-    "onView:spotbugs-view",
-    "onCommand:spotbugs.run",
-    "onCommand:spotbugs.runWorkspace"
-  ],
+  
   "main": "./out/extension.js",
   "capabilities": {
     "virtualWorkspaces": true,

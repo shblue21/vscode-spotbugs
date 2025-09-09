@@ -7,7 +7,7 @@ import { analyzeFile, analyzeWorkspace, getWorkspaceProjects } from '../services
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { JavaLsClient } from '../services/javaLsClient';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
-import { defaultNotifier, Notifier } from '../core/notifier';
+import { defaultNotifier } from '../core/notifier';
 
 export async function checkCode(
   config: Config,
@@ -56,24 +56,67 @@ export async function runWorkspaceAnalysis(
   await focusSpotbugsTree();
   const notifier = defaultNotifier;
   try {
-    const buildResult = await buildWorkspaceAuto(notifier);
-    handleBuildResult(buildResult, notifier);
+    let aggregated: BugInfo[] = [];
 
-    const wsFolder = getPrimaryWorkspaceFolder(notifier);
-    if (!wsFolder) return;
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: 'SpotBugs: Analyzing workspace',
+        cancellable: true,
+      },
+      async (progress, token) => {
+        // Build first (quietly) under the same progress session
+        progress.report({ message: 'Building Java workspace…' });
+        const buildResult = await buildWorkspaceAuto();
+        if (buildResult !== undefined && buildResult !== 0) {
+          Logger.log(
+            `Java workspace build returned non-zero (${String(
+              buildResult
+            )}). Proceeding with best-effort analysis...`
+          );
+        }
 
-    const projectUris = await getWorkspaceProjects(wsFolder.uri);
-    spotbugsTreeDataProvider.showWorkspaceProgress(projectUris);
+        const wsFolder = getPrimaryWorkspaceFolder();
+        if (!wsFolder) {
+          throw new Error('No workspace folder found.');
+        }
 
-    const reporter: WorkspaceProgressReporter = new TreeViewProgressReporter(
-      spotbugsTreeDataProvider
+        const projectUris = await getWorkspaceProjects(wsFolder.uri);
+        spotbugsTreeDataProvider.showWorkspaceProgress(projectUris);
+
+        const reporter: WorkspaceProgressReporter = new TreeViewProgressReporter(
+          spotbugsTreeDataProvider
+        );
+
+        const res = await analyzeWorkspace(
+          config,
+          wsFolder.uri,
+          {
+            onStart: (u, idx, total) => {
+              progress.report({ message: `${idx}/${total} ${u}` });
+              reporter.onStart(u, idx, total);
+            },
+            onDone: (u, count) => reporter.onDone(u, count),
+            onFail: (u, message) => reporter.onFail(u, message),
+          },
+          token,
+        );
+        aggregated = res.results.flatMap((r) => r.findings);
+      },
     );
-    const aggregated = await analyzeWorkspaceWithProgress(config, wsFolder.uri, reporter);
+
     spotbugsTreeDataProvider.showResults(aggregated);
+
+    // Single end summary notification (no project count)
+    const summary =
+      aggregated.length === 0
+        ? 'No issues found.'
+        : `${aggregated.length} issue${aggregated.length === 1 ? '' : 's'} found.`;
+    notifier.info(`SpotBugs: Workspace analysis completed — ${summary}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('An error occurred during workspace analysis', error);
-    notifier.error(`An error occurred during workspace analysis: ${errorMessage}`);
+    notifier.error(`SpotBugs: Workspace analysis failed — ${errorMessage}`);
   }
 }
 
@@ -83,61 +126,16 @@ async function focusSpotbugsTree(): Promise<void> {
 
 // build orchestration moved to workspaceBuildService
 
-function handleBuildResult(buildResult: number | undefined, notifier: Notifier): void {
-  if (buildResult !== 0) {
-    Logger.log(
-      `Java workspace build returned non-zero (${String(
-        buildResult
-      )}). Proceeding with best-effort analysis...`
-    );
-    notifier.warn(`Java build returned ${String(buildResult)}. Continuing SpotBugs analysis with available outputs. Results may be partial.`);
-  }
-  notifier.info('Build completed successfully. Analyzing workspace...');
-  Logger.log('Build completed successfully. Analyzing workspace...');
-}
-
-function getPrimaryWorkspaceFolder(notifier: Notifier): { uri: Uri } | undefined {
+function getPrimaryWorkspaceFolder(): { uri: Uri } | undefined {
   const workspaceFolder = workspace.workspaceFolders
     ? workspace.workspaceFolders[0]
     : undefined;
   if (!workspaceFolder) {
     Logger.error('No workspace folder found.');
-    notifier.error('No workspace folder found.');
     return undefined;
   }
   return workspaceFolder;
 }
 
-async function analyzeWorkspaceWithProgress(
-  config: Config,
-  workspaceFolderUri: Uri,
-  reporter: WorkspaceProgressReporter,
-): Promise<BugInfo[]> {
-  let aggregated: BugInfo[] = [];
-  await window.withProgress(
-    {
-      location: ProgressLocation.Notification,
-      title: 'SpotBugs: Analyzing workspace',
-      cancellable: true,
-    },
-    async (progress, token) => {
-      const res = await analyzeWorkspace(
-        config,
-        workspaceFolderUri,
-        {
-          onStart: (u, idx, total) => {
-            progress.report({ message: `${idx}/${total} ${u}` });
-            reporter.onStart(u, idx, total);
-          },
-          onDone: (u, count) => reporter.onDone(u, count),
-          onFail: (u, message) => reporter.onFail(u, message),
-        },
-        token,
-      );
-      aggregated = res.results.flatMap((r) => r.findings);
-    },
-  );
-  return aggregated;
-}
 
 // Note: duplicate helpers removed; classpath/path enrichment lives in services.
