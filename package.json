@@ -19,13 +19,20 @@
   },
   "license": "MIT",
   "categories": [
-    "Linters"
+    "Linters",
+    "Other"
   ],
   "keywords": [
-    "Java",
-    "Code Analysis",
-    "Spotbugs",
-    "FindBugs"
+    "java",
+    "spotbugs",
+    "findbugs",
+    "static-analysis",
+    "linter",
+    "code-quality",
+    "bug-detection",
+    "code-scanning",
+    "security",
+    "sast"
   ],
   
   "main": "./out/extension.js",
