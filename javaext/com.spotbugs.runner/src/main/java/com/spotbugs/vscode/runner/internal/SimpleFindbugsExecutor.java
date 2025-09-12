@@ -30,9 +30,7 @@ public class SimpleFindbugsExecutor {
         findBugs.setProject(project);
         findBugs.setBugReporter(bugReporter);
         findBugs.setDetectorFactoryCollection(DetectorFactoryCollection.instance());
-
         findBugs.execute();
-
         return collectBugs();
     }
 
