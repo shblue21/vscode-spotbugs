@@ -1,4 +1,10 @@
 > ⚠️ This extension is under active development. Frequent changes and updates are expected.
+  
+<p align="center">
+  <img src="https://vsmarketplacebadges.dev/version/shblue21.vscode-spotbugs.svg" alt="version" />
+  <img src="https://img.shields.io/github/last-commit/shblue21/vscode-spotbugs?logo=github" alt="last-commit" />
+  
+</p>
 
 <div align="center">
 
