@@ -9,12 +9,13 @@ import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Project;
 
 /**
- * Encapsulates FindBugs execution against a configured Project.
+ * Encapsulates SpotBugs execution against a configured Project.
  */
-public class FindBugsRunner {
+public class SpotBugsRunner {
 
     public List<BugInfo> run(FindBugs2 findBugs, Project project) throws IOException, InterruptedException {
-        SimpleFindbugsExecutor executor = new SimpleFindbugsExecutor(findBugs, project);
+        SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project);
         return executor.executeBugs();
     }
 }
+

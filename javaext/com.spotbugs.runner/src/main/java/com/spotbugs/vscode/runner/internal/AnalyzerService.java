@@ -52,7 +52,7 @@ public class AnalyzerService {
             // Apply classpaths
             cpCfg.apply(project, this.projectClasspaths);
 
-            FindBugsRunner runner = new FindBugsRunner();
+            SpotBugsRunner runner = new SpotBugsRunner();
             List<BugInfo> bugs = runner.run(this.findBugs, project);
             return bugs;
         } catch (Exception e) {

@@ -13,13 +13,13 @@ import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Project;
 
-public class SimpleFindbugsExecutor {
+public class SpotBugsExecutor {
 
     private final FindBugs2 findBugs;
     private final Project project;
     private final BugCollectionBugReporter bugReporter;
 
-    public SimpleFindbugsExecutor(FindBugs2 findBugs, Project project) {
+    public SpotBugsExecutor(FindBugs2 findBugs, Project project) {
         this.findBugs = findBugs;
         this.project = project;
         this.bugReporter = new BugCollectionBugReporter(project);
