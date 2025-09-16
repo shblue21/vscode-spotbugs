@@ -34,22 +34,22 @@ public class AnalysisConfig {
     public String getExcludeFilterPath() { return excludeFilterPath; }
     public List<String> getPlugins() { return plugins; }
 
-    public static Builder newBuilder() { return new Builder(); }
+    // Package-private to keep creation within the config pipeline
+    static Builder newBuilder() { return new Builder(); }
 
-    public static final class Builder {
+    static final class Builder {
         private Effort effort;
         private List<String> classpaths;
         private Integer priorityThreshold;
         private String excludeFilterPath;
         private List<String> plugins;
 
-        public Builder effort(Effort e) { this.effort = e; return this; }
-        public Builder classpaths(List<String> cp) { this.classpaths = cp; return this; }
-        public Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
-        public Builder excludeFilterPath(String p) { this.excludeFilterPath = p; return this; }
-        public Builder plugins(List<String> p) { this.plugins = p; return this; }
+        Builder effort(Effort e) { this.effort = e; return this; }
+        Builder classpaths(List<String> cp) { this.classpaths = cp; return this; }
+        Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
+        Builder excludeFilterPath(String p) { this.excludeFilterPath = p; return this; }
+        Builder plugins(List<String> p) { this.plugins = p; return this; }
 
-        public AnalysisConfig build() { return new AnalysisConfig(this); }
+        AnalysisConfig build() { return new AnalysisConfig(this); }
     }
 }
-
