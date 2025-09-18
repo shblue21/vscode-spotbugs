@@ -1,4 +1,5 @@
-import { ExtensionContext, window, Uri } from 'vscode';
+import { ExtensionContext, window, Uri, workspace } from 'vscode';
+import { SETTINGS_SECTION } from './constants/settings';
 import { SpotbugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './core/utils';
@@ -45,6 +46,13 @@ async function doActivate(
 
     context.subscriptions.push(
       spotbugsTreeView,
+      // Refresh cached configuration on settings change
+      workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration(SETTINGS_SECTION)) {
+          Logger.log('SpotBugs configuration changed; reinitializing.');
+          config.init();
+        }
+      }),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.RUN_ANALYSIS,

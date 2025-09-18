@@ -3,9 +3,6 @@ export namespace JavaLanguageServerCommands {
   // vscode-java standardLanguageClient commands, true is full compile, false is incremental compile
   export const BUILD_WORKSPACE: string = 'java.project.build';
   export const GET_CLASSPATHS: string = 'java.project.getClasspaths';
-  export const CODEACTION_LOMBOK: string = 'codeAction.lombok';
-  export const CODEACTION_LOMBOK_ANNOTATIONS: string =
-    'java.codeAction.lombok.getAnnotations';
   export const GET_ALL_JAVA_PROJECTS: string = 'java.project.getAll';
   export const ORGANIZE_IMPORTS_SILENTLY = 'java.edit.organizeImports';
 }

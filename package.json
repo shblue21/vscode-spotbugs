@@ -60,29 +60,39 @@
         }
       ]
     },
-    "configuration": {
-      "type": "object",
-      "title": "Spotbugs",
-      "properties": {
-        "spotbugs.effort": {
-          "type": "string",
-          "default": "default",
-          "enum": [
-            "min",
-            "default",
-            "max"
-          ],
-          "enumDescriptions": [
-            "Disables several analyses that increase precision but also increase memory consumption.",
-            "Run several analyses to find bugs",
-            "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
-          ],
-          "markdownDescription": "Set analysis effort level.",
-          "scope": "window",
-          "order": 0
+    "configuration": [
+      {
+        "type": "object",
+        "title": "SpotBugs: Analysis",
+        "order": 0,
+        "properties": {
+          "spotbugs.analysis.effort": {
+            "type": "string",
+            "default": "default",
+            "enum": [
+              "min",
+              "default",
+              "max"
+            ],
+            "enumDescriptions": [
+              "Disables several analyses that increase precision but also increase memory consumption.",
+              "Run several analyses to find bugs",
+              "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
+            ],
+            "markdownDescription": "Set analysis effort level.",
+            "scope": "window"
+          },
+          "spotbugs.analysis.priorityThreshold": {
+            "type": "number",
+            "default": 9,
+            "markdownDescription": "Report bugs with rank less than or equal to this value (1 most severe, 20 least). Leave unset to use default behavior.",
+            "minimum": 1,
+            "maximum": 20,
+            "scope": "window"
+          }
         }
       }
-    },
+    ],
     "commands": [
       {
         "command": "spotbugs.run",
@@ -139,8 +149,8 @@
   "scripts": {
     "clean": "rimraf out tsconfig.tsbuildinfo",
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b -v",
-    "watch": "tsc -b -v --watch",
+    "compile": "tsc -p .",
+    "watch": "tsc -p . --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",

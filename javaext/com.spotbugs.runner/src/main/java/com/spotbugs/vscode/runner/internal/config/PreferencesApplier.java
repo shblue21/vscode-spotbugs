@@ -12,8 +12,9 @@ public class PreferencesApplier {
         String effortString = toEffortString(cfg.getEffort());
         prefs.setEffort(effortString);
 
-        // TODO: priorityThreshold, excludeFilterPath, plugins can be applied here in future
-        // Note: engine configuration (e.g., plugin loading) can also be handled here later.
+        // rank threshold is handled via BugReporter in SpotBugsExecutor
+        // plugins are loaded via a temporary context ClassLoader in SpotBugsExecutor
+        // TODO: excludeFilterPath can be applied to engine if/when a stable API is adopted
     }
 
     private static String toEffortString(Effort e) {
@@ -25,4 +26,3 @@ public class PreferencesApplier {
         }
     }
 }
-

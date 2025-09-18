@@ -53,11 +53,33 @@ public class AnalyzerService {
             cpCfg.apply(project, this.projectClasspaths);
 
             SpotBugsRunner runner = new SpotBugsRunner();
-            List<BugInfo> bugs = runner.run(this.findBugs, project);
+            Integer reporterPriority = computeReporterPriorityThreshold(this.config != null ? this.config.getPriorityThreshold() : null);
+            java.util.List<String> plugins = this.config != null ? this.config.getPlugins() : java.util.Collections.emptyList();
+            List<BugInfo> bugs = runner.run(this.findBugs, project, reporterPriority, plugins);
+            // Precise post-filter by rank when requested
+            Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
+            if (rankThreshold != null) {
+                final int maxRank = Math.max(1, Math.min(20, rankThreshold.intValue()));
+                java.util.Iterator<BugInfo> it = bugs.iterator();
+                while (it.hasNext()) {
+                    BugInfo b = it.next();
+                    if (b == null) continue;
+                    if (b.getRank() > maxRank) it.remove();
+                }
+            }
             return bugs;
         } catch (Exception e) {
             return java.util.Collections.emptyList();
         }
+    }
+
+    private static Integer computeReporterPriorityThreshold(Integer rankThreshold) {
+        if (rankThreshold == null) return Integer.valueOf(1); // preserve prior default behavior
+        int r = Math.max(1, Math.min(20, rankThreshold.intValue()));
+        // Map rank → priority category: High(1..4)=1, Medium(5..9)=2, Low(10..20)=3
+        if (r <= 4) return Integer.valueOf(1);
+        if (r <= 9) return Integer.valueOf(2);
+        return Integer.valueOf(3);
     }
 
 }
