@@ -15,7 +15,6 @@ export async function checkCode(
   uri: Uri | undefined
 ): Promise<void> {
   const notifier = defaultNotifier;
-  Logger.show();
   const t0 = Date.now();
   Logger.log('Command spotbugs.run triggered.');
 
@@ -51,7 +50,6 @@ export async function runWorkspaceAnalysis(
   config: Config,
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider
 ): Promise<void> {
-  Logger.show();
   Logger.log('Command spotbugs.runWorkspace triggered.');
   await focusSpotbugsTree();
   const notifier = defaultNotifier;
