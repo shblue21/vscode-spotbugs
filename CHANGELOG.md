@@ -1,5 +1,10 @@
 # Changelog
-## [Unreleased]
+
+## [v0.0.7] - 2025-09-21
+
+- Remove svg badge
+
+## [v0.0.6] - 2025-09-21
 
 - Add version and commit badage (readme)
 - Improves builder encapsulation
