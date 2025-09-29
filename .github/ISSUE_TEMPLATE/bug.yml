@@ -1,0 +1,13 @@
+name: Report a Bug
+description: Report an unexpected error or incorrect behavior.
+labels:
+  - bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Briefly describe the bug.
+      placeholder: e.g., SpotBugs view fails to load results
+    validations:
+      required: true
