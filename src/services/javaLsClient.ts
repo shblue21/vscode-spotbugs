@@ -2,7 +2,13 @@ import { commands, extensions, Uri, workspace } from 'vscode';
 import { Logger } from '../core/logger';
 import { JavaLanguageServerCommands } from '../constants/commands';
 import { ClasspathResult, ProjectRef } from './classpathService';
+import { buildWorkspace, BuildMode } from './workspaceBuildService';
 import { getJavaExtension } from '../core/utils';
+
+type ClasspathAttempt = {
+  label: string;
+  arg?: any;
+};
 
 export class JavaLsClient {
   static async getAllProjects(): Promise<string[]> {
@@ -24,48 +30,48 @@ export class JavaLsClient {
     }
   }
 
-  static async buildWorkspace(mode: 'auto' | 'incremental' | 'full' = 'auto'): Promise<number | undefined> {
-    const tryBuild = async (full: boolean): Promise<number | undefined> => {
-      try {
-        return await commands.executeCommand<number>(
-          JavaLanguageServerCommands.BUILD_WORKSPACE,
-          full
-        );
-      } catch (e) {
-        Logger.log(
-          `Error during java.project.build(${full}): ${e instanceof Error ? e.message : String(e)}`
-        );
-        return undefined;
-      }
-    };
-
-    let result: number | undefined;
-    const t0 = Date.now();
-    if (mode === 'incremental') {
-      result = await tryBuild(false);
-    } else if (mode === 'full') {
-      result = await tryBuild(true);
-    } else {
-      result = await tryBuild(false);
-      if (result !== 0) {
-        result = await tryBuild(true);
-      }
-    }
-    const t1 = Date.now();
-    Logger.log(`Build duration: ${t1 - t0} ms (mode=${mode}, result=${String(result)})`);
-    return result;
+  static async buildWorkspace(mode: BuildMode = 'auto'): Promise<number | undefined> {
+    return buildWorkspace({ mode, ensureCommands: false });
   }
 
   static async getClasspaths(project?: ProjectRef, opts?: { verbose?: boolean }): Promise<ClasspathResult | undefined> {
     const verbose = opts?.verbose ?? envVerbose();
-    const attempts: Array<{ label: string; arg?: any }> = [];
+    const attempts = await this.collectClasspathAttempts(project);
+
+    // Try command signatures, then extension API as last resort
+    const javaExt = await getJavaExtension().catch(() => undefined);
+    const api: any = javaExt?.exports;
+
+    for (const attempt of attempts) {
+      const param = this.normalizeAttemptParam(attempt.arg);
+
+      let res = await this.tryCommandVariants(param, attempt.label, verbose);
+
+      if (!res && api && typeof api.getClasspaths === 'function' && param) {
+        res = await this.tryExtensionFallback(api, param, attempt.label, verbose);
+      }
+
+      if (res) {
+        const result = this.normalizeClasspathResult(res);
+        this.logSuccess(attempt.label, result);
+        return result;
+      }
+    }
+
+    return undefined;
+  }
+
+  private static async collectClasspathAttempts(project?: ProjectRef): Promise<ClasspathAttempt[]> {
+    const attempts: ClasspathAttempt[] = [];
     if (project) attempts.push({ label: `preferred:${toUriString(project)}`, arg: project });
+
     const folders = workspace.workspaceFolders ?? [];
     for (const f of folders) {
       if (!project || toUriString(f.uri) !== toUriString(project)) {
         attempts.push({ label: `workspace:${f.name}`, arg: f.uri });
       }
     }
+
     try {
       const uris = await this.getAllProjects();
       for (const u of uris) {
@@ -76,99 +82,98 @@ export class JavaLsClient {
     } catch {
       // ignore
     }
+
     attempts.push({ label: 'no-arg' });
+    return attempts;
+  }
 
-    // Try command signatures, then extension API as last resort
-    const javaExt = await getJavaExtension().catch(() => undefined);
-    const api: any = javaExt?.exports;
+  private static normalizeAttemptParam(arg: any): any {
+    if (arg && typeof (arg as any).scheme === 'string') {
+      try {
+        return (arg as Uri).toString();
+      } catch {
+        // keep as-is
+      }
+    }
+    return arg;
+  }
 
-    for (const attempt of attempts) {
-      let res: any | undefined;
-      let param: any = attempt.arg;
-      if (param && typeof (param as any).scheme === 'string') {
-        try {
-          param = (param as Uri).toString();
-        } catch {
-          // keep as-is
-        }
-      }
-      // Object arg with runtime scope
-      if (param !== undefined) {
-        try {
-          res = await commands.executeCommand<any>(
-            JavaLanguageServerCommands.GET_CLASSPATHS,
-            { uri: param, scope: 'runtime' }
-          );
-        } catch {
-          if (verbose) Logger.log(`getClasspaths(${attempt.label}) {uri,scope} failed`);
-        }
-      }
-      // Object arg without scope
-      if (!res && param !== undefined) {
-        try {
-          res = await commands.executeCommand<any>(
-            JavaLanguageServerCommands.GET_CLASSPATHS,
-            { uri: param }
-          );
-        } catch {
-          if (verbose) Logger.log(`getClasspaths(${attempt.label}) {uri} failed`);
-        }
-      }
-      // Legacy signatures
-      if (!res && param !== undefined) {
-        try {
-          res = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS, param);
-        } catch {
-          if (verbose) Logger.log(`getClasspaths(${attempt.label}) direct failed`);
-        }
-      }
-      if (!res && param !== undefined) {
-        try {
-          res = await commands.executeCommand<any>(
-            JavaLanguageServerCommands.GET_CLASSPATHS,
-            param,
-            'runtime'
-          );
-        } catch {
-          if (verbose) Logger.log(`getClasspaths(${attempt.label}, runtime) failed`);
-        }
-      }
-      // No-arg
-      if (!res && param === undefined) {
-        try {
-          res = await commands.executeCommand<any>(JavaLanguageServerCommands.GET_CLASSPATHS);
-        } catch {
-          if (verbose) Logger.log(`getClasspaths(no-arg within ${attempt.label}) failed`);
-        }
-      }
-      // Extension API fallback
-      if (!res && api && typeof api.getClasspaths === 'function' && param) {
-        try {
-          const cpRes = await api.getClasspaths(param, { scope: 'runtime' });
-          if (cpRes) {
-            res = { classpaths: cpRes.classpaths, sourcepaths: cpRes.sourcepaths ?? [] };
-            if (verbose) Logger.log(`Using extension API getClasspaths for ${attempt.label}`);
-          }
-        } catch {
-          if (verbose) Logger.log(`extensionApi.getClasspaths(${attempt.label}) failed`);
-        }
-      }
+  private static async tryCommandVariants(
+    param: any,
+    label: string,
+    verbose: boolean
+  ): Promise<any | undefined> {
+    if (param !== undefined) {
+      const variants: Array<{ args: any[]; failureContext: string }> = [
+        { args: [{ uri: param, scope: 'runtime' }], failureContext: `${label}) {uri,scope}` },
+        { args: [{ uri: param }], failureContext: `${label}) {uri}` },
+        { args: [param], failureContext: `${label}) direct` },
+        { args: [param, 'runtime'], failureContext: `${label}, runtime` },
+      ];
 
-      if (res) {
-        const cps = Array.isArray(res.classpaths) ? res.classpaths.length : 0;
-        const sps = Array.isArray(res.sourcepaths) ? res.sourcepaths.length : 0;
-        Logger.log(
-          `getClasspaths(${attempt.label}) succeeded: output=${res.output ?? 'n/a'}, classpaths=${cps}, sourcepaths=${sps}`
-        );
-        return {
-          output: res.output,
-          classpaths: Array.isArray(res.classpaths) ? res.classpaths : [],
-          sourcepaths: Array.isArray(res.sourcepaths) ? res.sourcepaths : [],
-        };
+      for (const variant of variants) {
+        const res = await this.executeClasspathCommand(variant.args, variant.failureContext, verbose);
+        if (res) {
+          return res;
+        }
       }
     }
 
+    if (param === undefined) {
+      return this.executeClasspathCommand([], `no-arg within ${label}`, verbose);
+    }
+
     return undefined;
+  }
+
+  private static async executeClasspathCommand(
+    args: any[],
+    failureContext: string,
+    verbose: boolean
+  ): Promise<any | undefined> {
+    try {
+      return await commands.executeCommand<any>(
+        JavaLanguageServerCommands.GET_CLASSPATHS,
+        ...args
+      );
+    } catch {
+      if (verbose) Logger.log(`getClasspaths(${failureContext}) failed`);
+      return undefined;
+    }
+  }
+
+  private static async tryExtensionFallback(
+    api: any,
+    param: any,
+    label: string,
+    verbose: boolean
+  ): Promise<any | undefined> {
+    try {
+      const cpRes = await api.getClasspaths(param, { scope: 'runtime' });
+      if (cpRes) {
+        if (verbose) Logger.log(`Using extension API getClasspaths for ${label}`);
+        return { classpaths: cpRes.classpaths, sourcepaths: cpRes.sourcepaths ?? [], output: cpRes.output };
+      }
+    } catch {
+      if (verbose) Logger.log(`extensionApi.getClasspaths(${label}) failed`);
+    }
+    return undefined;
+  }
+
+  private static normalizeClasspathResult(res: any): ClasspathResult {
+    return {
+      output: res?.output,
+      classpaths: Array.isArray(res?.classpaths) ? res.classpaths : [],
+      sourcepaths: Array.isArray(res?.sourcepaths) ? res.sourcepaths : [],
+    };
+  }
+
+  private static logSuccess(label: string, result: ClasspathResult): void {
+    const cps = result.classpaths.length;
+    const sps = result.sourcepaths.length;
+    Logger.log(
+      `getClasspaths(${label}) succeeded: output=${result.output ?? 'n/a'}, classpaths=${cps}, sourcepaths=${sps}`
+    );
   }
 }
 

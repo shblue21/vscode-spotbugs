@@ -4,15 +4,30 @@ import { JavaLanguageServerCommands } from '../constants/commands';
 import { ensureJavaCommandsAvailable } from '../core/utils';
 import { Logger } from '../core/logger';
 
-export async function buildWorkspaceAuto(notifier?: Notifier): Promise<number | undefined> {
-  notifier?.info('Starting Java workspace build...');
-  Logger.log('Starting Java workspace build...');
+export type BuildMode = 'auto' | 'incremental' | 'full';
 
-  const waited = await ensureJavaCommandsAvailable([
-    JavaLanguageServerCommands.BUILD_WORKSPACE,
-    JavaLanguageServerCommands.GET_CLASSPATHS,
-  ]);
-  Logger.log(`Checked Java command availability (waited=${waited})`);
+export interface BuildWorkspaceOptions {
+  mode?: BuildMode;
+  notifier?: Notifier;
+  ensureCommands?: boolean;
+}
+
+export async function buildWorkspace(
+  options: BuildWorkspaceOptions = {}
+): Promise<number | undefined> {
+  const { mode = 'auto', notifier, ensureCommands = true } = options;
+
+  notifier?.info('Starting Java workspace build...');
+  Logger.log(`Starting Java workspace build (mode=${mode})...`);
+
+  if (ensureCommands) {
+    const waited = await ensureJavaCommandsAvailable([
+      JavaLanguageServerCommands.BUILD_WORKSPACE,
+      JavaLanguageServerCommands.GET_CLASSPATHS,
+    ]);
+    Logger.log(`Checked Java command availability (waited=${waited})`);
+  }
+
   try {
     const available = await commands.getCommands(true);
     const hasBuild = available.includes(JavaLanguageServerCommands.BUILD_WORKSPACE);
@@ -22,26 +37,41 @@ export async function buildWorkspaceAuto(notifier?: Notifier): Promise<number | 
     // ignore
   }
 
+  const tryBuild = async (full: boolean): Promise<number | undefined> => {
+    const modeLabel = full ? 'full' : 'incremental';
+    try {
+      Logger.log(`Invoking java.project.build(${full}) - ${modeLabel} build`);
+      const value = await commands.executeCommand<number>(
+        JavaLanguageServerCommands.BUILD_WORKSPACE,
+        full
+      );
+      Logger.log(`java.project.build(${full}) returned: ${String(value)}`);
+      return value;
+    } catch (e) {
+      Logger.log(
+        `Error during java.project.build(${full}): ${e instanceof Error ? e.message : String(e)}`
+      );
+      return undefined;
+    }
+  };
+
   const t0 = Date.now();
   let result: number | undefined;
-  try {
-    Logger.log('Invoking java.project.build(false) - incremental build');
-    result = await commands.executeCommand<number>(JavaLanguageServerCommands.BUILD_WORKSPACE, false);
-    Logger.log(`java.project.build(false) returned: ${String(result)}`);
-  } catch (e) {
-    Logger.log(`Error during java.project.build(false): ${e instanceof Error ? e.message : String(e)}`);
+
+  if (mode !== 'full') {
+    result = await tryBuild(false);
   }
-  if (result !== 0) {
-    try {
-      Logger.log('Retrying with java.project.build(true) - full build');
-      result = await commands.executeCommand<number>(JavaLanguageServerCommands.BUILD_WORKSPACE, true);
-      Logger.log(`java.project.build(true) returned: ${String(result)}`);
-    } catch (e) {
-      Logger.log(`Error during java.project.build(true): ${e instanceof Error ? e.message : String(e)}`);
-    }
+
+  const shouldRunFull = mode === 'full' || (mode === 'auto' && result !== 0);
+  if (shouldRunFull) {
+    result = await tryBuild(true);
   }
+
   const t1 = Date.now();
-  Logger.log(`Build duration: ${t1 - t0} ms`);
+  Logger.log(`Build duration: ${t1 - t0} ms (mode=${mode}, result=${String(result)})`);
   return result;
 }
 
+export async function buildWorkspaceAuto(notifier?: Notifier): Promise<number | undefined> {
+  return buildWorkspace({ mode: 'auto', notifier });
+}
