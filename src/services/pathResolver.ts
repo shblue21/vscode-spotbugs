@@ -82,16 +82,22 @@ let cachedSourcepaths: string[] | undefined;
 let cachedAt = 0;
 const CACHE_MS = 5000;
 
+export function primeSourcepathsCache(sourcepaths?: string[]): void {
+  if (Array.isArray(sourcepaths)) {
+    cachedSourcepaths = sourcepaths;
+    cachedAt = Date.now();
+  }
+}
+
 async function getSourcepathsCached(preferred?: Uri): Promise<string[] | undefined> {
   const now = Date.now();
   if (cachedSourcepaths && now - cachedAt < CACHE_MS) {
     return cachedSourcepaths;
   }
   const cp = await getClasspaths(preferred);
-  const res = cp && Array.isArray(cp.sourcepaths) ? cp.sourcepaths : undefined;
-  if (res) {
-    cachedSourcepaths = res;
-    cachedAt = now;
+  if (Array.isArray(cp?.sourcepaths)) {
+    primeSourcepathsCache(cp.sourcepaths);
+    return cp.sourcepaths.length > 0 ? cp.sourcepaths : undefined;
   }
-  return res;
+  return undefined;
 }

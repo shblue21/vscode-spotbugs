@@ -6,6 +6,7 @@ import { BugInfo } from '../models/bugInfo';
 import { ProjectRef, deriveOutputFolder, getClasspaths } from './classpathService';
 import { JavaLsClient } from './javaLsClient';
 import { runConfiguredAnalysis } from './analyzer';
+import { primeSourcepathsCache } from './pathResolver';
 
 export interface ProjectResult {
   projectUri: string;
@@ -54,6 +55,10 @@ export async function analyzeProject(
       config.setClasspaths(classpaths);
     }
 
+    if (Array.isArray(cp?.sourcepaths)) {
+      primeSourcepathsCache(cp.sourcepaths);
+    }
+
     let outputPath: string | undefined = cp?.output;
     if (!outputPath && Array.isArray(classpaths)) {
       outputPath = await deriveOutputFolder(classpaths, workspaceFolder.fsPath);
@@ -81,6 +86,20 @@ export async function analyzeWorkspace(
   token?: CancellationToken
 ): Promise<WorkspaceResult> {
   const projectUris = await getWorkspaceProjects(workspaceFolder);
+  return analyzeWorkspaceFromProjects(config, workspaceFolder, projectUris, notify, token);
+}
+
+export async function analyzeWorkspaceFromProjects(
+  config: Config,
+  workspaceFolder: Uri,
+  projectUris: string[],
+  notify?: {
+    onStart?: (uriString: string, index: number, total: number) => void;
+    onDone?: (uriString: string, count: number) => void;
+    onFail?: (uriString: string, message: string) => void;
+  },
+  token?: CancellationToken
+): Promise<WorkspaceResult> {
   const results: ProjectResult[] = [];
 
   for (let index = 0; index < projectUris.length; index++) {

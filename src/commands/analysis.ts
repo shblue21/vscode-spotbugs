@@ -4,9 +4,8 @@ import { BugInfo } from '../models/bugInfo';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
 import { analyzeFile } from '../services/analyzer';
-import { analyzeWorkspace, getWorkspaceProjects } from '../services/workspaceAnalyzer';
+import { analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/workspaceAnalyzer';
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
-import { JavaLsClient } from '../services/javaLsClient';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { defaultNotifier } from '../core/notifier';
 
@@ -87,9 +86,10 @@ export async function runWorkspaceAnalysis(
           spotbugsTreeDataProvider
         );
 
-        const res = await analyzeWorkspace(
+        const res = await analyzeWorkspaceFromProjects(
           config,
           wsFolder.uri,
+          projectUris,
           {
             onStart: (u, idx, total) => {
               progress.report({ message: `${idx}/${total} ${u}` });
