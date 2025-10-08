@@ -1,4 +1,10 @@
 # Changelog
+## [v0.0.8] - 2025-10-08
+
+- Adds bug report template
+- Centralizes analysis logic
+- Improves workspace analysis flow
+- Adds SARIF export feature
 
 ## [v0.0.7] - 2025-09-21
 

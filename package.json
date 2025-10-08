@@ -2,7 +2,7 @@
   "name": "vscode-spotbugs",
   "displayName": "Spotbugs",
   "description": "Visual Studio Code extension for Spotbugs",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
