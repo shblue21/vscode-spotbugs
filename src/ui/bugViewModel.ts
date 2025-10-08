@@ -1,6 +1,7 @@
 import { BugInfo } from '../models/bugInfo';
 import { ThemeIcon } from 'vscode';
 import * as path from 'path';
+import { formatBugSummary } from '../core/bugFormatter';
 
 export interface BugItemViewProps {
   label: string;
@@ -10,21 +11,7 @@ export interface BugItemViewProps {
 }
 
 export function toBugItemView(bug: BugInfo): BugItemViewProps {
-  const pattern = bug.abbrev || bug.type || 'Bug';
-  const raw = bug.message || '';
-  let msg = raw.trim();
-  const prefix = `${pattern}:`;
-  if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
-    msg = msg.substring(prefix.length).trim();
-  }
-  const inIdx = msg.indexOf(' in ');
-  if (inIdx > 0) {
-    msg = msg.substring(0, inIdx).trim();
-  }
-  if (!msg) {
-    msg = bug.type || 'SpotBugs finding';
-  }
-  const label = `[${pattern}] ${msg}`;
+  const label = formatBugSummary(bug);
 
   const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
   const fileName = filePath ? path.basename(filePath) : 'Unknown file';
@@ -43,4 +30,3 @@ function severityIcon(bug: BugInfo): ThemeIcon {
   if (rank <= 9) return new ThemeIcon('warning');
   return new ThemeIcon('info');
 }
-

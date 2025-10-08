@@ -11,6 +11,7 @@ export class CategoryGroupItem extends TreeItem {
     this.patterns = patterns;
     this.iconPath = new ThemeIcon('folder');
     this.description = `${patterns.length} pattern${patterns.length !== 1 ? 's' : ''}`;
+    this.contextValue = 'spotbugs.category';
   }
 }
 
@@ -21,6 +22,7 @@ export class PatternGroupItem extends TreeItem {
     super(`${label} (${bugs.length})`, TreeItemCollapsibleState.Collapsed);
     this.bugs = bugs;
     this.iconPath = new ThemeIcon('list-tree');
+    this.contextValue = 'spotbugs.pattern';
   }
 }
 
@@ -34,6 +36,7 @@ export class BugInfoItem extends TreeItem {
     this.description = view.description;
     this.tooltip = view.tooltip;
     this.iconPath = view.icon;
+    this.contextValue = 'spotbugs.bug';
 
     this.command = {
       command: SpotBugsCommands.OPEN_BUG_LOCATION,

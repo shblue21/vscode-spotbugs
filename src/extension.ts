@@ -8,6 +8,7 @@ import { openBugLocation } from './commands/navigation';
 import { Config } from './core/config';
 import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
+import { exportSarifReport, copyFindingAsSarif } from './commands/export';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,
@@ -69,6 +70,20 @@ async function doActivate(
         SpotBugsCommands.OPEN_BUG_LOCATION,
         async (bug) => {
           await openBugLocation(bug);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.EXPORT_SARIF,
+        async (element?: unknown) => {
+          await exportSarifReport(spotbugsTreeDataProvider, element);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.COPY_FINDING_AS_SARIF,
+        async (element?: unknown) => {
+          await copyFindingAsSarif(spotbugsTreeDataProvider, element);
         }
       )
     );

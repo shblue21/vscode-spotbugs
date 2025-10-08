@@ -12,6 +12,8 @@ export namespace SpotBugsCommands {
   export const RUN_ANALYSIS: string = 'spotbugs.run';
   export const RUN_WORKSPACE: string = 'spotbugs.runWorkspace';
   export const OPEN_BUG_LOCATION: string = 'spotbugs.openBugLocation';
+  export const EXPORT_SARIF: string = 'spotbugs.exportSarif';
+  export const COPY_FINDING_AS_SARIF: string = 'spotbugs.copyFindingAsSarif';
 }
 
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)

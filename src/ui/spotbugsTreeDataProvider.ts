@@ -19,6 +19,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private viewItems: TreeItem[] = [];
   private projectItems: Map<string, ProjectStatusItem> = new Map();
+  private lastResults: BugInfo[] = [];
 
   constructor() {
     this.showInitialMessage();
@@ -40,11 +41,13 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showInitialMessage(): void {
     this.viewItems = [new TreeItem('Ready to analyze. Click the search icon to start.')];
+    this.lastResults = [];
     this._onDidChangeTreeData.fire(undefined);
   }
 
   public showLoading(): void {
     this.viewItems = [new TreeItem('Analyzing...')];
+    this.lastResults = [];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -58,6 +61,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       this.projectItems.set(uriString, item);
     }
     this.viewItems = items;
+    this.lastResults = [];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -85,6 +89,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   public showResults(bugs: BugInfo[]): void {
     if (!bugs || bugs.length === 0) {
       this.viewItems = [new TreeItem('No issues found.')];
+      this.lastResults = [];
     } else {
       const categoryMap = this.groupBugsByCategoryAndPattern(bugs);
       const categories = Object.keys(categoryMap).sort();
@@ -98,8 +103,26 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
         const total = patterns.reduce((acc, p) => acc + p.bugs.length, 0);
         return new CategoryGroupItem(category, patterns, total);
       });
+      this.lastResults = bugs.slice();
     }
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public getAllFindings(): BugInfo[] {
+    return this.lastResults.slice();
+  }
+
+  public getFindingsForNode(element: TreeItem): BugInfo[] {
+    if (element instanceof CategoryGroupItem) {
+      return element.patterns.flatMap((pattern) => pattern.bugs.slice());
+    }
+    if (element instanceof PatternGroupItem) {
+      return element.bugs.slice();
+    }
+    if (element instanceof BugInfoItem) {
+      return [element.bug];
+    }
+    return [];
   }
 
   private groupBugsByCategoryAndPattern(bugs: BugInfo[]): {

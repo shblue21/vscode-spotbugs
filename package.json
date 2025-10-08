@@ -105,6 +105,15 @@
       {
         "command": "spotbugs.openBugLocation",
         "title": "Open Bug Location"
+      },
+      {
+        "command": "spotbugs.exportSarif",
+        "title": "Export SpotBugs Findings (SARIF)",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "spotbugs.copyFindingAsSarif",
+        "title": "Copy SpotBugs Finding as SARIF"
       }
     ],
     "menus": {
@@ -113,12 +122,29 @@
           "command": "spotbugs.runWorkspace",
           "when": "view == spotbugs-view",
           "group": "navigation"
+        },
+        {
+          "command": "spotbugs.exportSarif",
+          "when": "view == spotbugs-view",
+          "group": "navigation@1"
         }
       ],
       "explorer/context": [
         {
           "submenu": "spotbugs.context",
           "when": "resourceLangId == java || resourceExtname == .jar || explorerResourceIsFolder"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "spotbugs.exportSarif",
+          "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern)",
+          "group": "navigation@3"
+        },
+        {
+          "command": "spotbugs.copyFindingAsSarif",
+          "when": "view == spotbugs-view && viewItem == spotbugs.bug",
+          "group": "inline"
         }
       ],
       "spotbugs.context": [
@@ -177,6 +203,7 @@
   },
   "dependencies": {
     "fs-extra": "^11.3.0",
+    "node-sarif-builder": "^3.2.0",
     "vscode-extension-telemetry-wrapper": "^0.14.0"
   }
 }
