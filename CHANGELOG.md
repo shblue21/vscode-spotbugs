@@ -1,4 +1,12 @@
 # Changelog
+## [v0.0.9] - 2025-10-10
+
+- Adds diagnostic support
+- Removes copy finding as SARIF feature
+- Updates GitHub Actions versions
+- Removes hover provider
+- Adds reset results command
+
 ## [v0.0.8] - 2025-10-08
 
 - Adds bug report template
