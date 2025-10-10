@@ -9,6 +9,7 @@ import { Config } from './core/config';
 import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
 import { exportSarifReport } from './commands/export';
+import { resetResults } from './commands/reset';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
 import {
   dispose as disposeTelemetryWrapper,
@@ -80,6 +81,13 @@ async function doActivate(
         SpotBugsCommands.EXPORT_SARIF,
         async (element?: unknown) => {
           await exportSarifReport(spotbugsTreeDataProvider, element);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.RESET_RESULTS,
+        async () => {
+          await resetResults(spotbugsTreeDataProvider, diagnosticsManager);
         }
       )
     );

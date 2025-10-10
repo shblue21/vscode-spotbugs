@@ -110,6 +110,11 @@
         "command": "spotbugs.exportSarif",
         "title": "Export SpotBugs Findings (SARIF)",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "spotbugs.resetResults",
+        "title": "Reset SpotBugs Results",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -123,6 +128,11 @@
           "command": "spotbugs.exportSarif",
           "when": "view == spotbugs-view",
           "group": "navigation@1"
+        },
+        {
+          "command": "spotbugs.resetResults",
+          "when": "view == spotbugs-view",
+          "group": "navigation@2"
         }
       ],
       "explorer/context": [
