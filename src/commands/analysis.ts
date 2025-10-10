@@ -8,10 +8,12 @@ import { analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { defaultNotifier } from '../core/notifier';
+import { SpotBugsDiagnosticsManager } from '../services/diagnosticsManager';
 
 export async function checkCode(
   config: Config,
   spotbugsTreeDataProvider: SpotbugsTreeDataProvider,
+  diagnostics: SpotBugsDiagnosticsManager,
   uri: Uri | undefined
 ): Promise<void> {
   const notifier = defaultNotifier;
@@ -31,6 +33,7 @@ export async function checkCode(
     try {
       const findings = await analyzeFile(config, fileUri);
       spotbugsTreeDataProvider.showResults(findings);
+      diagnostics.updateForFile(fileUri, findings);
       const t1 = Date.now();
       Logger.log(
         `File analysis finished: elapsedMs=${t1 - t0}, file=${fileUri.fsPath}, findings=${findings.length}`
@@ -39,6 +42,7 @@ export async function checkCode(
       Logger.error('An error occurred during Spotbugs analysis', err);
       notifier.error('An error occurred during Spotbugs analysis. See Spotbugs output channel for details.');
       spotbugsTreeDataProvider.showResults([]);
+      diagnostics.updateForFile(fileUri, []);
     }
   } else {
     notifier.error('No Java file selected for Spotbugs analysis.');
@@ -48,7 +52,8 @@ export async function checkCode(
 
 export async function runWorkspaceAnalysis(
   config: Config,
-  spotbugsTreeDataProvider: SpotbugsTreeDataProvider
+  spotbugsTreeDataProvider: SpotbugsTreeDataProvider,
+  diagnostics: SpotBugsDiagnosticsManager
 ): Promise<void> {
   Logger.log('Command spotbugs.runWorkspace triggered.');
   await focusSpotbugsTree();
@@ -105,6 +110,7 @@ export async function runWorkspaceAnalysis(
     );
 
     spotbugsTreeDataProvider.showResults(aggregated);
+    diagnostics.replaceAll(aggregated);
 
     // Single end summary notification (no project count)
     const summary =
