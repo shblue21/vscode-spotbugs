@@ -8,7 +8,7 @@ import { openBugLocation } from './commands/navigation';
 import { Config } from './core/config';
 import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
-import { exportSarifReport, copyFindingAsSarif } from './commands/export';
+import { exportSarifReport } from './commands/export';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
 import { registerSpotBugsHoverProvider } from './services/hoverProvider';
 import {
@@ -84,13 +84,6 @@ async function doActivate(
         SpotBugsCommands.EXPORT_SARIF,
         async (element?: unknown) => {
           await exportSarifReport(spotbugsTreeDataProvider, element);
-        }
-      ),
-
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.COPY_FINDING_AS_SARIF,
-        async (element?: unknown) => {
-          await copyFindingAsSarif(spotbugsTreeDataProvider, element);
         }
       )
     );

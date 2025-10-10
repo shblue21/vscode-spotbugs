@@ -110,10 +110,6 @@
         "command": "spotbugs.exportSarif",
         "title": "Export SpotBugs Findings (SARIF)",
         "icon": "$(file-code)"
-      },
-      {
-        "command": "spotbugs.copyFindingAsSarif",
-        "title": "Copy SpotBugs Finding as SARIF"
       }
     ],
     "menus": {
@@ -140,11 +136,6 @@
           "command": "spotbugs.exportSarif",
           "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern)",
           "group": "navigation@3"
-        },
-        {
-          "command": "spotbugs.copyFindingAsSarif",
-          "when": "view == spotbugs-view && viewItem == spotbugs.bug",
-          "group": "inline"
         }
       ],
       "spotbugs.context": [

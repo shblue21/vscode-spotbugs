@@ -1,4 +1,4 @@
-import { window, workspace, env, Uri } from 'vscode';
+import { window, workspace, Uri } from 'vscode';
 import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { CategoryGroupItem, PatternGroupItem, BugInfoItem } from '../ui/bugTreeItem';
 import { buildSarifLog } from '../services/sarifExporter';
@@ -46,35 +46,6 @@ export async function exportSarifReport(
   }
 }
 
-export async function copyFindingAsSarif(
-  provider: SpotbugsTreeDataProvider,
-  element: unknown
-): Promise<void> {
-  let findings: BugInfo[] = [];
-  if (element instanceof BugInfoItem) {
-    findings = provider.getFindingsForNode(element);
-  }
-
-  if (findings.length === 0) {
-    await window.showWarningMessage('Select a SpotBugs finding to copy as SARIF.');
-    return;
-  }
-
-  try {
-    const sarifLog = buildSarifLog(findings, {
-      runName: getWorkspaceName(),
-    });
-    const sarifJson = JSON.stringify(sarifLog, null, 2);
-    await env.clipboard.writeText(sarifJson);
-    Logger.log('SpotBugs SARIF copied to clipboard for 1 finding');
-    await window.showInformationMessage('Copied SpotBugs finding as SARIF JSON.');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    Logger.error('Failed to copy SARIF finding', error);
-    await window.showErrorMessage(`Failed to copy SpotBugs finding as SARIF: ${message}`);
-  }
-}
-
 function resolveFindings(
   provider: SpotbugsTreeDataProvider,
   element: unknown
@@ -118,4 +89,3 @@ function getWorkspaceName(): string {
   const fsPath = folder.uri.fsPath;
   return path.basename(fsPath) || 'workspace';
 }
-
