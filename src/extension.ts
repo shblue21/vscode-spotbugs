@@ -10,7 +10,6 @@ import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
 import { exportSarifReport } from './commands/export';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
-import { registerSpotBugsHoverProvider } from './services/hoverProvider';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,
@@ -48,12 +47,9 @@ async function doActivate(
       treeDataProvider: spotbugsTreeDataProvider,
     });
 
-    const hoverProvider = registerSpotBugsHoverProvider(diagnosticsManager);
-
     context.subscriptions.push(
       spotbugsTreeView,
       diagnosticsManager,
-      hoverProvider,
       // Refresh cached configuration on settings change
       workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration(SETTINGS_SECTION)) {
