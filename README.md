@@ -3,13 +3,14 @@
 <p align="center">
   <img src="https://img.shields.io/visual-studio-marketplace/v/shblue21.vscode-spotbugs" alt="VS Marketplace Version" />
   <img src="https://img.shields.io/github/last-commit/shblue21/vscode-spotbugs?logo=github" alt="last-commit" />  
+  <img src="https://img.shields.io/visual-studio-marketplace/d/shblue21.vscode-spotbugs" alt="VS Marketplace Downloads"/>
 </p>
 
 <div align="center">
 
 # SpotBugs for VS Code
 
-Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicated tree view and jump to offending lines with one click.
+Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicated tree view, jump to offending lines, and track issues with VS Code diagnostics.
 
 ![SpotBugs demo](https://raw.githubusercontent.com/shblue21/vscode-spotbugs/main/images/spotbugs_demo.gif)
 
@@ -19,7 +20,8 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 - Analyze a single file or an entire workspace (Maven/Gradle projects)
 - Group findings by category and pattern with severity icons
-- Navigate to bug locations in source files
+- Navigate to bug locations in source files with matching diagnostics/squiggles
+- Export filtered findings to SARIF for code scanning tools
 
 ## Requirements
 
@@ -38,6 +40,8 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 - `SpotBugs: Analyze File/Folder` — Analyze selected file or folder
 - `SpotBugs: Analyze this workspace` — Build then analyze all projects in the workspace
+- `SpotBugs: Export SpotBugs Findings (SARIF)` — Save current findings to a SARIF report
+- `SpotBugs: Reset SpotBugs Results` — Clear the SpotBugs view and diagnostics
 
 ## Settings
 
