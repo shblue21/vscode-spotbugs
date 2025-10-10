@@ -9,11 +9,6 @@ on:
       notes:
         description: 'Release notes (optional)'
         required: false
-  push:
-    tags:
-      - 'v*'
-      - '*-alpha*'
-      - '*-beta*'
 
 jobs:
   build:
