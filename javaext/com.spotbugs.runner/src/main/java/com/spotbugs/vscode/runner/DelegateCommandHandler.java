@@ -1,28 +1,45 @@
 package com.spotbugs.vscode.runner;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
- 
+
+import com.spotbugs.vscode.runner.internal.command.CommandAction;
+import com.spotbugs.vscode.runner.internal.command.RunAnalysisAction;
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
 
-    private final CommandFacade facade = new CommandFacade();
+    private final Map<String, CommandAction> actions;
+
+    public DelegateCommandHandler() {
+        this.actions = initialiseActions();
+    }
 
     @Override
     public Object executeCommand(String commandId, List<Object> arguments, IProgressMonitor monitor) {
-        if ("java.spotbugs.run".equals(commandId)) {
-            try {
-                if (arguments != null && arguments.size() > 1) {
-                    return facade.runAnalysis(arguments.get(0), arguments.get(1));
-                } else {
-                    // invalid args
-                }
-            } catch (Exception e) {
-                // swallow errors: facade returns structured error to client
-            }
-            return "[]"; // Return empty JSON array on error
+        CommandAction action = actions.get(commandId);
+        if (action == null) {
+            return "Command not recognized";
         }
-        return "Command not recognized";
+        Object[] args = arguments != null ? arguments.toArray() : new Object[0];
+        try {
+            return action.execute(args);
+        } catch (Exception e) {
+            return "{\"error\":\"Command failed\"}";
+        }
+    }
+
+    private Map<String, CommandAction> initialiseActions() {
+        Map<String, CommandAction> map = new HashMap<>();
+        register(map, new RunAnalysisAction());
+        return Collections.unmodifiableMap(map);
+    }
+
+    private static void register(Map<String, CommandAction> map, CommandAction action) {
+        map.put(action.id(), action);
     }
 }
