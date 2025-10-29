@@ -40,7 +40,10 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     @Override
     protected CommandResult run(ActionContext context) throws Exception {
         String targetPath = context.requireString(0, "path");
-        String configJson = context.requireString(1, "config");
+        String configJson = context.optionalString(1);
+        if (configJson == null || configJson.trim().isEmpty()) {
+            configJson = "{}";
+        }
 
         AnalysisConfig config = parseAndValidateConfig(configJson);
 
