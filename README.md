@@ -45,4 +45,5 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 ## Settings
 
-- `spotbugs.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
+- `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
+- `spotbugs.analysis.priorityThreshold`: Report bugs with rank less than or equal to this value (1 = most severe, 20 = least). Default: `9`.
