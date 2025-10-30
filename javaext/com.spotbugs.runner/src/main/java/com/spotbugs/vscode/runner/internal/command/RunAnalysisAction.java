@@ -39,8 +39,8 @@ public final class RunAnalysisAction extends AbstractCommandAction {
 
     @Override
     protected CommandResult run(ActionContext context) throws Exception {
-        String targetPath = context.requireString(0, "path");
-        String configJson = context.optionalString(1);
+        String targetPath = context.requireStringArg(0, "path");
+        String configJson = context.optionalStringArg(1);
         if (configJson == null || configJson.trim().isEmpty()) {
             configJson = "{}";
         }

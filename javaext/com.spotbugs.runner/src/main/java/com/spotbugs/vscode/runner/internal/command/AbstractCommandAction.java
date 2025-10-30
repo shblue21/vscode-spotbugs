@@ -101,7 +101,7 @@ public abstract class AbstractCommandAction implements CommandAction {
             return args[index];
         }
 
-        public String requireString(int index, String name) throws CommandActionException {
+        public String requireStringArg(int index, String name) throws CommandActionException {
             Object value = get(index);
             if (!(value instanceof String)) {
                 throw new CommandActionException("INVALID_ARGUMENT",
@@ -115,7 +115,7 @@ public abstract class AbstractCommandAction implements CommandAction {
             return str;
         }
 
-        public String optionalString(int index) {
+        public String optionalStringArg(int index) {
             if (index < 0 || index >= args.length) {
                 return null;
             }
