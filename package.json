@@ -193,18 +193,17 @@
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
     "@vscode/test-electron": "^2.5.2",
-    "eslint": "^9.31.0",
+    "eslint": "^9.39.2",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-prettier": "^5.5.4",
-    "glob": "^11.0.3",
-    "mocha": "^11.7.1",
+    "mocha": "^11.7.5",
     "prettier": "^3.6.2",
-    "rimraf": "^6.0.1",
+    "rimraf": "^6.1.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "fs-extra": "^11.3.0",
-    "node-sarif-builder": "^3.2.0",
+    "fs-extra": "^11.3.3",
+    "node-sarif-builder": "^3.3.1",
     "vscode-extension-telemetry-wrapper": "^0.14.0"
   }
 }
