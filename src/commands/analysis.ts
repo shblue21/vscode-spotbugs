@@ -3,8 +3,7 @@ import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { BugInfo } from '../models/bugInfo';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
-import { analyzeFile } from '../services/analyzer';
-import { analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/workspaceAnalyzer';
+import { analyzeFile, analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/analysisService';
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { defaultNotifier } from '../core/notifier';
@@ -143,4 +142,4 @@ function getPrimaryWorkspaceFolder(): { uri: Uri } | undefined {
 }
 
 
-// Note: duplicate helpers removed; classpath/path enrichment lives in services.
+// Note: duplicate helpers removed; classpath/path resolution lives in services.

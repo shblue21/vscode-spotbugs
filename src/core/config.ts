@@ -6,7 +6,6 @@ export class Config {
   private _ctx: ExtensionContext;
 
   public effort!: string;
-  public classpaths!: string[] | null;
   public readonly schemaVersion = 1;
   // Future-ready fields (optional; only sent when defined)
   public priorityThreshold?: number;
@@ -24,7 +23,6 @@ export class Config {
     // Normalize to lowercase: min | default | max
     const effort = config.get<string>(settingKeys.analysisEffort) ?? 'default';
     this.effort = (effort || 'default').toLowerCase();
-    this.classpaths = null; // Will be set dynamically during analysis
 
     // M2: read optional future fields if present (no UI contribution yet)
     const pt = config.get<number | undefined>(settingKeys.analysisPriorityThreshold);
@@ -42,10 +40,6 @@ export class Config {
     }
   }
 
-  public setClasspaths(classpaths: string[]): void {
-    this.classpaths = classpaths;
-  }
-
   // Resolve a workspace-relative path to absolute (best-effort)
   private resolveToAbsolute(p?: string): string | undefined {
     if (!p) return undefined;
@@ -56,11 +50,15 @@ export class Config {
   }
 
   // Control JSON serialization sent to backend (wire schema)
-  public toJSON(): Record<string, unknown> {
+  public toJSON(options?: {
+    classpaths?: string[] | null;
+    sourcepaths?: string[] | null;
+  }): Record<string, unknown> {
     const payload: Record<string, unknown> = {
       schemaVersion: this.schemaVersion,
       effort: this.effort,
-      classpaths: this.classpaths ?? null,
+      classpaths: options?.classpaths ?? null,
+      sourcepaths: options?.sourcepaths ?? null,
     };
 
     // Only include optional fields when defined

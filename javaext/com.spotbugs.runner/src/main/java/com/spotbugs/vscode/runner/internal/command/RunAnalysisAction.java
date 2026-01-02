@@ -1,8 +1,11 @@
 package com.spotbugs.vscode.runner.internal.command;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
+import com.spotbugs.vscode.runner.api.CommandResponse;
 import com.spotbugs.vscode.runner.api.ConfigError;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
@@ -11,6 +14,7 @@ import com.spotbugs.vscode.runner.internal.config.ConfigParseResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidationResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
+import edu.umd.cs.findbugs.Version;
 
 /**
  * Handles the {@code java.spotbugs.run} workspace command by invoking SpotBugs analysis
@@ -49,9 +53,20 @@ public final class RunAnalysisAction extends AbstractCommandAction {
 
         AnalyzerService analyzer = new AnalyzerService();
         analyzer.setConfiguration(config);
+        long start = System.currentTimeMillis();
         List<BugInfo> bugs = analyzer.analyzeToBugs(targetPath);
+        long elapsed = System.currentTimeMillis() - start;
 
-        return success(bugs != null ? bugs : java.util.Collections.emptyList());
+        List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("target", targetPath);
+        stats.put("durationMs", Long.valueOf(elapsed));
+        stats.put("findingCount", Integer.valueOf(results.size()));
+        stats.put("spotbugsVersion", Version.VERSION_STRING);
+        stats.put("classpathCount", Integer.valueOf(config.getClasspaths().size()));
+        stats.put("pluginCount", Integer.valueOf(config.getPlugins().size()));
+
+        return success(CommandResponse.success(results, stats));
     }
 
     private AnalysisConfig parseAndValidateConfig(String configJson) throws CommandActionException {

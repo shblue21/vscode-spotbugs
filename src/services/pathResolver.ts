@@ -1,7 +1,8 @@
 import { commands, Uri, workspace } from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { getClasspaths } from './classpathService';
+import { Logger } from '../core/logger';
+import { BugInfo } from '../models/bugInfo';
 
 /**
  * Resolve a SpotBugs realSourcePath (e.g., com/foo/Bar.java) to a full filesystem path.
@@ -24,7 +25,7 @@ export async function resolveSourceFullPath(
       for (const sourcePath of sourcepaths) {
         const candidatePath = path.join(sourcePath, realSourcePath);
         try {
-          await fs.promises.access(candidatePath);
+          await workspace.fs.stat(Uri.file(candidatePath));
           return candidatePath;
         } catch {
           // try next source path
@@ -32,7 +33,8 @@ export async function resolveSourceFullPath(
       }
     }
   } catch (error) {
-    // ignore; fall back to workspace scans
+    const message = error instanceof Error ? error.message : String(error);
+    Logger.log(`Sourcepath lookup failed; falling back to workspace scan: ${message}`);
   }
 
   // 2) Fallback: scan common Java project layout roots under known project/workspace roots
@@ -75,6 +77,37 @@ export async function resolveSourceFullPath(
   }
 
   return null;
+}
+
+/**
+ * Resolve SpotBugs findings to absolute file paths when possible.
+ */
+export async function addFullPaths(
+  bugs: BugInfo[],
+  preferredProject?: Uri
+): Promise<BugInfo[]> {
+  if (!bugs.length) {
+    return [];
+  }
+
+  for (const bug of bugs) {
+    if (typeof bug.fullPath === 'string' && bug.fullPath.length > 0) {
+      continue;
+    }
+    if (!bug.realSourcePath) continue;
+    try {
+      const full = await resolveSourceFullPath(bug.realSourcePath, preferredProject);
+      if (full) {
+        bug.fullPath = full;
+      } else {
+        Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Logger.log(`Path resolve failed for ${bug.realSourcePath}: ${message}`);
+    }
+  }
+  return bugs;
 }
 
 // Simple in-memory cache to avoid repeated LS calls while resolving many paths

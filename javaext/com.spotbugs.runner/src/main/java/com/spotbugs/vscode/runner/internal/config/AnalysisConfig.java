@@ -12,6 +12,7 @@ public class AnalysisConfig {
 
     private final Effort effort;
     private final List<String> classpaths;
+    private final List<String> sourcepaths;
     private final Integer priorityThreshold; // optional
     private final String excludeFilterPath;  // optional
     private final List<String> plugins;      // optional
@@ -21,6 +22,9 @@ public class AnalysisConfig {
         this.classpaths = b.classpaths == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(b.classpaths));
+        this.sourcepaths = b.sourcepaths == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(b.sourcepaths));
         this.priorityThreshold = b.priorityThreshold;
         this.excludeFilterPath = b.excludeFilterPath;
         this.plugins = b.plugins == null
@@ -30,6 +34,7 @@ public class AnalysisConfig {
 
     public Effort getEffort() { return effort; }
     public List<String> getClasspaths() { return classpaths; }
+    public List<String> getSourcepaths() { return sourcepaths; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public String getExcludeFilterPath() { return excludeFilterPath; }
     public List<String> getPlugins() { return plugins; }
@@ -40,12 +45,14 @@ public class AnalysisConfig {
     static final class Builder {
         private Effort effort;
         private List<String> classpaths;
+        private List<String> sourcepaths;
         private Integer priorityThreshold;
         private String excludeFilterPath;
         private List<String> plugins;
 
         Builder effort(Effort e) { this.effort = e; return this; }
         Builder classpaths(List<String> cp) { this.classpaths = cp; return this; }
+        Builder sourcepaths(List<String> sp) { this.sourcepaths = sp; return this; }
         Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
         Builder excludeFilterPath(String p) { this.excludeFilterPath = p; return this; }
         Builder plugins(List<String> p) { this.plugins = p; return this; }

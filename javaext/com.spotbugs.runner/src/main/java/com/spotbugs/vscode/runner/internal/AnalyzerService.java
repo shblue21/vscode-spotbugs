@@ -56,6 +56,7 @@ public class AnalyzerService {
             Integer reporterPriority = computeReporterPriorityThreshold(this.config != null ? this.config.getPriorityThreshold() : null);
             java.util.List<String> plugins = this.config != null ? this.config.getPlugins() : java.util.Collections.emptyList();
             List<BugInfo> bugs = runner.run(this.findBugs, project, reporterPriority, plugins);
+            applyFullPaths(bugs, filePaths);
             // Precise post-filter by rank when requested
             Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
             if (rankThreshold != null) {
@@ -80,6 +81,27 @@ public class AnalyzerService {
         if (r <= 4) return Integer.valueOf(1);
         if (r <= 9) return Integer.valueOf(2);
         return Integer.valueOf(3);
+    }
+
+    private void applyFullPaths(List<BugInfo> bugs, String... filePaths) {
+        if (bugs == null || bugs.isEmpty()) {
+            return;
+        }
+        List<String> sourcepaths = this.config != null ? this.config.getSourcepaths() : java.util.Collections.emptyList();
+        String targetPath = (filePaths != null && filePaths.length > 0) ? filePaths[0] : null;
+        SourcePathResolver resolver = new SourcePathResolver();
+        for (BugInfo bug : bugs) {
+            if (bug == null) {
+                continue;
+            }
+            if (bug.getFullPath() != null && !bug.getFullPath().isEmpty()) {
+                continue;
+            }
+            String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, targetPath);
+            if (fullPath != null && !fullPath.isEmpty()) {
+                bug.setFullPath(fullPath);
+            }
+        }
     }
 
 }

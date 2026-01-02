@@ -14,6 +14,7 @@ public class BugInfo {
     private final int startLine;
     private final int endLine;
     private final String realSourcePath;
+    private String fullPath;
 
     public BugInfo(BugInstance bugInstance) {
         this.type = safeString(bugInstance.getType());
@@ -77,6 +78,15 @@ public class BugInfo {
 
     public String getRealSourcePath() {
         return realSourcePath;
+    }
+
+    public String getFullPath() {
+        return fullPath;
+    }
+
+    public void setFullPath(String fullPath) {
+        String trimmed = safeString(fullPath);
+        this.fullPath = trimmed.isEmpty() ? null : trimmed;
     }
     // #endregion
     private static String safeString(String s) {

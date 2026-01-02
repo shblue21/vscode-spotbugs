@@ -20,6 +20,7 @@ public class ConfigValidator {
 
         // Classpaths: drop null/empty and dedupe while preserving order
         List<String> cps = normalizeList(schema.getClasspaths());
+        List<String> sps = normalizeList(schema.getSourcepaths());
 
         // Optional fields: normalize empties to null
         Integer priorityThreshold = schema.getPriorityThreshold();
@@ -30,6 +31,7 @@ public class ConfigValidator {
             .newBuilder()
             .effort(effort)
             .classpaths(cps)
+            .sourcepaths(sps)
             .priorityThreshold(priorityThreshold)
             .excludeFilterPath(excludeFilterPath)
             .plugins(plugins)
@@ -55,4 +57,3 @@ public class ConfigValidator {
         return new ArrayList<>(set);
     }
 }
-

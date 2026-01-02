@@ -11,6 +11,7 @@ public class ConfigSchema {
     private Integer schemaVersion;            // optional, for future growth
     private String effort;                    // "min" | "default" | "max"
     private List<String> classpaths;          // optional
+    private List<String> sourcepaths;         // optional
     private Integer priorityThreshold;        // optional
     private String excludeFilterPath;         // optional
     private List<String> plugins;             // optional
@@ -18,8 +19,8 @@ public class ConfigSchema {
     public Integer getSchemaVersion() { return schemaVersion; }
     public String getEffort() { return effort; }
     public List<String> getClasspaths() { return classpaths; }
+    public List<String> getSourcepaths() { return sourcepaths; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public String getExcludeFilterPath() { return excludeFilterPath; }
     public List<String> getPlugins() { return plugins; }
 }
-

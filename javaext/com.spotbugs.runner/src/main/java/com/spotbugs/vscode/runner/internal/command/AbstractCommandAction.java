@@ -1,10 +1,9 @@
 package com.spotbugs.vscode.runner.internal.command;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.google.gson.Gson;
+import com.spotbugs.vscode.runner.api.CommandResponse;
 
 /**
  * Base implementation for SpotBugs workspace command handlers. Concrete actions only
@@ -71,13 +70,10 @@ public abstract class AbstractCommandAction implements CommandAction {
     /**
      * Builds the standard error envelope understood by the VS Code client.
      */
-    protected Map<String, Object> errorEnvelope(String code, String message) {
-        Map<String, Object> envelope = new HashMap<>();
-        envelope.put("error", message != null ? message : "Command failed");
-        if (code != null && !code.isEmpty()) {
-            envelope.put("code", code);
-        }
-        return envelope;
+    protected CommandResponse errorEnvelope(String code, String message) {
+        String safeCode = (code != null && !code.isEmpty()) ? code : DEFAULT_ERROR_CODE;
+        String safeMessage = message != null ? message : "Command failed";
+        return CommandResponse.error(safeCode, safeMessage);
     }
 
     /**
