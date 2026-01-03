@@ -16,6 +16,7 @@ public class AnalyzerService {
     private final UserPreferences userPreferences;
     private List<String> projectClasspaths;
     private AnalysisConfig config;
+    private int lastTargetCount = 0;
 
     public AnalyzerService() {
         this.userPreferences = UserPreferences.createDefaultUserPreferences();
@@ -31,8 +32,13 @@ public class AnalyzerService {
         this.projectClasspaths = cfg != null ? cfg.getClasspaths() : java.util.Collections.emptyList();
     }
 
+    public int getLastTargetCount() {
+        return lastTargetCount;
+    }
+
     public List<BugInfo> analyzeToBugs(String... filePaths) {
         try {
+            this.lastTargetCount = 0;
             if (filePaths == null || filePaths.length == 0) {
                 return java.util.Collections.emptyList();
             }
@@ -43,6 +49,7 @@ public class AnalyzerService {
             List<java.io.File> cpDirs = cpCfg.directoriesFrom(this.projectClasspaths);
             TargetResolver resolver = new TargetResolver();
             List<String> targets = resolver.resolveTargets(filePaths, cpDirs);
+            this.lastTargetCount = targets.size();
             if (targets.isEmpty()) {
                 return java.util.Collections.emptyList();
             }

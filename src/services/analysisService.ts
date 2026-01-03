@@ -21,6 +21,7 @@ type AnalysisStats = {
   findingCount?: number;
   spotbugsVersion?: string;
   classpathCount?: number;
+  targetCount?: number;
   pluginCount?: number;
 };
 
@@ -56,25 +57,23 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
   try {
     let classpaths: string[] | undefined;
     let sourcepaths: string[] | undefined;
-    if (uri.fsPath.endsWith('.java') || uri.fsPath.endsWith('.class')) {
-      try {
-        const cp = await getClasspaths(uri);
-        if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
-          classpaths = cp.classpaths;
-          Logger.log(`Set ${cp.classpaths.length} classpaths for analysis`);
-        } else {
-          Logger.log('No classpaths returned from Java Language Server; using system classpath');
-        }
-        if (Array.isArray(cp?.sourcepaths)) {
-          sourcepaths = cp.sourcepaths;
-          primeSourcepathsCache(cp.sourcepaths);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        Logger.log(
-          `Warning: Could not get project classpaths (${message}), using system classpath`
-        );
+    try {
+      const cp = await getClasspaths(uri);
+      if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
+        classpaths = cp.classpaths;
+        Logger.log(`Set ${cp.classpaths.length} classpaths for analysis`);
+      } else {
+        Logger.log('No classpaths returned from Java Language Server; using system classpath');
       }
+      if (Array.isArray(cp?.sourcepaths)) {
+        sourcepaths = cp.sourcepaths;
+        primeSourcepathsCache(cp.sourcepaths);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Logger.log(
+        `Warning: Could not get project classpaths (${message}), using system classpath`
+      );
     }
 
     return await runAnalysis(
@@ -281,6 +280,32 @@ async function runAnalysis(
   }
 
   const withFullPaths = await addFullPaths(bugs, context.preferredProject);
+  if (notify && withFullPaths.length === 0) {
+    const target = context.targetPath.replace(/\\/g, '/').toLowerCase();
+    const isBytecodeTarget =
+      target.endsWith('.class') || target.endsWith('.jar') || target.endsWith('.zip');
+    const looksLikeSourceTarget = target.endsWith('.java') || target.includes('/src/');
+    const classpathCount = typeof stats?.classpathCount === 'number' ? stats.classpathCount : undefined;
+    const targetCount = typeof stats?.targetCount === 'number' ? stats.targetCount : undefined;
+
+    if (!isBytecodeTarget) {
+      if (targetCount === 0) {
+        if ((classpathCount ?? 0) === 0) {
+          defaultNotifier.warn(
+            'SpotBugs: No compiled classes found (classpath unavailable). Make sure the target is inside a Java project and build the workspace.'
+          );
+        } else {
+          defaultNotifier.warn(
+            'SpotBugs: No compiled classes found for the selected target. Build the project or select an output folder (e.g. build/classes or target/classes).'
+          );
+        }
+      } else if (looksLikeSourceTarget && (classpathCount ?? 0) === 0) {
+        defaultNotifier.warn(
+          'SpotBugs: Classpath is unavailable for this target; results may be incomplete. Try building the workspace and re-run.'
+        );
+      }
+    }
+  }
   const logParts: string[] = [];
   logParts.push(`findings=${withFullPaths.length}`);
   if (typeof stats?.durationMs === 'number') {
@@ -294,6 +319,9 @@ async function runAnalysis(
   }
   if (typeof stats?.classpathCount === 'number') {
     logParts.push(`classpathCount=${stats.classpathCount}`);
+  }
+  if (typeof stats?.targetCount === 'number') {
+    logParts.push(`targetCount=${stats.targetCount}`);
   }
   if (typeof stats?.pluginCount === 'number') {
     logParts.push(`pluginCount=${stats.pluginCount}`);
