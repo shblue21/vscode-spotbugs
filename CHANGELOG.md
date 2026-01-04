@@ -1,4 +1,12 @@
 # Changelog
+## [v0.0.11] - 2026-01-04
+
+- Updates settings documentation
+- Standardize analysis response and resolve fullPath in backend BREAKING
+- enable folder analysis and improve empty-result guidance
+- Add extension and Java check workflows
+- Merge pull request #4 from shblue21/dependabot/npm_and_yarn/npm_and_yarn-bdc76aff73
+
 ## [v0.0.10] - 2025-10-30
 
 - Adds SARIF export and diagnostics
