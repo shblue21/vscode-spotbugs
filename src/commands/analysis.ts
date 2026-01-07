@@ -3,7 +3,12 @@ import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { BugInfo } from '../models/bugInfo';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
-import { analyzeFile, analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/analysisService';
+import {
+  analyzeFile,
+  analyzeWorkspaceFromProjects,
+  getWorkspaceProjects,
+  NO_CLASS_TARGETS_CODE,
+} from '../services/analysisService';
 import { TreeViewProgressReporter, WorkspaceProgressReporter } from '../services/progressReporter';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { defaultNotifier } from '../core/notifier';
@@ -59,6 +64,7 @@ export async function runWorkspaceAnalysis(
   const notifier = defaultNotifier;
   try {
     let aggregated: BugInfo[] = [];
+    let projectResults: { errorCode?: string }[] = [];
 
     await window.withProgress(
       {
@@ -104,12 +110,34 @@ export async function runWorkspaceAnalysis(
           },
           token,
         );
+        projectResults = res.results;
         aggregated = res.results.flatMap((r) => r.findings);
       },
     );
 
     spotbugsTreeDataProvider.showResults(aggregated);
     diagnostics.replaceAll(aggregated);
+
+    const noClassTargets = projectResults.filter(
+      (result) => result.errorCode === NO_CLASS_TARGETS_CODE,
+    );
+    const allSkipped =
+      projectResults.length > 0 && noClassTargets.length === projectResults.length;
+
+    if (allSkipped) {
+      notifier.warn(
+        'SpotBugs could not build the project. Run a manual build, then try again.',
+      );
+      return;
+    }
+
+    if (noClassTargets.length > 0) {
+      notifier.warn(
+        `SpotBugs skipped ${noClassTargets.length} project${
+          noClassTargets.length === 1 ? '' : 's'
+        } because the build failed. Run a manual build, then try again.`,
+      );
+    }
 
     // Single end summary notification (no project count)
     const summary =

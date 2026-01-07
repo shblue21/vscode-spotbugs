@@ -1,4 +1,4 @@
-import { CancellationToken, Uri } from 'vscode';
+import { CancellationToken, Uri, workspace } from 'vscode';
 import * as path from 'path';
 import { executeJavaLanguageServerCommand } from '../core/command';
 import { SpotBugsLSCommands } from '../constants/commands';
@@ -9,6 +9,11 @@ import { getClasspaths, ProjectRef, deriveOutputFolder } from './classpathServic
 import { JavaLsClient } from './javaLsClient';
 import { addFullPaths, primeSourcepathsCache } from './pathResolver';
 import { defaultNotifier } from '../core/notifier';
+import {
+  findOutputFolderFromProject,
+  hasClassTargets,
+  isBytecodeTarget,
+} from './outputResolver';
 
 type AnalysisError = {
   code?: string;
@@ -43,10 +48,14 @@ type AnalysisOptions = {
   notify?: boolean;
 };
 
+export const NO_CLASS_TARGETS_CODE = 'no-class-targets';
+const NO_CLASS_TARGETS_MESSAGE =
+  'SpotBugs could not build the project. Run a manual build, then try again.';
 export interface ProjectResult {
   projectUri: string;
   findings: BugInfo[];
   error?: string;
+  errorCode?: string;
 }
 
 export interface WorkspaceResult {
@@ -57,6 +66,7 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
   try {
     let classpaths: string[] | undefined;
     let sourcepaths: string[] | undefined;
+    let outputPath: string | undefined;
     try {
       const cp = await getClasspaths(uri);
       if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
@@ -65,6 +75,7 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
       } else {
         Logger.log('No classpaths returned from Java Language Server; using system classpath');
       }
+      outputPath = cp?.output;
       if (Array.isArray(cp?.sourcepaths)) {
         sourcepaths = cp.sourcepaths;
         primeSourcepathsCache(cp.sourcepaths);
@@ -76,9 +87,32 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> 
       );
     }
 
+    const targetPath = uri.fsPath;
+    if (!isBytecodeTarget(targetPath)) {
+      if (!outputPath && Array.isArray(classpaths)) {
+        const workspaceFolder = workspace.getWorkspaceFolder(uri);
+        const workspacePath = workspaceFolder?.uri.fsPath ?? path.dirname(targetPath);
+        outputPath = await deriveOutputFolder(classpaths, workspacePath);
+      }
+      if (!outputPath) {
+        const workspaceFolder = workspace.getWorkspaceFolder(uri);
+        const workspacePath = workspaceFolder?.uri.fsPath ?? path.dirname(targetPath);
+        outputPath = await findOutputFolderFromProject(workspacePath);
+      }
+      if (!outputPath || !(await hasClassTargets(outputPath))) {
+        Logger.log(`Skipping SpotBugs analysis for ${targetPath}: no compiled classes found.`);
+        defaultNotifier.warn(NO_CLASS_TARGETS_MESSAGE);
+        return [];
+      }
+    } else if (!(await hasClassTargets(targetPath))) {
+      Logger.log(`Skipping SpotBugs analysis for ${targetPath}: target does not exist.`);
+      defaultNotifier.warn(NO_CLASS_TARGETS_MESSAGE);
+      return [];
+    }
+
     return await runAnalysis(
       config,
-      { targetPath: uri.fsPath, preferredProject: uri, classpaths, sourcepaths },
+      { targetPath, preferredProject: uri, classpaths, sourcepaths },
       { notify: true }
     );
   } catch (error) {
@@ -183,7 +217,29 @@ async function analyzeProject(
       outputPath = await deriveOutputFolder(classpaths, workspaceFolder.fsPath);
     }
     if (!outputPath) {
-      throw new Error('No output folder determined');
+      const projectRoot = projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
+      outputPath = await findOutputFolderFromProject(projectRoot);
+    }
+    if (!outputPath) {
+      Logger.log(`Skipping SpotBugs analysis for ${projectUriString}: no output folder.`);
+      return {
+        projectUri: projectUriString,
+        findings: [],
+        error: NO_CLASS_TARGETS_MESSAGE,
+        errorCode: NO_CLASS_TARGETS_CODE,
+      };
+    }
+
+    if (!(await hasClassTargets(outputPath))) {
+      Logger.log(
+        `Skipping SpotBugs analysis for ${projectUriString}: no compiled classes in ${outputPath}`
+      );
+      return {
+        projectUri: projectUriString,
+        findings: [],
+        error: NO_CLASS_TARGETS_MESSAGE,
+        errorCode: NO_CLASS_TARGETS_CODE,
+      };
     }
 
     const findings = await runAnalysis(

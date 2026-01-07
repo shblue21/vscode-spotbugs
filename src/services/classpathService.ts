@@ -10,6 +10,16 @@ export interface ClasspathResult {
   sourcepaths: string[];
 }
 
+const PREFERRED_OUTPUT_SUFFIXES = [
+  `${path.sep}target${path.sep}classes`,
+  `${path.sep}build${path.sep}classes${path.sep}java${path.sep}main`,
+  `${path.sep}build${path.sep}classes`,
+  `${path.sep}bin`,
+  `${path.sep}out${path.sep}production`,
+  `${path.sep}out`,
+  `${path.sep}classes`,
+];
+
 export type ProjectRef = string | Uri | undefined;
 
 export async function getClasspaths(project?: ProjectRef): Promise<ClasspathResult | undefined> {
@@ -24,18 +34,9 @@ export async function deriveOutputFolder(
   const jarsExcluded = classpaths.filter(
     (p) => !p.toLowerCase().endsWith(".jar") && !p.toLowerCase().endsWith(".zip"),
   );
-  const preferredSuffixes = [
-    `${path.sep}target${path.sep}classes`,
-    `${path.sep}build${path.sep}classes${path.sep}java${path.sep}main`,
-    `${path.sep}build${path.sep}classes`,
-    `${path.sep}bin`,
-    `${path.sep}out${path.sep}production`,
-    `${path.sep}out`,
-    `${path.sep}classes`,
-  ];
   const candidates: string[] = [];
   for (const cp of jarsExcluded) {
-    for (const suf of preferredSuffixes) {
+    for (const suf of PREFERRED_OUTPUT_SUFFIXES) {
       if (cp.includes(suf)) {
         candidates.push(cp);
         break;
