@@ -1,7 +1,9 @@
 # Changelog
-## [v0.0.12] - 2026-01-08
+## [v0.0.13] - 2026-01-12
 
 - Skip analysis when no compiled classes are available
+- Bump version
+- Update ES target and dev dependencies
 - Bump version
 
 ## [v0.0.11] - 2026-01-04
