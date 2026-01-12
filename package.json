@@ -11,7 +11,7 @@
     "url": "https://shblue21.github.io"
   },
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.85.0"
   },
   "repository": {
     "type": "git",
@@ -188,8 +188,8 @@
   ],
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.96.0",
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
     "@vscode/test-electron": "^2.5.2",
