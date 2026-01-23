@@ -10,6 +10,11 @@ export interface ClasspathResult {
   sourcepaths: string[];
 }
 
+export interface ClasspathLookupOptions {
+  verbose?: boolean;
+  logFailures?: boolean;
+}
+
 const PREFERRED_OUTPUT_SUFFIXES = [
   `${path.sep}target${path.sep}classes`,
   `${path.sep}build${path.sep}classes${path.sep}java${path.sep}main`,
@@ -23,10 +28,11 @@ const PREFERRED_OUTPUT_SUFFIXES = [
 export type ProjectRef = string | Uri | undefined;
 
 export async function getClasspaths(
-  project?: ProjectRef
+  project?: ProjectRef,
+  options?: ClasspathLookupOptions
 ): Promise<ClasspathResult | undefined> {
   const attempts = await collectClasspathAttempts(project);
-  return runClasspathAttempts(attempts);
+  return runClasspathAttempts(attempts, options);
 }
 
 export async function deriveOutputFolder(
@@ -64,4 +70,3 @@ export async function deriveOutputFolder(
   }
   return undefined;
 }
-

@@ -5,9 +5,9 @@ import { Finding } from '../model/finding';
 import {
   CategoryGroupItem,
   PatternGroupItem,
-  BugItem,
+  FindingItem,
   ProjectStatusItem,
-} from './bugTreeItem';
+} from './findingTreeItem';
 import * as path from 'path';
 import { groupFindingsByCategoryAndPattern } from './treeModel';
 
@@ -34,7 +34,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       return Promise.resolve(element.patterns);
     }
     if (element instanceof PatternGroupItem) {
-      return Promise.resolve(element.bugs.map((bug) => new BugItem(bug)));
+      return Promise.resolve(
+        element.findings.map((finding) => new FindingItem(finding))
+      );
     }
     return Promise.resolve(this.viewItems);
   }
@@ -86,19 +88,19 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showResults(bugs: Finding[]): void {
-    if (!bugs || bugs.length === 0) {
+  public showResults(findings: Finding[]): void {
+    if (!findings || findings.length === 0) {
       this.viewItems = [new TreeItem('No issues found.')];
       this.lastResults = [];
     } else {
-      const categories = groupFindingsByCategoryAndPattern(bugs);
+      const categories = groupFindingsByCategoryAndPattern(findings);
       this.viewItems = categories.map((category) => {
         const patterns = category.patterns.map(
-          (pattern) => new PatternGroupItem(pattern.label, pattern.bugs)
+          (pattern) => new PatternGroupItem(pattern.label, pattern.findings)
         );
         return new CategoryGroupItem(category.name, patterns, category.total);
       });
-      this.lastResults = bugs.slice();
+      this.lastResults = findings.slice();
     }
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -109,15 +111,14 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public getFindingsForNode(element: TreeItem): Finding[] {
     if (element instanceof CategoryGroupItem) {
-      return element.patterns.flatMap((pattern) => pattern.bugs.slice());
+      return element.patterns.flatMap((pattern) => pattern.findings.slice());
     }
     if (element instanceof PatternGroupItem) {
-      return element.bugs.slice();
+      return element.findings.slice();
     }
-    if (element instanceof BugItem) {
-      return [element.bug];
+    if (element instanceof FindingItem) {
+      return [element.finding];
     }
     return [];
   }
-
 }

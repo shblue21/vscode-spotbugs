@@ -1,7 +1,7 @@
 import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
 import { Finding } from '../model/finding';
 import { SpotBugsCommands } from '../constants/commands';
-import { toBugItemView } from './bugViewModel';
+import { toFindingItemView } from './findingViewModel';
 
 export class CategoryGroupItem extends TreeItem {
   public patterns: PatternGroupItem[];
@@ -16,23 +16,23 @@ export class CategoryGroupItem extends TreeItem {
 }
 
 export class PatternGroupItem extends TreeItem {
-  public bugs: Finding[];
+  public findings: Finding[];
 
-  constructor(label: string, bugs: Finding[]) {
-    super(`${label} (${bugs.length})`, TreeItemCollapsibleState.Collapsed);
-    this.bugs = bugs;
+  constructor(label: string, findings: Finding[]) {
+    super(`${label} (${findings.length})`, TreeItemCollapsibleState.Collapsed);
+    this.findings = findings;
     this.iconPath = new ThemeIcon('list-tree');
     this.contextValue = 'spotbugs.pattern';
   }
 }
 
-export class BugItem extends TreeItem {
-  public bug: Finding;
+export class FindingItem extends TreeItem {
+  public finding: Finding;
 
   constructor(finding: Finding) {
-    const view = toBugItemView(finding);
+    const view = toFindingItemView(finding);
     super(view.label, TreeItemCollapsibleState.None);
-    this.bug = finding;
+    this.finding = finding;
     this.description = view.description;
     this.tooltip = view.tooltip;
     this.iconPath = view.icon;
@@ -46,7 +46,7 @@ export class BugItem extends TreeItem {
   }
 }
 
-// view computations moved to bugViewModel.ts
+// view computations moved to findingViewModel.ts
 
 export class ProjectStatusItem extends TreeItem {
   public idKey: string;

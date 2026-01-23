@@ -86,7 +86,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     let outputPath: string | undefined;
 
     try {
-      const cp = await deps.getClasspaths(project);
+      const cp = await deps.getClasspaths(project, { logFailures: options.logFailure });
       if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
         classpaths = cp.classpaths;
         if (options.logSuccess) {
@@ -172,7 +172,10 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     workspaceFolder: Uri
   ): Promise<TargetResolution> {
     const projectUriString = projectUri.toString();
-    const { classpaths, sourcepaths, outputPath } = await readClasspaths(projectUri, {});
+    const { classpaths, sourcepaths, outputPath } = await readClasspaths(projectUri, {
+      logEmpty: true,
+      logFailure: true,
+    });
     const projectRoot =
       projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
     const resolvedOutput = await resolveOutputPath(

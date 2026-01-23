@@ -1,5 +1,5 @@
 import { Uri, workspace } from 'vscode';
-import { getAllJavaProjects } from '../lsp/javaLsGateway';
+import { requestAllJavaProjects } from '../lsp/javaLsGateway';
 import { ProjectRef } from './classpathService';
 
 export interface ClasspathAttempt {
@@ -21,7 +21,7 @@ export async function collectClasspathAttempts(
   }
 
   try {
-    const uris = (await getAllJavaProjects()) || [];
+    const uris = (await requestAllJavaProjects()) || [];
     for (const u of uris) {
       if (!attempts.find((a) => a.arg && toUriString(a.arg) === u)) {
         attempts.push({ label: `project:${u}`, arg: u });

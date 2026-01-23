@@ -10,8 +10,8 @@ import {
 } from 'vscode';
 import { Finding } from '../model/finding';
 import { Severity } from '../model/severity';
-import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
-import { getBestEffortFileUri } from '../workspace/sourceLocator';
+import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
+import { getBestEffortFileUri } from '../workspace/findingLocator';
 
 type FindingRange = {
   range: Range;
@@ -100,7 +100,7 @@ export class SpotBugsDiagnosticsManager {
   }
 
   private createDiagnostic(range: Range, finding: Finding): Diagnostic {
-    const message = formatBugSummary(finding);
+    const message = formatFindingSummary(finding);
     const severity = rankToSeverity(finding.rank);
     const diagnostic = new Diagnostic(range, message, toDiagnosticSeverity(severity));
     diagnostic.source = 'SpotBugs';

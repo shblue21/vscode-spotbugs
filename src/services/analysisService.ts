@@ -3,6 +3,7 @@ import { Logger } from '../core/logger';
 import { Config } from '../core/config';
 import { Finding } from '../model/finding';
 import { AnalysisOutcome } from '../model/analysisOutcome';
+import { formatAnalysisErrors } from '../model/analysisErrors';
 import { ProjectRef } from '../workspace/classpathService';
 import { addFullPaths } from '../workspace/pathResolver';
 import { runSpotBugsAnalysis } from '../lsp/spotbugsClient';
@@ -41,7 +42,6 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<AnalysisOut
     if (resolution.status !== 'ok') {
       return {
         findings: [],
-        errorCode: resolution.errorCode,
         targetPath: uri.fsPath,
         failure: {
           kind: 'target',
@@ -190,12 +190,7 @@ async function runAnalysis(
     Logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
   }
   if (Array.isArray(errors) && errors.length > 0) {
-    const messages = errors.map((err) => {
-      const code = err.code ? `[${err.code}]` : '';
-      const message = err.message || 'Unknown error';
-      return `${code} ${message}`.trim();
-    });
-    const combined = messages.join('; ');
+    const combined = formatAnalysisErrors(errors);
     Logger.error(`SpotBugs analysis error: ${combined}`);
     const hasResults = bugs.length > 0;
     if (!hasResults) {
@@ -205,6 +200,11 @@ async function runAnalysis(
         stats,
         targetPath,
         schemaVersion,
+        failure: {
+          kind: 'analysis-error',
+          level: 'error',
+          message: `SpotBugs analysis failed: ${combined}`,
+        },
       };
     }
   }

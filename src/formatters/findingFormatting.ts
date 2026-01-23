@@ -1,7 +1,7 @@
 import { FindingSummary } from '../model/finding';
 import { Severity } from '../model/severity';
 
-export function formatBugSummary(finding: FindingSummary): string {
+export function formatFindingSummary(finding: FindingSummary): string {
   const pattern = finding.abbrev || finding.type || 'Bug';
   const raw = finding.message || '';
   let msg = raw.trim();
@@ -19,7 +19,7 @@ export function formatBugSummary(finding: FindingSummary): string {
   return `[${pattern}] ${msg}`;
 }
 
-export function formatPatternLabel(finding: FindingSummary): string {
+export function formatFindingPatternLabel(finding: FindingSummary): string {
   const pattern = finding.abbrev || finding.type || 'Pattern';
   const raw = finding.message || '';
   let msg = raw.trim();

@@ -1,4 +1,5 @@
 import { AnalysisNotice, AnalysisOutcome } from '../model/analysisOutcome';
+import { formatAnalysisErrors } from '../model/analysisErrors';
 
 export interface BuildAnalysisNoticeOptions {
   includeHints?: boolean;
@@ -20,7 +21,7 @@ export function buildAnalysisNotices(
   }
 
   if (Array.isArray(outcome.errors) && outcome.errors.length > 0) {
-    const combined = combineErrorMessages(outcome.errors);
+    const combined = formatAnalysisErrors(outcome.errors);
     if (outcome.findings.length === 0) {
       notices.push({
         level: 'error',
@@ -42,17 +43,6 @@ export function buildAnalysisNotices(
   }
 
   return notices;
-}
-
-function combineErrorMessages(
-  errors: Array<{ code?: string; message?: string }>
-): string {
-  const messages = errors.map((err) => {
-    const code = err.code ? `[${err.code}]` : '';
-    const message = err.message || 'Unknown error';
-    return `${code} ${message}`.trim();
-  });
-  return messages.join('; ');
 }
 
 function buildHintNotices(targetPath: string, outcome: AnalysisOutcome): AnalysisNotice[] {

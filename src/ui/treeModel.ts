@@ -1,9 +1,9 @@
 import { Finding } from '../model/finding';
-import { formatPatternLabel } from '../formatters/bugFormatting';
+import { formatFindingPatternLabel } from '../formatters/findingFormatting';
 
 export interface GroupedPattern {
   label: string;
-  bugs: Finding[];
+  findings: Finding[];
 }
 
 export interface GroupedCategory {
@@ -16,7 +16,9 @@ export function groupFindingsByCategoryAndPattern(
   findings: Finding[]
 ): GroupedCategory[] {
   const map: {
-    [category: string]: { [patternKey: string]: { label: string; bugs: Finding[] } };
+    [category: string]: {
+      [patternKey: string]: { label: string; findings: Finding[] };
+    };
   } = {};
 
   for (const finding of findings) {
@@ -26,9 +28,12 @@ export function groupFindingsByCategoryAndPattern(
       map[category] = {};
     }
     if (!map[category][patternKey]) {
-      map[category][patternKey] = { label: formatPatternLabel(finding), bugs: [] };
+      map[category][patternKey] = {
+        label: formatFindingPatternLabel(finding),
+        findings: [],
+      };
     }
-    map[category][patternKey].bugs.push(finding);
+    map[category][patternKey].findings.push(finding);
   }
 
   return Object.keys(map)
@@ -39,9 +44,9 @@ export function groupFindingsByCategoryAndPattern(
         .sort()
         .map((key) => {
           const entry = patternMap[key];
-          return { label: entry.label, bugs: entry.bugs };
+          return { label: entry.label, findings: entry.findings };
         });
-      const total = patterns.reduce((acc, p) => acc + p.bugs.length, 0);
+      const total = patterns.reduce((acc, p) => acc + p.findings.length, 0);
       return { name: category, patterns, total };
     });
 }

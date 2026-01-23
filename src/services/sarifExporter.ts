@@ -1,7 +1,7 @@
 import { Finding } from '../model/finding';
 import { Severity } from '../model/severity';
-import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
-import { getBestEffortArtifactUri } from '../workspace/sourceLocator';
+import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
+import { getBestEffortArtifactUri } from '../workspace/findingLocator';
 
 export interface SarifExportOptions {
   runName?: string;
@@ -41,7 +41,7 @@ export function buildSarifLog(
 
     const resultBuilder = new SarifResultBuilder();
     resultBuilder.setRuleId(ruleId);
-    resultBuilder.setMessageText(formatBugSummary(finding));
+    resultBuilder.setMessageText(formatFindingSummary(finding));
     resultBuilder.setLevel(severityToSarifLevel(rankToSeverity(finding.rank)));
 
     const uri = computeArtifactUri(finding);
@@ -62,9 +62,11 @@ export function buildSarifLog(
   return built as SarifLog;
 }
 
-function applyRankFilter(bugs: Finding[], minRank?: number): Finding[] {
-  if (typeof minRank !== 'number') return bugs;
-  return bugs.filter((b) => (typeof b.rank === 'number' ? b.rank <= minRank : true));
+function applyRankFilter(findings: Finding[], minRank?: number): Finding[] {
+  if (typeof minRank !== 'number') return findings;
+  return findings.filter((finding) =>
+    typeof finding.rank === 'number' ? finding.rank <= minRank : true
+  );
 }
 
 function deriveRuleId(finding: Finding): string {

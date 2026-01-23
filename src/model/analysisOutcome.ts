@@ -21,7 +21,6 @@ export interface AnalysisFailure {
 export interface AnalysisOutcome {
   findings: Finding[];
   errors?: AnalysisError[];
-  errorCode?: string;
   stats?: AnalysisStats;
   targetPath?: string;
   schemaVersion?: number;

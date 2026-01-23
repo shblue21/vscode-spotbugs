@@ -64,7 +64,7 @@ export function getBestEffortArtifactUri(
   return filePath.replace(/\\/g, '/');
 }
 
-export async function resolveBugFilePath(
+export async function resolveFindingFilePath(
   finding: Finding,
   preferredProject?: Uri
 ): Promise<string | undefined> {
@@ -92,11 +92,11 @@ export async function resolveBugFilePath(
   return getBestEffortFilePath(finding, root);
 }
 
-export async function resolveBugFileUri(
+export async function resolveFindingFileUri(
   finding: Finding,
   preferredProject?: Uri
 ): Promise<Uri | undefined> {
-  const filePath = await resolveBugFilePath(finding, preferredProject);
+  const filePath = await resolveFindingFilePath(finding, preferredProject);
   if (!filePath) {
     return undefined;
   }

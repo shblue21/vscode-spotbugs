@@ -2,7 +2,7 @@ import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
 import { Finding } from '../model/finding';
 import { Logger } from '../core/logger';
 import { defaultNotifier } from '../core/notifier';
-import { resolveBugFilePath } from '../workspace/sourceLocator';
+import { resolveFindingFilePath } from '../workspace/findingLocator';
 
 /**
  * Opens a source file and navigates to the specified finding location
@@ -13,7 +13,7 @@ export async function openBugLocation(finding: Finding): Promise<void> {
     Logger.log(`Opening bug location: ${finding.message ?? 'SpotBugs finding'}`);
     const notifier = defaultNotifier;
 
-    const filePath = await resolveBugFilePath(finding);
+    const filePath = await resolveFindingFilePath(finding);
 
     if (!filePath) {
       const errorMsg = `Cannot open file: Could not resolve path for ${finding.location.realSourcePath || 'unknown file'}`;

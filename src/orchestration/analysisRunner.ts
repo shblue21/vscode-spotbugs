@@ -1,4 +1,4 @@
-import { commands, ProgressLocation, Uri, window, workspace } from 'vscode';
+import { commands, ProgressLocation, Uri, window } from 'vscode';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
 import { Notifier, defaultNotifier } from '../core/notifier';
@@ -13,6 +13,7 @@ import { SpotBugsDiagnosticsManager } from '../services/diagnosticsManager';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { Finding } from '../model/finding';
+import { getPrimaryWorkspaceFolder } from '../workspace/workspaceRoots';
 
 export interface RunFileAnalysisArgs {
   config: Config;
@@ -103,6 +104,7 @@ export async function runWorkspaceAnalysis(
 
         const wsFolder = getPrimaryWorkspaceFolder();
         if (!wsFolder) {
+          Logger.error('No workspace folder found.');
           throw new Error('No workspace folder found.');
         }
 
@@ -175,15 +177,4 @@ async function focusSpotbugsTree(): Promise<void> {
 
 function getActiveFileUri(): Uri | undefined {
   return window.activeTextEditor?.document.uri;
-}
-
-function getPrimaryWorkspaceFolder(): { uri: Uri } | undefined {
-  const workspaceFolder = workspace.workspaceFolders
-    ? workspace.workspaceFolders[0]
-    : undefined;
-  if (!workspaceFolder) {
-    Logger.error('No workspace folder found.');
-    return undefined;
-  }
-  return workspaceFolder;
 }

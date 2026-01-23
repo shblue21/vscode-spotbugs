@@ -1,32 +1,52 @@
 import { Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { getJavaExtension } from '../core/utils';
-import { getClasspaths } from '../lsp/javaLsGateway';
+import {
+  JavaLsClasspathResponse,
+  requestJavaClasspaths,
+} from '../lsp/javaLsGateway';
 import { ClasspathAttempt } from './classpathAttemptSelector';
-import { ClasspathResult } from './classpathService';
+import { ClasspathLookupOptions, ClasspathResult } from './classpathService';
 
 export async function runClasspathAttempts(
   attempts: ClasspathAttempt[],
-  opts?: { verbose?: boolean }
+  opts?: ClasspathLookupOptions
 ): Promise<ClasspathResult | undefined> {
   const verbose = opts?.verbose ?? envVerbose();
+  const logFailures = opts?.logFailures === true;
 
   const javaExt = await getJavaExtension().catch(() => undefined);
   const api: any = javaExt?.exports;
+  let lastFailure: { context: string; message: string } | undefined;
+  const recordFailure = (context: string, message: string): void => {
+    lastFailure = { context, message };
+  };
 
   for (const attempt of attempts) {
     const param = normalizeAttemptParam(attempt.arg);
 
-    let res = await tryCommandVariants(param, attempt.label, verbose);
+    let res = await tryCommandVariants(param, attempt.label, verbose, recordFailure);
 
     if (!res && api && typeof api.getClasspaths === 'function' && param) {
-      res = await tryExtensionFallback(api, param, attempt.label, verbose);
+      res = await tryExtensionFallback(api, param, attempt.label, verbose, recordFailure);
     }
 
     if (res) {
       const result = normalizeClasspathResult(res);
       logSuccess(attempt.label, result);
       return result;
+    }
+  }
+
+  if (logFailures) {
+    if (lastFailure) {
+      Logger.log(
+        `getClasspaths failed (${lastFailure.context}): ${lastFailure.message}`
+      );
+    } else {
+      Logger.log(
+        `getClasspaths returned no results after ${attempts.length} attempt(s)`
+      );
     }
   }
 
@@ -47,18 +67,27 @@ function normalizeAttemptParam(arg: unknown): unknown {
 async function tryCommandVariants(
   param: unknown,
   label: string,
-  verbose: boolean
-): Promise<any | undefined> {
+  verbose: boolean,
+  recordFailure: (context: string, message: string) => void
+): Promise<JavaLsClasspathResponse | undefined> {
   if (param !== undefined) {
-    const variants: Array<{ args: any[]; failureContext: string }> = [
-      { args: [{ uri: param, scope: 'runtime' }], failureContext: `${label}) {uri,scope}` },
+    const variants: Array<{ args: unknown[]; failureContext: string }> = [
+      {
+        args: [{ uri: param, scope: 'runtime' }],
+        failureContext: `${label}) {uri,scope}`,
+      },
       { args: [{ uri: param }], failureContext: `${label}) {uri}` },
       { args: [param], failureContext: `${label}) direct` },
       { args: [param, 'runtime'], failureContext: `${label}, runtime` },
     ];
 
     for (const variant of variants) {
-      const res = await executeClasspathCommand(variant.args, variant.failureContext, verbose);
+      const res = await executeClasspathCommand(
+        variant.args,
+        variant.failureContext,
+        verbose,
+        recordFailure
+      );
       if (res) {
         return res;
       }
@@ -66,21 +95,24 @@ async function tryCommandVariants(
   }
 
   if (param === undefined) {
-    return executeClasspathCommand([], `no-arg within ${label}`, verbose);
+    return executeClasspathCommand([], `no-arg within ${label}`, verbose, recordFailure);
   }
 
   return undefined;
 }
 
 async function executeClasspathCommand(
-  args: any[],
+  args: unknown[],
   failureContext: string,
-  verbose: boolean
-): Promise<any | undefined> {
+  verbose: boolean,
+  recordFailure: (context: string, message: string) => void
+): Promise<JavaLsClasspathResponse | undefined> {
   try {
-    return await getClasspaths(...args);
-  } catch {
-    if (verbose) Logger.log(`getClasspaths(${failureContext}) failed`);
+    return await requestJavaClasspaths(...args);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    recordFailure(failureContext, message);
+    if (verbose) Logger.log(`getClasspaths(${failureContext}) failed: ${message}`);
     return undefined;
   }
 }
@@ -89,8 +121,9 @@ async function tryExtensionFallback(
   api: any,
   param: unknown,
   label: string,
-  verbose: boolean
-): Promise<any | undefined> {
+  verbose: boolean,
+  recordFailure: (context: string, message: string) => void
+): Promise<JavaLsClasspathResponse | undefined> {
   try {
     const cpRes = await api.getClasspaths(param, { scope: 'runtime' });
     if (cpRes) {
@@ -101,13 +134,17 @@ async function tryExtensionFallback(
         output: cpRes.output,
       };
     }
-  } catch {
-    if (verbose) Logger.log(`extensionApi.getClasspaths(${label}) failed`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    recordFailure(`extensionApi ${label}`, message);
+    if (verbose) {
+      Logger.log(`extensionApi.getClasspaths(${label}) failed: ${message}`);
+    }
   }
   return undefined;
 }
 
-function normalizeClasspathResult(res: any): ClasspathResult {
+function normalizeClasspathResult(res: JavaLsClasspathResponse): ClasspathResult {
   return {
     output: res?.output,
     classpaths: Array.isArray(res?.classpaths) ? res.classpaths : [],
