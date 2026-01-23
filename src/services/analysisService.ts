@@ -1,41 +1,18 @@
-import { CancellationToken, Uri, workspace } from 'vscode';
-import * as path from 'path';
-import { executeJavaLanguageServerCommand } from '../core/command';
-import { SpotBugsLSCommands } from '../constants/commands';
+import { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { Config } from '../core/config';
-import { BugInfo } from '../models/bugInfo';
-import { getClasspaths, ProjectRef, deriveOutputFolder } from './classpathService';
-import { JavaLsClient } from './javaLsClient';
-import { addFullPaths, primeSourcepathsCache } from './pathResolver';
-import { defaultNotifier } from '../core/notifier';
+import { Bug } from '../model/bug';
+import { AnalysisOutcome, AnalysisNotice } from '../model/analysisOutcome';
+import { ProjectRef } from '../workspace/classpathService';
+import { addFullPaths } from '../workspace/pathResolver';
+import { runSpotBugsAnalysis } from '../lsp/spotbugsClient';
+import { parseAnalysisResponse } from '../lsp/spotbugsParser';
+import { buildAnalysisRequestPayload } from '../lsp/analysisRequestBuilder';
 import {
-  findOutputFolderFromProject,
-  hasClassTargets,
-  isBytecodeTarget,
-} from './outputResolver';
-
-type AnalysisError = {
-  code?: string;
-  message?: string;
-};
-
-type AnalysisStats = {
-  target?: string;
-  durationMs?: number;
-  findingCount?: number;
-  spotbugsVersion?: string;
-  classpathCount?: number;
-  targetCount?: number;
-  pluginCount?: number;
-};
-
-type AnalysisResponse = {
-  schemaVersion?: number;
-  results?: BugInfo[];
-  errors?: AnalysisError[];
-  stats?: AnalysisStats;
-};
+  resolveFileAnalysisTarget,
+  resolveProjectAnalysisTarget,
+} from '../workspace/analysisTargetResolver';
+import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 
 type AnalysisContext = {
   targetPath: string;
@@ -45,79 +22,42 @@ type AnalysisContext = {
 };
 
 type AnalysisOptions = {
-  notify?: boolean;
+  includeHints?: boolean;
 };
 
-export const NO_CLASS_TARGETS_CODE = 'no-class-targets';
-const NO_CLASS_TARGETS_MESSAGE =
-  'SpotBugs could not build the project. Run a manual build, then try again.';
+export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetResolver';
 export interface ProjectResult {
   projectUri: string;
-  findings: BugInfo[];
+  findings: Bug[];
   error?: string;
   errorCode?: string;
 }
 
 export interface WorkspaceResult {
   results: ProjectResult[];
+  cancelled?: boolean;
 }
 
-export async function analyzeFile(config: Config, uri: Uri): Promise<BugInfo[]> {
+export async function analyzeFile(config: Config, uri: Uri): Promise<AnalysisOutcome> {
   try {
-    let classpaths: string[] | undefined;
-    let sourcepaths: string[] | undefined;
-    let outputPath: string | undefined;
-    try {
-      const cp = await getClasspaths(uri);
-      if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
-        classpaths = cp.classpaths;
-        Logger.log(`Set ${cp.classpaths.length} classpaths for analysis`);
-      } else {
-        Logger.log('No classpaths returned from Java Language Server; using system classpath');
-      }
-      outputPath = cp?.output;
-      if (Array.isArray(cp?.sourcepaths)) {
-        sourcepaths = cp.sourcepaths;
-        primeSourcepathsCache(cp.sourcepaths);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      Logger.log(
-        `Warning: Could not get project classpaths (${message}), using system classpath`
-      );
+    const resolution = await resolveFileAnalysisTarget(uri);
+    if (resolution.status !== 'ok') {
+      return {
+        findings: [],
+        errorCode: resolution.errorCode,
+        notices: [
+          {
+            level: 'warn',
+            code: resolution.errorCode,
+            message: resolution.message,
+          },
+        ],
+      };
     }
-
-    const targetPath = uri.fsPath;
-    if (!isBytecodeTarget(targetPath)) {
-      if (!outputPath && Array.isArray(classpaths)) {
-        const workspaceFolder = workspace.getWorkspaceFolder(uri);
-        const workspacePath = workspaceFolder?.uri.fsPath ?? path.dirname(targetPath);
-        outputPath = await deriveOutputFolder(classpaths, workspacePath);
-      }
-      if (!outputPath) {
-        const workspaceFolder = workspace.getWorkspaceFolder(uri);
-        const workspacePath = workspaceFolder?.uri.fsPath ?? path.dirname(targetPath);
-        outputPath = await findOutputFolderFromProject(workspacePath);
-      }
-      if (!outputPath || !(await hasClassTargets(outputPath))) {
-        Logger.log(`Skipping SpotBugs analysis for ${targetPath}: no compiled classes found.`);
-        defaultNotifier.warn(NO_CLASS_TARGETS_MESSAGE);
-        return [];
-      }
-    } else if (!(await hasClassTargets(targetPath))) {
-      Logger.log(`Skipping SpotBugs analysis for ${targetPath}: target does not exist.`);
-      defaultNotifier.warn(NO_CLASS_TARGETS_MESSAGE);
-      return [];
-    }
-
-    return await runAnalysis(
-      config,
-      { targetPath, preferredProject: uri, classpaths, sourcepaths },
-      { notify: true }
-    );
+    return await runAnalysis(config, resolution.target, { includeHints: true });
   } catch (error) {
     Logger.error('Analyzer: analyzeFile failed', error);
-    return [];
+    return { findings: [] };
   }
 }
 
@@ -147,11 +87,13 @@ export async function analyzeWorkspaceFromProjects(
   token?: CancellationToken
 ): Promise<WorkspaceResult> {
   const results: ProjectResult[] = [];
+  let cancelled = false;
 
   for (let index = 0; index < projectUris.length; index++) {
     const uriString = projectUris[index];
     if (token?.isCancellationRequested) {
       Logger.log('Workspace analysis cancelled by user.');
+      cancelled = true;
       break;
     }
 
@@ -167,28 +109,11 @@ export async function analyzeWorkspaceFromProjects(
     results.push(projectResult);
   }
 
-  return { results };
+  return { results, cancelled };
 }
 
 export async function getWorkspaceProjects(workspaceFolder: Uri): Promise<string[]> {
-  let projectUris: string[] = await JavaLsClient.getAllProjects();
-  projectUris = projectUris.filter((uriString) => {
-    try {
-      const fsPath = Uri.parse(uriString).fsPath;
-      return path.basename(fsPath) !== 'jdt.ls-java-project';
-    } catch {
-      return true;
-    }
-  });
-
-  if (projectUris.length === 0) {
-    projectUris = [workspaceFolder.toString()];
-    Logger.log('No Java projects from LS; falling back to workspace folder analysis.');
-  } else {
-    Logger.log(`Workspace contains ${projectUris.length} Java projects.`);
-  }
-
-  return projectUris;
+  return getWorkspaceProjectUris(workspaceFolder);
 }
 
 async function analyzeProject(
@@ -200,54 +125,18 @@ async function analyzeProject(
   const projectUriString = projectUri.toString();
 
   try {
-    const cp = await getClasspaths(projectUri);
-    let classpaths: string[] | undefined;
-    let sourcepaths: string[] | undefined;
-    if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
-      classpaths = cp.classpaths;
-    }
-
-    if (Array.isArray(cp?.sourcepaths)) {
-      sourcepaths = cp.sourcepaths;
-      primeSourcepathsCache(cp.sourcepaths);
-    }
-
-    let outputPath: string | undefined = cp?.output;
-    if (!outputPath && Array.isArray(classpaths)) {
-      outputPath = await deriveOutputFolder(classpaths, workspaceFolder.fsPath);
-    }
-    if (!outputPath) {
-      const projectRoot = projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
-      outputPath = await findOutputFolderFromProject(projectRoot);
-    }
-    if (!outputPath) {
-      Logger.log(`Skipping SpotBugs analysis for ${projectUriString}: no output folder.`);
+    const resolution = await resolveProjectAnalysisTarget(projectUri, workspaceFolder);
+    if (resolution.status !== 'ok') {
       return {
         projectUri: projectUriString,
         findings: [],
-        error: NO_CLASS_TARGETS_MESSAGE,
-        errorCode: NO_CLASS_TARGETS_CODE,
+        error: resolution.message,
+        errorCode: resolution.errorCode,
       };
     }
 
-    if (!(await hasClassTargets(outputPath))) {
-      Logger.log(
-        `Skipping SpotBugs analysis for ${projectUriString}: no compiled classes in ${outputPath}`
-      );
-      return {
-        projectUri: projectUriString,
-        findings: [],
-        error: NO_CLASS_TARGETS_MESSAGE,
-        errorCode: NO_CLASS_TARGETS_CODE,
-      };
-    }
-
-    const findings = await runAnalysis(
-      config,
-      { targetPath: outputPath, preferredProject: projectUri, classpaths, sourcepaths },
-      { notify: false }
-    );
-    return { projectUri: projectUriString, findings };
+    const outcome = await runAnalysis(config, resolution.target, { includeHints: false });
+    return { projectUri: projectUriString, findings: outcome.findings };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { projectUri: projectUriString, findings: [], error: message };
@@ -258,85 +147,68 @@ async function runAnalysis(
   config: Config,
   context: AnalysisContext,
   options: AnalysisOptions = {}
-): Promise<BugInfo[]> {
-  const notify = options.notify !== false;
-  const payload = config.toJSON({
+): Promise<AnalysisOutcome> {
+  const notices: AnalysisNotice[] = [];
+  const payload = buildAnalysisRequestPayload(config.getAnalysisSettings(), {
     classpaths: context.classpaths ?? null,
     sourcepaths: context.sourcepaths ?? null,
   });
-  const result = await executeJavaLanguageServerCommand<string>(
-    SpotBugsLSCommands.RUN_ANALYSIS,
-    context.targetPath,
-    JSON.stringify(payload)
-  );
+  const result = await runSpotBugsAnalysis({
+    targetPath: context.targetPath,
+    payload,
+  });
 
   if (!result) {
-    return [];
+    return { findings: [] };
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(result);
-  } catch (error) {
-    Logger.error('Failed to parse analysis result', error);
-    if (notify) {
-      defaultNotifier.error('SpotBugs analysis failed: Invalid response payload.');
-    }
-    return [];
-  }
-
-  if (
-    parsed &&
-    typeof parsed === 'object' &&
-    !Array.isArray(parsed) &&
-    (parsed as { error?: unknown }).error
-  ) {
-    const message = String((parsed as { error?: unknown }).error);
-    Logger.error(`SpotBugs analysis error: ${message}`);
-    if (notify) {
-      defaultNotifier.error(`SpotBugs analysis failed: ${message}`);
-    }
-    return [];
-  }
-
-  let bugs: BugInfo[] = [];
-  let stats: AnalysisStats | undefined;
-
-  if (Array.isArray(parsed)) {
-    bugs = parsed as BugInfo[];
-  } else if (parsed && typeof parsed === 'object') {
-    const envelope = parsed as AnalysisResponse;
-    if (typeof envelope.schemaVersion === 'number' && envelope.schemaVersion !== 1) {
-      Logger.log(`Unexpected analysis response schemaVersion=${envelope.schemaVersion}`);
-    }
-    if (Array.isArray(envelope.errors) && envelope.errors.length > 0) {
-      const messages = envelope.errors.map((err) => {
-        const code = err.code ? `[${err.code}]` : '';
-        const message = err.message || 'Unknown error';
-        return `${code} ${message}`.trim();
+  const parsed = parseAnalysisResponse(result);
+  if (!parsed.ok) {
+    if (parsed.error.kind === 'invalid-json') {
+      Logger.error('Failed to parse analysis result', parsed.error.cause ?? parsed.error.message);
+      notices.push({
+        level: 'error',
+        message: 'SpotBugs analysis failed: Invalid response payload.',
       });
-      const combined = messages.join('; ');
-      Logger.error(`SpotBugs analysis error: ${combined}`);
-      const hasResults = Array.isArray(envelope.results) && envelope.results.length > 0;
-      if (notify) {
-        if (hasResults) {
-          defaultNotifier.warn(`SpotBugs analysis completed with warnings: ${combined}`);
-        } else {
-          defaultNotifier.error(`SpotBugs analysis failed: ${combined}`);
-        }
-      }
-      if (!hasResults) {
-        return [];
-      }
+      return { findings: [], notices };
     }
-    if (Array.isArray(envelope.results)) {
-      bugs = envelope.results;
+    Logger.error(`SpotBugs analysis error: ${parsed.error.message}`);
+    notices.push({
+      level: 'error',
+      message: `SpotBugs analysis failed: ${parsed.error.message}`,
+    });
+    return { findings: [], notices };
+  }
+
+  const { bugs, errors, stats, schemaVersion } = parsed.value;
+
+  if (typeof schemaVersion === 'number' && schemaVersion !== 1) {
+    Logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
+  }
+  if (Array.isArray(errors) && errors.length > 0) {
+    const messages = errors.map((err) => {
+      const code = err.code ? `[${err.code}]` : '';
+      const message = err.message || 'Unknown error';
+      return `${code} ${message}`.trim();
+    });
+    const combined = messages.join('; ');
+    Logger.error(`SpotBugs analysis error: ${combined}`);
+    const hasResults = bugs.length > 0;
+    if (!hasResults) {
+      notices.push({
+        level: 'error',
+        message: `SpotBugs analysis failed: ${combined}`,
+      });
+      return { findings: [], errors, stats, notices };
     }
-    stats = envelope.stats;
+    notices.push({
+      level: 'warn',
+      message: `SpotBugs analysis completed with warnings: ${combined}`,
+    });
   }
 
   const withFullPaths = await addFullPaths(bugs, context.preferredProject);
-  if (notify && withFullPaths.length === 0) {
+  if (options.includeHints && withFullPaths.length === 0) {
     const target = context.targetPath.replace(/\\/g, '/').toLowerCase();
     const isBytecodeTarget =
       target.endsWith('.class') || target.endsWith('.jar') || target.endsWith('.zip');
@@ -347,18 +219,24 @@ async function runAnalysis(
     if (!isBytecodeTarget) {
       if (targetCount === 0) {
         if ((classpathCount ?? 0) === 0) {
-          defaultNotifier.warn(
-            'SpotBugs: No compiled classes found (classpath unavailable). Make sure the target is inside a Java project and build the workspace.'
-          );
+          notices.push({
+            level: 'warn',
+            message:
+              'SpotBugs: No compiled classes found (classpath unavailable). Make sure the target is inside a Java project and build the workspace.',
+          });
         } else {
-          defaultNotifier.warn(
-            'SpotBugs: No compiled classes found for the selected target. Build the project or select an output folder (e.g. build/classes or target/classes).'
-          );
+          notices.push({
+            level: 'warn',
+            message:
+              'SpotBugs: No compiled classes found for the selected target. Build the project or select an output folder (e.g. build/classes or target/classes).',
+          });
         }
       } else if (looksLikeSourceTarget && (classpathCount ?? 0) === 0) {
-        defaultNotifier.warn(
-          'SpotBugs: Classpath is unavailable for this target; results may be incomplete. Try building the workspace and re-run.'
-        );
+        notices.push({
+          level: 'warn',
+          message:
+            'SpotBugs: Classpath is unavailable for this target; results may be incomplete. Try building the workspace and re-run.',
+        });
       }
     }
   }
@@ -383,7 +261,14 @@ async function runAnalysis(
     logParts.push(`pluginCount=${stats.pluginCount}`);
   }
   Logger.log(`Successfully parsed and added full paths (${logParts.join(', ')}).`);
-  return withFullPaths;
+  const outcome: AnalysisOutcome = { findings: withFullPaths, stats };
+  if (Array.isArray(errors) && errors.length > 0) {
+    outcome.errors = errors;
+  }
+  if (notices.length > 0) {
+    outcome.notices = notices;
+  }
+  return outcome;
 }
 
 function normalizeProjectRef(project: ProjectRef): Uri {

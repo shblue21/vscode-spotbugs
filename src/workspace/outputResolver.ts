@@ -72,3 +72,4 @@ async function containsClassFile(root: string): Promise<boolean> {
   }
   return false;
 }
+

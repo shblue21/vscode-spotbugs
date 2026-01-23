@@ -11,13 +11,13 @@ export class Logger {
    */
   public static initialize() {
     if (!this.outputChannel) {
-      // Create a new output channel for Spotbugs
-      this.outputChannel = window.createOutputChannel('Spotbugs');
+      // Create a new output channel for SpotBugs
+      this.outputChannel = window.createOutputChannel('SpotBugs');
     }
   }
 
   /**
-   * Appends a message to the Spotbugs output channel.
+   * Appends a message to the SpotBugs output channel.
    * @param message The message to log.
    */
   public static log(message: string) {

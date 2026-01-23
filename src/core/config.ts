@@ -2,11 +2,17 @@ import { workspace, ExtensionContext, Uri } from 'vscode';
 import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 
+export interface AnalysisSettings {
+  effort: string;
+  priorityThreshold?: number;
+  excludeFilterPath?: string;
+  plugins?: string[];
+}
+
 export class Config {
   private _ctx: ExtensionContext;
 
   public effort!: string;
-  public readonly schemaVersion = 1;
   // Future-ready fields (optional; only sent when defined)
   public priorityThreshold?: number;
   public excludeFilterPath?: string;
@@ -49,28 +55,19 @@ export class Config {
     return path.resolve(Uri.parse(folder.uri.toString()).fsPath, p);
   }
 
-  // Control JSON serialization sent to backend (wire schema)
-  public toJSON(options?: {
-    classpaths?: string[] | null;
-    sourcepaths?: string[] | null;
-  }): Record<string, unknown> {
-    const payload: Record<string, unknown> = {
-      schemaVersion: this.schemaVersion,
+  public getAnalysisSettings(): AnalysisSettings {
+    const settings: AnalysisSettings = {
       effort: this.effort,
-      classpaths: options?.classpaths ?? null,
-      sourcepaths: options?.sourcepaths ?? null,
     };
-
-    // Only include optional fields when defined
     if (typeof this.priorityThreshold === 'number') {
-      payload.priorityThreshold = this.priorityThreshold;
+      settings.priorityThreshold = this.priorityThreshold;
     }
     if (this.excludeFilterPath) {
-      payload.excludeFilterPath = this.resolveToAbsolute(this.excludeFilterPath);
+      settings.excludeFilterPath = this.resolveToAbsolute(this.excludeFilterPath);
     }
     if (Array.isArray(this.plugins) && this.plugins.length > 0) {
-      payload.plugins = this.plugins;
+      settings.plugins = this.plugins.slice();
     }
-    return payload;
+    return settings;
   }
 }

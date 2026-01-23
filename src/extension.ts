@@ -1,6 +1,6 @@
 import { ExtensionContext, window, Uri, workspace } from 'vscode';
 import { SETTINGS_SECTION } from './constants/settings';
-import { SpotbugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
+import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './core/utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
@@ -34,14 +34,14 @@ async function doActivate(
   context: ExtensionContext
 ): Promise<void> {
   Logger.initialize();
-  Logger.log('Spotbugs extension is now active.');
+  Logger.log('SpotBugs extension is now active.');
 
   try {
     await getJavaExtension();
 
     const config = new Config(context);
 
-    const spotbugsTreeDataProvider = new SpotbugsTreeDataProvider();
+    const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
 
     const spotbugsTreeView = window.createTreeView('spotbugs-view', {
@@ -93,6 +93,6 @@ async function doActivate(
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    defaultNotifier.error(`Failed to activate Spotbugs extension: ${errorMessage}`);
+    defaultNotifier.error(`Failed to activate SpotBugs extension: ${errorMessage}`);
   }
 }

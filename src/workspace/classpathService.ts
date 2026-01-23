@@ -1,8 +1,8 @@
-import * as path from "path";
-import * as fs from "fs";
-import { Logger } from "../core/logger";
-import { JavaLsClient } from "./javaLsClient";
-import { Uri } from "vscode";
+import * as fs from 'fs';
+import * as path from 'path';
+import { Uri } from 'vscode';
+import { collectClasspathAttempts } from './classpathAttemptSelector';
+import { runClasspathAttempts } from './classpathCommandRunner';
 
 export interface ClasspathResult {
   output?: string;
@@ -22,17 +22,21 @@ const PREFERRED_OUTPUT_SUFFIXES = [
 
 export type ProjectRef = string | Uri | undefined;
 
-export async function getClasspaths(project?: ProjectRef): Promise<ClasspathResult | undefined> {
-  const res = await JavaLsClient.getClasspaths(project);
-  return res;
+export async function getClasspaths(
+  project?: ProjectRef
+): Promise<ClasspathResult | undefined> {
+  const attempts = await collectClasspathAttempts(project);
+  return runClasspathAttempts(attempts);
 }
 
 export async function deriveOutputFolder(
   classpaths: string[],
-  workspacePath: string,
+  workspacePath: string
 ): Promise<string | undefined> {
   const jarsExcluded = classpaths.filter(
-    (p) => !p.toLowerCase().endsWith(".jar") && !p.toLowerCase().endsWith(".zip"),
+    (entry) =>
+      !entry.toLowerCase().endsWith('.jar') &&
+      !entry.toLowerCase().endsWith('.zip')
   );
   const candidates: string[] = [];
   for (const cp of jarsExcluded) {
@@ -61,8 +65,3 @@ export async function deriveOutputFolder(
   return undefined;
 }
 
-function toUriString(ref: ProjectRef): string {
-  if (!ref) return "";
-  if (typeof ref === "string") return ref;
-  return ref.toString();
-}

@@ -1,7 +1,6 @@
-import * as path from 'path';
-import { Uri } from 'vscode';
-import { BugInfo } from '../models/bugInfo';
-import { formatBugSummary } from '../core/bugFormatter';
+import { Bug, Severity } from '../model/bug';
+import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
+import { getBestEffortArtifactUri } from '../workspace/sourceLocator';
 
 export interface SarifExportOptions {
   runName?: string;
@@ -15,7 +14,7 @@ export interface SarifLog {
 }
 
 export function buildSarifLog(
-  findings: BugInfo[],
+  findings: Bug[],
   options: SarifExportOptions = {}
 ): SarifLog {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -42,7 +41,7 @@ export function buildSarifLog(
     const resultBuilder = new SarifResultBuilder();
     resultBuilder.setRuleId(ruleId);
     resultBuilder.setMessageText(formatBugSummary(bug));
-    resultBuilder.setLevel(mapRankToLevel(bug.rank));
+    resultBuilder.setLevel(severityToSarifLevel(rankToSeverity(bug.rank)));
 
     const uri = computeArtifactUri(bug);
     if (uri) {
@@ -62,33 +61,23 @@ export function buildSarifLog(
   return built as SarifLog;
 }
 
-function applyRankFilter(bugs: BugInfo[], minRank?: number): BugInfo[] {
+function applyRankFilter(bugs: Bug[], minRank?: number): Bug[] {
   if (typeof minRank !== 'number') return bugs;
   return bugs.filter((b) => (typeof b.rank === 'number' ? b.rank <= minRank : true));
 }
 
-function deriveRuleId(bug: BugInfo): string {
+function deriveRuleId(bug: Bug): string {
   return (bug.type || bug.abbrev || 'SPOTBUGS_Rule').toString();
 }
 
-function mapRankToLevel(rank: number | undefined): 'error' | 'warning' | 'note' {
-  if (typeof rank !== 'number') return 'note';
-  if (rank <= 4) return 'error';
-  if (rank <= 9) return 'warning';
+function severityToSarifLevel(severity: Severity): 'error' | 'warning' | 'note' {
+  if (severity === 'error') return 'error';
+  if (severity === 'warning') return 'warning';
   return 'note';
 }
 
-function computeArtifactUri(bug: BugInfo): string | undefined {
-  const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
-  if (!filePath) return undefined;
-  if (path.isAbsolute(filePath)) {
-    try {
-      return Uri.file(filePath).toString();
-    } catch {
-      return filePath;
-    }
-  }
-  return filePath.replace(/\\/g, '/');
+function computeArtifactUri(bug: Bug): string | undefined {
+  return getBestEffortArtifactUri(bug);
 }
 
 function normalizeLineNumber(line?: number): number | undefined {

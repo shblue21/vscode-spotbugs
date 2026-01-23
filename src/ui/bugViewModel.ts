@@ -1,7 +1,7 @@
-import { BugInfo } from '../models/bugInfo';
 import { ThemeIcon } from 'vscode';
 import * as path from 'path';
-import { formatBugSummary } from '../core/bugFormatter';
+import { Bug } from '../model/bug';
+import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
 
 export interface BugItemViewProps {
   label: string;
@@ -10,7 +10,7 @@ export interface BugItemViewProps {
   icon: ThemeIcon;
 }
 
-export function toBugItemView(bug: BugInfo): BugItemViewProps {
+export function toBugItemView(bug: Bug): BugItemViewProps {
   const label = formatBugSummary(bug);
 
   const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
@@ -24,9 +24,9 @@ export function toBugItemView(bug: BugInfo): BugItemViewProps {
   return { label, description, tooltip, icon };
 }
 
-function severityIcon(bug: BugInfo): ThemeIcon {
-  const rank = typeof bug.rank === 'number' ? bug.rank : 20;
-  if (rank <= 4) return new ThemeIcon('error');
-  if (rank <= 9) return new ThemeIcon('warning');
+function severityIcon(bug: Bug): ThemeIcon {
+  const severity = rankToSeverity(bug.rank);
+  if (severity === 'error') return new ThemeIcon('error');
+  if (severity === 'warning') return new ThemeIcon('warning');
   return new ThemeIcon('info');
 }

@@ -1,17 +1,17 @@
 'use strict';
 
 import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from 'vscode';
-import { BugInfo } from '../models/bugInfo';
+import { Bug } from '../model/bug';
 import {
   CategoryGroupItem,
   PatternGroupItem,
-  BugInfoItem,
-  buildPatternGroupLabel,
+  BugItem,
   ProjectStatusItem,
 } from './bugTreeItem';
 import * as path from 'path';
+import { groupBugsByCategoryAndPattern } from './treeModel';
 
-export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
+export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
     new EventEmitter<TreeItem | undefined | null>();
   readonly onDidChangeTreeData: Event<TreeItem | undefined | null> =
@@ -19,7 +19,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private viewItems: TreeItem[] = [];
   private projectItems: Map<string, ProjectStatusItem> = new Map();
-  private lastResults: BugInfo[] = [];
+  private lastResults: Bug[] = [];
 
   constructor() {
     this.showInitialMessage();
@@ -34,7 +34,7 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       return Promise.resolve(element.patterns);
     }
     if (element instanceof PatternGroupItem) {
-      return Promise.resolve(element.bugs.map((bug) => new BugInfoItem(bug)));
+      return Promise.resolve(element.bugs.map((bug) => new BugItem(bug)));
     }
     return Promise.resolve(this.viewItems);
   }
@@ -86,62 +86,38 @@ export class SpotbugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showResults(bugs: BugInfo[]): void {
+  public showResults(bugs: Bug[]): void {
     if (!bugs || bugs.length === 0) {
       this.viewItems = [new TreeItem('No issues found.')];
       this.lastResults = [];
     } else {
-      const categoryMap = this.groupBugsByCategoryAndPattern(bugs);
-      const categories = Object.keys(categoryMap).sort();
+      const categories = groupBugsByCategoryAndPattern(bugs);
       this.viewItems = categories.map((category) => {
-        const patterns = Object.keys(categoryMap[category])
-          .sort()
-          .map((patternKey) => {
-            const entry = categoryMap[category][patternKey];
-            return new PatternGroupItem(entry.label, entry.bugs);
-          });
-        const total = patterns.reduce((acc, p) => acc + p.bugs.length, 0);
-        return new CategoryGroupItem(category, patterns, total);
+        const patterns = category.patterns.map(
+          (pattern) => new PatternGroupItem(pattern.label, pattern.bugs)
+        );
+        return new CategoryGroupItem(category.name, patterns, category.total);
       });
       this.lastResults = bugs.slice();
     }
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  public getAllFindings(): BugInfo[] {
+  public getAllFindings(): Bug[] {
     return this.lastResults.slice();
   }
 
-  public getFindingsForNode(element: TreeItem): BugInfo[] {
+  public getFindingsForNode(element: TreeItem): Bug[] {
     if (element instanceof CategoryGroupItem) {
       return element.patterns.flatMap((pattern) => pattern.bugs.slice());
     }
     if (element instanceof PatternGroupItem) {
       return element.bugs.slice();
     }
-    if (element instanceof BugInfoItem) {
+    if (element instanceof BugItem) {
       return [element.bug];
     }
     return [];
   }
 
-  private groupBugsByCategoryAndPattern(bugs: BugInfo[]): {
-    [category: string]: { [patternKey: string]: { label: string; bugs: BugInfo[] } };
-  } {
-    const map: {
-      [category: string]: { [patternKey: string]: { label: string; bugs: BugInfo[] } };
-    } = {};
-    for (const bug of bugs) {
-      const category = bug.category || 'Uncategorized';
-      const patternKey = (bug.abbrev || bug.type || 'Unknown').toUpperCase();
-      if (!map[category]) {
-        map[category] = {};
-      }
-      if (!map[category][patternKey]) {
-        map[category][patternKey] = { label: buildPatternGroupLabel(bug), bugs: [] };
-      }
-      map[category][patternKey].bugs.push(bug);
-    }
-    return map;
-  }
 }

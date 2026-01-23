@@ -1,8 +1,9 @@
-import { commands, Uri, workspace } from 'vscode';
+import { Uri, workspace } from 'vscode';
 import * as path from 'path';
-import { getClasspaths } from './classpathService';
 import { Logger } from '../core/logger';
-import { BugInfo } from '../models/bugInfo';
+import { Bug } from '../model/bug';
+import { getClasspaths } from './classpathService';
+import { getProjectRootPaths } from './projectDiscovery';
 
 /**
  * Resolve a SpotBugs realSourcePath (e.g., com/foo/Bar.java) to a full filesystem path.
@@ -10,7 +11,7 @@ import { BugInfo } from '../models/bugInfo';
  */
 export async function resolveSourceFullPath(
   realSourcePath: string,
-  preferredProject?: Uri,
+  preferredProject?: Uri
 ): Promise<string | null> {
   if (!realSourcePath) {
     return null;
@@ -38,24 +39,7 @@ export async function resolveSourceFullPath(
   }
 
   // 2) Fallback: scan common Java project layout roots under known project/workspace roots
-  const rootCandidates: string[] = [];
-  try {
-    const uris = (await commands.executeCommand<string[]>('java.project.getAll')) || [];
-    for (const u of uris) {
-      try {
-        rootCandidates.push(Uri.parse(u).fsPath);
-      } catch {
-        // ignore parse error
-      }
-    }
-  } catch {
-    // ignore
-  }
-  if (rootCandidates.length === 0 && workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-    for (const f of workspace.workspaceFolders) {
-      rootCandidates.push(f.uri.fsPath);
-    }
-  }
+  const rootCandidates = await getProjectRootPaths();
 
   const sourceRoots = [
     ['src', 'main', 'java'],
@@ -82,32 +66,36 @@ export async function resolveSourceFullPath(
 /**
  * Resolve SpotBugs findings to absolute file paths when possible.
  */
-export async function addFullPaths(
-  bugs: BugInfo[],
-  preferredProject?: Uri
-): Promise<BugInfo[]> {
+export async function addFullPaths(bugs: Bug[], preferredProject?: Uri): Promise<Bug[]> {
   if (!bugs.length) {
     return [];
   }
 
+  const resolved: Bug[] = [];
   for (const bug of bugs) {
     if (typeof bug.fullPath === 'string' && bug.fullPath.length > 0) {
+      resolved.push(bug);
       continue;
     }
-    if (!bug.realSourcePath) continue;
+    if (!bug.realSourcePath) {
+      resolved.push(bug);
+      continue;
+    }
     try {
       const full = await resolveSourceFullPath(bug.realSourcePath, preferredProject);
       if (full) {
-        bug.fullPath = full;
+        resolved.push({ ...bug, fullPath: full });
       } else {
         Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
+        resolved.push(bug);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       Logger.log(`Path resolve failed for ${bug.realSourcePath}: ${message}`);
+      resolved.push(bug);
     }
   }
-  return bugs;
+  return resolved;
 }
 
 // Simple in-memory cache to avoid repeated LS calls while resolving many paths
@@ -134,3 +122,4 @@ async function getSourcepathsCached(preferred?: Uri): Promise<string[] | undefin
   }
   return undefined;
 }
+

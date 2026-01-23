@@ -1,5 +1,5 @@
 import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
-import { BugInfo } from '../models/bugInfo';
+import { Bug } from '../model/bug';
 import { SpotBugsCommands } from '../constants/commands';
 import { toBugItemView } from './bugViewModel';
 
@@ -16,9 +16,9 @@ export class CategoryGroupItem extends TreeItem {
 }
 
 export class PatternGroupItem extends TreeItem {
-  public bugs: BugInfo[];
+  public bugs: Bug[];
 
-  constructor(label: string, bugs: BugInfo[]) {
+  constructor(label: string, bugs: Bug[]) {
     super(`${label} (${bugs.length})`, TreeItemCollapsibleState.Collapsed);
     this.bugs = bugs;
     this.iconPath = new ThemeIcon('list-tree');
@@ -26,10 +26,10 @@ export class PatternGroupItem extends TreeItem {
   }
 }
 
-export class BugInfoItem extends TreeItem {
-  public bug: BugInfo;
+export class BugItem extends TreeItem {
+  public bug: Bug;
 
-  constructor(bug: BugInfo) {
+  constructor(bug: Bug) {
     const view = toBugItemView(bug);
     super(view.label, TreeItemCollapsibleState.None);
     this.bug = bug;
@@ -47,24 +47,6 @@ export class BugInfoItem extends TreeItem {
 }
 
 // view computations moved to bugViewModel.ts
-
-export function buildPatternGroupLabel(bug: BugInfo): string {
-  const pattern = bug.abbrev || bug.type || 'Pattern';
-  const raw = bug.message || '';
-  let msg = raw.trim();
-  const prefix = `${pattern}:`;
-  if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
-    msg = msg.substring(prefix.length).trim();
-  }
-  const inIdx = msg.indexOf(' in ');
-  if (inIdx > 0) {
-    msg = msg.substring(0, inIdx).trim();
-  }
-  if (!msg) {
-    msg = bug.type || 'SpotBugs Pattern';
-  }
-  return `[${pattern}] ${msg}`;
-}
 
 export class ProjectStatusItem extends TreeItem {
   public idKey: string;

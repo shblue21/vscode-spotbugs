@@ -1,7 +1,7 @@
 {
   "name": "vscode-spotbugs",
-  "displayName": "Spotbugs",
-  "description": "Visual Studio Code extension for Spotbugs",
+  "displayName": "SpotBugs",
+  "description": "Visual Studio Code extension for SpotBugs",
   "version": "0.0.13",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
@@ -46,7 +46,7 @@
       "activitybar": [
         {
           "id": "spotbugs-container",
-          "title": "Spotbugs",
+          "title": "SpotBugs",
           "icon": "images/spotbugs_icon.png"
         }
       ]
@@ -55,7 +55,7 @@
       "spotbugs-container": [
         {
           "id": "spotbugs-view",
-          "name": "Spotbugs"
+          "name": "SpotBugs"
         }
       ]
     },
@@ -164,7 +164,7 @@
     "submenus": [
       {
         "id": "spotbugs.context",
-        "label": "Spotbugs"
+        "label": "SpotBugs"
       }
     ],
     "javaExtensions": [

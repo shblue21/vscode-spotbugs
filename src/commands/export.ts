@@ -1,16 +1,15 @@
 import { window, workspace, Uri } from 'vscode';
-import { SpotbugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
-import { CategoryGroupItem, PatternGroupItem, BugInfoItem } from '../ui/bugTreeItem';
+import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { buildSarifLog } from '../services/sarifExporter';
-import { BugInfo } from '../models/bugInfo';
 import { Logger } from '../core/logger';
 import * as path from 'path';
+import { resolveSpotBugsSelection } from '../ui/selection';
 
 export async function exportSarifReport(
-  provider: SpotbugsTreeDataProvider,
+  provider: SpotBugsTreeDataProvider,
   element: unknown
 ): Promise<void> {
-  const findings = resolveFindings(provider, element);
+  const findings = resolveSpotBugsSelection(provider, element);
   if (findings.length === 0) {
     await window.showInformationMessage('No SpotBugs findings available to export.');
     return;
@@ -44,22 +43,6 @@ export async function exportSarifReport(
     Logger.error('Failed to export SARIF report', error);
     await window.showErrorMessage(`Failed to export SpotBugs SARIF: ${message}`);
   }
-}
-
-function resolveFindings(
-  provider: SpotbugsTreeDataProvider,
-  element: unknown
-): BugInfo[] {
-  if (element instanceof CategoryGroupItem || element instanceof PatternGroupItem || element instanceof BugInfoItem) {
-    const scoped = provider.getFindingsForNode(element);
-    if (scoped.length > 0) {
-      return scoped;
-    }
-  }
-  if (element && typeof (element as BugInfo)?.message === 'string') {
-    return [element as BugInfo];
-  }
-  return provider.getAllFindings();
 }
 
 function buildDefaultReportFileName(): string {

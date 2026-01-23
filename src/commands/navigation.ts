@@ -1,29 +1,16 @@
 import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
-import { BugInfo } from '../models/bugInfo';
+import { Bug } from '../model/bug';
 import { Logger } from '../core/logger';
-import { resolveSourceFullPath } from '../services/pathResolver';
 import { defaultNotifier } from '../core/notifier';
-
-async function resolveBugFilePath(bug: BugInfo): Promise<string | null> {
-  if (bug.fullPath) return bug.fullPath;
-  if (!bug.realSourcePath) {
-    Logger.error('No realSourcePath available for bug');
-    return null;
-  }
-  const full = await resolveSourceFullPath(bug.realSourcePath);
-  if (!full) {
-    Logger.error(`Could not resolve file path for: ${bug.realSourcePath}`);
-  }
-  return full;
-}
+import { resolveBugFilePath } from '../workspace/sourceLocator';
 
 /**
  * Opens a source file and navigates to the specified bug location
  * @param bug The bug information containing file path and line details
  */
-export async function openBugLocation(bug: BugInfo): Promise<void> {
+export async function openBugLocation(bug: Bug): Promise<void> {
   try {
-    Logger.log(`Opening bug location: ${bug.message} at line ${bug.startLine}`);
+    Logger.log(`Opening bug location: ${bug.message ?? 'SpotBugs finding'}`);
     const notifier = defaultNotifier;
 
     const filePath = await resolveBugFilePath(bug);
@@ -37,27 +24,41 @@ export async function openBugLocation(bug: BugInfo): Promise<void> {
 
     const fileUri = Uri.file(filePath);
 
-    // Calculate zero-based line numbers (VS Code uses zero-based indexing)
-    const startLineZeroBased = Math.max(0, bug.startLine - 1);
-    const endLineZeroBased = Math.max(0, bug.endLine - 1);
-
-    // Create range for selection (highlight the bug lines)
-    const range = new Range(
-      new Position(startLineZeroBased, 0),
-      new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER)
-    );
+    const startLine = normalizeLineNumber(bug.startLine);
+    const endLine = normalizeLineNumber(bug.endLine ?? bug.startLine);
+    let range: Range | undefined;
+    if (startLine !== undefined && endLine !== undefined) {
+      // Calculate zero-based line numbers (VS Code uses zero-based indexing)
+      const startLineZeroBased = Math.max(0, startLine - 1);
+      const endLineZeroBased = Math.max(0, endLine - 1);
+      range = new Range(
+        new Position(startLineZeroBased, 0),
+        new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER)
+      );
+    }
 
     const options: TextDocumentShowOptions = {
-      selection: range,
       preserveFocus: false, // Focus the opened document
       preview: false, // Open in a permanent tab
     };
+    if (range) {
+      options.selection = range;
+    }
 
-    Logger.log(`Opening file: ${filePath} at lines ${bug.startLine}-${bug.endLine}`);
+    const lineInfo =
+      startLine !== undefined ? ` at lines ${startLine}-${endLine ?? startLine}` : '';
+    Logger.log(`Opening file: ${filePath}${lineInfo}`);
     await window.showTextDocument(fileUri, options);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('Failed to open bug location', error);
     defaultNotifier.error(`Failed to open file: ${errorMessage}`);
   }
+}
+
+function normalizeLineNumber(line?: number): number | undefined {
+  if (typeof line !== 'number' || Number.isNaN(line) || line <= 0) {
+    return undefined;
+  }
+  return line;
 }

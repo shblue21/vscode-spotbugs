@@ -8,13 +8,13 @@ import {
   Uri,
   workspace,
 } from 'vscode';
-import * as path from 'path';
-import { BugInfo } from '../models/bugInfo';
-import { formatBugSummary } from '../core/bugFormatter';
+import { Bug, Severity } from '../model/bug';
+import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
+import { getBestEffortFileUri } from '../workspace/sourceLocator';
 
 type BugRange = {
   range: Range;
-  bug: BugInfo;
+  bug: Bug;
 };
 
 export class SpotBugsDiagnosticsManager {
@@ -35,7 +35,7 @@ export class SpotBugsDiagnosticsManager {
     this.findingsByFile.clear();
   }
 
-  replaceAll(findings: BugInfo[]): void {
+  replaceAll(findings: Bug[]): void {
     this.clearAll();
     const grouped = new Map<string, { uri: Uri; entries: BugRange[]; diagnostics: Diagnostic[] }>();
     for (const bug of findings) {
@@ -53,7 +53,7 @@ export class SpotBugsDiagnosticsManager {
     }
   }
 
-  updateForFile(targetUri: Uri, findings: BugInfo[]): void {
+  updateForFile(targetUri: Uri, findings: Bug[]): void {
     const filePath = targetUri.fsPath;
     const filtered = findings.filter((bug) => {
       const uri = this.resolveFileUri(bug);
@@ -80,7 +80,7 @@ export class SpotBugsDiagnosticsManager {
     this.findingsByFile.set(key, entries);
   }
 
-  getBugsAt(uri: Uri, position: Position): BugInfo[] {
+  getBugsAt(uri: Uri, position: Position): Bug[] {
     const entries = this.findingsByFile.get(uri.toString());
     if (!entries) return [];
     return entries
@@ -90,7 +90,7 @@ export class SpotBugsDiagnosticsManager {
 
   private appendBug(
     bucket: { uri: Uri; entries: BugRange[]; diagnostics: Diagnostic[] },
-    bug: BugInfo
+    bug: Bug
   ): void {
     const range = this.createRange(bug);
     if (!range) return;
@@ -98,10 +98,10 @@ export class SpotBugsDiagnosticsManager {
     bucket.diagnostics.push(this.createDiagnostic(range, bug));
   }
 
-  private createDiagnostic(range: Range, bug: BugInfo): Diagnostic {
+  private createDiagnostic(range: Range, bug: Bug): Diagnostic {
     const message = formatBugSummary(bug);
-    const severity = mapRankToSeverity(bug.rank);
-    const diagnostic = new Diagnostic(range, message, severity);
+    const severity = rankToSeverity(bug.rank);
+    const diagnostic = new Diagnostic(range, message, toDiagnosticSeverity(severity));
     diagnostic.source = 'SpotBugs';
     const docUri = this.getDocumentationUri(bug);
     if (docUri) {
@@ -116,7 +116,7 @@ export class SpotBugsDiagnosticsManager {
     return diagnostic;
   }
 
-  private createRange(bug: BugInfo): Range | undefined {
+  private createRange(bug: Bug): Range | undefined {
     const startLine = normalizeLineNumber(bug.startLine);
     const endLine = normalizeLineNumber(bug.endLine ?? bug.startLine);
     if (startLine === undefined || endLine === undefined) {
@@ -125,22 +125,11 @@ export class SpotBugsDiagnosticsManager {
     return new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
   }
 
-  private resolveFileUri(bug: BugInfo): Uri | undefined {
-    const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
-    if (!filePath) {
-      return undefined;
-    }
-    if (path.isAbsolute(filePath)) {
-      return Uri.file(filePath);
-    }
-    const workspaceFolder = workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
-      return undefined;
-    }
-    return Uri.file(path.join(workspaceFolder.uri.fsPath, filePath));
+  private resolveFileUri(bug: Bug): Uri | undefined {
+    return getBestEffortFileUri(bug);
   }
 
-  private getDocumentationUri(bug: BugInfo): Uri | undefined {
+  private getDocumentationUri(bug: Bug): Uri | undefined {
     const docBase = 'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html';
     try {
       return Uri.parse(docBase);
@@ -150,14 +139,11 @@ export class SpotBugsDiagnosticsManager {
   }
 }
 
-function mapRankToSeverity(rank: number | undefined): DiagnosticSeverity {
-  if (typeof rank !== 'number') {
-    return DiagnosticSeverity.Information;
-  }
-  if (rank <= 4) {
+function toDiagnosticSeverity(severity: Severity): DiagnosticSeverity {
+  if (severity === 'error') {
     return DiagnosticSeverity.Error;
   }
-  if (rank <= 9) {
+  if (severity === 'warning') {
     return DiagnosticSeverity.Warning;
   }
   return DiagnosticSeverity.Information;
@@ -169,4 +155,3 @@ function normalizeLineNumber(line?: number): number | undefined {
   }
   return Math.max(line - 1, 0);
 }
-

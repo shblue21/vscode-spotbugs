@@ -1,5 +1,4 @@
 import { commands } from 'vscode';
-import { Notifier } from '../core/notifier';
 import { JavaLanguageServerCommands } from '../constants/commands';
 import { ensureJavaCommandsAvailable } from '../core/utils';
 import { Logger } from '../core/logger';
@@ -8,16 +7,14 @@ export type BuildMode = 'auto' | 'incremental' | 'full';
 
 export interface BuildWorkspaceOptions {
   mode?: BuildMode;
-  notifier?: Notifier;
   ensureCommands?: boolean;
 }
 
 export async function buildWorkspace(
   options: BuildWorkspaceOptions = {}
 ): Promise<number | undefined> {
-  const { mode = 'auto', notifier, ensureCommands = true } = options;
+  const { mode = 'auto', ensureCommands = true } = options;
 
-  notifier?.info('Starting Java workspace build...');
   Logger.log(`Starting Java workspace build (mode=${mode})...`);
 
   if (ensureCommands) {
@@ -72,6 +69,6 @@ export async function buildWorkspace(
   return result;
 }
 
-export async function buildWorkspaceAuto(notifier?: Notifier): Promise<number | undefined> {
-  return buildWorkspace({ mode: 'auto', notifier });
+export async function buildWorkspaceAuto(): Promise<number | undefined> {
+  return buildWorkspace({ mode: 'auto' });
 }
