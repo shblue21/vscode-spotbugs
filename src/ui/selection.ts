@@ -1,11 +1,11 @@
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { CategoryGroupItem, PatternGroupItem, BugItem } from './bugTreeItem';
 import { SpotBugsTreeDataProvider } from './spotbugsTreeDataProvider';
 
 export function resolveSpotBugsSelection(
   provider: SpotBugsTreeDataProvider,
   element: unknown
-): Bug[] {
+): Finding[] {
   if (
     element instanceof CategoryGroupItem ||
     element instanceof PatternGroupItem ||
@@ -17,8 +17,8 @@ export function resolveSpotBugsSelection(
     }
   }
 
-  if (element && typeof (element as Bug).message === 'string') {
-    return [element as Bug];
+  if (element && typeof (element as Finding).message === 'string') {
+    return [element as Finding];
   }
 
   return provider.getAllFindings();

@@ -1,9 +1,9 @@
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { formatPatternLabel } from '../formatters/bugFormatting';
 
 export interface GroupedPattern {
   label: string;
-  bugs: Bug[];
+  bugs: Finding[];
 }
 
 export interface GroupedCategory {
@@ -12,21 +12,23 @@ export interface GroupedCategory {
   total: number;
 }
 
-export function groupBugsByCategoryAndPattern(bugs: Bug[]): GroupedCategory[] {
+export function groupFindingsByCategoryAndPattern(
+  findings: Finding[]
+): GroupedCategory[] {
   const map: {
-    [category: string]: { [patternKey: string]: { label: string; bugs: Bug[] } };
+    [category: string]: { [patternKey: string]: { label: string; bugs: Finding[] } };
   } = {};
 
-  for (const bug of bugs) {
-    const category = bug.category || 'Uncategorized';
-    const patternKey = (bug.abbrev || bug.type || 'Unknown').toUpperCase();
+  for (const finding of findings) {
+    const category = finding.category || 'Uncategorized';
+    const patternKey = finding.patternId;
     if (!map[category]) {
       map[category] = {};
     }
     if (!map[category][patternKey]) {
-      map[category][patternKey] = { label: formatPatternLabel(bug), bugs: [] };
+      map[category][patternKey] = { label: formatPatternLabel(finding), bugs: [] };
     }
-    map[category][patternKey].bugs.push(bug);
+    map[category][patternKey].bugs.push(finding);
   }
 
   return Object.keys(map)

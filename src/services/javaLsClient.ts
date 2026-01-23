@@ -1,14 +1,11 @@
-import { commands, Uri } from 'vscode';
-import { Logger } from '../core/logger';
-import { JavaLanguageServerCommands } from '../constants/commands';
+import { Uri } from 'vscode';
+import { getAllJavaProjects } from '../lsp/javaLsGateway';
 import { buildWorkspace, BuildMode } from './workspaceBuildService';
 
 export class JavaLsClient {
   static async getAllProjects(): Promise<string[]> {
     try {
-      const uris = (await commands.executeCommand<string[]>(
-        JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
-      )) || [];
+      const uris = (await getAllJavaProjects()) || [];
       // filter out default pseudo project
       return uris.filter((uriString) => {
         try {

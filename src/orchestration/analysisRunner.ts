@@ -8,10 +8,11 @@ import {
   getWorkspaceProjects,
   NO_CLASS_TARGETS_CODE,
 } from '../services/analysisService';
+import { buildAnalysisNotices } from './analysisNotices';
 import { SpotBugsDiagnosticsManager } from '../services/diagnosticsManager';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 
 export interface RunFileAnalysisArgs {
   config: Config;
@@ -50,7 +51,8 @@ export async function runFileAnalysis(
     const findings = outcome.findings;
     args.tree.showResults(findings);
     args.diagnostics.updateForFile(fileUri, findings);
-    for (const notice of outcome.notices ?? []) {
+    const notices = buildAnalysisNotices(outcome, { includeHints: true });
+    for (const notice of notices) {
       if (notice.level === 'error') {
         notifier.error(notice.message);
       } else if (notice.level === 'warn') {
@@ -78,7 +80,7 @@ export async function runWorkspaceAnalysis(
   await focusSpotbugsTree();
   const notifier = args.notifier ?? defaultNotifier;
   try {
-    let aggregated: Bug[] = [];
+    let aggregated: Finding[] = [];
     let projectResults: { errorCode?: string }[] = [];
     let cancelled = false;
 

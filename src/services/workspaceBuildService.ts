@@ -2,6 +2,7 @@ import { commands } from 'vscode';
 import { JavaLanguageServerCommands } from '../constants/commands';
 import { ensureJavaCommandsAvailable } from '../core/utils';
 import { Logger } from '../core/logger';
+import { buildWorkspace as runJavaBuild } from '../lsp/javaLsGateway';
 
 export type BuildMode = 'auto' | 'incremental' | 'full';
 
@@ -38,10 +39,7 @@ export async function buildWorkspace(
     const modeLabel = full ? 'full' : 'incremental';
     try {
       Logger.log(`Invoking java.project.build(${full}) - ${modeLabel} build`);
-      const value = await commands.executeCommand<number>(
-        JavaLanguageServerCommands.BUILD_WORKSPACE,
-        full
-      );
+      const value = await runJavaBuild(full);
       Logger.log(`java.project.build(${full}) returned: ${String(value)}`);
       return value;
     } catch (e) {

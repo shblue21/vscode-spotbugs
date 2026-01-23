@@ -1,22 +1,22 @@
 import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { Logger } from '../core/logger';
 import { defaultNotifier } from '../core/notifier';
 import { resolveBugFilePath } from '../workspace/sourceLocator';
 
 /**
- * Opens a source file and navigates to the specified bug location
- * @param bug The bug information containing file path and line details
+ * Opens a source file and navigates to the specified finding location
+ * @param finding The finding information containing file path and line details
  */
-export async function openBugLocation(bug: Bug): Promise<void> {
+export async function openBugLocation(finding: Finding): Promise<void> {
   try {
-    Logger.log(`Opening bug location: ${bug.message ?? 'SpotBugs finding'}`);
+    Logger.log(`Opening bug location: ${finding.message ?? 'SpotBugs finding'}`);
     const notifier = defaultNotifier;
 
-    const filePath = await resolveBugFilePath(bug);
+    const filePath = await resolveBugFilePath(finding);
 
     if (!filePath) {
-      const errorMsg = `Cannot open file: Could not resolve path for ${bug.realSourcePath || 'unknown file'}`;
+      const errorMsg = `Cannot open file: Could not resolve path for ${finding.location.realSourcePath || 'unknown file'}`;
       Logger.error(errorMsg);
       notifier.error(errorMsg);
       return;
@@ -24,8 +24,10 @@ export async function openBugLocation(bug: Bug): Promise<void> {
 
     const fileUri = Uri.file(filePath);
 
-    const startLine = normalizeLineNumber(bug.startLine);
-    const endLine = normalizeLineNumber(bug.endLine ?? bug.startLine);
+    const startLine = normalizeLineNumber(finding.location.startLine);
+    const endLine = normalizeLineNumber(
+      finding.location.endLine ?? finding.location.startLine
+    );
     let range: Range | undefined;
     if (startLine !== undefined && endLine !== undefined) {
       // Calculate zero-based line numbers (VS Code uses zero-based indexing)

@@ -1,7 +1,7 @@
-import { commands, Uri } from 'vscode';
-import { JavaLanguageServerCommands } from '../constants/commands';
+import { Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { getJavaExtension } from '../core/utils';
+import { getClasspaths } from '../lsp/javaLsGateway';
 import { ClasspathAttempt } from './classpathAttemptSelector';
 import { ClasspathResult } from './classpathService';
 
@@ -78,10 +78,7 @@ async function executeClasspathCommand(
   verbose: boolean
 ): Promise<any | undefined> {
   try {
-    return await commands.executeCommand<any>(
-      JavaLanguageServerCommands.GET_CLASSPATHS,
-      ...args
-    );
+    return await getClasspaths(...args);
   } catch {
     if (verbose) Logger.log(`getClasspaths(${failureContext}) failed`);
     return undefined;
@@ -134,4 +131,3 @@ function envVerbose(): boolean {
     return false;
   }
 }
-

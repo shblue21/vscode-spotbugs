@@ -1,7 +1,7 @@
 'use strict';
 
 import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from 'vscode';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import {
   CategoryGroupItem,
   PatternGroupItem,
@@ -9,7 +9,7 @@ import {
   ProjectStatusItem,
 } from './bugTreeItem';
 import * as path from 'path';
-import { groupBugsByCategoryAndPattern } from './treeModel';
+import { groupFindingsByCategoryAndPattern } from './treeModel';
 
 export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
@@ -19,7 +19,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private viewItems: TreeItem[] = [];
   private projectItems: Map<string, ProjectStatusItem> = new Map();
-  private lastResults: Bug[] = [];
+  private lastResults: Finding[] = [];
 
   constructor() {
     this.showInitialMessage();
@@ -86,12 +86,12 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showResults(bugs: Bug[]): void {
+  public showResults(bugs: Finding[]): void {
     if (!bugs || bugs.length === 0) {
       this.viewItems = [new TreeItem('No issues found.')];
       this.lastResults = [];
     } else {
-      const categories = groupBugsByCategoryAndPattern(bugs);
+      const categories = groupFindingsByCategoryAndPattern(bugs);
       this.viewItems = categories.map((category) => {
         const patterns = category.patterns.map(
           (pattern) => new PatternGroupItem(pattern.label, pattern.bugs)
@@ -103,11 +103,11 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  public getAllFindings(): Bug[] {
+  public getAllFindings(): Finding[] {
     return this.lastResults.slice();
   }
 
-  public getFindingsForNode(element: TreeItem): Bug[] {
+  public getFindingsForNode(element: TreeItem): Finding[] {
     if (element instanceof CategoryGroupItem) {
       return element.patterns.flatMap((pattern) => pattern.bugs.slice());
     }

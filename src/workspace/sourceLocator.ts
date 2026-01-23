@@ -1,14 +1,17 @@
-import { Uri, workspace } from 'vscode';
+import { Uri } from 'vscode';
 import * as path from 'path';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { resolveSourceFullPath } from './pathResolver';
+import { getWorkspaceRootPath } from './workspaceRoots';
 
-export function getWorkspaceRootPath(): string | undefined {
-  return workspace.workspaceFolders?.[0]?.uri.fsPath;
-}
-
-export function getBestEffortFilePath(bug: Bug, workspaceRootPath?: string): string | undefined {
-  const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
+export function getBestEffortFilePath(
+  finding: Finding,
+  workspaceRootPath?: string
+): string | undefined {
+  const filePath =
+    finding.location.fullPath ||
+    finding.location.realSourcePath ||
+    finding.location.sourceFile;
   if (!filePath) {
     return undefined;
   }
@@ -21,8 +24,14 @@ export function getBestEffortFilePath(bug: Bug, workspaceRootPath?: string): str
   return undefined;
 }
 
-export function getBestEffortFileUri(bug: Bug, workspaceRootPath?: string): Uri | undefined {
-  const filePath = getBestEffortFilePath(bug, workspaceRootPath ?? getWorkspaceRootPath());
+export function getBestEffortFileUri(
+  finding: Finding,
+  workspaceRootPath?: string
+): Uri | undefined {
+  const filePath = getBestEffortFilePath(
+    finding,
+    workspaceRootPath ?? getWorkspaceRootPath()
+  );
   if (!filePath) {
     return undefined;
   }
@@ -33,8 +42,14 @@ export function getBestEffortFileUri(bug: Bug, workspaceRootPath?: string): Uri 
   }
 }
 
-export function getBestEffortArtifactUri(bug: Bug, workspaceRootPath?: string): string | undefined {
-  const raw = bug.fullPath || bug.realSourcePath || bug.sourceFile;
+export function getBestEffortArtifactUri(
+  finding: Finding,
+  workspaceRootPath?: string
+): string | undefined {
+  const raw =
+    finding.location.fullPath ||
+    finding.location.realSourcePath ||
+    finding.location.sourceFile;
   if (!raw) return undefined;
 
   const root = workspaceRootPath ?? getWorkspaceRootPath();
@@ -50,35 +65,38 @@ export function getBestEffortArtifactUri(bug: Bug, workspaceRootPath?: string): 
 }
 
 export async function resolveBugFilePath(
-  bug: Bug,
+  finding: Finding,
   preferredProject?: Uri
 ): Promise<string | undefined> {
   const root = getWorkspaceRootPath();
 
-  if (bug.fullPath) {
-    if (path.isAbsolute(bug.fullPath)) {
-      return bug.fullPath;
+  if (finding.location.fullPath) {
+    if (path.isAbsolute(finding.location.fullPath)) {
+      return finding.location.fullPath;
     }
     if (root) {
-      return path.join(root, bug.fullPath);
+      return path.join(root, finding.location.fullPath);
     }
   }
 
-  if (bug.realSourcePath) {
-    const resolved = await resolveSourceFullPath(bug.realSourcePath, preferredProject);
+  if (finding.location.realSourcePath) {
+    const resolved = await resolveSourceFullPath(
+      finding.location.realSourcePath,
+      preferredProject
+    );
     if (resolved) {
       return resolved;
     }
   }
 
-  return getBestEffortFilePath(bug, root);
+  return getBestEffortFilePath(finding, root);
 }
 
 export async function resolveBugFileUri(
-  bug: Bug,
+  finding: Finding,
   preferredProject?: Uri
 ): Promise<Uri | undefined> {
-  const filePath = await resolveBugFilePath(bug, preferredProject);
+  const filePath = await resolveBugFilePath(finding, preferredProject);
   if (!filePath) {
     return undefined;
   }

@@ -1,13 +1,14 @@
 import { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { Config } from '../core/config';
-import { Bug } from '../model/bug';
-import { AnalysisOutcome, AnalysisNotice } from '../model/analysisOutcome';
+import { Finding } from '../model/finding';
+import { AnalysisOutcome } from '../model/analysisOutcome';
 import { ProjectRef } from '../workspace/classpathService';
 import { addFullPaths } from '../workspace/pathResolver';
 import { runSpotBugsAnalysis } from '../lsp/spotbugsClient';
 import { parseAnalysisResponse } from '../lsp/spotbugsParser';
 import { buildAnalysisRequestPayload } from '../lsp/analysisRequestBuilder';
+import { mapBugsToFindings } from '../lsp/spotbugsMapper';
 import {
   resolveFileAnalysisTarget,
   resolveProjectAnalysisTarget,
@@ -21,14 +22,10 @@ type AnalysisContext = {
   sourcepaths?: string[] | null;
 };
 
-type AnalysisOptions = {
-  includeHints?: boolean;
-};
-
 export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetResolver';
 export interface ProjectResult {
   projectUri: string;
-  findings: Bug[];
+  findings: Finding[];
   error?: string;
   errorCode?: string;
 }
@@ -45,16 +42,16 @@ export async function analyzeFile(config: Config, uri: Uri): Promise<AnalysisOut
       return {
         findings: [],
         errorCode: resolution.errorCode,
-        notices: [
-          {
-            level: 'warn',
-            code: resolution.errorCode,
-            message: resolution.message,
-          },
-        ],
+        targetPath: uri.fsPath,
+        failure: {
+          kind: 'target',
+          level: 'warn',
+          code: resolution.errorCode,
+          message: resolution.message,
+        },
       };
     }
-    return await runAnalysis(config, resolution.target, { includeHints: true });
+    return await runAnalysis(config, resolution.target);
   } catch (error) {
     Logger.error('Analyzer: analyzeFile failed', error);
     return { findings: [] };
@@ -135,7 +132,7 @@ async function analyzeProject(
       };
     }
 
-    const outcome = await runAnalysis(config, resolution.target, { includeHints: false });
+    const outcome = await runAnalysis(config, resolution.target);
     return { projectUri: projectUriString, findings: outcome.findings };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -145,10 +142,9 @@ async function analyzeProject(
 
 async function runAnalysis(
   config: Config,
-  context: AnalysisContext,
-  options: AnalysisOptions = {}
+  context: AnalysisContext
 ): Promise<AnalysisOutcome> {
-  const notices: AnalysisNotice[] = [];
+  const targetPath = context.targetPath;
   const payload = buildAnalysisRequestPayload(config.getAnalysisSettings(), {
     classpaths: context.classpaths ?? null,
     sourcepaths: context.sourcepaths ?? null,
@@ -166,18 +162,26 @@ async function runAnalysis(
   if (!parsed.ok) {
     if (parsed.error.kind === 'invalid-json') {
       Logger.error('Failed to parse analysis result', parsed.error.cause ?? parsed.error.message);
-      notices.push({
-        level: 'error',
-        message: 'SpotBugs analysis failed: Invalid response payload.',
-      });
-      return { findings: [], notices };
+      return {
+        findings: [],
+        targetPath,
+        failure: {
+          kind: 'invalid-json',
+          level: 'error',
+          message: 'SpotBugs analysis failed: Invalid response payload.',
+        },
+      };
     }
     Logger.error(`SpotBugs analysis error: ${parsed.error.message}`);
-    notices.push({
-      level: 'error',
-      message: `SpotBugs analysis failed: ${parsed.error.message}`,
-    });
-    return { findings: [], notices };
+    return {
+      findings: [],
+      targetPath,
+      failure: {
+        kind: 'analysis-error',
+        level: 'error',
+        message: `SpotBugs analysis failed: ${parsed.error.message}`,
+      },
+    };
   }
 
   const { bugs, errors, stats, schemaVersion } = parsed.value;
@@ -195,51 +199,18 @@ async function runAnalysis(
     Logger.error(`SpotBugs analysis error: ${combined}`);
     const hasResults = bugs.length > 0;
     if (!hasResults) {
-      notices.push({
-        level: 'error',
-        message: `SpotBugs analysis failed: ${combined}`,
-      });
-      return { findings: [], errors, stats, notices };
-    }
-    notices.push({
-      level: 'warn',
-      message: `SpotBugs analysis completed with warnings: ${combined}`,
-    });
-  }
-
-  const withFullPaths = await addFullPaths(bugs, context.preferredProject);
-  if (options.includeHints && withFullPaths.length === 0) {
-    const target = context.targetPath.replace(/\\/g, '/').toLowerCase();
-    const isBytecodeTarget =
-      target.endsWith('.class') || target.endsWith('.jar') || target.endsWith('.zip');
-    const looksLikeSourceTarget = target.endsWith('.java') || target.includes('/src/');
-    const classpathCount = typeof stats?.classpathCount === 'number' ? stats.classpathCount : undefined;
-    const targetCount = typeof stats?.targetCount === 'number' ? stats.targetCount : undefined;
-
-    if (!isBytecodeTarget) {
-      if (targetCount === 0) {
-        if ((classpathCount ?? 0) === 0) {
-          notices.push({
-            level: 'warn',
-            message:
-              'SpotBugs: No compiled classes found (classpath unavailable). Make sure the target is inside a Java project and build the workspace.',
-          });
-        } else {
-          notices.push({
-            level: 'warn',
-            message:
-              'SpotBugs: No compiled classes found for the selected target. Build the project or select an output folder (e.g. build/classes or target/classes).',
-          });
-        }
-      } else if (looksLikeSourceTarget && (classpathCount ?? 0) === 0) {
-        notices.push({
-          level: 'warn',
-          message:
-            'SpotBugs: Classpath is unavailable for this target; results may be incomplete. Try building the workspace and re-run.',
-        });
-      }
+      return {
+        findings: [],
+        errors,
+        stats,
+        targetPath,
+        schemaVersion,
+      };
     }
   }
+
+  const findings = mapBugsToFindings(bugs);
+  const withFullPaths = await addFullPaths(findings, context.preferredProject);
   const logParts: string[] = [];
   logParts.push(`findings=${withFullPaths.length}`);
   if (typeof stats?.durationMs === 'number') {
@@ -261,12 +232,14 @@ async function runAnalysis(
     logParts.push(`pluginCount=${stats.pluginCount}`);
   }
   Logger.log(`Successfully parsed and added full paths (${logParts.join(', ')}).`);
-  const outcome: AnalysisOutcome = { findings: withFullPaths, stats };
+  const outcome: AnalysisOutcome = {
+    findings: withFullPaths,
+    stats,
+    targetPath,
+    schemaVersion,
+  };
   if (Array.isArray(errors) && errors.length > 0) {
     outcome.errors = errors;
-  }
-  if (notices.length > 0) {
-    outcome.notices = notices;
   }
   return outcome;
 }

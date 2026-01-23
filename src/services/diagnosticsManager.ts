@@ -8,18 +8,19 @@ import {
   Uri,
   workspace,
 } from 'vscode';
-import { Bug, Severity } from '../model/bug';
+import { Finding } from '../model/finding';
+import { Severity } from '../model/severity';
 import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
 import { getBestEffortFileUri } from '../workspace/sourceLocator';
 
-type BugRange = {
+type FindingRange = {
   range: Range;
-  bug: Bug;
+  finding: Finding;
 };
 
 export class SpotBugsDiagnosticsManager {
   private readonly collection: DiagnosticCollection;
-  private readonly findingsByFile = new Map<string, BugRange[]>();
+  private readonly findingsByFile = new Map<string, FindingRange[]>();
 
   constructor() {
     this.collection = languages.createDiagnosticCollection('spotbugs');
@@ -35,15 +36,15 @@ export class SpotBugsDiagnosticsManager {
     this.findingsByFile.clear();
   }
 
-  replaceAll(findings: Bug[]): void {
+  replaceAll(findings: Finding[]): void {
     this.clearAll();
-    const grouped = new Map<string, { uri: Uri; entries: BugRange[]; diagnostics: Diagnostic[] }>();
-    for (const bug of findings) {
-      const fileUri = this.resolveFileUri(bug);
+    const grouped = new Map<string, { uri: Uri; entries: FindingRange[]; diagnostics: Diagnostic[] }>();
+    for (const finding of findings) {
+      const fileUri = this.resolveFileUri(finding);
       if (!fileUri) continue;
       const key = fileUri.toString();
       const entry = grouped.get(key) ?? { uri: fileUri, entries: [], diagnostics: [] };
-      this.appendBug(entry, bug);
+      this.appendFinding(entry, finding);
       grouped.set(key, entry);
     }
 
@@ -53,20 +54,20 @@ export class SpotBugsDiagnosticsManager {
     }
   }
 
-  updateForFile(targetUri: Uri, findings: Bug[]): void {
+  updateForFile(targetUri: Uri, findings: Finding[]): void {
     const filePath = targetUri.fsPath;
-    const filtered = findings.filter((bug) => {
-      const uri = this.resolveFileUri(bug);
+    const filtered = findings.filter((finding) => {
+      const uri = this.resolveFileUri(finding);
       return uri?.fsPath === filePath;
     });
 
-    const entries: BugRange[] = [];
+    const entries: FindingRange[] = [];
     const diagnostics: Diagnostic[] = [];
-    for (const bug of filtered) {
-      const range = this.createRange(bug);
+    for (const finding of filtered) {
+      const range = this.createRange(finding);
       if (!range) continue;
-      diagnostics.push(this.createDiagnostic(range, bug));
-      entries.push({ range, bug });
+      diagnostics.push(this.createDiagnostic(range, finding));
+      entries.push({ range, finding });
     }
 
     const key = targetUri.toString();
@@ -80,56 +81,56 @@ export class SpotBugsDiagnosticsManager {
     this.findingsByFile.set(key, entries);
   }
 
-  getBugsAt(uri: Uri, position: Position): Bug[] {
+  getFindingsAt(uri: Uri, position: Position): Finding[] {
     const entries = this.findingsByFile.get(uri.toString());
     if (!entries) return [];
     return entries
       .filter(({ range }) => range.contains(position))
-      .map(({ bug }) => bug);
+      .map(({ finding }) => finding);
   }
 
-  private appendBug(
-    bucket: { uri: Uri; entries: BugRange[]; diagnostics: Diagnostic[] },
-    bug: Bug
+  private appendFinding(
+    bucket: { uri: Uri; entries: FindingRange[]; diagnostics: Diagnostic[] },
+    finding: Finding
   ): void {
-    const range = this.createRange(bug);
+    const range = this.createRange(finding);
     if (!range) return;
-    bucket.entries.push({ range, bug });
-    bucket.diagnostics.push(this.createDiagnostic(range, bug));
+    bucket.entries.push({ range, finding });
+    bucket.diagnostics.push(this.createDiagnostic(range, finding));
   }
 
-  private createDiagnostic(range: Range, bug: Bug): Diagnostic {
-    const message = formatBugSummary(bug);
-    const severity = rankToSeverity(bug.rank);
+  private createDiagnostic(range: Range, finding: Finding): Diagnostic {
+    const message = formatBugSummary(finding);
+    const severity = rankToSeverity(finding.rank);
     const diagnostic = new Diagnostic(range, message, toDiagnosticSeverity(severity));
     diagnostic.source = 'SpotBugs';
-    const docUri = this.getDocumentationUri(bug);
+    const docUri = this.getDocumentationUri(finding);
     if (docUri) {
       diagnostic.code = {
-        value: bug.type || bug.abbrev || 'SpotBugs',
+        value: finding.type || finding.abbrev || 'SpotBugs',
         target: docUri,
       };
     } else {
-      diagnostic.code = bug.type || bug.abbrev || 'SpotBugs';
+      diagnostic.code = finding.type || finding.abbrev || 'SpotBugs';
     }
     diagnostic.relatedInformation = undefined;
     return diagnostic;
   }
 
-  private createRange(bug: Bug): Range | undefined {
-    const startLine = normalizeLineNumber(bug.startLine);
-    const endLine = normalizeLineNumber(bug.endLine ?? bug.startLine);
+  private createRange(finding: Finding): Range | undefined {
+    const startLine = normalizeLineNumber(finding.location.startLine);
+    const endLine = normalizeLineNumber(finding.location.endLine ?? finding.location.startLine);
     if (startLine === undefined || endLine === undefined) {
       return undefined;
     }
     return new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
   }
 
-  private resolveFileUri(bug: Bug): Uri | undefined {
-    return getBestEffortFileUri(bug);
+  private resolveFileUri(finding: Finding): Uri | undefined {
+    return getBestEffortFileUri(finding);
   }
 
-  private getDocumentationUri(bug: Bug): Uri | undefined {
+  private getDocumentationUri(_finding: Finding): Uri | undefined {
     const docBase = 'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html';
     try {
       return Uri.parse(docBase);

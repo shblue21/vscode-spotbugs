@@ -6,5 +6,3 @@ export const settingKeys = {
   filtersExcludeFilterPath: 'filters.excludeFilterPath',
   pluginsPaths: 'plugins.paths',
 } as const;
-
-export type SettingKey = typeof settingKeys[keyof typeof settingKeys];

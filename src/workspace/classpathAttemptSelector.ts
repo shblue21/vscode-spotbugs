@@ -1,6 +1,5 @@
-import { commands, Uri, workspace } from 'vscode';
-import * as path from 'path';
-import { JavaLanguageServerCommands } from '../constants/commands';
+import { Uri, workspace } from 'vscode';
+import { getAllJavaProjects } from '../lsp/javaLsGateway';
 import { ProjectRef } from './classpathService';
 
 export interface ClasspathAttempt {
@@ -22,10 +21,7 @@ export async function collectClasspathAttempts(
   }
 
   try {
-    const uris =
-      (await commands.executeCommand<string[]>(
-        JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
-      )) || [];
+    const uris = (await getAllJavaProjects()) || [];
     for (const u of uris) {
       if (!attempts.find((a) => a.arg && toUriString(a.arg) === u)) {
         attempts.push({ label: `project:${u}`, arg: u });
@@ -39,25 +35,6 @@ export async function collectClasspathAttempts(
   return attempts;
 }
 
-export async function getAllJavaProjectUris(): Promise<string[]> {
-  try {
-    const uris =
-      (await commands.executeCommand<string[]>(
-        JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
-      )) || [];
-    return uris.filter((uriString) => {
-      try {
-        const p = Uri.parse(uriString).fsPath;
-        return path.basename(p) !== 'jdt.ls-java-project';
-      } catch {
-        return true;
-      }
-    });
-  } catch {
-    return [];
-  }
-}
-
 function toUriString(ref: ProjectRef | unknown): string {
   if (!ref) return '';
   if (typeof ref === 'string') return ref;
@@ -67,4 +44,3 @@ function toUriString(ref: ProjectRef | unknown): string {
   }
   return '';
 }
-

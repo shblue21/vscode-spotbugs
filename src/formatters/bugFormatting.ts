@@ -1,8 +1,9 @@
-import { Bug, Severity } from '../model/bug';
+import { FindingSummary } from '../model/finding';
+import { Severity } from '../model/severity';
 
-export function formatBugSummary(bug: Bug): string {
-  const pattern = bug.abbrev || bug.type || 'Bug';
-  const raw = bug.message || '';
+export function formatBugSummary(finding: FindingSummary): string {
+  const pattern = finding.abbrev || finding.type || 'Bug';
+  const raw = finding.message || '';
   let msg = raw.trim();
   const prefix = `${pattern}:`;
   if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
@@ -13,14 +14,14 @@ export function formatBugSummary(bug: Bug): string {
     msg = msg.substring(0, inIdx).trim();
   }
   if (!msg) {
-    msg = bug.type || 'SpotBugs finding';
+    msg = finding.type || 'SpotBugs finding';
   }
   return `[${pattern}] ${msg}`;
 }
 
-export function formatPatternLabel(bug: Bug): string {
-  const pattern = bug.abbrev || bug.type || 'Pattern';
-  const raw = bug.message || '';
+export function formatPatternLabel(finding: FindingSummary): string {
+  const pattern = finding.abbrev || finding.type || 'Pattern';
+  const raw = finding.message || '';
   let msg = raw.trim();
   const prefix = `${pattern}:`;
   if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
@@ -31,7 +32,7 @@ export function formatPatternLabel(bug: Bug): string {
     msg = msg.substring(0, inIdx).trim();
   }
   if (!msg) {
-    msg = bug.type || 'SpotBugs Pattern';
+    msg = finding.type || 'SpotBugs Pattern';
   }
   return `[${pattern}] ${msg}`;
 }

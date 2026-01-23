@@ -1,5 +1,5 @@
 import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { SpotBugsCommands } from '../constants/commands';
 import { toBugItemView } from './bugViewModel';
 
@@ -16,9 +16,9 @@ export class CategoryGroupItem extends TreeItem {
 }
 
 export class PatternGroupItem extends TreeItem {
-  public bugs: Bug[];
+  public bugs: Finding[];
 
-  constructor(label: string, bugs: Bug[]) {
+  constructor(label: string, bugs: Finding[]) {
     super(`${label} (${bugs.length})`, TreeItemCollapsibleState.Collapsed);
     this.bugs = bugs;
     this.iconPath = new ThemeIcon('list-tree');
@@ -27,12 +27,12 @@ export class PatternGroupItem extends TreeItem {
 }
 
 export class BugItem extends TreeItem {
-  public bug: Bug;
+  public bug: Finding;
 
-  constructor(bug: Bug) {
-    const view = toBugItemView(bug);
+  constructor(finding: Finding) {
+    const view = toBugItemView(finding);
     super(view.label, TreeItemCollapsibleState.None);
-    this.bug = bug;
+    this.bug = finding;
     this.description = view.description;
     this.tooltip = view.tooltip;
     this.iconPath = view.icon;
@@ -41,7 +41,7 @@ export class BugItem extends TreeItem {
     this.command = {
       command: SpotBugsCommands.OPEN_BUG_LOCATION,
       title: 'Open Bug Location',
-      arguments: [bug],
+      arguments: [finding],
     };
   }
 }

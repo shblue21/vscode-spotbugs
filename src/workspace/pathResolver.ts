@@ -1,9 +1,10 @@
 import { Uri, workspace } from 'vscode';
 import * as path from 'path';
 import { Logger } from '../core/logger';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { getClasspaths } from './classpathService';
 import { getProjectRootPaths } from './projectDiscovery';
+import { getPrimaryWorkspaceFolder } from './workspaceRoots';
 
 /**
  * Resolve a SpotBugs realSourcePath (e.g., com/foo/Bar.java) to a full filesystem path.
@@ -17,7 +18,7 @@ export async function resolveSourceFullPath(
     return null;
   }
 
-  const wsFolder = workspace.workspaceFolders ? workspace.workspaceFolders[0] : undefined;
+  const wsFolder = getPrimaryWorkspaceFolder();
 
   // 1) Try Java LS sourcepaths via classpathService
   try {
@@ -66,33 +67,48 @@ export async function resolveSourceFullPath(
 /**
  * Resolve SpotBugs findings to absolute file paths when possible.
  */
-export async function addFullPaths(bugs: Bug[], preferredProject?: Uri): Promise<Bug[]> {
-  if (!bugs.length) {
+export async function addFullPaths(
+  findings: Finding[],
+  preferredProject?: Uri
+): Promise<Finding[]> {
+  if (!findings.length) {
     return [];
   }
 
-  const resolved: Bug[] = [];
-  for (const bug of bugs) {
-    if (typeof bug.fullPath === 'string' && bug.fullPath.length > 0) {
-      resolved.push(bug);
+  const resolved: Finding[] = [];
+  for (const finding of findings) {
+    if (
+      typeof finding.location.fullPath === 'string' &&
+      finding.location.fullPath.length > 0
+    ) {
+      resolved.push(finding);
       continue;
     }
-    if (!bug.realSourcePath) {
-      resolved.push(bug);
+    if (!finding.location.realSourcePath) {
+      resolved.push(finding);
       continue;
     }
     try {
-      const full = await resolveSourceFullPath(bug.realSourcePath, preferredProject);
+      const full = await resolveSourceFullPath(
+        finding.location.realSourcePath,
+        preferredProject
+      );
       if (full) {
-        resolved.push({ ...bug, fullPath: full });
+        resolved.push({
+          ...finding,
+          location: {
+            ...finding.location,
+            fullPath: full,
+          },
+        });
       } else {
-        Logger.log(`Could not resolve full path for: ${bug.realSourcePath}`);
-        resolved.push(bug);
+        Logger.log(`Could not resolve full path for: ${finding.location.realSourcePath}`);
+        resolved.push(finding);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      Logger.log(`Path resolve failed for ${bug.realSourcePath}: ${message}`);
-      resolved.push(bug);
+      Logger.log(`Path resolve failed for ${finding.location.realSourcePath}: ${message}`);
+      resolved.push(finding);
     }
   }
   return resolved;
@@ -122,4 +138,3 @@ async function getSourcepathsCached(preferred?: Uri): Promise<string[] | undefin
   }
   return undefined;
 }
-

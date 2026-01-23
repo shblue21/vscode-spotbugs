@@ -1,4 +1,5 @@
-import { Bug, Severity } from '../model/bug';
+import { Finding } from '../model/finding';
+import { Severity } from '../model/severity';
 import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
 import { getBestEffortArtifactUri } from '../workspace/sourceLocator';
 
@@ -14,7 +15,7 @@ export interface SarifLog {
 }
 
 export function buildSarifLog(
-  findings: Bug[],
+  findings: Finding[],
   options: SarifExportOptions = {}
 ): SarifLog {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -29,26 +30,26 @@ export function buildSarifLog(
   const filtered = applyRankFilter(findings, options.minRank);
   const seenRules = new Set<string>();
 
-  for (const bug of filtered) {
-    const ruleId = deriveRuleId(bug);
+  for (const finding of filtered) {
+    const ruleId = deriveRuleId(finding);
     if (!seenRules.has(ruleId)) {
       seenRules.add(ruleId);
       const ruleBuilder = new SarifRuleBuilder({ id: ruleId });
-      ruleBuilder.setShortDescriptionText(bug.message || ruleId);
+      ruleBuilder.setShortDescriptionText(finding.message || ruleId);
       run.addRule(ruleBuilder);
     }
 
     const resultBuilder = new SarifResultBuilder();
     resultBuilder.setRuleId(ruleId);
-    resultBuilder.setMessageText(formatBugSummary(bug));
-    resultBuilder.setLevel(severityToSarifLevel(rankToSeverity(bug.rank)));
+    resultBuilder.setMessageText(formatBugSummary(finding));
+    resultBuilder.setLevel(severityToSarifLevel(rankToSeverity(finding.rank)));
 
-    const uri = computeArtifactUri(bug);
+    const uri = computeArtifactUri(finding);
     if (uri) {
       resultBuilder.setLocationArtifactUri({ uri });
     }
-    const startLine = normalizeLineNumber(bug.startLine);
-    const endLine = normalizeLineNumber(bug.endLine);
+    const startLine = normalizeLineNumber(finding.location.startLine);
+    const endLine = normalizeLineNumber(finding.location.endLine);
     if (startLine !== undefined || endLine !== undefined) {
       resultBuilder.setLocationRegion({ startLine, endLine });
     }
@@ -61,13 +62,13 @@ export function buildSarifLog(
   return built as SarifLog;
 }
 
-function applyRankFilter(bugs: Bug[], minRank?: number): Bug[] {
+function applyRankFilter(bugs: Finding[], minRank?: number): Finding[] {
   if (typeof minRank !== 'number') return bugs;
   return bugs.filter((b) => (typeof b.rank === 'number' ? b.rank <= minRank : true));
 }
 
-function deriveRuleId(bug: Bug): string {
-  return (bug.type || bug.abbrev || 'SPOTBUGS_Rule').toString();
+function deriveRuleId(finding: Finding): string {
+  return (finding.type || finding.abbrev || 'SPOTBUGS_Rule').toString();
 }
 
 function severityToSarifLevel(severity: Severity): 'error' | 'warning' | 'note' {
@@ -76,8 +77,8 @@ function severityToSarifLevel(severity: Severity): 'error' | 'warning' | 'note' 
   return 'note';
 }
 
-function computeArtifactUri(bug: Bug): string | undefined {
-  return getBestEffortArtifactUri(bug);
+function computeArtifactUri(finding: Finding): string | undefined {
+  return getBestEffortArtifactUri(finding);
 }
 
 function normalizeLineNumber(line?: number): number | undefined {

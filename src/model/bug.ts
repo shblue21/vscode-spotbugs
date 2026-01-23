@@ -1,5 +1,3 @@
-export type Severity = 'error' | 'warning' | 'info';
-
 export interface Bug {
   type?: string;
   rank?: number;

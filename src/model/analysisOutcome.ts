@@ -1,4 +1,4 @@
-import { Bug } from './bug';
+import { Finding } from './finding';
 import { AnalysisError, AnalysisStats } from './analysisProtocol';
 
 export type AnalysisNoticeLevel = 'info' | 'warn' | 'error';
@@ -9,10 +9,21 @@ export interface AnalysisNotice {
   message: string;
 }
 
+export type AnalysisFailureKind = 'target' | 'invalid-json' | 'analysis-error';
+
+export interface AnalysisFailure {
+  kind: AnalysisFailureKind;
+  level: AnalysisNoticeLevel;
+  message: string;
+  code?: string;
+}
+
 export interface AnalysisOutcome {
-  findings: Bug[];
+  findings: Finding[];
   errors?: AnalysisError[];
-  notices?: AnalysisNotice[];
   errorCode?: string;
   stats?: AnalysisStats;
+  targetPath?: string;
+  schemaVersion?: number;
+  failure?: AnalysisFailure;
 }

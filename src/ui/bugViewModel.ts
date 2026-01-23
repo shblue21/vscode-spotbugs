@@ -1,6 +1,6 @@
 import { ThemeIcon } from 'vscode';
 import * as path from 'path';
-import { Bug } from '../model/bug';
+import { Finding } from '../model/finding';
 import { formatBugSummary, rankToSeverity } from '../formatters/bugFormatting';
 
 export interface BugItemViewProps {
@@ -10,22 +10,27 @@ export interface BugItemViewProps {
   icon: ThemeIcon;
 }
 
-export function toBugItemView(bug: Bug): BugItemViewProps {
-  const label = formatBugSummary(bug);
+export function toBugItemView(finding: Finding): BugItemViewProps {
+  const label = formatBugSummary(finding);
 
-  const filePath = bug.fullPath || bug.realSourcePath || bug.sourceFile;
+  const filePath =
+    finding.location.fullPath ||
+    finding.location.realSourcePath ||
+    finding.location.sourceFile;
   const fileName = filePath ? path.basename(filePath) : 'Unknown file';
-  const lineInfo = bug.startLine && bug.endLine
-    ? (bug.startLine === bug.endLine ? `${bug.startLine}` : `${bug.startLine}-${bug.endLine}`)
+  const lineInfo = finding.location.startLine && finding.location.endLine
+    ? (finding.location.startLine === finding.location.endLine
+        ? `${finding.location.startLine}`
+        : `${finding.location.startLine}-${finding.location.endLine}`)
     : '';
-  const description = `${fileName}${lineInfo ? `:${lineInfo}` : ''} • ${bug.category}`;
-  const tooltip = `Pattern: ${bug.abbrev || bug.type}\nCategory: ${bug.category}\nPriority: ${bug.priority}\nFile: ${filePath}${lineInfo ? `\nLine: ${lineInfo}` : ''}`;
-  const icon = severityIcon(bug);
+  const description = `${fileName}${lineInfo ? `:${lineInfo}` : ''} • ${finding.category}`;
+  const tooltip = `Pattern: ${finding.abbrev || finding.type}\nCategory: ${finding.category}\nPriority: ${finding.priority}\nFile: ${filePath}${lineInfo ? `\nLine: ${lineInfo}` : ''}`;
+  const icon = severityIcon(finding);
   return { label, description, tooltip, icon };
 }
 
-function severityIcon(bug: Bug): ThemeIcon {
-  const severity = rankToSeverity(bug.rank);
+function severityIcon(finding: Finding): ThemeIcon {
+  const severity = rankToSeverity(finding.rank);
   if (severity === 'error') return new ThemeIcon('error');
   if (severity === 'warning') return new ThemeIcon('warning');
   return new ThemeIcon('info');

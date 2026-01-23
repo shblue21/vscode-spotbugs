@@ -11,7 +11,3 @@ export const defaultNotifier: Notifier = {
   warn: (message: string) => window.showWarningMessage(message),
   error: (message: string) => window.showErrorMessage(message),
 };
-
-export const notifyInfo = (message: string): void => defaultNotifier.info(message);
-export const notifyWarn = (message: string): void => defaultNotifier.warn(message);
-export const notifyError = (message: string): void => defaultNotifier.error(message);

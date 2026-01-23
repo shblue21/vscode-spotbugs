@@ -4,7 +4,6 @@ export namespace JavaLanguageServerCommands {
   export const BUILD_WORKSPACE: string = 'java.project.build';
   export const GET_CLASSPATHS: string = 'java.project.getClasspaths';
   export const GET_ALL_JAVA_PROJECTS: string = 'java.project.getAll';
-  export const ORGANIZE_IMPORTS_SILENTLY = 'java.edit.organizeImports';
 }
 
 // VS Code command IDs owned by this extension (used in menus/UI)
@@ -19,8 +18,4 @@ export namespace SpotBugsCommands {
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)
 export namespace SpotBugsLSCommands {
   export const RUN_ANALYSIS: string = 'java.spotbugs.run';
-}
-
-export namespace VsCodeCommands {
-  export const OPEN: string = 'vscode.open';
 }
