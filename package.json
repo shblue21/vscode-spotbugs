@@ -2,7 +2,7 @@
   "name": "vscode-spotbugs",
   "displayName": "SpotBugs",
   "description": "Visual Studio Code extension for SpotBugs",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
@@ -178,6 +178,9 @@
     "compile": "tsc -p .",
     "watch": "tsc -p . --watch",
     "pretest": "npm run compile && npm run lint",
+    "test:unit": "mocha \"out/test/**/*.unit.test.js\"",
+    "test:vscode": "node out/test/runTest.js",
+    "test": "npm run test:unit && npm run test:vscode",
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",

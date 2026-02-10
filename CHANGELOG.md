@@ -1,4 +1,11 @@
 # Changelog
+## [v0.0.14] - 2026-02-10
+
+- Split analysis pipeline layers (orchestration/workspace/lsp) and unify Bug model
+- Introduce Finding domain model and centralize JDT LS gateway
+- Normalize Finding domain and analysis/LSP plumbing
+- Bump version
+
 ## [v0.0.13] - 2026-01-12
 
 - Skip analysis when no compiled classes are available
