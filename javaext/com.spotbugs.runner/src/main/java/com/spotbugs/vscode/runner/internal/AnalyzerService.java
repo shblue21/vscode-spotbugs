@@ -6,6 +6,8 @@ import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.config.UserPreferences;
@@ -37,7 +39,12 @@ public class AnalyzerService {
     }
 
     public List<BugInfo> analyzeToBugs(String... filePaths) {
+        return analyzeToBugs(null, filePaths);
+    }
+
+    public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
         try {
+            checkCanceled(monitor);
             this.lastTargetCount = 0;
             if (filePaths == null || filePaths.length == 0) {
                 return java.util.Collections.emptyList();
@@ -48,11 +55,12 @@ public class AnalyzerService {
             ClasspathConfigurer cpCfg = new ClasspathConfigurer();
             List<java.io.File> cpDirs = cpCfg.directoriesFrom(this.projectClasspaths);
             TargetResolver resolver = new TargetResolver();
-            List<String> targets = resolver.resolveTargets(filePaths, cpDirs);
+            List<String> targets = resolver.resolveTargets(filePaths, cpDirs, monitor);
             this.lastTargetCount = targets.size();
             if (targets.isEmpty()) {
                 return java.util.Collections.emptyList();
             }
+            checkCanceled(monitor);
             for (String t : targets) {
                 project.addFile(t);
             }
@@ -62,14 +70,17 @@ public class AnalyzerService {
             SpotBugsRunner runner = new SpotBugsRunner();
             Integer reporterPriority = computeReporterPriorityThreshold(this.config != null ? this.config.getPriorityThreshold() : null);
             java.util.List<String> plugins = this.config != null ? this.config.getPlugins() : java.util.Collections.emptyList();
+            checkCanceled(monitor);
             List<BugInfo> bugs = runner.run(this.findBugs, project, reporterPriority, plugins);
-            applyFullPaths(bugs, filePaths);
+            checkCanceled(monitor);
+            applyFullPaths(bugs, monitor, filePaths);
             // Precise post-filter by rank when requested
             Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
             if (rankThreshold != null) {
                 final int maxRank = Math.max(1, Math.min(20, rankThreshold.intValue()));
                 java.util.Iterator<BugInfo> it = bugs.iterator();
                 while (it.hasNext()) {
+                    checkCanceled(monitor);
                     BugInfo b = it.next();
                     if (b == null) continue;
                     if (b.getRank() > maxRank) it.remove();
@@ -90,7 +101,7 @@ public class AnalyzerService {
         return Integer.valueOf(3);
     }
 
-    private void applyFullPaths(List<BugInfo> bugs, String... filePaths) {
+    private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, String... filePaths) {
         if (bugs == null || bugs.isEmpty()) {
             return;
         }
@@ -98,16 +109,23 @@ public class AnalyzerService {
         String targetPath = (filePaths != null && filePaths.length > 0) ? filePaths[0] : null;
         SourcePathResolver resolver = new SourcePathResolver();
         for (BugInfo bug : bugs) {
+            checkCanceled(monitor);
             if (bug == null) {
                 continue;
             }
             if (bug.getFullPath() != null && !bug.getFullPath().isEmpty()) {
                 continue;
             }
-            String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, targetPath);
+            String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, targetPath, monitor);
             if (fullPath != null && !fullPath.isEmpty()) {
                 bug.setFullPath(fullPath);
             }
+        }
+    }
+
+    private static void checkCanceled(IProgressMonitor monitor) {
+        if (monitor != null && monitor.isCanceled()) {
+            throw new java.util.concurrent.CancellationException("Command cancelled");
         }
     }
 

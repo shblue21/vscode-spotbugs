@@ -13,12 +13,12 @@ public interface CommandAction {
     String id();
 
     /**
-     * Execute the action for the given arguments.
+     * Execute the action for the given invocation.
      *
-     * @param args raw arguments supplied by the language server invocation.
+     * @param invocation command invocation context.
      * @return JSON string payload to be forwarded to the VS Code client.
      * @throws Exception if the command processing fails; the caller is expected
      *                   to translate the failure into the standard error envelope.
      */
-    String execute(Object... args) throws Exception;
+    String execute(ActionInvocation invocation) throws Exception;
 }

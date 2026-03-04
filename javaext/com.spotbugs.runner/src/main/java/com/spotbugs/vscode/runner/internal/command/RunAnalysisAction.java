@@ -54,7 +54,7 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         AnalyzerService analyzer = new AnalyzerService();
         analyzer.setConfiguration(config);
         long start = System.currentTimeMillis();
-        List<BugInfo> bugs = analyzer.analyzeToBugs(targetPath);
+        List<BugInfo> bugs = analyzer.analyzeToBugs(context.monitor(), targetPath);
         long elapsed = System.currentTimeMillis() - start;
 
         List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();

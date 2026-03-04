@@ -92,7 +92,8 @@
           "spotbugs.analysis.includeFilterPaths": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^.*\\.xml$"
             },
             "default": [],
             "uniqueItems": true,
@@ -102,7 +103,8 @@
           "spotbugs.analysis.excludeFilterPaths": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^.*\\.xml$"
             },
             "default": [],
             "uniqueItems": true,
@@ -112,7 +114,8 @@
           "spotbugs.analysis.excludeBaselineBugsPaths": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^.*\\.xml$"
             },
             "default": [],
             "uniqueItems": true,

@@ -1,6 +1,7 @@
 import { workspace, ExtensionContext, Uri } from 'vscode';
 import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
+import { Logger } from './logger';
 
 export interface AnalysisSettings {
   effort: string;
@@ -41,13 +42,16 @@ export class Config {
     const pt = config.get<number | undefined>(settingKeys.analysisPriorityThreshold);
     this.priorityThreshold = typeof pt === 'number' ? pt : undefined;
 
-    this.includeFilterPaths = this.readStringArray(
+    this.includeFilterPaths = this.readXmlPathArray(
+      settingKeys.analysisIncludeFilterPaths,
       config.get<unknown>(settingKeys.analysisIncludeFilterPaths)
     );
-    this.excludeFilterPaths = this.readStringArray(
+    this.excludeFilterPaths = this.readXmlPathArray(
+      settingKeys.analysisExcludeFilterPaths,
       config.get<unknown>(settingKeys.analysisExcludeFilterPaths)
     );
-    this.excludeBaselineBugsPaths = this.readStringArray(
+    this.excludeBaselineBugsPaths = this.readXmlPathArray(
+      settingKeys.analysisExcludeBaselineBugsPaths,
       config.get<unknown>(settingKeys.analysisExcludeBaselineBugsPaths)
     );
 
@@ -96,6 +100,24 @@ export class Config {
     }
     const values = Array.from(deduped);
     return values.length > 0 ? values : undefined;
+  }
+
+  private readXmlPathArray(settingKey: string, raw: unknown): string[] | undefined {
+    const values = this.readStringArray(raw);
+    if (!values) {
+      return undefined;
+    }
+    const xmlOnly: string[] = [];
+    for (const value of values) {
+      if (/\.xml$/i.test(value)) {
+        xmlOnly.push(value);
+      } else {
+        Logger.log(
+          `Ignoring non-XML value in ${SETTINGS_SECTION}.${settingKey}: "${value}" (expected *.xml)`
+        );
+      }
+    }
+    return xmlOnly.length > 0 ? xmlOnly : undefined;
   }
 
   private resolvePathsToAbsolute(paths: string[] | undefined): string[] | undefined {
