@@ -24,7 +24,14 @@ public class ConfigValidator {
 
         // Optional fields: normalize empties to null
         Integer priorityThreshold = schema.getPriorityThreshold();
+        List<String> includeFilterPaths = normalizeList(schema.getIncludeFilterPaths());
+        List<String> excludeFilterPaths = normalizeList(schema.getExcludeFilterPaths());
+        List<String> excludeBaselineBugsPaths = normalizeList(schema.getExcludeBaselineBugsPaths());
         String excludeFilterPath = normalizeString(schema.getExcludeFilterPath());
+        if (excludeFilterPaths.isEmpty() && excludeFilterPath != null) {
+            excludeFilterPaths = new ArrayList<>();
+            excludeFilterPaths.add(excludeFilterPath);
+        }
         List<String> plugins = normalizeList(schema.getPlugins());
 
         AnalysisConfig cfg = AnalysisConfig
@@ -33,6 +40,9 @@ public class ConfigValidator {
             .classpaths(cps)
             .sourcepaths(sps)
             .priorityThreshold(priorityThreshold)
+            .includeFilterPaths(includeFilterPaths)
+            .excludeFilterPaths(excludeFilterPaths)
+            .excludeBaselineBugsPaths(excludeBaselineBugsPaths)
             .excludeFilterPath(excludeFilterPath)
             .plugins(plugins)
             .build();

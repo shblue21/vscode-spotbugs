@@ -13,7 +13,10 @@ public class ConfigSchema {
     private List<String> classpaths;          // optional
     private List<String> sourcepaths;         // optional
     private Integer priorityThreshold;        // optional
-    private String excludeFilterPath;         // optional
+    private List<String> includeFilterPaths;  // optional
+    private List<String> excludeFilterPaths;  // optional
+    private List<String> excludeBaselineBugsPaths; // optional
+    private String excludeFilterPath;         // optional legacy field
     private List<String> plugins;             // optional
 
     public Integer getSchemaVersion() { return schemaVersion; }
@@ -21,6 +24,9 @@ public class ConfigSchema {
     public List<String> getClasspaths() { return classpaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
+    public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
+    public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }
+    public List<String> getExcludeBaselineBugsPaths() { return excludeBaselineBugsPaths; }
     public String getExcludeFilterPath() { return excludeFilterPath; }
     public List<String> getPlugins() { return plugins; }
 }

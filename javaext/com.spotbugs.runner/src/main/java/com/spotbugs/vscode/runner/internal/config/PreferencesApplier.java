@@ -1,5 +1,10 @@
 package com.spotbugs.vscode.runner.internal.config;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.config.UserPreferences;
 
@@ -12,9 +17,13 @@ public class PreferencesApplier {
         String effortString = toEffortString(cfg.getEffort());
         prefs.setEffort(effortString);
 
+        // Filter files are applied by FindBugs2#setUserPreferences via configureFilters.
+        prefs.setIncludeFilterFiles(toEnabledPathMap(cfg.getIncludeFilterPaths()));
+        prefs.setExcludeFilterFiles(toEnabledPathMap(resolveExcludeFilterPaths(cfg)));
+        prefs.setExcludeBugsFiles(toEnabledPathMap(cfg.getExcludeBaselineBugsPaths()));
+
         // rank threshold is handled via BugReporter in SpotBugsExecutor
         // plugins are loaded via a temporary context ClassLoader in SpotBugsExecutor
-        // TODO: excludeFilterPath can be applied to engine if/when a stable API is adopted
     }
 
     private static String toEffortString(Effort e) {
@@ -24,5 +33,39 @@ public class PreferencesApplier {
             case MAX: return "max";
             default: return "default";
         }
+    }
+
+    private static List<String> resolveExcludeFilterPaths(AnalysisConfig cfg) {
+        List<String> configured = cfg.getExcludeFilterPaths();
+        if (configured != null && !configured.isEmpty()) {
+            return configured;
+        }
+        String legacyPath = normalizePath(cfg.getExcludeFilterPath());
+        if (legacyPath == null) {
+            return Collections.emptyList();
+        }
+        return Collections.singletonList(legacyPath);
+    }
+
+    private static Map<String, Boolean> toEnabledPathMap(List<String> paths) {
+        if (paths == null || paths.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Boolean> files = new LinkedHashMap<>();
+        for (String path : paths) {
+            String normalized = normalizePath(path);
+            if (normalized != null) {
+                files.put(normalized, Boolean.TRUE);
+            }
+        }
+        return files.isEmpty() ? Collections.emptyMap() : files;
+    }
+
+    private static String normalizePath(String path) {
+        if (path == null) {
+            return null;
+        }
+        String trimmed = path.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
