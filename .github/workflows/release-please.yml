@@ -1,0 +1,91 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Checkout release tag
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+
+      - name: Setup Node.js
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Setup Java (build JDK for Tycho)
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Install dependencies
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: npm ci
+
+      - name: Build Java backend
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: npm run build-server
+
+      - name: Clean
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: npm run clean
+
+      - name: Build TypeScript
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: npm run compile
+
+      - name: Lint
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: npm run lint
+
+      - name: Install vsce
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: npm i -g @vscode/vsce
+
+      - name: Package VSIX (release)
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        id: pkg
+        shell: bash
+        run: |
+          TAG="${{ steps.release.outputs.tag_name }}"
+          NAME="$(jq -r '.name' package.json)"
+          VSIX="${NAME}-${TAG}.vsix"
+          vsce package --out "${VSIX}"
+          echo "vsix=${VSIX}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload VSIX to GitHub Release
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ steps.release.outputs.tag_name }}" "${{ steps.pkg.outputs.vsix }}" --clobber
+
+      - name: Publish to VS Code Marketplace (optional)
+        if: ${{ steps.release.outputs.release_created == 'true' && secrets.VSCE_PAT != '' }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: vsce publish --packagePath "${{ steps.pkg.outputs.vsix }}" -p "${VSCE_PAT}"
