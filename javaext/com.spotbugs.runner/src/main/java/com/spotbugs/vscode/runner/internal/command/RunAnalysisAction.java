@@ -87,6 +87,6 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     private CommandActionException configFailure(ConfigError error) {
         String code = error != null ? error.getCode() : "CFG_ERROR";
         String message = error != null ? error.getMessage() : "Configuration error";
-        return new CommandActionException(code, code + ": " + message);
+        return new CommandActionException(code, message);
     }
 }

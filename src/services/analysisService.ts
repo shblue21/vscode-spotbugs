@@ -10,6 +10,7 @@ import { runSpotBugsAnalysis } from '../lsp/spotbugsClient';
 import { parseAnalysisResponse } from '../lsp/spotbugsParser';
 import { buildAnalysisRequestPayload } from '../lsp/analysisRequestBuilder';
 import { mapBugsToFindings } from '../lsp/spotbugsMapper';
+import { validateFilterFilesPreflight } from './filterFileValidation';
 import {
   resolveFileAnalysisTarget,
   resolveProjectAnalysisTarget,
@@ -145,7 +146,25 @@ async function runAnalysis(
   context: AnalysisContext
 ): Promise<AnalysisOutcome> {
   const targetPath = context.targetPath;
-  const payload = buildAnalysisRequestPayload(config.getAnalysisSettings(), {
+  const settings = config.getAnalysisSettings();
+  const preflightFilterError = await validateFilterFilesPreflight(settings);
+  if (preflightFilterError) {
+    const combined = formatAnalysisErrors([preflightFilterError]);
+    Logger.error(`SpotBugs filter configuration error: ${combined}`);
+    return {
+      findings: [],
+      errors: [preflightFilterError],
+      targetPath,
+      failure: {
+        kind: 'analysis-error',
+        level: 'error',
+        code: preflightFilterError.code,
+        message: `SpotBugs analysis failed: ${combined}`,
+      },
+    };
+  }
+
+  const payload = buildAnalysisRequestPayload(settings, {
     classpaths: context.classpaths ?? null,
     sourcepaths: context.sourcepaths ?? null,
   });
@@ -194,6 +213,7 @@ async function runAnalysis(
     Logger.error(`SpotBugs analysis error: ${combined}`);
     const hasResults = bugs.length > 0;
     if (!hasResults) {
+      const firstErrorCode = errors.find((error) => !!error.code)?.code;
       return {
         findings: [],
         errors,
@@ -203,6 +223,7 @@ async function runAnalysis(
         failure: {
           kind: 'analysis-error',
           level: 'error',
+          code: firstErrorCode,
           message: `SpotBugs analysis failed: ${combined}`,
         },
       };

@@ -42,6 +42,8 @@ describe('spotbugsParser', () => {
       assert.strictEqual(result.value.schemaVersion, 1);
       assert.strictEqual(result.value.bugs.length, 1);
       assert.strictEqual(result.value.errors?.length, 1);
+      assert.strictEqual(result.value.errors?.[0]?.code, 'X');
+      assert.strictEqual(result.value.errors?.[0]?.message, 'warn');
       assert.strictEqual(result.value.stats?.target, '/tmp/Foo');
     }
   });

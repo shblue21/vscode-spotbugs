@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.spotbugs.vscode.runner.api.ConfigError;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 
 /** Validates a wire schema and maps to a domain AnalysisConfig. */
@@ -33,6 +34,19 @@ public class ConfigValidator {
             excludeFilterPaths.add(excludeFilterPath);
         }
         List<String> plugins = normalizeList(schema.getPlugins());
+
+        ConfigError includeFilterError = FilterFileValidator.validateIncludeFilters(includeFilterPaths);
+        if (includeFilterError != null) {
+            return ConfigValidationResult.error(includeFilterError.getCode(), includeFilterError.getMessage());
+        }
+        ConfigError excludeFilterError = FilterFileValidator.validateExcludeFilters(excludeFilterPaths);
+        if (excludeFilterError != null) {
+            return ConfigValidationResult.error(excludeFilterError.getCode(), excludeFilterError.getMessage());
+        }
+        ConfigError baselineFilterError = FilterFileValidator.validateBaselineFilters(excludeBaselineBugsPaths);
+        if (baselineFilterError != null) {
+            return ConfigValidationResult.error(baselineFilterError.getCode(), baselineFilterError.getMessage());
+        }
 
         AnalysisConfig cfg = AnalysisConfig
             .newBuilder()
