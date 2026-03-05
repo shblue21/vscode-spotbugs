@@ -1,4 +1,14 @@
 # Changelog
+## [0.1.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.0.14...v0.1.0) (2026-03-05)
+
+
+### Features
+
+* add SpotBugs filter settings and structured filter-file errors ([99b7bef](https://github.com/shblue21/vscode-spotbugs/commit/99b7bef150b99ac7a3723aa2bfeccf7b33b4a41d))
+* **command:** Add invocation context ([a79c1df](https://github.com/shblue21/vscode-spotbugs/commit/a79c1df64230b25b2752d67d8f605a9a198b6d54))
+* **core:** Introduce new SpotBugs filter path settings in protocol and schema ([9213336](https://github.com/shblue21/vscode-spotbugs/commit/92133363283c86cf0ab493fd9cbfca029b7b0713))
+* **filters:** validate filter files ([8f40a09](https://github.com/shblue21/vscode-spotbugs/commit/8f40a097341a894dc99e277082f972bca68d2910))
+
 ## [v0.0.14] - 2026-02-10
 
 - Split analysis pipeline layers (orchestration/workspace/lsp) and unify Bug model
@@ -94,5 +104,3 @@
 - VSCode Spotbugs initializing, and change to repository public
 - Adds initial README
 - Configures release workflows
-
-
