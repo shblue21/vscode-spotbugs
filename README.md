@@ -45,8 +45,13 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 ## Settings
 
+### Analysis
+
 - `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
 - `spotbugs.analysis.priorityThreshold`: Report bugs with rank less than or equal to this value (1 = most severe, 20 = least). Default: `9`.
-- `spotbugs.analysis.includeFilterPaths`: SpotBugs XML include filter paths (`-include`). Supports absolute and workspace-relative paths.
-- `spotbugs.analysis.excludeFilterPaths`: SpotBugs XML exclude filter paths (`-exclude`). Supports absolute and workspace-relative paths.
-- `spotbugs.analysis.excludeBaselineBugsPaths`: SpotBugs XML baseline bug collection paths (`-excludeBugs`). Supports absolute and workspace-relative paths.
+
+### Filters
+
+- `spotbugs.filters.includePaths`: SpotBugs XML include filter paths (`-include`). Supports absolute and workspace-relative paths.
+- `spotbugs.filters.excludePaths`: SpotBugs XML exclude filter paths (`-exclude`). Supports absolute and workspace-relative paths.
+- `spotbugs.filters.excludeBaselineBugsPaths`: SpotBugs XML baseline bug collection paths (`-excludeBugs`). Supports absolute and workspace-relative paths.

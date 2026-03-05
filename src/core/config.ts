@@ -9,7 +9,7 @@ export interface AnalysisSettings {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  // Legacy field kept for compatibility with older Java runner schema.
+  // Legacy payload field kept for compatibility with older Java runner schema.
   excludeFilterPath?: string;
   plugins?: string[];
 }
@@ -23,7 +23,7 @@ export class Config {
   public includeFilterPaths?: string[];
   public excludeFilterPaths?: string[];
   public excludeBaselineBugsPaths?: string[];
-  // Legacy key/value kept as fallback only.
+  // Legacy payload field kept for compatibility with older Java runner schema.
   public excludeFilterPath?: string;
   public plugins?: string[];
 
@@ -43,26 +43,17 @@ export class Config {
     this.priorityThreshold = typeof pt === 'number' ? pt : undefined;
 
     this.includeFilterPaths = this.readXmlPathArray(
-      settingKeys.analysisIncludeFilterPaths,
-      config.get<unknown>(settingKeys.analysisIncludeFilterPaths)
+      settingKeys.filtersIncludePaths,
+      config.get<unknown>(settingKeys.filtersIncludePaths)
     );
     this.excludeFilterPaths = this.readXmlPathArray(
-      settingKeys.analysisExcludeFilterPaths,
-      config.get<unknown>(settingKeys.analysisExcludeFilterPaths)
+      settingKeys.filtersExcludePaths,
+      config.get<unknown>(settingKeys.filtersExcludePaths)
     );
     this.excludeBaselineBugsPaths = this.readXmlPathArray(
-      settingKeys.analysisExcludeBaselineBugsPaths,
-      config.get<unknown>(settingKeys.analysisExcludeBaselineBugsPaths)
+      settingKeys.filtersExcludeBaselineBugsPaths,
+      config.get<unknown>(settingKeys.filtersExcludeBaselineBugsPaths)
     );
-
-    // Legacy key fallback (read-only): used only when new exclude list is unset.
-    const legacyExcludeFilterPath = this.normalizeString(
-      config.get<string | undefined>(settingKeys.filtersExcludeFilterPath)
-    );
-    this.excludeFilterPath = legacyExcludeFilterPath;
-    if (!this.excludeFilterPaths && legacyExcludeFilterPath) {
-      this.excludeFilterPaths = [legacyExcludeFilterPath];
-    }
 
     this.plugins = this.readStringArray(config.get<unknown>(settingKeys.pluginsPaths));
   }
@@ -74,14 +65,6 @@ export class Config {
     const folder = workspace.workspaceFolders?.[0];
     if (!folder) return p; // leave as-is if no workspace
     return path.resolve(Uri.parse(folder.uri.toString()).fsPath, p);
-  }
-
-  private normalizeString(value: string | undefined): string | undefined {
-    if (typeof value !== 'string') {
-      return undefined;
-    }
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   private readStringArray(raw: unknown): string[] | undefined {

@@ -88,8 +88,15 @@
             "minimum": 1,
             "maximum": 20,
             "scope": "window"
-          },
-          "spotbugs.analysis.includeFilterPaths": {
+          }
+        }
+      },
+      {
+        "type": "object",
+        "title": "SpotBugs: Filters",
+        "order": 1,
+        "properties": {
+          "spotbugs.filters.includePaths": {
             "type": "array",
             "items": {
               "type": "string",
@@ -100,7 +107,7 @@
             "markdownDescription": "SpotBugs XML include filter file paths (`-include`). Supports absolute paths and workspace-relative paths.",
             "scope": "window"
           },
-          "spotbugs.analysis.excludeFilterPaths": {
+          "spotbugs.filters.excludePaths": {
             "type": "array",
             "items": {
               "type": "string",
@@ -111,7 +118,7 @@
             "markdownDescription": "SpotBugs XML exclude filter file paths (`-exclude`). Supports absolute paths and workspace-relative paths.",
             "scope": "window"
           },
-          "spotbugs.analysis.excludeBaselineBugsPaths": {
+          "spotbugs.filters.excludeBaselineBugsPaths": {
             "type": "array",
             "items": {
               "type": "string",
