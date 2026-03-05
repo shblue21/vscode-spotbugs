@@ -85,7 +85,13 @@ jobs:
         run: gh release upload "${{ steps.release.outputs.tag_name }}" "${{ steps.pkg.outputs.vsix }}" --clobber
 
       - name: Publish to VS Code Marketplace (optional)
-        if: ${{ steps.release.outputs.release_created == 'true' && secrets.VSCE_PAT != '' }}
+        if: ${{ steps.release.outputs.release_created == 'true' }}
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: vsce publish --packagePath "${{ steps.pkg.outputs.vsix }}" -p "${VSCE_PAT}"
+        shell: bash
+        run: |
+          if [[ -z "${VSCE_PAT}" ]]; then
+            echo "VSCE_PAT not set; skipping publish"
+            exit 0
+          fi
+          vsce publish --packagePath "${{ steps.pkg.outputs.vsix }}" -p "${VSCE_PAT}"
