@@ -54,7 +54,7 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         AnalyzerService analyzer = new AnalyzerService();
         analyzer.setConfiguration(config);
         long start = System.currentTimeMillis();
-        List<BugInfo> bugs = analyzer.analyzeToBugs(targetPath);
+        List<BugInfo> bugs = analyzer.analyzeToBugs(context.monitor(), targetPath);
         long elapsed = System.currentTimeMillis() - start;
 
         List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();
@@ -87,6 +87,6 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     private CommandActionException configFailure(ConfigError error) {
         String code = error != null ? error.getCode() : "CFG_ERROR";
         String message = error != null ? error.getMessage() : "Configuration error";
-        return new CommandActionException(code, code + ": " + message);
+        return new CommandActionException(code, message);
     }
 }

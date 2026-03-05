@@ -16,6 +16,7 @@ import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Project;
+import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class SpotBugsExecutor {
 
@@ -38,6 +39,11 @@ public class SpotBugsExecutor {
     public List<BugInfo> executeBugs() throws IOException, InterruptedException {
         findBugs.setProject(project);
         findBugs.setBugReporter(bugReporter);
+        UserPreferences currentPreferences = findBugs.getUserPreferences();
+        if (currentPreferences != null) {
+            // Re-apply current preferences so filter wrappers bind to the current bug reporter chain.
+            findBugs.setUserPreferences(currentPreferences);
+        }
 
         ClassLoader prev = Thread.currentThread().getContextClassLoader();
         URLClassLoader pluginLoader = null;

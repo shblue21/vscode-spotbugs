@@ -18,6 +18,18 @@ export function buildAnalysisRequestPayload(
   if (typeof settings.priorityThreshold === 'number') {
     payload.priorityThreshold = settings.priorityThreshold;
   }
+  if (Array.isArray(settings.includeFilterPaths) && settings.includeFilterPaths.length > 0) {
+    payload.includeFilterPaths = settings.includeFilterPaths.slice();
+  }
+  if (Array.isArray(settings.excludeFilterPaths) && settings.excludeFilterPaths.length > 0) {
+    payload.excludeFilterPaths = settings.excludeFilterPaths.slice();
+  }
+  if (
+    Array.isArray(settings.excludeBaselineBugsPaths) &&
+    settings.excludeBaselineBugsPaths.length > 0
+  ) {
+    payload.excludeBaselineBugsPaths = settings.excludeBaselineBugsPaths.slice();
+  }
   if (settings.excludeFilterPath) {
     payload.excludeFilterPath = settings.excludeFilterPath;
   }
@@ -27,4 +39,3 @@ export function buildAnalysisRequestPayload(
 
   return payload;
 }
-

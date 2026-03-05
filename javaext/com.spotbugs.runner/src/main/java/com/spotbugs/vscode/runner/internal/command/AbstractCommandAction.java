@@ -17,10 +17,12 @@ public abstract class AbstractCommandAction implements CommandAction {
     private final Gson gson = new Gson();
 
     @Override
-    public final String execute(Object... args) {
-        ActionContext context = new ActionContext(args);
+    public final String execute(ActionInvocation invocation) {
+        ActionContext context = new ActionContext(invocation);
         try {
+            context.checkCanceled();
             CommandResult result = run(context);
+            context.checkCanceled();
             if (result == null) {
                 return gson.toJson(Collections.emptyMap());
             }
@@ -81,9 +83,11 @@ public abstract class AbstractCommandAction implements CommandAction {
      */
     protected static final class ActionContext {
         private final Object[] args;
+        private final ActionInvocation invocation;
 
-        ActionContext(Object[] args) {
-            this.args = args != null ? args : new Object[0];
+        ActionContext(ActionInvocation invocation) {
+            this.invocation = invocation;
+            this.args = invocation != null ? invocation.getArgs() : new Object[0];
         }
 
         public int size() {
@@ -121,6 +125,33 @@ public abstract class AbstractCommandAction implements CommandAction {
 
         public Object[] raw() {
             return args.clone();
+        }
+
+        public boolean isCanceled() {
+            org.eclipse.core.runtime.IProgressMonitor monitor = monitor();
+            return monitor != null && monitor.isCanceled();
+        }
+
+        public void checkCanceled() throws CommandActionException {
+            if (isCanceled()) {
+                throw new CommandActionException(DEFAULT_ERROR_CODE, "Command cancelled");
+            }
+        }
+
+        public String commandId() {
+            return invocation != null ? invocation.getCommandId() : null;
+        }
+
+        public org.eclipse.core.runtime.IProgressMonitor monitor() {
+            return invocation != null ? invocation.getMonitor() : null;
+        }
+
+        public Thread thread() {
+            return invocation != null ? invocation.getThread() : null;
+        }
+
+        public long startNanos() {
+            return invocation != null ? invocation.getStartNanos() : 0L;
         }
     }
 

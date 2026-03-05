@@ -14,7 +14,10 @@ public class AnalysisConfig {
     private final List<String> classpaths;
     private final List<String> sourcepaths;
     private final Integer priorityThreshold; // optional
-    private final String excludeFilterPath;  // optional
+    private final List<String> includeFilterPaths; // optional
+    private final List<String> excludeFilterPaths; // optional
+    private final List<String> excludeBaselineBugsPaths; // optional
+    private final String excludeFilterPath;  // optional legacy field
     private final List<String> plugins;      // optional
 
     private AnalysisConfig(Builder b) {
@@ -26,6 +29,15 @@ public class AnalysisConfig {
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(b.sourcepaths));
         this.priorityThreshold = b.priorityThreshold;
+        this.includeFilterPaths = b.includeFilterPaths == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(b.includeFilterPaths));
+        this.excludeFilterPaths = b.excludeFilterPaths == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(b.excludeFilterPaths));
+        this.excludeBaselineBugsPaths = b.excludeBaselineBugsPaths == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(b.excludeBaselineBugsPaths));
         this.excludeFilterPath = b.excludeFilterPath;
         this.plugins = b.plugins == null
                 ? Collections.emptyList()
@@ -36,6 +48,9 @@ public class AnalysisConfig {
     public List<String> getClasspaths() { return classpaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
+    public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
+    public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }
+    public List<String> getExcludeBaselineBugsPaths() { return excludeBaselineBugsPaths; }
     public String getExcludeFilterPath() { return excludeFilterPath; }
     public List<String> getPlugins() { return plugins; }
 
@@ -47,6 +62,9 @@ public class AnalysisConfig {
         private List<String> classpaths;
         private List<String> sourcepaths;
         private Integer priorityThreshold;
+        private List<String> includeFilterPaths;
+        private List<String> excludeFilterPaths;
+        private List<String> excludeBaselineBugsPaths;
         private String excludeFilterPath;
         private List<String> plugins;
 
@@ -54,6 +72,9 @@ public class AnalysisConfig {
         Builder classpaths(List<String> cp) { this.classpaths = cp; return this; }
         Builder sourcepaths(List<String> sp) { this.sourcepaths = sp; return this; }
         Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
+        Builder includeFilterPaths(List<String> p) { this.includeFilterPaths = p; return this; }
+        Builder excludeFilterPaths(List<String> p) { this.excludeFilterPaths = p; return this; }
+        Builder excludeBaselineBugsPaths(List<String> p) { this.excludeBaselineBugsPaths = p; return this; }
         Builder excludeFilterPath(String p) { this.excludeFilterPath = p; return this; }
         Builder plugins(List<String> p) { this.plugins = p; return this; }
 

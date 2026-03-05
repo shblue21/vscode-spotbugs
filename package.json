@@ -90,6 +90,46 @@
             "scope": "window"
           }
         }
+      },
+      {
+        "type": "object",
+        "title": "SpotBugs: Filters",
+        "order": 1,
+        "properties": {
+          "spotbugs.filters.includePaths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^.*\\.xml$"
+            },
+            "default": [],
+            "uniqueItems": true,
+            "markdownDescription": "SpotBugs XML include filter file paths (`-include`). Supports absolute paths and workspace-relative paths.",
+            "scope": "window"
+          },
+          "spotbugs.filters.excludePaths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^.*\\.xml$"
+            },
+            "default": [],
+            "uniqueItems": true,
+            "markdownDescription": "SpotBugs XML exclude filter file paths (`-exclude`). Supports absolute paths and workspace-relative paths.",
+            "scope": "window"
+          },
+          "spotbugs.filters.excludeBaselineBugsPaths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^.*\\.xml$"
+            },
+            "default": [],
+            "uniqueItems": true,
+            "markdownDescription": "SpotBugs XML baseline bug collection file paths (`-excludeBugs`). Supports absolute paths and workspace-relative paths.",
+            "scope": "window"
+          }
+        }
       }
     ],
     "commands": [

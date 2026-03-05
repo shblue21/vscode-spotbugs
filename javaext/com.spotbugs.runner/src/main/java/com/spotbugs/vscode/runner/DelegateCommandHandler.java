@@ -10,6 +10,7 @@ import org.eclipse.jdt.ls.core.internal.IDelegateCommandHandler;
 
 import com.google.gson.Gson;
 import com.spotbugs.vscode.runner.api.CommandResponse;
+import com.spotbugs.vscode.runner.internal.command.ActionInvocation;
 import com.spotbugs.vscode.runner.internal.command.CommandAction;
 import com.spotbugs.vscode.runner.internal.command.RunAnalysisAction;
 
@@ -30,7 +31,14 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
         }
         Object[] args = arguments != null ? arguments.toArray() : new Object[0];
         try {
-            return action.execute(args);
+            ActionInvocation invocation = new ActionInvocation(
+                    commandId,
+                    args,
+                    monitor,
+                    Thread.currentThread(),
+                    System.nanoTime()
+            );
+            return action.execute(invocation);
         } catch (Exception e) {
             return GSON.toJson(CommandResponse.error("COMMAND_FAILED", "Command failed"));
         }
