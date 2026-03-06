@@ -3,8 +3,20 @@ name: Javaext Checks
 on:
   push:
     branches:
-      - '**'
+      - 'main'
+    paths:
+      - 'javaext/**'
+      - '.github/workflows/javaext-checks.yml'
   pull_request:
+    branches:
+      - 'main'
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - 'javaext/**'
+      - '.github/workflows/javaext-checks.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
