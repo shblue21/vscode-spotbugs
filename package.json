@@ -224,7 +224,8 @@
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "build-server": "node scripts/buildJdtlsExt.js"
+    "build-server": "node scripts/buildJdtlsExt.js",
+    "generate:sarif-fixture": "node scripts/generateSarifFixture.js"
   },
   "extensionDependencies": [
     "redhat.java"
@@ -246,7 +247,6 @@
   },
   "dependencies": {
     "fs-extra": "^11.3.3",
-    "node-sarif-builder": "^3.3.1",
     "vscode-extension-telemetry-wrapper": "^0.14.0"
   }
 }
