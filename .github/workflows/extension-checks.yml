@@ -4,7 +4,27 @@ on:
   push:
     branches:
       - '**'
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'eslint.config.js'
+      - 'prettier.config.cjs'
+      - '.prettierignore'
+      - '.vscodeignore'
+      - '.github/workflows/extension-checks.yml'
   pull_request:
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'eslint.config.js'
+      - 'prettier.config.cjs'
+      - '.prettierignore'
+      - '.vscodeignore'
+      - '.github/workflows/extension-checks.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
