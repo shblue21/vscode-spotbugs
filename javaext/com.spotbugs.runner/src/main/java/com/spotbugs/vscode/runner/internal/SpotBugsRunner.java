@@ -23,4 +23,14 @@ public class SpotBugsRunner {
         SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, reporterPriorityThreshold, pluginJars);
         return executor.executeBugs();
     }
+
+    public String runNativeSarif(
+            FindBugs2 findBugs,
+            Project project,
+            Integer reporterPriorityThreshold,
+            java.util.List<String> pluginJars
+    ) throws IOException, InterruptedException {
+        SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, reporterPriorityThreshold, pluginJars);
+        return executor.executeNativeSarif();
+    }
 }

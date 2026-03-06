@@ -1,0 +1,43 @@
+[
+  {
+    "type": "NP_ALWAYS_NULL",
+    "rank": 5,
+    "priority": "High",
+    "category": "CORRECTNESS",
+    "abbrev": "NP",
+    "message": "NP: Null pointer dereference of ? in fixtures.sarif.SarifFixtureSample.nullPointerLength()",
+    "sourceFile": "SarifFixtureSample.java",
+    "startLine": 8,
+    "endLine": 8,
+    "realSourcePath": "fixtures/sarif/SarifFixtureSample.java",
+    "shortDescription": "Null pointer dereference",
+    "longDescription": "A null pointer is dereferenced here.  This will lead to a NullPointerException \nwhen the code is executed.",
+    "helpUri": "https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL",
+    "categoryAbbrev": "C",
+    "instanceHash": "e323b377c1b8b423861f71c225ef2388",
+    "className": "fixtures.sarif.SarifFixtureSample",
+    "methodName": "nullPointerLength",
+    "methodSignature": "()I",
+    "fullPath": "/__WORKSPACE_ROOT__/fixtures/sarif/SarifFixtureSample.java"
+  },
+  {
+    "type": "UUF_UNUSED_FIELD",
+    "rank": 18,
+    "priority": "Medium",
+    "category": "PERFORMANCE",
+    "abbrev": "UuF",
+    "message": "UuF: Unused field: fixtures.sarif.SarifFixtureSample.neverRead",
+    "sourceFile": "SarifFixtureSample.java",
+    "startLine": 0,
+    "endLine": 0,
+    "realSourcePath": "fixtures/sarif/SarifFixtureSample.java",
+    "shortDescription": "Unused field",
+    "longDescription": "This field is never used.  Consider removing it from the class.",
+    "helpUri": "https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#UUF_UNUSED_FIELD",
+    "categoryAbbrev": "P",
+    "instanceHash": "42db004d3d6a890cab96728d1a447f25",
+    "className": "fixtures.sarif.SarifFixtureSample",
+    "fieldName": "neverRead",
+    "fullPath": "/__WORKSPACE_ROOT__/fixtures/sarif/SarifFixtureSample.java"
+  }
+]

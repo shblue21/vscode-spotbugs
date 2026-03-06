@@ -1,0 +1,33 @@
+{
+  "toolDriver": {
+    "name": "SpotBugs",
+    "version": "(Unknown)"
+  },
+  "rules": [
+    {
+      "id": "NP_ALWAYS_NULL",
+      "shortDescription": "Null pointer dereference.",
+      "helpUri": "https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL"
+    },
+    {
+      "id": "UUF_UNUSED_FIELD",
+      "shortDescription": "Unused field.",
+      "helpUri": "https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#UUF_UNUSED_FIELD"
+    }
+  ],
+  "results": [
+    {
+      "ruleId": "NP_ALWAYS_NULL",
+      "level": "error",
+      "message": "Null pointer dereference",
+      "uri": "fixtures/sarif/SarifFixtureSample.java",
+      "startLine": 8
+    },
+    {
+      "ruleId": "UUF_UNUSED_FIELD",
+      "level": "note",
+      "message": "Unused field",
+      "uri": "fixtures/sarif/SarifFixtureSample.java"
+    }
+  ]
+}

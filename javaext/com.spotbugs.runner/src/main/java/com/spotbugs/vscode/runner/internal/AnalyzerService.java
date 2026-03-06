@@ -44,51 +44,47 @@ public class AnalyzerService {
 
     public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
         try {
-            checkCanceled(monitor);
-            this.lastTargetCount = 0;
-            if (filePaths == null || filePaths.length == 0) {
+            PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
+            if (prepared == null) {
                 return java.util.Collections.emptyList();
             }
-
-            Project project = new Project();
-            // Resolve concrete targets
-            ClasspathConfigurer cpCfg = new ClasspathConfigurer();
-            List<java.io.File> cpDirs = cpCfg.directoriesFrom(this.projectClasspaths);
-            TargetResolver resolver = new TargetResolver();
-            List<String> targets = resolver.resolveTargets(filePaths, cpDirs, monitor);
-            this.lastTargetCount = targets.size();
-            if (targets.isEmpty()) {
-                return java.util.Collections.emptyList();
-            }
-            checkCanceled(monitor);
-            for (String t : targets) {
-                project.addFile(t);
-            }
-            // Apply classpaths
-            cpCfg.apply(project, this.projectClasspaths);
-
             SpotBugsRunner runner = new SpotBugsRunner();
-            Integer reporterPriority = computeReporterPriorityThreshold(this.config != null ? this.config.getPriorityThreshold() : null);
-            java.util.List<String> plugins = this.config != null ? this.config.getPlugins() : java.util.Collections.emptyList();
             checkCanceled(monitor);
-            List<BugInfo> bugs = runner.run(this.findBugs, project, reporterPriority, plugins);
+            List<BugInfo> bugs = runner.run(
+                    this.findBugs,
+                    prepared.project,
+                    prepared.reporterPriorityThreshold,
+                    prepared.plugins
+            );
             checkCanceled(monitor);
             applyFullPaths(bugs, monitor, filePaths);
-            // Precise post-filter by rank when requested
-            Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
-            if (rankThreshold != null) {
-                final int maxRank = Math.max(1, Math.min(20, rankThreshold.intValue()));
-                java.util.Iterator<BugInfo> it = bugs.iterator();
-                while (it.hasNext()) {
-                    checkCanceled(monitor);
-                    BugInfo b = it.next();
-                    if (b == null) continue;
-                    if (b.getRank() > maxRank) it.remove();
-                }
-            }
+            applyRankThreshold(bugs, monitor);
             return bugs;
         } catch (Exception e) {
             return java.util.Collections.emptyList();
+        }
+    }
+
+    public String analyzeToNativeSarif(String... filePaths) {
+        return analyzeToNativeSarif(null, filePaths);
+    }
+
+    public String analyzeToNativeSarif(IProgressMonitor monitor, String... filePaths) {
+        try {
+            PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
+            if (prepared == null) {
+                return "";
+            }
+            SpotBugsRunner runner = new SpotBugsRunner();
+            checkCanceled(monitor);
+            return runner.runNativeSarif(
+                    this.findBugs,
+                    prepared.project,
+                    prepared.reporterPriorityThreshold,
+                    prepared.plugins
+            );
+        } catch (Exception e) {
+            return "";
         }
     }
 
@@ -99,6 +95,55 @@ public class AnalyzerService {
         if (r <= 4) return Integer.valueOf(1);
         if (r <= 9) return Integer.valueOf(2);
         return Integer.valueOf(3);
+    }
+
+    private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, String... filePaths) throws java.io.IOException {
+        checkCanceled(monitor);
+        this.lastTargetCount = 0;
+        if (filePaths == null || filePaths.length == 0) {
+            return null;
+        }
+
+        Project project = new Project();
+        ClasspathConfigurer cpCfg = new ClasspathConfigurer();
+        List<java.io.File> cpDirs = cpCfg.directoriesFrom(this.projectClasspaths);
+        TargetResolver resolver = new TargetResolver();
+        List<String> targets = resolver.resolveTargets(filePaths, cpDirs, monitor);
+        this.lastTargetCount = targets.size();
+        if (targets.isEmpty()) {
+            return null;
+        }
+        checkCanceled(monitor);
+        for (String t : targets) {
+            project.addFile(t);
+        }
+        cpCfg.apply(project, this.projectClasspaths);
+        Integer reporterPriority = computeReporterPriorityThreshold(
+                this.config != null ? this.config.getPriorityThreshold() : null
+        );
+        java.util.List<String> plugins = this.config != null
+                ? this.config.getPlugins()
+                : java.util.Collections.emptyList();
+        return new PreparedAnalysis(project, reporterPriority, plugins);
+    }
+
+    private void applyRankThreshold(List<BugInfo> bugs, IProgressMonitor monitor) {
+        Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
+        if (rankThreshold == null) {
+            return;
+        }
+        final int maxRank = Math.max(1, Math.min(20, rankThreshold.intValue()));
+        java.util.Iterator<BugInfo> it = bugs.iterator();
+        while (it.hasNext()) {
+            checkCanceled(monitor);
+            BugInfo bug = it.next();
+            if (bug == null) {
+                continue;
+            }
+            if (bug.getRank() > maxRank) {
+                it.remove();
+            }
+        }
     }
 
     private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, String... filePaths) {
@@ -126,6 +171,18 @@ public class AnalyzerService {
     private static void checkCanceled(IProgressMonitor monitor) {
         if (monitor != null && monitor.isCanceled()) {
             throw new java.util.concurrent.CancellationException("Command cancelled");
+        }
+    }
+
+    private static final class PreparedAnalysis {
+        private final Project project;
+        private final Integer reporterPriorityThreshold;
+        private final List<String> plugins;
+
+        private PreparedAnalysis(Project project, Integer reporterPriorityThreshold, List<String> plugins) {
+            this.project = project;
+            this.reporterPriorityThreshold = reporterPriorityThreshold;
+            this.plugins = plugins;
         }
     }
 

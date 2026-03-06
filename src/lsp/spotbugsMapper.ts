@@ -22,6 +22,16 @@ export function mapBugToFinding(bug: Bug): Finding {
     category: bug.category,
     abbrev: bug.abbrev,
     message: bug.message,
+    shortDescription: bug.shortDescription,
+    longDescription: bug.longDescription,
+    helpUri: bug.helpUri,
+    categoryAbbrev: bug.categoryAbbrev,
+    cweId: bug.cweId,
+    instanceHash: bug.instanceHash,
+    className: bug.className,
+    methodName: bug.methodName,
+    methodSignature: bug.methodSignature,
+    fieldName: bug.fieldName,
     location,
   };
 }

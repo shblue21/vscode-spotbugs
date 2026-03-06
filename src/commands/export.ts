@@ -19,7 +19,7 @@ export async function exportSarifReport(
   const defaultUri = createDefaultSaveUri(fileName);
   const saveUri = await window.showSaveDialog({
     defaultUri,
-    filters: { SARIF: ['sarif', 'json'] },
+    filters: { sarif: ['sarif', 'json'] },
     saveLabel: 'Export SARIF',
   });
   if (!saveUri) {
@@ -29,6 +29,7 @@ export async function exportSarifReport(
   try {
     const sarifLog = buildSarifLog(findings, {
       runName: getWorkspaceName(),
+      workspaceRootPath: workspace.workspaceFolders?.[0]?.uri.fsPath,
     });
     const sarifJson = JSON.stringify(sarifLog, null, 2);
     await workspace.fs.writeFile(saveUri, Buffer.from(sarifJson, 'utf8'));
