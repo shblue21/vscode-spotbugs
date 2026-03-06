@@ -1,4 +1,12 @@
 # Changelog
+## [0.2.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.1.0...v0.2.0) (2026-03-06)
+
+
+### Features
+
+* align SARIF export with native SpotBugs metadata ([3b79f27](https://github.com/shblue21/vscode-spotbugs/commit/3b79f27efa1f5c8af80f460f1d1afdbd0c1a2776))
+* align SARIF export with native SpotBugs metadata ([5c9b8a6](https://github.com/shblue21/vscode-spotbugs/commit/5c9b8a6798c66993352caff0e6f4b750c6f02dcd))
+
 ## [0.1.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.0.14...v0.1.0) (2026-03-05)
 
 
