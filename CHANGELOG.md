@@ -1,4 +1,16 @@
 # Changelog
+## [0.2.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.1.0...v0.2.0) (2026-03-13)
+
+
+### Features
+
+* add client-side filters to the SpotBugs tree view ([d582003](https://github.com/shblue21/vscode-spotbugs/commit/d58200360bb1d960ae1209afb1ddf1ea28da7fe9))
+* add client-side filters to the SpotBugs tree view ([67e818f](https://github.com/shblue21/vscode-spotbugs/commit/67e818f8f34a83a28867823fb4289195d3ef6a2e))
+* Add SpotBugs rule docs quick fix for diagnostics ([0ce8061](https://github.com/shblue21/vscode-spotbugs/commit/0ce8061d0cf19905ee742a6abbf4252ab03ce7d0))
+* Add SpotBugs rule docs quick fix for diagnostics ([1ff3d46](https://github.com/shblue21/vscode-spotbugs/commit/1ff3d460bfca011b364fb1156e44071d137c1598))
+* align SARIF export with native SpotBugs metadata ([3b79f27](https://github.com/shblue21/vscode-spotbugs/commit/3b79f27efa1f5c8af80f460f1d1afdbd0c1a2776))
+* align SARIF export with native SpotBugs metadata ([5c9b8a6](https://github.com/shblue21/vscode-spotbugs/commit/5c9b8a6798c66993352caff0e6f4b750c6f02dcd))
+
 ## [0.1.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.0.14...v0.1.0) (2026-03-05)
 
 
