@@ -11,6 +11,7 @@ export namespace SpotBugsCommands {
   export const RUN_ANALYSIS: string = 'spotbugs.run';
   export const RUN_WORKSPACE: string = 'spotbugs.runWorkspace';
   export const OPEN_BUG_LOCATION: string = 'spotbugs.openBugLocation';
+  export const FILTER_RESULTS: string = 'spotbugs.filterResults';
   export const EXPORT_SARIF: string = 'spotbugs.exportSarif';
   export const RESET_RESULTS: string = 'spotbugs.resetResults';
 }
