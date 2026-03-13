@@ -12,6 +12,11 @@ import { Finding } from '../model/finding';
 import { Severity } from '../model/severity';
 import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
 import { getBestEffortFileUri } from '../workspace/findingLocator';
+import {
+  getFindingDiagnosticCodeValue,
+  getFindingDocumentationUri,
+  SPOTBUGS_DIAGNOSTIC_SOURCE,
+} from './spotbugsDiagnosticSupport';
 
 type FindingRange = {
   range: Range;
@@ -103,15 +108,15 @@ export class SpotBugsDiagnosticsManager {
     const message = formatFindingSummary(finding);
     const severity = rankToSeverity(finding.rank);
     const diagnostic = new Diagnostic(range, message, toDiagnosticSeverity(severity));
-    diagnostic.source = 'SpotBugs';
-    const docUri = this.getDocumentationUri(finding);
+    diagnostic.source = SPOTBUGS_DIAGNOSTIC_SOURCE;
+    const docUri = getFindingDocumentationUri(finding);
     if (docUri) {
       diagnostic.code = {
-        value: finding.type || finding.abbrev || 'SpotBugs',
+        value: getFindingDiagnosticCodeValue(finding),
         target: docUri,
       };
     } else {
-      diagnostic.code = finding.type || finding.abbrev || 'SpotBugs';
+      diagnostic.code = getFindingDiagnosticCodeValue(finding);
     }
     diagnostic.relatedInformation = undefined;
     return diagnostic;
@@ -128,15 +133,6 @@ export class SpotBugsDiagnosticsManager {
 
   private resolveFileUri(finding: Finding): Uri | undefined {
     return getBestEffortFileUri(finding);
-  }
-
-  private getDocumentationUri(_finding: Finding): Uri | undefined {
-    const docBase = 'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html';
-    try {
-      return Uri.parse(docBase);
-    } catch {
-      return undefined;
-    }
   }
 }
 

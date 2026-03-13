@@ -1,4 +1,4 @@
-import { ExtensionContext, window, Uri, workspace } from 'vscode';
+import { ExtensionContext, languages, window, Uri, workspace } from 'vscode';
 import { SETTINGS_SECTION } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
@@ -12,6 +12,7 @@ import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
+import { SpotBugsDiagnosticCodeActionProvider } from './services/spotbugsDiagnosticCodeActionProvider';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,
@@ -44,6 +45,8 @@ async function doActivate(
 
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
+    const diagnosticCodeActionProvider =
+      new SpotBugsDiagnosticCodeActionProvider(diagnosticsManager);
 
     const spotbugsTreeView = window.createTreeView('spotbugs-view', {
       treeDataProvider: spotbugsTreeDataProvider,
@@ -52,6 +55,14 @@ async function doActivate(
     context.subscriptions.push(
       spotbugsTreeView,
       diagnosticsManager,
+      languages.registerCodeActionsProvider(
+        { language: 'java' },
+        diagnosticCodeActionProvider,
+        {
+          providedCodeActionKinds:
+            SpotBugsDiagnosticCodeActionProvider.providedCodeActionKinds,
+        }
+      ),
       // Refresh cached configuration on settings change
       workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration(SETTINGS_SECTION)) {
