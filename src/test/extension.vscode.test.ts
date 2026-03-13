@@ -15,6 +15,7 @@ suite('Extension activation', () => {
       SpotBugsCommands.RUN_ANALYSIS,
       SpotBugsCommands.RUN_WORKSPACE,
       SpotBugsCommands.OPEN_BUG_LOCATION,
+      SpotBugsCommands.FILTER_RESULTS,
       SpotBugsCommands.EXPORT_SARIF,
       SpotBugsCommands.RESET_RESULTS,
     ];

@@ -10,6 +10,14 @@ import {
 } from './findingTreeItem';
 import * as path from 'path';
 import { groupFindingsByCategoryAndPattern } from './treeModel';
+import {
+  applyFindingFilters,
+  createFilteredEmptyState,
+  type FindingFilterKind,
+  type FindingFilterOption,
+  type FindingFilterState,
+  getFindingFilterOptions,
+} from './findingFilters';
 
 export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
@@ -19,7 +27,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private viewItems: TreeItem[] = [];
   private projectItems: Map<string, ProjectStatusItem> = new Map();
-  private lastResults: Finding[] = [];
+  private cachedResults: Finding[] = [];
+  private visibleResults: Finding[] = [];
+  private activeFilters: FindingFilterState = {};
 
   constructor() {
     this.showInitialMessage();
@@ -42,14 +52,20 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   public showInitialMessage(): void {
-    this.viewItems = [new TreeItem('Ready to analyze. Click the search icon to start.')];
-    this.lastResults = [];
+    this.projectItems.clear();
+    this.cachedResults = [];
+    this.visibleResults = [];
+    this.activeFilters = {};
+    this.viewItems = [this.createMessageItem('Ready to analyze. Click the search icon to start.')];
     this._onDidChangeTreeData.fire(undefined);
   }
 
   public showLoading(): void {
-    this.viewItems = [new TreeItem('Analyzing...')];
-    this.lastResults = [];
+    this.projectItems.clear();
+    this.cachedResults = [];
+    this.visibleResults = [];
+    this.activeFilters = {};
+    this.viewItems = [this.createMessageItem('Analyzing...')];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -63,7 +79,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       this.projectItems.set(uriString, item);
     }
     this.viewItems = items;
-    this.lastResults = [];
+    this.cachedResults = [];
+    this.visibleResults = [];
+    this.activeFilters = {};
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -89,24 +107,57 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   public showResults(findings: Finding[]): void {
-    if (!findings || findings.length === 0) {
-      this.viewItems = [new TreeItem('No issues found.')];
-      this.lastResults = [];
-    } else {
-      const categories = groupFindingsByCategoryAndPattern(findings);
-      this.viewItems = categories.map((category) => {
-        const patterns = category.patterns.map(
-          (pattern) => new PatternGroupItem(pattern.label, pattern.findings)
-        );
-        return new CategoryGroupItem(category.name, patterns, category.total);
-      });
-      this.lastResults = findings.slice();
-    }
+    this.projectItems.clear();
+    this.cachedResults = findings ? findings.slice() : [];
+    this.refreshResultsView();
     this._onDidChangeTreeData.fire(undefined);
   }
 
+  public getCachedFindings(): Finding[] {
+    return this.cachedResults.slice();
+  }
+
   public getAllFindings(): Finding[] {
-    return this.lastResults.slice();
+    return this.visibleResults.slice();
+  }
+
+  public getActiveFilters(): FindingFilterState {
+    return { ...this.activeFilters };
+  }
+
+  public getFilterOptions(kind: FindingFilterKind): FindingFilterOption[] {
+    return getFindingFilterOptions(this.cachedResults, this.activeFilters, kind);
+  }
+
+  public setFilter(kind: FindingFilterKind, value: string): void {
+    this.activeFilters = {
+      ...this.activeFilters,
+      [kind]: value,
+    };
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public clearFilter(kind: FindingFilterKind): void {
+    if (!this.activeFilters[kind]) {
+      return;
+    }
+
+    const nextFilters = { ...this.activeFilters };
+    delete nextFilters[kind];
+    this.activeFilters = nextFilters;
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public clearFilters(): void {
+    if (Object.keys(this.activeFilters).length === 0) {
+      return;
+    }
+
+    this.activeFilters = {};
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   public getFindingsForNode(element: TreeItem): Finding[] {
@@ -120,5 +171,37 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       return [element.finding];
     }
     return [];
+  }
+
+  private refreshResultsView(): void {
+    if (this.cachedResults.length === 0) {
+      this.viewItems = [this.createMessageItem('No issues found.')];
+      this.visibleResults = [];
+      return;
+    }
+
+    const filteredFindings = applyFindingFilters(this.cachedResults, this.activeFilters);
+    this.visibleResults = filteredFindings.slice();
+
+    if (filteredFindings.length === 0) {
+      const emptyState = createFilteredEmptyState(this.cachedResults, this.activeFilters);
+      this.viewItems = [this.createMessageItem(emptyState.label, emptyState.description)];
+      return;
+    }
+
+    const categories = groupFindingsByCategoryAndPattern(filteredFindings);
+    this.viewItems = categories.map((category) => {
+      const patterns = category.patterns.map(
+        (pattern) => new PatternGroupItem(pattern.label, pattern.findings)
+      );
+      return new CategoryGroupItem(category.name, patterns, category.total);
+    });
+  }
+
+  private createMessageItem(label: string, description?: string): TreeItem {
+    const item = new TreeItem(label);
+    item.description = description;
+    item.contextValue = 'spotbugs.message';
+    return item;
   }
 }

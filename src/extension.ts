@@ -8,6 +8,7 @@ import { openBugLocation } from './commands/navigation';
 import { Config } from './core/config';
 import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
+import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
@@ -74,6 +75,13 @@ async function doActivate(
         SpotBugsCommands.OPEN_BUG_LOCATION,
         async (bug) => {
           await openBugLocation(bug);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.FILTER_RESULTS,
+        async () => {
+          await selectFindingFilter(spotbugsTreeDataProvider);
         }
       ),
 

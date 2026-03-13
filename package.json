@@ -147,6 +147,11 @@
         "title": "Open Bug Location"
       },
       {
+        "command": "spotbugs.filterResults",
+        "title": "Filter SpotBugs Findings",
+        "icon": "$(filter)"
+      },
+      {
         "command": "spotbugs.exportSarif",
         "title": "Export SpotBugs Findings (SARIF)",
         "icon": "$(file-code)"
@@ -170,9 +175,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "spotbugs.resetResults",
+          "command": "spotbugs.filterResults",
           "when": "view == spotbugs-view",
           "group": "navigation@2"
+        },
+        {
+          "command": "spotbugs.resetResults",
+          "when": "view == spotbugs-view",
+          "group": "navigation@3"
         }
       ],
       "explorer/context": [
