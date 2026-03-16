@@ -41,9 +41,16 @@ const SEVERITY_LABELS: Record<'error' | 'warning' | 'info', string> = {
   warning: 'Warning',
   info: 'Info',
 };
+const SEVERITY_ALIASES: Record<string, string> = {
+  high: 'Error',
+  medium: 'Warning',
+  med: 'Warning',
+  low: 'Info',
+};
 
 const SEVERITY_ORDER = ['Error', 'Warning', 'Info'];
 const DEFAULT_PACKAGE_LABEL = '<default package>';
+const FINDING_FILTER_QUERY_KEYS = new Set<FindingFilterKind>(FILTER_KIND_ORDER);
 
 export function getFindingFilterKinds(): FindingFilterKind[] {
   return FILTER_KIND_ORDER.slice();
@@ -63,9 +70,74 @@ export function applyFindingFilters(
       if (!expected) {
         return true;
       }
-      return getFindingFilterValue(finding, kind) === expected;
+      return findingMatchesFilter(finding, kind, expected);
     })
   );
+}
+
+export function parseFindingFilterQuery(query: string): FindingFilterState {
+  const filters: FindingFilterState = {};
+  const input = query.trim();
+
+  if (!input) {
+    return filters;
+  }
+
+  let index = 0;
+  while (index < input.length) {
+    index = skipWhitespace(input, index);
+    if (index >= input.length) {
+      break;
+    }
+
+    const keyStart = index;
+    while (index < input.length && /[A-Za-z]/.test(input[index])) {
+      index += 1;
+    }
+
+    if (keyStart === index || input[index] !== ':') {
+      throw new Error(
+        `Invalid filter syntax near "${input.slice(keyStart)}". Use key:value terms.`
+      );
+    }
+
+    const rawKey = input.slice(keyStart, index).toLowerCase();
+    if (!isFindingFilterKind(rawKey)) {
+      throw new Error(
+        `Unsupported filter key "${rawKey}". Supported keys: ${FILTER_KIND_ORDER.join(', ')}.`
+      );
+    }
+
+    index += 1;
+    if (index >= input.length) {
+      throw new Error(`Missing value for "${rawKey}:" filter.`);
+    }
+
+    const { value, nextIndex } = readFilterQueryValue(input, index, rawKey);
+    filters[rawKey] = value;
+    index = nextIndex;
+  }
+
+  return filters;
+}
+
+export function validateFindingFilterQuery(query: string): string | undefined {
+  try {
+    parseFindingFilterQuery(query);
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
+export function formatFindingFilterQuery(filters: FindingFilterState): string {
+  return FILTER_KIND_ORDER.flatMap((kind) => {
+    const value = filters[kind];
+    if (!value) {
+      return [];
+    }
+    return [`${kind}:${quoteFindingFilterValue(value)}`];
+  }).join(' ');
 }
 
 export function getFindingFilterOptions(
@@ -142,6 +214,38 @@ function getFindingFilterValue(
   return toFindingFilterOption(kind, finding)?.value;
 }
 
+function findingMatchesFilter(
+  finding: Finding,
+  kind: FindingFilterKind,
+  expected: string
+): boolean {
+  const normalizedExpected = normalizeFindingFilterInput(kind, expected);
+  if (!normalizedExpected) {
+    return true;
+  }
+
+  if (kind === 'severity') {
+    const value = getFindingFilterValue(finding, kind);
+    return value !== undefined && equalsIgnoreCase(value, normalizedExpected);
+  }
+
+  const option = toFindingFilterOption(kind, finding);
+  if (!option) {
+    return false;
+  }
+
+  const haystacks = [option.value, option.label, option.detail].filter(
+    (candidate): candidate is string => Boolean(candidate)
+  );
+
+  const normalizedHaystacks =
+    kind === 'path' ? haystacks.map((candidate) => normalizePathSeparators(candidate)) : haystacks;
+  const comparableExpected =
+    kind === 'path' ? normalizePathSeparators(normalizedExpected) : normalizedExpected;
+
+  return normalizedHaystacks.some((candidate) => containsIgnoreCase(candidate, comparableExpected));
+}
+
 function getFindingFilterLabel(
   findings: Finding[],
   kind: FindingFilterKind,
@@ -166,6 +270,40 @@ function omitFindingFilter(
     }
   }
   return next;
+}
+
+function normalizeFindingFilterInput(
+  kind: FindingFilterKind,
+  value: string
+): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (kind !== 'severity') {
+    return trimmed;
+  }
+
+  const alias = SEVERITY_ALIASES[trimmed.toLowerCase()];
+  if (alias) {
+    return alias;
+  }
+
+  const exact = SEVERITY_ORDER.find((label) => equalsIgnoreCase(label, trimmed));
+  if (exact) {
+    return exact;
+  }
+
+  const prefixMatches = SEVERITY_ORDER.filter((label) =>
+    label.toLowerCase().startsWith(trimmed.toLowerCase())
+  );
+
+  if (prefixMatches.length === 1) {
+    return prefixMatches[0];
+  }
+
+  return trimmed;
 }
 
 function toFindingFilterOption(
@@ -273,4 +411,90 @@ function sortFindingFilterOptions(
     }
     return a.value.localeCompare(b.value);
   });
+}
+
+function isFindingFilterKind(value: string): value is FindingFilterKind {
+  return FINDING_FILTER_QUERY_KEYS.has(value as FindingFilterKind);
+}
+
+function skipWhitespace(input: string, index: number): number {
+  let next = index;
+  while (next < input.length && /\s/.test(input[next])) {
+    next += 1;
+  }
+  return next;
+}
+
+function readFilterQueryValue(
+  input: string,
+  index: number,
+  key: FindingFilterKind
+): { value: string; nextIndex: number } {
+  if (input[index] === '"' || input[index] === "'") {
+    return readQuotedFilterQueryValue(input, index, key);
+  }
+
+  let nextIndex = index;
+  while (nextIndex < input.length && !/\s/.test(input[nextIndex])) {
+    nextIndex += 1;
+  }
+
+  const rawValue = input.slice(index, nextIndex);
+  const value = normalizeFindingFilterInput(key, rawValue);
+  if (!value) {
+    throw new Error(`Missing value for "${key}:" filter.`);
+  }
+
+  return { value, nextIndex };
+}
+
+function readQuotedFilterQueryValue(
+  input: string,
+  index: number,
+  key: FindingFilterKind
+): { value: string; nextIndex: number } {
+  const quote = input[index];
+  let cursor = index + 1;
+  let value = '';
+
+  while (cursor < input.length) {
+    const char = input[cursor];
+    if (char === '\\' && cursor + 1 < input.length) {
+      value += input[cursor + 1];
+      cursor += 2;
+      continue;
+    }
+    if (char === quote) {
+      const normalized = normalizeFindingFilterInput(key, value);
+      if (!normalized) {
+        throw new Error(`Missing value for "${key}:" filter.`);
+      }
+      return { value: normalized, nextIndex: cursor + 1 };
+    }
+    value += char;
+    cursor += 1;
+  }
+
+  throw new Error(`Unterminated quoted value for "${key}:" filter.`);
+}
+
+function quoteFindingFilterValue(value: string): string {
+  if (!/[\s"]/u.test(value)) {
+    return value;
+  }
+
+  const escaped = value.replace(/["\\]/g, '\\$&');
+  return `"${escaped}"`;
+}
+
+function containsIgnoreCase(haystack: string, needle: string): boolean {
+  return haystack.toLowerCase().includes(needle.toLowerCase());
+}
+
+function equalsIgnoreCase(left: string, right: string): boolean {
+  return left.localeCompare(right, undefined, { sensitivity: 'accent' }) === 0;
+}
+
+function normalizePathSeparators(value: string): string {
+  return value.replace(/\\/g, '/');
 }

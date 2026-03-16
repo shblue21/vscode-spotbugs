@@ -2,7 +2,10 @@ import * as assert from 'assert';
 import {
   applyFindingFilters,
   createFilteredEmptyState,
+  formatFindingFilterQuery,
   getFindingFilterOptions,
+  parseFindingFilterQuery,
+  validateFindingFilterQuery,
 } from '../ui/findingFilters';
 import { Finding } from '../model/finding';
 
@@ -117,6 +120,63 @@ describe('findingFilters', () => {
 
     assert.strictEqual(filtered.length, 1);
     assert.strictEqual(filtered[0].className, 'com.acme.Bar');
+  });
+
+  it('supports partial case-insensitive matching for text filters', () => {
+    const filtered = applyFindingFilters(findings, {
+      severity: 'warn',
+      category: 'correct',
+      package: 'ACME',
+      class: 'bar',
+      path: 'bar.java',
+      rule: 'unread',
+    });
+
+    assert.strictEqual(filtered.length, 1);
+    assert.strictEqual(filtered[0].className, 'com.acme.Bar');
+  });
+
+  it('normalizes severity aliases and path separators in query values', () => {
+    const filtered = applyFindingFilters(findings, {
+      severity: 'medium',
+      path: 'com\\acme\\Bar.java',
+    });
+
+    assert.strictEqual(filtered.length, 1);
+    assert.strictEqual(filtered[0].className, 'com.acme.Bar');
+  });
+
+  it('parses combined key:value queries and preserves quoted values', () => {
+    const parsed = parseFindingFilterQuery(
+      'severity:high category:CORRECTNESS path:"/workspace/My Project/com/acme/Bar.java" rule:UR'
+    );
+
+    assert.deepStrictEqual(parsed, {
+      severity: 'Error',
+      category: 'CORRECTNESS',
+      path: '/workspace/My Project/com/acme/Bar.java',
+      rule: 'UR',
+    });
+  });
+
+  it('formats active filters back into an input-box query string', () => {
+    const query = formatFindingFilterQuery({
+      severity: 'Error',
+      path: '/workspace/My Project/com/acme/Foo.java',
+      rule: 'NP',
+    });
+
+    assert.strictEqual(
+      query,
+      'severity:Error path:"/workspace/My Project/com/acme/Foo.java" rule:NP'
+    );
+  });
+
+  it('reports invalid query syntax for unsupported keys', () => {
+    assert.strictEqual(
+      validateFindingFilterQuery('owner:me'),
+      'Unsupported filter key "owner". Supported keys: severity, category, package, class, path, rule.'
+    );
   });
 
   it('describes the active filters in the zero-result empty state', () => {
