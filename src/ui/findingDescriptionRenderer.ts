@@ -1,9 +1,57 @@
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
+import * as sanitizeHtml from 'sanitize-html';
 
 const PANEL_TITLE = 'SpotBugs Details';
 const GENERIC_SPOTBUGS_DOCS_URI =
   'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html';
+const DETAIL_HTML_ALLOWED_TAGS = [
+  'p',
+  'br',
+  'code',
+  'pre',
+  'blockquote',
+  'ul',
+  'ol',
+  'li',
+  'dl',
+  'dt',
+  'dd',
+  'b',
+  'strong',
+  'i',
+  'em',
+  'tt',
+  'sup',
+  'sub',
+  'a',
+];
+const DETAIL_HTML_ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
+const DETAIL_HTML_ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+const FINDING_DETAIL_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: DETAIL_HTML_ALLOWED_TAGS,
+  allowedAttributes: {
+    a: ['href', 'title'],
+  },
+  allowedSchemes: DETAIL_HTML_ALLOWED_SCHEMES,
+  allowedSchemesAppliedToAttributes: ['href'],
+  allowProtocolRelative: false,
+  disallowedTagsMode: 'discard',
+  transformTags: {
+    a: (_tagName, attribs) => {
+      const sanitizedHref = getAllowedDetailHref(attribs.href);
+      const sanitizedTitle = attribs.title?.trim();
+
+      return {
+        tagName: 'a',
+        attribs: {
+          ...(sanitizedHref ? { href: sanitizedHref } : {}),
+          ...(sanitizedTitle ? { title: sanitizedTitle } : {}),
+        },
+      };
+    },
+  },
+};
 
 export function renderFindingDescriptionHtml(finding: Finding): string {
   const title = getFindingDescriptionTitle(finding);
@@ -145,23 +193,7 @@ export function renderFindingDescriptionHtml(finding: Finding): string {
 }
 
 export function sanitizeFindingDetailHtml(raw: string): string {
-  let sanitized = raw.trim();
-  sanitized = sanitized.replace(
-    /<\s*(script|style|iframe|object|embed|meta|link|base)\b[\s\S]*?<\s*\/\s*\1\s*>/gi,
-    ''
-  );
-  sanitized = sanitized.replace(
-    /<\s*(script|style|iframe|object|embed|meta|link|base)\b[^>]*\/?>/gi,
-    ''
-  );
-  sanitized = sanitized.replace(/\son[a-z]+\s*=\s*(".*?"|'.*?'|[^\s>]+)/gi, '');
-  sanitized = sanitized.replace(
-    /\s(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi,
-    ' $1="#"'
-  );
-  sanitized = sanitized.replace(/\s(href|src)\s*=\s*(javascript:[^\s>]+)/gi, ' $1="#"');
-  sanitized = sanitized.replace(/<\s*\/?\s*(html|head|body)\b[^>]*>/gi, '');
-  return sanitized.trim();
+  return sanitizeHtml(raw, FINDING_DETAIL_SANITIZE_OPTIONS).trim();
 }
 
 function renderDescriptionBody(finding: Finding): string {
@@ -198,7 +230,18 @@ function escapeAttribute(value: string): string {
   return escapeHtml(value);
 }
 
+function getAllowedDetailHref(raw?: string): string | undefined {
+  return getAllowedAbsoluteUrl(raw, DETAIL_HTML_ALLOWED_PROTOCOLS);
+}
+
 function getExternalDocsHref(raw?: string): string | undefined {
+  return getAllowedAbsoluteUrl(raw, new Set(['http:', 'https:']));
+}
+
+function getAllowedAbsoluteUrl(
+  raw: string | undefined,
+  allowedProtocols: ReadonlySet<string>
+): string | undefined {
   const trimmed = raw?.trim();
   if (!trimmed) {
     return undefined;
@@ -206,7 +249,7 @@ function getExternalDocsHref(raw?: string): string | undefined {
 
   try {
     const url = new URL(trimmed);
-    if (url.protocol === 'http:' || url.protocol === 'https:') {
+    if (allowedProtocols.has(url.protocol)) {
       return url.toString();
     }
   } catch {
