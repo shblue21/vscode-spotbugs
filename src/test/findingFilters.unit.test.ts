@@ -57,7 +57,7 @@ describe('findingFilters', () => {
     }),
     makeFinding({
       patternId: 'DMI',
-      type: 'DMI',
+      type: 'DMI_INVOKING_TOSTRING_ON_ARRAY',
       rank: 14,
       category: 'PERFORMANCE',
       abbrev: 'DMI',
@@ -136,6 +136,15 @@ describe('findingFilters', () => {
     assert.strictEqual(filtered[0].className, 'com.acme.Bar');
   });
 
+  it('matches rule filters against the full SpotBugs type when available', () => {
+    const filtered = applyFindingFilters(findings, {
+      rule: 'DMI_INVOKING_TOSTRING',
+    });
+
+    assert.strictEqual(filtered.length, 1);
+    assert.strictEqual(filtered[0].className, 'Helper');
+  });
+
   it('normalizes severity aliases and path separators in query values', () => {
     const filtered = applyFindingFilters(findings, {
       severity: 'medium',
@@ -156,6 +165,14 @@ describe('findingFilters', () => {
       category: 'CORRECTNESS',
       path: '/workspace/My Project/com/acme/Bar.java',
       rule: 'UR',
+    });
+  });
+
+  it('preserves backslashes in quoted Windows path queries', () => {
+    const parsed = parseFindingFilterQuery('path:"C:\\Users\\Foo Bar.java"');
+
+    assert.deepStrictEqual(parsed, {
+      path: 'C:\\Users\\Foo Bar.java',
     });
   });
 

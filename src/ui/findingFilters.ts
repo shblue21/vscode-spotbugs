@@ -234,9 +234,7 @@ function findingMatchesFilter(
     return false;
   }
 
-  const haystacks = [option.value, option.label, option.detail].filter(
-    (candidate): candidate is string => Boolean(candidate)
-  );
+  const haystacks = getFindingFilterMatchTerms(finding, kind, option);
 
   const normalizedHaystacks =
     kind === 'path' ? haystacks.map((candidate) => normalizePathSeparators(candidate)) : haystacks;
@@ -460,9 +458,12 @@ function readQuotedFilterQueryValue(
   while (cursor < input.length) {
     const char = input[cursor];
     if (char === '\\' && cursor + 1 < input.length) {
-      value += input[cursor + 1];
-      cursor += 2;
-      continue;
+      const nextChar = input[cursor + 1];
+      if (nextChar === quote || nextChar === '\\') {
+        value += nextChar;
+        cursor += 2;
+        continue;
+      }
     }
     if (char === quote) {
       const normalized = normalizeFindingFilterInput(key, value);
@@ -497,4 +498,18 @@ function equalsIgnoreCase(left: string, right: string): boolean {
 
 function normalizePathSeparators(value: string): string {
   return value.replace(/\\/g, '/');
+}
+
+function getFindingFilterMatchTerms(
+  finding: Finding,
+  kind: FindingFilterKind,
+  option: Omit<FindingFilterOption, 'count'>
+): string[] {
+  const terms = [option.value, option.label, option.detail];
+
+  if (kind === 'rule' && finding.type) {
+    terms.push(finding.type);
+  }
+
+  return terms.filter((candidate): candidate is string => Boolean(candidate));
 }
