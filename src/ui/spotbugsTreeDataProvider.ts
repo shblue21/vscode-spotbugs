@@ -138,12 +138,6 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  public setFilters(filters: FindingFilterState): void {
-    this.activeFilters = { ...filters };
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
-  }
-
   public clearFilter(kind: FindingFilterKind): void {
     if (!this.activeFilters[kind]) {
       return;

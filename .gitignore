@@ -17,5 +17,3 @@ server/com.spotbugs.runner-0.0.1.jar
 *.tsbuildinfo
 
 **/dependency-reduced-pom.xml
-
-.vscode-test/**
