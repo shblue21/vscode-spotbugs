@@ -11,8 +11,10 @@ import { defaultNotifier } from './core/notifier';
 import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
+import { Finding } from './model/finding';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
 import { SpotBugsDiagnosticCodeActionProvider } from './services/spotbugsDiagnosticCodeActionProvider';
+import { FindingDescriptionPanel } from './ui/findingDescriptionPanel';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,
@@ -45,6 +47,7 @@ async function doActivate(
 
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
+    const findingDescriptionPanel = new FindingDescriptionPanel();
     const diagnosticCodeActionProvider =
       new SpotBugsDiagnosticCodeActionProvider(diagnosticsManager);
 
@@ -55,6 +58,7 @@ async function doActivate(
     context.subscriptions.push(
       spotbugsTreeView,
       diagnosticsManager,
+      findingDescriptionPanel,
       languages.registerCodeActionsProvider(
         { language: 'java' },
         diagnosticCodeActionProvider,
@@ -85,7 +89,11 @@ async function doActivate(
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.OPEN_BUG_LOCATION,
         async (bug) => {
+          if (!isFindingPayload(bug)) {
+            return;
+          }
           await openBugLocation(bug);
+          findingDescriptionPanel.show(bug);
         }
       ),
 
@@ -114,4 +122,8 @@ async function doActivate(
     const errorMessage = error instanceof Error ? error.message : String(error);
     defaultNotifier.error(`Failed to activate SpotBugs extension: ${errorMessage}`);
   }
+}
+
+function isFindingPayload(value: unknown): value is Finding {
+  return value !== null && typeof value === 'object' && 'location' in value;
 }

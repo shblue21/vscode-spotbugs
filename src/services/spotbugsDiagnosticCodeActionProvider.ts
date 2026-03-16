@@ -8,6 +8,7 @@ import {
   Range,
   TextDocument,
 } from 'vscode';
+import { SpotBugsCommands } from '../constants/commands';
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
 import { SpotBugsDiagnosticsManager } from './diagnosticsManager';
@@ -15,9 +16,11 @@ import {
   getDiagnosticCodeValue,
   getFindingDiagnosticCodeValue,
   getFindingRuleDocumentationUri,
+  hasFindingLocalDescription,
   isSpotBugsDiagnostic,
 } from './spotbugsDiagnosticSupport';
 
+const SHOW_LOCAL_DETAILS_TITLE = 'Show SpotBugs details';
 const OPEN_RULE_DOCS_TITLE = 'Open SpotBugs rule docs';
 
 export class SpotBugsDiagnosticCodeActionProvider
@@ -38,6 +41,7 @@ export class SpotBugsDiagnosticCodeActionProvider
     }
 
     const actions: CodeAction[] = [];
+    const seenDetails = new Set<string>();
     const seenTargets = new Set<string>();
 
     for (const diagnostic of context.diagnostics) {
@@ -46,13 +50,33 @@ export class SpotBugsDiagnosticCodeActionProvider
       }
 
       const finding = this.findMatchingFinding(document, diagnostic);
-      const target = finding && getFindingRuleDocumentationUri(finding);
+      if (!finding) {
+        continue;
+      }
+
+      const detailKey = `${diagnostic.range.start.line}:${getFindingDiagnosticCodeValue(finding)}`;
+      if (hasFindingLocalDescription(finding) && !seenDetails.has(detailKey)) {
+        const detailAction = new CodeAction(
+          SHOW_LOCAL_DETAILS_TITLE,
+          CodeActionKind.QuickFix
+        );
+        detailAction.command = {
+          command: SpotBugsCommands.OPEN_BUG_LOCATION,
+          title: SHOW_LOCAL_DETAILS_TITLE,
+          arguments: [finding],
+        };
+        detailAction.diagnostics = [diagnostic];
+        actions.push(detailAction);
+        seenDetails.add(detailKey);
+      }
+
+      const target = getFindingRuleDocumentationUri(finding);
       if (!target) {
         continue;
       }
 
-      const key = `${diagnostic.range.start.line}:${target.toString()}`;
-      if (seenTargets.has(key)) {
+      const docsKey = `${detailKey}:${target.toString()}`;
+      if (seenTargets.has(docsKey)) {
         continue;
       }
 
@@ -67,7 +91,7 @@ export class SpotBugsDiagnosticCodeActionProvider
       };
       action.diagnostics = [diagnostic];
       actions.push(action);
-      seenTargets.add(key);
+      seenTargets.add(docsKey);
     }
 
     return actions;
@@ -95,7 +119,7 @@ export class SpotBugsDiagnosticCodeActionProvider
 
     const codeMatch = findings.find(
       (finding) =>
-        getFindingRuleDocumentationUri(finding) &&
+        this.canExplainFinding(finding) &&
         diagnosticCode !== undefined &&
         getFindingDiagnosticCodeValue(finding) === diagnosticCode
     );
@@ -103,7 +127,7 @@ export class SpotBugsDiagnosticCodeActionProvider
       return codeMatch;
     }
 
-    return findings.find((finding) => getFindingRuleDocumentationUri(finding));
+    return findings.find((finding) => this.canExplainFinding(finding));
   }
 
   private matchesDiagnostic(
@@ -111,7 +135,7 @@ export class SpotBugsDiagnosticCodeActionProvider
     diagnostic: Diagnostic,
     diagnosticCode: string | number | undefined
   ): boolean {
-    if (!getFindingRuleDocumentationUri(finding)) {
+    if (!this.canExplainFinding(finding)) {
       return false;
     }
 
@@ -123,5 +147,12 @@ export class SpotBugsDiagnosticCodeActionProvider
     }
 
     return formatFindingSummary(finding) === diagnostic.message;
+  }
+
+  private canExplainFinding(finding: Finding): boolean {
+    return (
+      hasFindingLocalDescription(finding) ||
+      getFindingRuleDocumentationUri(finding) !== undefined
+    );
   }
 }

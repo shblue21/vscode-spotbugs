@@ -19,6 +19,7 @@ public class BugInfo {
     private final String realSourcePath;
     private final String shortDescription;
     private final String longDescription;
+    private final String detailHtml;
     private final String helpUri;
     private final String categoryAbbrev;
     private final Integer cweId;
@@ -41,6 +42,9 @@ public class BugInfo {
         );
         this.longDescription = optionalString(
                 bugInstance.getBugPattern() != null ? bugInstance.getBugPattern().getDetailPlainText() : null
+        );
+        this.detailHtml = optionalString(
+                bugInstance.getBugPattern() != null ? bugInstance.getBugPattern().getDetailText() : null
         );
         this.helpUri = optionalString(
                 bugInstance.getBugPattern() != null
@@ -130,6 +134,10 @@ public class BugInfo {
 
     public String getLongDescription() {
         return longDescription;
+    }
+
+    public String getDetailHtml() {
+        return detailHtml;
     }
 
     public String getHelpUri() {

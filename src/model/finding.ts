@@ -16,6 +16,7 @@ export interface Finding {
   message?: string;
   shortDescription?: string;
   longDescription?: string;
+  detailHtml?: string;
   helpUri?: string;
   categoryAbbrev?: string;
   cweId?: number;
