@@ -15,6 +15,7 @@ import { getBestEffortFileUri } from '../workspace/findingLocator';
 import {
   getFindingDiagnosticCodeValue,
   getFindingDocumentationUri,
+  hasFindingLocalDescription,
   SPOTBUGS_DIAGNOSTIC_SOURCE,
 } from './spotbugsDiagnosticSupport';
 
@@ -109,8 +110,10 @@ export class SpotBugsDiagnosticsManager {
     const severity = rankToSeverity(finding.rank);
     const diagnostic = new Diagnostic(range, message, toDiagnosticSeverity(severity));
     diagnostic.source = SPOTBUGS_DIAGNOSTIC_SOURCE;
-    const docUri = getFindingDocumentationUri(finding);
-    if (docUri) {
+    const docUri = !hasFindingLocalDescription(finding)
+      ? getFindingDocumentationUri(finding)
+      : undefined;
+    if (docUri !== undefined) {
       diagnostic.code = {
         value: getFindingDiagnosticCodeValue(finding),
         target: docUri,

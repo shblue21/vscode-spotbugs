@@ -24,6 +24,7 @@ export function mapBugToFinding(bug: Bug): Finding {
     message: bug.message,
     shortDescription: bug.shortDescription,
     longDescription: bug.longDescription,
+    detailHtml: bug.detailHtml,
     helpUri: bug.helpUri,
     categoryAbbrev: bug.categoryAbbrev,
     cweId: bug.cweId,

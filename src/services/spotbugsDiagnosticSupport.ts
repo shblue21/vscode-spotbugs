@@ -19,6 +19,10 @@ export function getFindingDiagnosticCodeValue(finding: Finding): string {
   return finding.type || finding.abbrev || SPOTBUGS_DIAGNOSTIC_SOURCE;
 }
 
+export function hasFindingLocalDescription(finding: Finding): boolean {
+  return typeof finding.detailHtml === 'string' && finding.detailHtml.trim().length > 0;
+}
+
 export function getFindingRuleDocumentationUri(
   finding: Finding
 ): Uri | undefined {
