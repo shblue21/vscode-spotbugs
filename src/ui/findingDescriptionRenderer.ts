@@ -1,10 +1,12 @@
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
+import {
+  GENERIC_SPOTBUGS_DOCS_URI,
+  rewriteLegacySpotBugsHelpUrl,
+} from '../services/spotbugsDocumentationLinks';
 import * as sanitizeHtml from 'sanitize-html';
 
 const PANEL_TITLE = 'SpotBugs Details';
-const GENERIC_SPOTBUGS_DOCS_URI =
-  'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html';
 const DETAIL_HTML_ALLOWED_TAGS = [
   'p',
   'br',
@@ -28,35 +30,13 @@ const DETAIL_HTML_ALLOWED_TAGS = [
 ];
 const DETAIL_HTML_ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 const DETAIL_HTML_ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
-const FINDING_DETAIL_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: DETAIL_HTML_ALLOWED_TAGS,
-  allowedAttributes: {
-    a: ['href', 'title'],
-  },
-  allowedSchemes: DETAIL_HTML_ALLOWED_SCHEMES,
-  allowedSchemesAppliedToAttributes: ['href'],
-  allowProtocolRelative: false,
-  disallowedTagsMode: 'discard',
-  transformTags: {
-    a: (_tagName, attribs) => {
-      const sanitizedHref = getAllowedDetailHref(attribs.href);
-      const sanitizedTitle = attribs.title?.trim();
-
-      return {
-        tagName: 'a',
-        attribs: {
-          ...(sanitizedHref ? { href: sanitizedHref } : {}),
-          ...(sanitizedTitle ? { title: sanitizedTitle } : {}),
-        },
-      };
-    },
-  },
-};
 
 export function renderFindingDescriptionHtml(finding: Finding): string {
   const title = getFindingDescriptionTitle(finding);
   const summary = formatFindingSummary(finding);
-  const docsHref = getExternalDocsHref(finding.helpUri) ?? GENERIC_SPOTBUGS_DOCS_URI;
+  const docsHref =
+    getExternalDocsHref(finding.helpUri, finding.type) ??
+    GENERIC_SPOTBUGS_DOCS_URI;
   const body = renderDescriptionBody(finding);
   const metadata = [
     finding.type ? ['Pattern', finding.type] : undefined,
@@ -192,14 +172,17 @@ export function renderFindingDescriptionHtml(finding: Finding): string {
 </html>`;
 }
 
-export function sanitizeFindingDetailHtml(raw: string): string {
-  return sanitizeHtml(raw, FINDING_DETAIL_SANITIZE_OPTIONS).trim();
+export function sanitizeFindingDetailHtml(
+  raw: string,
+  currentBugType?: string
+): string {
+  return sanitizeHtml(raw, getFindingDetailSanitizeOptions(currentBugType)).trim();
 }
 
 function renderDescriptionBody(finding: Finding): string {
   const detailHtml = finding.detailHtml?.trim();
   if (detailHtml) {
-    const sanitized = sanitizeFindingDetailHtml(detailHtml);
+    const sanitized = sanitizeFindingDetailHtml(detailHtml, finding.type);
     if (sanitized) {
       return sanitized;
     }
@@ -230,17 +213,53 @@ function escapeAttribute(value: string): string {
   return escapeHtml(value);
 }
 
-function getAllowedDetailHref(raw?: string): string | undefined {
-  return getAllowedAbsoluteUrl(raw, DETAIL_HTML_ALLOWED_PROTOCOLS);
+function getFindingDetailSanitizeOptions(
+  currentBugType?: string
+): sanitizeHtml.IOptions {
+  return {
+    allowedTags: DETAIL_HTML_ALLOWED_TAGS,
+    allowedAttributes: {
+      a: ['href', 'title'],
+    },
+    allowedSchemes: DETAIL_HTML_ALLOWED_SCHEMES,
+    allowedSchemesAppliedToAttributes: ['href'],
+    allowProtocolRelative: false,
+    disallowedTagsMode: 'discard',
+    transformTags: {
+      a: (_tagName, attribs) => {
+        const sanitizedHref = getAllowedDetailHref(attribs.href, currentBugType);
+        const sanitizedTitle = attribs.title?.trim();
+
+        return {
+          tagName: 'a',
+          attribs: {
+            ...(sanitizedHref ? { href: sanitizedHref } : {}),
+            ...(sanitizedTitle ? { title: sanitizedTitle } : {}),
+          },
+        };
+      },
+    },
+  };
 }
 
-function getExternalDocsHref(raw?: string): string | undefined {
-  return getAllowedAbsoluteUrl(raw, new Set(['http:', 'https:']));
+function getAllowedDetailHref(
+  raw?: string,
+  currentBugType?: string
+): string | undefined {
+  return getAllowedAbsoluteUrl(raw, DETAIL_HTML_ALLOWED_PROTOCOLS, currentBugType);
+}
+
+function getExternalDocsHref(
+  raw?: string,
+  currentBugType?: string
+): string | undefined {
+  return getAllowedAbsoluteUrl(raw, new Set(['http:', 'https:']), currentBugType);
 }
 
 function getAllowedAbsoluteUrl(
   raw: string | undefined,
-  allowedProtocols: ReadonlySet<string>
+  allowedProtocols: ReadonlySet<string>,
+  currentBugType?: string
 ): string | undefined {
   const trimmed = raw?.trim();
   if (!trimmed) {
@@ -250,6 +269,7 @@ function getAllowedAbsoluteUrl(
   try {
     const url = new URL(trimmed);
     if (allowedProtocols.has(url.protocol)) {
+      rewriteLegacySpotBugsHelpUrl(url, currentBugType);
       return url.toString();
     }
   } catch {

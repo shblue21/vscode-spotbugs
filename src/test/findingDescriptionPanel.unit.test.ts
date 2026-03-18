@@ -6,16 +6,22 @@ import {
 import { Finding } from '../model/finding';
 
 describe('findingDescriptionPanel', () => {
-  it('renders local HTML detail and keeps external docs secondary', () => {
+  it('renders local HTML detail and rewrites external docs to the slug anchor', () => {
     const html = renderFindingDescriptionHtml(
       makeFinding({
         detailHtml: '<p>Local detail body.</p>',
-        helpUri: 'https://example.test/rule',
+        helpUri:
+          'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
       })
     );
 
     assert.ok(html.includes('<p>Local detail body.</p>'));
     assert.ok(html.includes('Open external SpotBugs docs'));
+    assert.ok(
+      html.includes(
+        'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null'
+      )
+    );
   });
 
   it('removes disallowed tags, event handlers, and javascript links', () => {
@@ -31,20 +37,25 @@ describe('findingDescriptionPanel', () => {
     assert.ok(sanitized.includes('<a>Bad link</a>'));
   });
 
-  it('preserves allowlisted formatting tags and safe https links', () => {
+  it('preserves allowlisted formatting tags and rewrites matching SpotBugs detail links', () => {
     const sanitized = sanitizeFindingDetailHtml(
       [
         '<p>Intro with <code>code()</code>.</p>',
         '<pre>line 1\nline 2</pre>',
-        '<a href="https://example.test/rule" title="Rule docs">Docs</a>',
-      ].join('')
+        '<a href="https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL" title="Rule docs">Docs</a>',
+        '<a href="https://example.test/rule">External</a>',
+      ].join(''),
+      'NP_ALWAYS_NULL'
     );
 
     assert.ok(sanitized.includes('<p>Intro with <code>code()</code>.</p>'));
     assert.ok(sanitized.includes('<pre>line 1\nline 2</pre>'));
     assert.ok(
-      sanitized.includes('<a href="https://example.test/rule" title="Rule docs">Docs</a>')
+      sanitized.includes(
+        '<a href="https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null" title="Rule docs">Docs</a>'
+      )
     );
+    assert.ok(sanitized.includes('<a href="https://example.test/rule">External</a>'));
   });
 
   it('falls back to plain text detail when sanitized html becomes empty', () => {
