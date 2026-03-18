@@ -9,12 +9,13 @@ import { SpotBugsDiagnosticsManager } from '../services/diagnosticsManager';
 import { SpotBugsDiagnosticCodeActionProvider } from '../services/spotbugsDiagnosticCodeActionProvider';
 
 const cleanupPaths = new Set<string>();
+const helpUri =
+  'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL';
+const rewrittenHelpUri =
+  'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null';
+const detailHtml = '<p>Local SpotBugs detail.</p>';
 
 describe('SpotBugs diagnostic explanations', () => {
-  const helpUri =
-    'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL';
-  const detailHtml = '<p>Local SpotBugs detail.</p>';
-
   afterEach(async () => {
     for (const targetPath of cleanupPaths) {
       await fs.rm(targetPath, { recursive: true, force: true });
@@ -67,7 +68,7 @@ describe('SpotBugs diagnostic explanations', () => {
       assert.deepStrictEqual(actions[0].diagnostics, [diagnostic]);
       assert.strictEqual(actions[1].title, 'Open SpotBugs rule docs');
       assert.strictEqual(actions[1].command?.command, 'vscode.open');
-      assert.strictEqual(actions[1].command?.arguments?.[0].toString(), helpUri);
+      assert.strictEqual(actions[1].command?.arguments?.[0].toString(), rewrittenHelpUri);
       assert.deepStrictEqual(actions[1].diagnostics, [diagnostic]);
     } finally {
       manager.dispose();
@@ -86,8 +87,22 @@ describe('SpotBugs diagnostic explanations', () => {
       assert.ok(code && typeof code === 'object' && 'target' in code);
       if (code && typeof code === 'object' && 'target' in code) {
         assert.strictEqual(code.value, 'NP_ALWAYS_NULL');
-        assert.strictEqual(code.target.toString(), helpUri);
+        assert.strictEqual(code.target.toString(), rewrittenHelpUri);
       }
+    } finally {
+      manager.dispose();
+    }
+  });
+
+  it('keeps the raw finding helpUri unchanged after rewriting UI docs targets', async () => {
+    const manager = new SpotBugsDiagnosticsManager();
+    try {
+      const document = await openTempJavaDocument();
+      manager.replaceAll([createFinding(document.uri, { helpUri })]);
+
+      const [finding] = manager.getFindingsAt(document.uri, new vscode.Position(0, 0));
+      assert.ok(finding);
+      assert.strictEqual(finding.helpUri, helpUri);
     } finally {
       manager.dispose();
     }

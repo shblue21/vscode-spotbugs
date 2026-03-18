@@ -1,8 +1,9 @@
 import { Diagnostic, Uri } from 'vscode';
 import { Finding } from '../model/finding';
-
-const GENERIC_SPOTBUGS_DOCS_URI =
-  'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html';
+import {
+  GENERIC_SPOTBUGS_DOCS_URI,
+  rewriteLegacySpotBugsHelpUrl,
+} from './spotbugsDocumentationLinks';
 
 export const SPOTBUGS_DIAGNOSTIC_SOURCE = 'SpotBugs';
 
@@ -26,7 +27,7 @@ export function hasFindingLocalDescription(finding: Finding): boolean {
 export function getFindingRuleDocumentationUri(
   finding: Finding
 ): Uri | undefined {
-  return tryParseUri(finding.helpUri);
+  return tryParseUri(finding.helpUri, finding.type);
 }
 
 export function getFindingDocumentationUri(
@@ -42,14 +43,21 @@ export function isSpotBugsDiagnostic(diagnostic: Diagnostic): boolean {
   return diagnostic.source === SPOTBUGS_DIAGNOSTIC_SOURCE;
 }
 
-function tryParseUri(raw?: string): Uri | undefined {
+function tryParseUri(raw?: string, bugType?: string): Uri | undefined {
   const value = raw?.trim();
   if (!value) {
     return undefined;
   }
+
   try {
-    return Uri.parse(value);
+    const url = new URL(value);
+    rewriteLegacySpotBugsHelpUrl(url, bugType);
+    return Uri.parse(url.toString());
   } catch {
-    return undefined;
+    try {
+      return Uri.parse(value);
+    } catch {
+      return undefined;
+    }
   }
 }
