@@ -1,4 +1,19 @@
 # Changelog
+## [0.3.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.2.0...v0.3.0) (2026-03-18)
+
+
+### Features
+
+* add local SpotBugs HTML detail panel for findings ([1a57807](https://github.com/shblue21/vscode-spotbugs/commit/1a57807445f36b3710b5be36ddd718036ddf4ad1))
+* add query-based filtering for cached SpotBugs tree results ([07f222b](https://github.com/shblue21/vscode-spotbugs/commit/07f222bf962c1850271f1fb4ccea0f434b3b61c2))
+* add query-based filtering for cached SpotBugs tree results ([8957da1](https://github.com/shblue21/vscode-spotbugs/commit/8957da17eaa83323b4e18ec1de4b8451b94fe747))
+* **filters:** match full SpotBugs type & preserve Windows paths ([a206c21](https://github.com/shblue21/vscode-spotbugs/commit/a206c215f227265a62c678aad24b7cd29d7138a5))
+
+
+### Bug Fixes
+
+* **codeql:** replace ad-hoc HTML sanitizer with allowlist sanitizer ([5cd2139](https://github.com/shblue21/vscode-spotbugs/commit/5cd2139156d823759315b2e63544d86444dfaeb0))
+
 ## [0.2.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.1.0...v0.2.0) (2026-03-13)
 
 
