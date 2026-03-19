@@ -49,6 +49,9 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 - `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
 - `spotbugs.analysis.priorityThreshold`: Report bugs with rank less than or equal to this value (1 = most severe, 20 = least). Default: `9`.
+- `spotbugs.analysis.extraAuxClasspaths`: Additional SpotBugs aux classpath entries appended after Java LS runtime classpath entries. Supports absolute and workspace-relative jar/directory paths.
+
+Source target resolution stays separate from aux classpath configuration. SpotBugs uses Java LS runtime classpaths plus any `extraAuxClasspaths` entries for aux analysis, and falls back to the runner's system classpath only when neither source provides any entries.
 
 ### Filters
 

@@ -51,18 +51,20 @@ function buildHintNotices(targetPath: string, outcome: AnalysisOutcome): Analysi
   const isBytecodeTarget =
     target.endsWith('.class') || target.endsWith('.jar') || target.endsWith('.zip');
   const looksLikeSourceTarget = target.endsWith('.java') || target.includes('/src/');
-  const classpathCount =
-    typeof outcome.stats?.classpathCount === 'number' ? outcome.stats.classpathCount : undefined;
+  const targetResolutionRootCount =
+    typeof outcome.stats?.targetResolutionRootCount === 'number'
+      ? outcome.stats.targetResolutionRootCount
+      : undefined;
   const targetCount =
     typeof outcome.stats?.targetCount === 'number' ? outcome.stats.targetCount : undefined;
 
   if (!isBytecodeTarget) {
     if (targetCount === 0) {
-      if ((classpathCount ?? 0) === 0) {
+      if ((targetResolutionRootCount ?? 0) === 0) {
         notices.push({
           level: 'warn',
           message:
-            'SpotBugs: No compiled classes found (classpath unavailable). Make sure the target is inside a Java project and build the workspace.',
+            'SpotBugs: No compiled classes found (target-resolution roots unavailable). Make sure the target is inside a Java project and build the workspace.',
         });
       } else {
         notices.push({
@@ -71,11 +73,11 @@ function buildHintNotices(targetPath: string, outcome: AnalysisOutcome): Analysi
             'SpotBugs: No compiled classes found for the selected target. Build the project or select an output folder (e.g. build/classes or target/classes).',
         });
       }
-    } else if (looksLikeSourceTarget && (classpathCount ?? 0) === 0) {
+    } else if (looksLikeSourceTarget && (targetResolutionRootCount ?? 0) === 0) {
       notices.push({
         level: 'warn',
         message:
-          'SpotBugs: Classpath is unavailable for this target; results may be incomplete. Try building the workspace and re-run.',
+          'SpotBugs: Target-resolution roots are unavailable for this target; results may be incomplete. Try building the workspace and re-run.',
       });
     }
   }

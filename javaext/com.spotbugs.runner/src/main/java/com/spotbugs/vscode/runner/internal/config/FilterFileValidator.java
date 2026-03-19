@@ -19,6 +19,9 @@ final class FilterFileValidator {
     private static final String CODE_FILTER_UNREADABLE = "CFG_FILTER_UNREADABLE";
     private static final String CODE_FILTER_XML_INVALID = "CFG_FILTER_XML_INVALID";
     private static final String CODE_BASELINE_XML_INVALID = "CFG_BASELINE_XML_INVALID";
+    private static final String CODE_AUX_CLASSPATH_NOT_FOUND = "CFG_AUX_CLASSPATH_NOT_FOUND";
+    private static final String CODE_AUX_CLASSPATH_INVALID_ENTRY = "CFG_AUX_CLASSPATH_INVALID_ENTRY";
+    private static final String CODE_AUX_CLASSPATH_UNREADABLE = "CFG_AUX_CLASSPATH_UNREADABLE";
 
     private FilterFileValidator() {
     }
@@ -33,6 +36,19 @@ final class FilterFileValidator {
 
     static ConfigError validateBaselineFilters(List<String> baselineFilterPaths) {
         return validateFilterList(baselineFilterPaths, "baseline", true);
+    }
+
+    static ConfigError validateExtraAuxClasspaths(List<String> extraAuxClasspaths) {
+        if (extraAuxClasspaths == null || extraAuxClasspaths.isEmpty()) {
+            return null;
+        }
+        for (String rawPath : extraAuxClasspaths) {
+            ConfigError error = validateSingleExtraAuxClasspath(rawPath);
+            if (error != null) {
+                return error;
+            }
+        }
+        return null;
     }
 
     private static ConfigError validateFilterList(List<String> paths, String kind, boolean baseline) {
@@ -75,6 +91,29 @@ final class FilterFileValidator {
 
     private static ConfigError error(String code, String message) {
         return new ConfigError(code, message);
+    }
+
+    private static ConfigError validateSingleExtraAuxClasspath(String rawPath) {
+        String absolutePath = new File(rawPath).getAbsolutePath();
+        File entry = new File(absolutePath);
+        if (!entry.exists()) {
+            return error(CODE_AUX_CLASSPATH_NOT_FOUND, "extra aux classpath entry not found: " + absolutePath);
+        }
+        if (!entry.isDirectory() && !(entry.isFile() && isArchivePath(entry.getName()))) {
+            return error(
+                CODE_AUX_CLASSPATH_INVALID_ENTRY,
+                "extra aux classpath entry must be a directory or .jar/.zip file: " + absolutePath
+            );
+        }
+        if (!entry.canRead()) {
+            return error(CODE_AUX_CLASSPATH_UNREADABLE, "extra aux classpath entry is not readable: " + absolutePath);
+        }
+        return null;
+    }
+
+    private static boolean isArchivePath(String fileName) {
+        String lower = fileName == null ? "" : fileName.toLowerCase();
+        return lower.endsWith(".jar") || lower.endsWith(".zip");
     }
 
     private static String rootCauseMessage(Throwable throwable) {

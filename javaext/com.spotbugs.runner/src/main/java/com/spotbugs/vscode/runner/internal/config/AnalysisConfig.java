@@ -11,7 +11,9 @@ import java.util.List;
 public class AnalysisConfig {
 
     private final Effort effort;
-    private final List<String> classpaths;
+    private final List<String> targetResolutionRoots;
+    private final List<String> runtimeClasspaths;
+    private final List<String> extraAuxClasspaths;
     private final List<String> sourcepaths;
     private final Integer priorityThreshold; // optional
     private final List<String> includeFilterPaths; // optional
@@ -22,9 +24,15 @@ public class AnalysisConfig {
 
     private AnalysisConfig(Builder b) {
         this.effort = b.effort == null ? Effort.DEFAULT : b.effort;
-        this.classpaths = b.classpaths == null
+        this.targetResolutionRoots = b.targetResolutionRoots == null
                 ? Collections.emptyList()
-                : Collections.unmodifiableList(new ArrayList<>(b.classpaths));
+                : Collections.unmodifiableList(new ArrayList<>(b.targetResolutionRoots));
+        this.runtimeClasspaths = b.runtimeClasspaths == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(b.runtimeClasspaths));
+        this.extraAuxClasspaths = b.extraAuxClasspaths == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(b.extraAuxClasspaths));
         this.sourcepaths = b.sourcepaths == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(b.sourcepaths));
@@ -45,7 +53,9 @@ public class AnalysisConfig {
     }
 
     public Effort getEffort() { return effort; }
-    public List<String> getClasspaths() { return classpaths; }
+    public List<String> getTargetResolutionRoots() { return targetResolutionRoots; }
+    public List<String> getRuntimeClasspaths() { return runtimeClasspaths; }
+    public List<String> getExtraAuxClasspaths() { return extraAuxClasspaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
@@ -59,7 +69,9 @@ public class AnalysisConfig {
 
     static final class Builder {
         private Effort effort;
-        private List<String> classpaths;
+        private List<String> targetResolutionRoots;
+        private List<String> runtimeClasspaths;
+        private List<String> extraAuxClasspaths;
         private List<String> sourcepaths;
         private Integer priorityThreshold;
         private List<String> includeFilterPaths;
@@ -69,7 +81,9 @@ public class AnalysisConfig {
         private List<String> plugins;
 
         Builder effort(Effort e) { this.effort = e; return this; }
-        Builder classpaths(List<String> cp) { this.classpaths = cp; return this; }
+        Builder targetResolutionRoots(List<String> roots) { this.targetResolutionRoots = roots; return this; }
+        Builder runtimeClasspaths(List<String> cp) { this.runtimeClasspaths = cp; return this; }
+        Builder extraAuxClasspaths(List<String> cp) { this.extraAuxClasspaths = cp; return this; }
         Builder sourcepaths(List<String> sp) { this.sourcepaths = sp; return this; }
         Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
         Builder includeFilterPaths(List<String> p) { this.includeFilterPaths = p; return this; }

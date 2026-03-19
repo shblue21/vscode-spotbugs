@@ -6,6 +6,7 @@ import { Logger } from './logger';
 export interface AnalysisSettings {
   effort: string;
   priorityThreshold?: number;
+  extraAuxClasspaths?: string[];
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
@@ -20,6 +21,7 @@ export class Config {
   public effort!: string;
   // Future-ready fields (optional; only sent when defined)
   public priorityThreshold?: number;
+  public extraAuxClasspaths?: string[];
   public includeFilterPaths?: string[];
   public excludeFilterPaths?: string[];
   public excludeBaselineBugsPaths?: string[];
@@ -41,6 +43,9 @@ export class Config {
 
     const pt = config.get<number | undefined>(settingKeys.analysisPriorityThreshold);
     this.priorityThreshold = typeof pt === 'number' ? pt : undefined;
+    this.extraAuxClasspaths = this.readStringArray(
+      config.get<unknown>(settingKeys.analysisExtraAuxClasspaths)
+    );
 
     this.includeFilterPaths = this.readXmlPathArray(
       settingKeys.filtersIncludePaths,
@@ -59,12 +64,13 @@ export class Config {
   }
 
   // Resolve a workspace-relative path to absolute (best-effort)
-  private resolveToAbsolute(p?: string): string | undefined {
+  private resolveToAbsolute(p?: string, resource?: Uri): string | undefined {
     if (!p) return undefined;
     if (path.isAbsolute(p)) return p;
-    const folder = workspace.workspaceFolders?.[0];
-    if (!folder) return p; // leave as-is if no workspace
-    return path.resolve(Uri.parse(folder.uri.toString()).fsPath, p);
+
+    const basePath = this.getResolutionBasePath(resource);
+    if (!basePath) return p; // leave as-is if no workspace
+    return path.resolve(basePath, p);
   }
 
   private readStringArray(raw: unknown): string[] | undefined {
@@ -103,13 +109,32 @@ export class Config {
     return xmlOnly.length > 0 ? xmlOnly : undefined;
   }
 
-  private resolvePathsToAbsolute(paths: string[] | undefined): string[] | undefined {
+  private getResolutionBasePath(resource?: Uri): string | undefined {
+    const folder = resource ? workspace.getWorkspaceFolder(resource) : undefined;
+    if (folder) {
+      return folder.uri.fsPath;
+    }
+
+    if (resource?.scheme === 'file') {
+      const candidate = resource.fsPath;
+      if (candidate) {
+        return path.extname(candidate) ? path.dirname(candidate) : candidate;
+      }
+    }
+
+    return workspace.workspaceFolders?.[0]?.uri.fsPath;
+  }
+
+  private resolvePathsToAbsolute(
+    paths: string[] | undefined,
+    resource?: Uri
+  ): string[] | undefined {
     if (!Array.isArray(paths) || paths.length === 0) {
       return undefined;
     }
     const resolved = new Set<string>();
     for (const entry of paths) {
-      const absolute = this.resolveToAbsolute(entry);
+      const absolute = this.resolveToAbsolute(entry, resource);
       if (absolute && absolute.trim().length > 0) {
         resolved.add(absolute);
       }
@@ -118,24 +143,31 @@ export class Config {
     return values.length > 0 ? values : undefined;
   }
 
-  public getAnalysisSettings(): AnalysisSettings {
+  public getAnalysisSettings(resource?: Uri): AnalysisSettings {
     const settings: AnalysisSettings = {
       effort: this.effort,
     };
     if (typeof this.priorityThreshold === 'number') {
       settings.priorityThreshold = this.priorityThreshold;
     }
-    const includeFilterPaths = this.resolvePathsToAbsolute(this.includeFilterPaths);
+    const extraAuxClasspaths = this.resolvePathsToAbsolute(this.extraAuxClasspaths, resource);
+    if (extraAuxClasspaths) {
+      settings.extraAuxClasspaths = extraAuxClasspaths;
+    }
+    const includeFilterPaths = this.resolvePathsToAbsolute(this.includeFilterPaths, resource);
     if (includeFilterPaths) {
       settings.includeFilterPaths = includeFilterPaths;
     }
-    const excludeFilterPaths = this.resolvePathsToAbsolute(this.excludeFilterPaths);
+    const excludeFilterPaths = this.resolvePathsToAbsolute(this.excludeFilterPaths, resource);
     if (excludeFilterPaths) {
       settings.excludeFilterPaths = excludeFilterPaths;
       // Backward compatibility for older Java runner payload schema.
       settings.excludeFilterPath = excludeFilterPaths[0];
     }
-    const excludeBaselineBugsPaths = this.resolvePathsToAbsolute(this.excludeBaselineBugsPaths);
+    const excludeBaselineBugsPaths = this.resolvePathsToAbsolute(
+      this.excludeBaselineBugsPaths,
+      resource
+    );
     if (excludeBaselineBugsPaths) {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }

@@ -6,7 +6,11 @@ import {
   requestJavaClasspaths,
 } from '../lsp/javaLsGateway';
 import { ClasspathAttempt } from './classpathAttemptSelector';
-import { ClasspathLookupOptions, ClasspathResult } from './classpathService';
+import { deriveTargetResolutionRoots } from './classpathLayout';
+import {
+  ClasspathLookupOptions,
+  ClasspathResult,
+} from './classpathService';
 
 export async function runClasspathAttempts(
   attempts: ClasspathAttempt[],
@@ -145,18 +149,21 @@ async function tryExtensionFallback(
 }
 
 function normalizeClasspathResult(res: JavaLsClasspathResponse): ClasspathResult {
+  const runtimeClasspaths = Array.isArray(res?.classpaths) ? res.classpaths : [];
   return {
     output: res?.output,
-    classpaths: Array.isArray(res?.classpaths) ? res.classpaths : [],
+    runtimeClasspaths,
+    targetResolutionRoots: deriveTargetResolutionRoots(res?.output, runtimeClasspaths),
     sourcepaths: Array.isArray(res?.sourcepaths) ? res.sourcepaths : [],
   };
 }
 
 function logSuccess(label: string, result: ClasspathResult): void {
-  const cps = result.classpaths.length;
+  const runtime = result.runtimeClasspaths.length;
+  const roots = result.targetResolutionRoots.length;
   const sps = result.sourcepaths.length;
   Logger.log(
-    `getClasspaths(${label}) succeeded: output=${result.output ?? 'n/a'}, classpaths=${cps}, sourcepaths=${sps}`
+    `getClasspaths(${label}) succeeded: output=${result.output ?? 'n/a'}, runtimeClasspaths=${runtime}, targetResolutionRoots=${roots}, sourcepaths=${sps}`
   );
 }
 

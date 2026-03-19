@@ -1,18 +1,31 @@
-import { AnalysisRequestPayload } from '../model/analysisProtocol';
+import {
+  ANALYSIS_PROTOCOL_SCHEMA_VERSION,
+  AnalysisRequestPayload,
+} from '../model/analysisProtocol';
 import { AnalysisSettings } from '../core/config';
 
 export function buildAnalysisRequestPayload(
   settings: AnalysisSettings,
   options: {
-    classpaths?: string[] | null;
+    targetResolutionRoots?: string[] | null;
+    runtimeClasspaths?: string[] | null;
+    extraAuxClasspaths?: string[] | null;
     sourcepaths?: string[] | null;
   }
 ): AnalysisRequestPayload {
   const payload: AnalysisRequestPayload = {
-    schemaVersion: 1,
+    schemaVersion: ANALYSIS_PROTOCOL_SCHEMA_VERSION,
     effort: settings.effort,
-    classpaths: options.classpaths ?? null,
-    sourcepaths: options.sourcepaths ?? null,
+    targetResolutionRoots: Array.isArray(options.targetResolutionRoots)
+      ? options.targetResolutionRoots.slice()
+      : null,
+    runtimeClasspaths: Array.isArray(options.runtimeClasspaths)
+      ? options.runtimeClasspaths.slice()
+      : null,
+    extraAuxClasspaths: Array.isArray(options.extraAuxClasspaths)
+      ? options.extraAuxClasspaths.slice()
+      : null,
+    sourcepaths: Array.isArray(options.sourcepaths) ? options.sourcepaths.slice() : null,
   };
 
   if (typeof settings.priorityThreshold === 'number') {
@@ -34,7 +47,7 @@ export function buildAnalysisRequestPayload(
     payload.excludeFilterPath = settings.excludeFilterPath;
   }
   if (Array.isArray(settings.plugins) && settings.plugins.length > 0) {
-    payload.plugins = settings.plugins;
+    payload.plugins = settings.plugins.slice();
   }
 
   return payload;

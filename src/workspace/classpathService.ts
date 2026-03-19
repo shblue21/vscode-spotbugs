@@ -3,10 +3,12 @@ import * as path from 'path';
 import { Uri } from 'vscode';
 import { collectClasspathAttempts } from './classpathAttemptSelector';
 import { runClasspathAttempts } from './classpathCommandRunner';
+import { deriveTargetResolutionRoots } from './classpathLayout';
 
 export interface ClasspathResult {
   output?: string;
-  classpaths: string[];
+  runtimeClasspaths: string[];
+  targetResolutionRoots: string[];
   sourcepaths: string[];
 }
 
@@ -36,16 +38,11 @@ export async function getClasspaths(
 }
 
 export async function deriveOutputFolder(
-  classpaths: string[],
+  targetResolutionRoots: string[],
   workspacePath: string
 ): Promise<string | undefined> {
-  const jarsExcluded = classpaths.filter(
-    (entry) =>
-      !entry.toLowerCase().endsWith('.jar') &&
-      !entry.toLowerCase().endsWith('.zip')
-  );
   const candidates: string[] = [];
-  for (const cp of jarsExcluded) {
+  for (const cp of targetResolutionRoots) {
     for (const suf of PREFERRED_OUTPUT_SUFFIXES) {
       if (cp.includes(suf)) {
         candidates.push(cp);
@@ -53,7 +50,7 @@ export async function deriveOutputFolder(
       }
     }
   }
-  for (const cp of jarsExcluded) {
+  for (const cp of targetResolutionRoots) {
     if (!candidates.includes(cp) && cp.startsWith(workspacePath)) {
       candidates.push(cp);
     }

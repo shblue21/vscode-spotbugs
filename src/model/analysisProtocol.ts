@@ -1,9 +1,13 @@
 import { Bug } from './bug';
 
+export const ANALYSIS_PROTOCOL_SCHEMA_VERSION = 2;
+
 export interface AnalysisRequestPayload {
   schemaVersion: number;
   effort: string;
-  classpaths?: string[] | null;
+  targetResolutionRoots?: string[] | null;
+  runtimeClasspaths?: string[] | null;
+  extraAuxClasspaths?: string[] | null;
   sourcepaths?: string[] | null;
   priorityThreshold?: number;
   includeFilterPaths?: string[];
@@ -29,7 +33,10 @@ export interface AnalysisStats {
   durationMs?: number;
   findingCount?: number;
   spotbugsVersion?: string;
-  classpathCount?: number;
+  targetResolutionRootCount?: number;
+  runtimeClasspathCount?: number;
+  extraAuxClasspathCount?: number;
+  auxClasspathCount?: number;
   targetCount?: number;
   pluginCount?: number;
 }
