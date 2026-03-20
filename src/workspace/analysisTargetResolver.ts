@@ -3,15 +3,12 @@ import * as path from 'path';
 import { Logger } from '../core/logger';
 import { deriveOutputFolder, getClasspaths } from './classpathService';
 import { primeSourcepathsCache } from './pathResolver';
+import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from './analysisTargetCodes';
 import {
   findOutputFolderFromProject,
   hasClassTargets,
   isBytecodeTarget,
 } from './outputResolver';
-
-export const NO_CLASS_TARGETS_CODE = 'no-class-targets';
-export const NO_CLASS_TARGETS_MESSAGE =
-  'SpotBugs could not build the project. Run a manual build, then try again.';
 
 export interface AnalysisTarget {
   targetPath: string;

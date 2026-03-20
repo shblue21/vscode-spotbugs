@@ -30,7 +30,7 @@ type AnalysisContext = {
   sourcepaths?: string[] | null;
 };
 
-export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetResolver';
+export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 export type { ProjectResult } from './projectResult';
 
 export interface WorkspaceResult {
