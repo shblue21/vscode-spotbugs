@@ -1,4 +1,11 @@
 # Changelog
+## [0.4.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.3.0...v0.4.0) (2026-03-20)
+
+
+### Features
+
+* **classpath:** split analysis classpath roles and add extra aux support ([#21](https://github.com/shblue21/vscode-spotbugs/issues/21)) ([3bec0bb](https://github.com/shblue21/vscode-spotbugs/commit/3bec0bb66826a1c3a12c77683d4a21337054b4b9))
+
 ## [0.3.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.2.0...v0.3.0) (2026-03-18)
 
 
