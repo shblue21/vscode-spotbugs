@@ -11,15 +11,15 @@ import org.eclipse.core.runtime.IProgressMonitor;
 
 /**
  * Resolves input paths (.java/.class/.jar/directories) into concrete analysis targets
- * (.class and .jar files). Uses classpath directories to map sources to outputs.
+ * (.class and .jar files). Uses target-resolution root directories to map sources to outputs.
  */
 public class TargetResolver {
 
-    public List<String> resolveTargets(String[] inputs, List<File> classpathDirs) throws IOException {
-        return resolveTargets(inputs, classpathDirs, null);
+    public List<String> resolveTargets(String[] inputs, List<File> targetResolutionRootDirs) throws IOException {
+        return resolveTargets(inputs, targetResolutionRootDirs, null);
     }
 
-    public List<String> resolveTargets(String[] inputs, List<File> classpathDirs, IProgressMonitor monitor) throws IOException {
+    public List<String> resolveTargets(String[] inputs, List<File> targetResolutionRootDirs, IProgressMonitor monitor) throws IOException {
         List<String> targets = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         if (inputs == null) {
@@ -33,8 +33,8 @@ public class TargetResolver {
             File f = new File(p);
             if (f.isDirectory()) {
                 // If a source directory is selected, map it to an output directory first.
-                if (!collectOutputClassesForSourceDirectory(p, classpathDirs, targets, seen, monitor)) {
-                    collectTargetsRecursively(f, classpathDirs, targets, seen, monitor);
+                if (!collectOutputClassesForSourceDirectory(p, targetResolutionRootDirs, targets, seen, monitor)) {
+                    collectTargetsRecursively(f, targetResolutionRootDirs, targets, seen, monitor);
                 }
                 continue;
             }
@@ -43,25 +43,25 @@ public class TargetResolver {
                 continue;
             }
             if (p.endsWith(".java")) {
-                addTargetsForJavaFile(p, classpathDirs, targets, seen, monitor);
+                addTargetsForJavaFile(p, targetResolutionRootDirs, targets, seen, monitor);
                 continue;
             }
             // Unknown type: add existing file or scan directory
             if (f.exists()) {
                 if (f.isFile()) addIfNew(f.getAbsolutePath(), targets, seen);
-                else if (f.isDirectory()) collectTargetsRecursively(f, classpathDirs, targets, seen, monitor);
+                else if (f.isDirectory()) collectTargetsRecursively(f, targetResolutionRootDirs, targets, seen, monitor);
             }
         }
         return targets;
     }
 
-    private void collectTargetsRecursively(File dir, List<File> classpathDirs, List<String> out, Set<String> seen, IProgressMonitor monitor) throws IOException {
+    private void collectTargetsRecursively(File dir, List<File> targetResolutionRootDirs, List<String> out, Set<String> seen, IProgressMonitor monitor) throws IOException {
         File[] children = dir.listFiles();
         if (children == null) return;
         for (File c : children) {
             checkCanceled(monitor);
             if (c.isDirectory()) {
-                collectTargetsRecursively(c, classpathDirs, out, seen, monitor);
+                collectTargetsRecursively(c, targetResolutionRootDirs, out, seen, monitor);
                 continue;
             }
             if (!c.isFile()) {
@@ -73,7 +73,7 @@ public class TargetResolver {
                 continue;
             }
             if (name.endsWith(".java")) {
-                addTargetsForJavaFile(c.getAbsolutePath(), classpathDirs, out, seen, monitor);
+                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, out, seen, monitor);
                 continue;
             }
         }
@@ -100,7 +100,7 @@ public class TargetResolver {
 
     private boolean collectOutputClassesForSourceDirectory(
             String sourceDir,
-            List<File> classpathDirs,
+            List<File> targetResolutionRootDirs,
             List<String> out,
             Set<String> seen,
             IProgressMonitor monitor
@@ -109,19 +109,19 @@ public class TargetResolver {
         if (rel == null) {
             return false;
         }
-        if (classpathDirs == null || classpathDirs.isEmpty()) {
+        if (targetResolutionRootDirs == null || targetResolutionRootDirs.isEmpty()) {
             return false;
         }
 
         boolean added = false;
         String relDir = normalizePath(rel);
-        for (File dir : classpathDirs) {
+        for (File dir : targetResolutionRootDirs) {
             checkCanceled(monitor);
             if (dir == null) continue;
             File candidate = relDir.isEmpty() ? dir : new File(dir, relDir);
             if (candidate.exists() && candidate.isDirectory()) {
                 int before = out.size();
-                collectTargetsRecursively(candidate, classpathDirs, out, seen, monitor);
+                collectTargetsRecursively(candidate, targetResolutionRootDirs, out, seen, monitor);
                 if (out.size() > before) {
                     added = true;
                 }
@@ -132,16 +132,16 @@ public class TargetResolver {
 
     private boolean addTargetsForJavaFile(
             String javaPath,
-            List<File> classpathDirs,
+            List<File> targetResolutionRootDirs,
             List<String> out,
             Set<String> seen,
             IProgressMonitor monitor
     ) throws IOException {
         boolean added = false;
         String rel = deriveRelativePathFromSource(javaPath);
-        if (rel != null && classpathDirs != null && !classpathDirs.isEmpty()) {
+        if (rel != null && targetResolutionRootDirs != null && !targetResolutionRootDirs.isEmpty()) {
             String classRel = normalizePath(rel).replace(".java", ".class");
-            for (File dir : classpathDirs) {
+            for (File dir : targetResolutionRootDirs) {
                 checkCanceled(monitor);
                 if (dir == null) continue;
                 File candidate = new File(dir, classRel);
@@ -153,10 +153,10 @@ public class TargetResolver {
             }
         }
 
-        if (!added && classpathDirs != null && !classpathDirs.isEmpty()) {
+        if (!added && targetResolutionRootDirs != null && !targetResolutionRootDirs.isEmpty()) {
             // Fallback: basename scan (may be ambiguous when multiple classes share the same simple name)
             String baseName = stripExtension(new File(javaPath).getName());
-            for (File dir : classpathDirs) {
+            for (File dir : targetResolutionRootDirs) {
                 checkCanceled(monitor);
                 if (dir == null) continue;
                 if (collectClassFilesByBasename(dir, baseName, out, seen, monitor)) {

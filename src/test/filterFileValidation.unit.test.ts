@@ -3,7 +3,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { AnalysisSettings } from '../core/config';
-import { validateFilterFilesPreflight } from '../services/filterFileValidation';
+import {
+  validateExtraAuxClasspathPreflight,
+  validateFilterFilesPreflight,
+} from '../services/filterFileValidation';
 
 function makeSettings(overrides: Partial<AnalysisSettings> = {}): AnalysisSettings {
   return {
@@ -71,6 +74,60 @@ describe('filterFileValidation', () => {
           excludeFilterPaths: [excludePath],
           excludeBaselineBugsPaths: [baselinePath],
         })
+      );
+
+      assert.strictEqual(error, undefined);
+    } finally {
+      await cleanup(dir);
+    }
+  });
+
+  it('returns CFG_AUX_CLASSPATH_NOT_FOUND when an extra aux classpath entry is missing', async () => {
+    const missingPath = path.join(
+      os.tmpdir(),
+      `spotbugs-missing-${process.pid}-${Date.now()}-aux.jar`
+    );
+    const error = await validateExtraAuxClasspathPreflight(
+      makeSettings({ extraAuxClasspaths: [missingPath] })
+    );
+
+    assert.ok(error);
+    assert.strictEqual(error?.code, 'CFG_AUX_CLASSPATH_NOT_FOUND');
+    assert.ok((error?.message ?? '').includes('extra aux classpath entry not found'));
+  });
+
+  it('returns CFG_AUX_CLASSPATH_INVALID_ENTRY when an extra aux classpath entry is not a jar/zip or directory', async () => {
+    const dir = await makeTempDir();
+    try {
+      const invalidPath = path.join(dir, 'not-a-classpath.txt');
+      await writeFile(invalidPath, 'plain text');
+
+      const error = await validateExtraAuxClasspathPreflight(
+        makeSettings({ extraAuxClasspaths: [invalidPath] })
+      );
+
+      assert.ok(error);
+      assert.strictEqual(error?.code, 'CFG_AUX_CLASSPATH_INVALID_ENTRY');
+      assert.ok(
+        (error?.message ?? '').includes(
+          'extra aux classpath entry must be a directory or .jar/.zip file'
+        )
+      );
+    } finally {
+      await cleanup(dir);
+    }
+  });
+
+  it('passes when extra aux classpath entries are readable jars or directories', async () => {
+    const dir = await makeTempDir();
+    try {
+      const jarPath = path.join(dir, 'lib', 'helper.jar');
+      const classesDir = path.join(dir, 'classes');
+      await writeFile(jarPath, '');
+      await fs.promises.mkdir(classesDir, { recursive: true });
+
+      const error = await validateExtraAuxClasspathPreflight(
+        makeSettings({ extraAuxClasspaths: [jarPath, classesDir] })
       );
 
       assert.strictEqual(error, undefined);

@@ -31,7 +31,7 @@ describe('spotbugsParser', () => {
   it('parses envelope responses with errors and stats', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         results: [{ type: 'UR' }],
         errors: [{ code: 'X', message: 'warn' }],
         stats: { target: '/tmp/Foo', durationMs: 12 },
@@ -39,7 +39,7 @@ describe('spotbugsParser', () => {
     );
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.schemaVersion, 1);
+      assert.strictEqual(result.value.schemaVersion, 2);
       assert.strictEqual(result.value.bugs.length, 1);
       assert.strictEqual(result.value.errors?.length, 1);
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');

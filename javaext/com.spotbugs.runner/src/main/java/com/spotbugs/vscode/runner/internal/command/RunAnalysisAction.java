@@ -63,7 +63,10 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         stats.put("durationMs", Long.valueOf(elapsed));
         stats.put("findingCount", Integer.valueOf(results.size()));
         stats.put("spotbugsVersion", Version.VERSION_STRING);
-        stats.put("classpathCount", Integer.valueOf(config.getClasspaths().size()));
+        stats.put("targetResolutionRootCount", Integer.valueOf(analyzer.getLastTargetResolutionRootCount()));
+        stats.put("runtimeClasspathCount", Integer.valueOf(config.getRuntimeClasspaths().size()));
+        stats.put("extraAuxClasspathCount", Integer.valueOf(config.getExtraAuxClasspaths().size()));
+        stats.put("auxClasspathCount", Integer.valueOf(analyzer.getLastAuxClasspathCount()));
         stats.put("targetCount", Integer.valueOf(analyzer.getLastTargetCount()));
         stats.put("pluginCount", Integer.valueOf(config.getPlugins().size()));
 

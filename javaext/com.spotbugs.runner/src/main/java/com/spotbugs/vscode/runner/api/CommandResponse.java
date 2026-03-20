@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CommandResponse {
-    private static final int SCHEMA_VERSION = 1;
+    private static final int SCHEMA_VERSION = 2;
 
     private final int schemaVersion;
     private final Object results;

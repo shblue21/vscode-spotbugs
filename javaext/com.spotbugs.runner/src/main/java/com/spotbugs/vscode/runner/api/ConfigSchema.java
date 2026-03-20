@@ -10,7 +10,9 @@ import java.util.List;
 public class ConfigSchema {
     private Integer schemaVersion;            // optional, for future growth
     private String effort;                    // "min" | "default" | "max"
-    private List<String> classpaths;          // optional
+    private List<String> targetResolutionRoots; // optional
+    private List<String> runtimeClasspaths;   // optional
+    private List<String> extraAuxClasspaths;  // optional
     private List<String> sourcepaths;         // optional
     private Integer priorityThreshold;        // optional
     private List<String> includeFilterPaths;  // optional
@@ -21,7 +23,9 @@ public class ConfigSchema {
 
     public Integer getSchemaVersion() { return schemaVersion; }
     public String getEffort() { return effort; }
-    public List<String> getClasspaths() { return classpaths; }
+    public List<String> getTargetResolutionRoots() { return targetResolutionRoots; }
+    public List<String> getRuntimeClasspaths() { return runtimeClasspaths; }
+    public List<String> getExtraAuxClasspaths() { return extraAuxClasspaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }

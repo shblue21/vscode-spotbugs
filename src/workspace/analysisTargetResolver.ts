@@ -3,20 +3,18 @@ import * as path from 'path';
 import { Logger } from '../core/logger';
 import { deriveOutputFolder, getClasspaths } from './classpathService';
 import { primeSourcepathsCache } from './pathResolver';
+import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from './analysisTargetCodes';
 import {
   findOutputFolderFromProject,
   hasClassTargets,
   isBytecodeTarget,
 } from './outputResolver';
 
-export const NO_CLASS_TARGETS_CODE = 'no-class-targets';
-export const NO_CLASS_TARGETS_MESSAGE =
-  'SpotBugs could not build the project. Run a manual build, then try again.';
-
 export interface AnalysisTarget {
   targetPath: string;
   preferredProject?: Uri;
-  classpaths?: string[];
+  targetResolutionRoots?: string[];
+  runtimeClasspaths?: string[];
   sourcepaths?: string[];
 }
 
@@ -61,7 +59,8 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
   const deps: TargetResolverDeps = { ...defaultDeps, ...overrides };
 
   type ClasspathInfo = {
-    classpaths?: string[];
+    targetResolutionRoots?: string[];
+    runtimeClasspaths?: string[];
     sourcepaths?: string[];
     outputPath?: string;
   };
@@ -81,19 +80,27 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     project: Uri,
     options: { logSuccess?: boolean; logEmpty?: boolean; logFailure?: boolean }
   ): Promise<ClasspathInfo> {
-    let classpaths: string[] | undefined;
+    let targetResolutionRoots: string[] | undefined;
+    let runtimeClasspaths: string[] | undefined;
     let sourcepaths: string[] | undefined;
     let outputPath: string | undefined;
 
     try {
       const cp = await deps.getClasspaths(project, { logFailures: options.logFailure });
-      if (cp && Array.isArray(cp.classpaths) && cp.classpaths.length > 0) {
-        classpaths = cp.classpaths;
+      if (cp && Array.isArray(cp.runtimeClasspaths) && cp.runtimeClasspaths.length > 0) {
+        runtimeClasspaths = cp.runtimeClasspaths;
         if (options.logSuccess) {
-          deps.logger.log(`Set ${cp.classpaths.length} classpaths for analysis`);
+          deps.logger.log(
+            `Set ${cp.runtimeClasspaths.length} runtime classpaths and ${cp.targetResolutionRoots.length} target-resolution roots for analysis`
+          );
         }
       } else if (options.logEmpty) {
-        deps.logger.log('No classpaths returned from Java Language Server; using system classpath');
+        deps.logger.log(
+          'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.'
+        );
+      }
+      if (Array.isArray(cp?.targetResolutionRoots) && cp.targetResolutionRoots.length > 0) {
+        targetResolutionRoots = cp.targetResolutionRoots;
       }
       outputPath = cp?.output;
       if (Array.isArray(cp?.sourcepaths)) {
@@ -104,23 +111,23 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       if (options.logFailure) {
         const message = error instanceof Error ? error.message : String(error);
         deps.logger.log(
-          `Warning: Could not get project classpaths (${message}), using system classpath`
+          `Warning: Could not get project runtime classpaths (${message}); target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.`
         );
       }
     }
 
-    return { classpaths, sourcepaths, outputPath };
+    return { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath };
   }
 
   async function resolveOutputPath(
-    classpaths: string[] | undefined,
+    targetResolutionRoots: string[] | undefined,
     outputPath: string | undefined,
     classpathsRoot: string,
     projectRoot: string
   ): Promise<string | undefined> {
     let resolved = outputPath;
-    if (!resolved && Array.isArray(classpaths)) {
-      resolved = await deps.deriveOutputFolder(classpaths, classpathsRoot);
+    if (!resolved && Array.isArray(targetResolutionRoots)) {
+      resolved = await deps.deriveOutputFolder(targetResolutionRoots, classpathsRoot);
     }
     if (!resolved) {
       resolved = await deps.findOutputFolderFromProject(projectRoot);
@@ -129,18 +136,19 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
   }
 
   async function resolveFileAnalysisTarget(uri: Uri): Promise<TargetResolution> {
-    const { classpaths, sourcepaths, outputPath } = await readClasspaths(uri, {
+    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath } =
+      await readClasspaths(uri, {
       logSuccess: true,
       logEmpty: true,
       logFailure: true,
-    });
+      });
 
     const targetPath = uri.fsPath;
     if (!deps.isBytecodeTarget(targetPath)) {
       const workspaceFolder = deps.getWorkspaceFolder(uri);
       const workspacePath = workspaceFolder?.uri.fsPath ?? deps.dirname(targetPath);
       const resolvedOutput = await resolveOutputPath(
-        classpaths,
+        targetResolutionRoots,
         outputPath,
         workspacePath,
         workspacePath
@@ -161,7 +169,8 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       target: {
         targetPath,
         preferredProject: uri,
-        classpaths,
+        targetResolutionRoots,
+        runtimeClasspaths,
         sourcepaths,
       },
     };
@@ -172,14 +181,15 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     workspaceFolder: Uri
   ): Promise<TargetResolution> {
     const projectUriString = projectUri.toString();
-    const { classpaths, sourcepaths, outputPath } = await readClasspaths(projectUri, {
-      logEmpty: true,
-      logFailure: true,
-    });
+    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath } =
+      await readClasspaths(projectUri, {
+        logEmpty: true,
+        logFailure: true,
+      });
     const projectRoot =
       projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
     const resolvedOutput = await resolveOutputPath(
-      classpaths,
+      targetResolutionRoots,
       outputPath,
       workspaceFolder.fsPath,
       projectRoot
@@ -201,7 +211,8 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       target: {
         targetPath: resolvedOutput,
         preferredProject: projectUri,
-        classpaths,
+        targetResolutionRoots,
+        runtimeClasspaths,
         sourcepaths,
       },
     };

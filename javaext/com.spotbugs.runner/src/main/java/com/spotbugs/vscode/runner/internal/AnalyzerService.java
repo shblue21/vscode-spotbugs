@@ -16,9 +16,13 @@ public class AnalyzerService {
 
     private final FindBugs2 findBugs;
     private final UserPreferences userPreferences;
-    private List<String> projectClasspaths;
+    private List<String> targetResolutionRoots;
+    private List<String> runtimeClasspaths;
+    private List<String> extraAuxClasspaths;
     private AnalysisConfig config;
     private int lastTargetCount = 0;
+    private int lastTargetResolutionRootCount = 0;
+    private int lastAuxClasspathCount = 0;
 
     public AnalyzerService() {
         this.userPreferences = UserPreferences.createDefaultUserPreferences();
@@ -30,12 +34,27 @@ public class AnalyzerService {
         this.config = cfg;
         // Apply user preferences via dedicated applier
         new PreferencesApplier().apply(this.userPreferences, this.findBugs, cfg);
-        // Keep classpaths locally for project setup
-        this.projectClasspaths = cfg != null ? cfg.getClasspaths() : java.util.Collections.emptyList();
+        this.targetResolutionRoots = cfg != null
+                ? cfg.getTargetResolutionRoots()
+                : java.util.Collections.emptyList();
+        this.runtimeClasspaths = cfg != null
+                ? cfg.getRuntimeClasspaths()
+                : java.util.Collections.emptyList();
+        this.extraAuxClasspaths = cfg != null
+                ? cfg.getExtraAuxClasspaths()
+                : java.util.Collections.emptyList();
     }
 
     public int getLastTargetCount() {
         return lastTargetCount;
+    }
+
+    public int getLastTargetResolutionRootCount() {
+        return lastTargetResolutionRootCount;
+    }
+
+    public int getLastAuxClasspathCount() {
+        return lastAuxClasspathCount;
     }
 
     public List<BugInfo> analyzeToBugs(String... filePaths) {
@@ -100,15 +119,18 @@ public class AnalyzerService {
     private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, String... filePaths) throws java.io.IOException {
         checkCanceled(monitor);
         this.lastTargetCount = 0;
+        this.lastTargetResolutionRootCount = 0;
+        this.lastAuxClasspathCount = 0;
         if (filePaths == null || filePaths.length == 0) {
             return null;
         }
 
         Project project = new Project();
         ClasspathConfigurer cpCfg = new ClasspathConfigurer();
-        List<java.io.File> cpDirs = cpCfg.directoriesFrom(this.projectClasspaths);
+        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.targetResolutionRoots);
+        this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         TargetResolver resolver = new TargetResolver();
-        List<String> targets = resolver.resolveTargets(filePaths, cpDirs, monitor);
+        List<String> targets = resolver.resolveTargets(filePaths, targetResolutionRootDirs, monitor);
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
@@ -117,7 +139,12 @@ public class AnalyzerService {
         for (String t : targets) {
             project.addFile(t);
         }
-        cpCfg.apply(project, this.projectClasspaths);
+        ClasspathConfigurer.AppliedAuxClasspath appliedAuxClasspath = cpCfg.apply(
+                project,
+                this.runtimeClasspaths,
+                this.extraAuxClasspaths
+        );
+        this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
         Integer reporterPriority = computeReporterPriorityThreshold(
                 this.config != null ? this.config.getPriorityThreshold() : null
         );

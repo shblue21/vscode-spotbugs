@@ -19,8 +19,9 @@ public class ConfigValidator {
         // Effort normalization (default on unknown)
         Effort effort = Effort.fromString(schema.getEffort());
 
-        // Classpaths: drop null/empty and dedupe while preserving order
-        List<String> cps = normalizeList(schema.getClasspaths());
+        List<String> targetResolutionRoots = normalizeList(schema.getTargetResolutionRoots());
+        List<String> runtimeClasspaths = normalizeList(schema.getRuntimeClasspaths());
+        List<String> extraAuxClasspaths = normalizeList(schema.getExtraAuxClasspaths());
         List<String> sps = normalizeList(schema.getSourcepaths());
 
         // Optional fields: normalize empties to null
@@ -47,11 +48,17 @@ public class ConfigValidator {
         if (baselineFilterError != null) {
             return ConfigValidationResult.error(baselineFilterError.getCode(), baselineFilterError.getMessage());
         }
+        ConfigError extraAuxClasspathError = FilterFileValidator.validateExtraAuxClasspaths(extraAuxClasspaths);
+        if (extraAuxClasspathError != null) {
+            return ConfigValidationResult.error(extraAuxClasspathError.getCode(), extraAuxClasspathError.getMessage());
+        }
 
         AnalysisConfig cfg = AnalysisConfig
             .newBuilder()
             .effort(effort)
-            .classpaths(cps)
+            .targetResolutionRoots(targetResolutionRoots)
+            .runtimeClasspaths(runtimeClasspaths)
+            .extraAuxClasspaths(extraAuxClasspaths)
             .sourcepaths(sps)
             .priorityThreshold(priorityThreshold)
             .includeFilterPaths(includeFilterPaths)

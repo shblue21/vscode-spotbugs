@@ -2,13 +2,10 @@ import { commands, ProgressLocation, Uri, window } from 'vscode';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
 import { Notifier, defaultNotifier } from '../core/notifier';
-import {
-  analyzeFile,
-  analyzeWorkspaceFromProjects,
-  getWorkspaceProjects,
-  NO_CLASS_TARGETS_CODE,
-} from '../services/analysisService';
+import { analyzeFile, analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/analysisService';
+import type { ProjectResult } from '../services/projectResult';
 import { buildAnalysisNotices } from './analysisNotices';
+import { buildWorkspaceCompletionNotices } from './workspaceSummary';
 import { SpotBugsDiagnosticsManager } from '../services/diagnosticsManager';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
@@ -82,7 +79,7 @@ export async function runWorkspaceAnalysis(
   const notifier = args.notifier ?? defaultNotifier;
   try {
     let aggregated: Finding[] = [];
-    let projectResults: { errorCode?: string }[] = [];
+    let projectResults: ProjectResult[] = [];
     let cancelled = false;
 
     await window.withProgress(
@@ -138,32 +135,16 @@ export async function runWorkspaceAnalysis(
     args.tree.showResults(aggregated);
     args.diagnostics.replaceAll(aggregated);
 
-    const noClassTargets = projectResults.filter(
-      (result) => result.errorCode === NO_CLASS_TARGETS_CODE
-    );
-    const allSkipped =
-      projectResults.length > 0 && noClassTargets.length === projectResults.length;
-
-    if (allSkipped) {
-      notifier.warn(
-        'SpotBugs could not build the project. Run a manual build, then try again.'
-      );
-      return;
+    const notices = buildWorkspaceCompletionNotices(projectResults, aggregated.length);
+    for (const notice of notices) {
+      if (notice.level === 'error') {
+        notifier.error(notice.message);
+      } else if (notice.level === 'warn') {
+        notifier.warn(notice.message);
+      } else {
+        notifier.info(notice.message);
+      }
     }
-
-    if (noClassTargets.length > 0) {
-      notifier.warn(
-        `SpotBugs skipped ${noClassTargets.length} project${
-          noClassTargets.length === 1 ? '' : 's'
-        } because the build failed. Run a manual build, then try again.`
-      );
-    }
-
-    const summary =
-      aggregated.length === 0
-        ? 'No issues found.'
-        : `${aggregated.length} issue${aggregated.length === 1 ? '' : 's'} found.`;
-    notifier.info(`SpotBugs: Workspace analysis completed - ${summary}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('An error occurred during workspace analysis', error);

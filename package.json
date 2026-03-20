@@ -88,6 +88,16 @@
             "minimum": 1,
             "maximum": 20,
             "scope": "window"
+          },
+          "spotbugs.analysis.extraAuxClasspaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "uniqueItems": true,
+            "markdownDescription": "Additional SpotBugs aux classpath entries appended after Java Language Server runtime classpath entries. Supports absolute paths and workspace-relative paths for jar files or directories.",
+            "scope": "window"
           }
         }
       },

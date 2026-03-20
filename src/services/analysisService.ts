@@ -1,16 +1,21 @@
 import { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { Config } from '../core/config';
-import { Finding } from '../model/finding';
 import { AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
+import { ANALYSIS_PROTOCOL_SCHEMA_VERSION } from '../model/analysisProtocol';
 import { ProjectRef } from '../workspace/classpathService';
 import { addFullPaths } from '../workspace/pathResolver';
 import { runSpotBugsAnalysis } from '../lsp/spotbugsClient';
 import { parseAnalysisResponse } from '../lsp/spotbugsParser';
 import { buildAnalysisRequestPayload } from '../lsp/analysisRequestBuilder';
 import { mapBugsToFindings } from '../lsp/spotbugsMapper';
-import { validateFilterFilesPreflight } from './filterFileValidation';
+import type { ProjectResult } from './projectResult';
+import { projectResultFromOutcome } from './projectResult';
+import {
+  validateExtraAuxClasspathPreflight,
+  validateFilterFilesPreflight,
+} from './filterFileValidation';
 import {
   resolveFileAnalysisTarget,
   resolveProjectAnalysisTarget,
@@ -20,17 +25,13 @@ import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 type AnalysisContext = {
   targetPath: string;
   preferredProject?: Uri;
-  classpaths?: string[] | null;
+  targetResolutionRoots?: string[] | null;
+  runtimeClasspaths?: string[] | null;
   sourcepaths?: string[] | null;
 };
 
-export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetResolver';
-export interface ProjectResult {
-  projectUri: string;
-  findings: Finding[];
-  error?: string;
-  errorCode?: string;
-}
+export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
+export type { ProjectResult } from './projectResult';
 
 export interface WorkspaceResult {
   results: ProjectResult[];
@@ -134,7 +135,7 @@ async function analyzeProject(
     }
 
     const outcome = await runAnalysis(config, resolution.target);
-    return { projectUri: projectUriString, findings: outcome.findings };
+    return projectResultFromOutcome(projectUriString, outcome);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { projectUri: projectUriString, findings: [], error: message };
@@ -146,7 +147,7 @@ async function runAnalysis(
   context: AnalysisContext
 ): Promise<AnalysisOutcome> {
   const targetPath = context.targetPath;
-  const settings = config.getAnalysisSettings();
+  const settings = config.getAnalysisSettings(context.preferredProject);
   const preflightFilterError = await validateFilterFilesPreflight(settings);
   if (preflightFilterError) {
     const combined = formatAnalysisErrors([preflightFilterError]);
@@ -163,9 +164,27 @@ async function runAnalysis(
       },
     };
   }
+  const preflightAuxClasspathError = await validateExtraAuxClasspathPreflight(settings);
+  if (preflightAuxClasspathError) {
+    const combined = formatAnalysisErrors([preflightAuxClasspathError]);
+    Logger.error(`SpotBugs extra aux classpath configuration error: ${combined}`);
+    return {
+      findings: [],
+      errors: [preflightAuxClasspathError],
+      targetPath,
+      failure: {
+        kind: 'analysis-error',
+        level: 'error',
+        code: preflightAuxClasspathError.code,
+        message: `SpotBugs analysis failed: ${combined}`,
+      },
+    };
+  }
 
   const payload = buildAnalysisRequestPayload(settings, {
-    classpaths: context.classpaths ?? null,
+    targetResolutionRoots: context.targetResolutionRoots ?? null,
+    runtimeClasspaths: context.runtimeClasspaths ?? null,
+    extraAuxClasspaths: settings.extraAuxClasspaths ?? null,
     sourcepaths: context.sourcepaths ?? null,
   });
   const result = await runSpotBugsAnalysis({
@@ -205,7 +224,10 @@ async function runAnalysis(
 
   const { bugs, errors, stats, schemaVersion } = parsed.value;
 
-  if (typeof schemaVersion === 'number' && schemaVersion !== 1) {
+  if (
+    typeof schemaVersion === 'number' &&
+    schemaVersion !== ANALYSIS_PROTOCOL_SCHEMA_VERSION
+  ) {
     Logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
   }
   if (Array.isArray(errors) && errors.length > 0) {
@@ -243,8 +265,17 @@ async function runAnalysis(
   if (typeof stats?.spotbugsVersion === 'string') {
     logParts.push(`spotbugsVersion=${stats.spotbugsVersion}`);
   }
-  if (typeof stats?.classpathCount === 'number') {
-    logParts.push(`classpathCount=${stats.classpathCount}`);
+  if (typeof stats?.targetResolutionRootCount === 'number') {
+    logParts.push(`targetResolutionRootCount=${stats.targetResolutionRootCount}`);
+  }
+  if (typeof stats?.runtimeClasspathCount === 'number') {
+    logParts.push(`runtimeClasspathCount=${stats.runtimeClasspathCount}`);
+  }
+  if (typeof stats?.extraAuxClasspathCount === 'number') {
+    logParts.push(`extraAuxClasspathCount=${stats.extraAuxClasspathCount}`);
+  }
+  if (typeof stats?.auxClasspathCount === 'number') {
+    logParts.push(`auxClasspathCount=${stats.auxClasspathCount}`);
   }
   if (typeof stats?.targetCount === 'number') {
     logParts.push(`targetCount=${stats.targetCount}`);
