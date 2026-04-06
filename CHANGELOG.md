@@ -1,4 +1,16 @@
 # Changelog
+## [0.4.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.3.0...v0.4.0) (2026-04-06)
+
+
+### Features
+
+* **classpath:** split analysis classpath roles and add extra aux support ([#21](https://github.com/shblue21/vscode-spotbugs/issues/21)) ([3bec0bb](https://github.com/shblue21/vscode-spotbugs/commit/3bec0bb66826a1c3a12c77683d4a21337054b4b9))
+
+
+### Bug Fixes
+
+* suppress degraded-success notices for terminal workspace failures ([#25](https://github.com/shblue21/vscode-spotbugs/issues/25)) ([51092aa](https://github.com/shblue21/vscode-spotbugs/commit/51092aadfcb86f7271859f2c69bc8992dfe88e5e))
+
 ## [0.3.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.2.0...v0.3.0) (2026-03-18)
 
 
