@@ -4,9 +4,16 @@ import { runTests } from '@vscode/test-electron';
 async function main(): Promise<void> {
   try {
     const extensionDevelopmentPath = path.resolve(__dirname, '../../');
+    const javaExtensionStubPath = path.resolve(
+      __dirname,
+      '../../src/test/fixtures/redhat.java-stub'
+    );
     const extensionTestsPath = path.resolve(__dirname, './index');
 
-    await runTests({ extensionDevelopmentPath, extensionTestsPath });
+    await runTests({
+      extensionDevelopmentPath: [extensionDevelopmentPath, javaExtensionStubPath],
+      extensionTestsPath,
+    });
   } catch (error) {
     console.error('Failed to run VS Code tests');
     if (error instanceof Error) {

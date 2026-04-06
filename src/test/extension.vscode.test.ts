@@ -2,8 +2,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { SpotBugsCommands } from '../constants/commands';
 
-suite('Extension activation', () => {
-  test('registers SpotBugs commands', async () => {
+describe('Extension activation', () => {
+  it('registers SpotBugs commands', async () => {
     const extensionId = 'shblue21.vscode-spotbugs';
     const extension = vscode.extensions.getExtension(extensionId);
     assert.ok(extension, `Extension ${extensionId} not found`);
