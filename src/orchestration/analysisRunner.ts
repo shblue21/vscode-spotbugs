@@ -2,7 +2,10 @@ import { commands, ProgressLocation, Uri, window } from 'vscode';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
 import { Notifier, defaultNotifier } from '../core/notifier';
-import { analyzeFile, analyzeWorkspaceFromProjects, getWorkspaceProjects } from '../services/analysisService';
+import {
+  analyzeFileDetailed,
+  analyzeWorkspaceFromProjectsDetailed,
+} from '../services/analysisService';
 import type { ProjectResult } from '../services/projectResult';
 import { buildAnalysisNotices } from './analysisNotices';
 import { buildWorkspaceCompletionNotices } from './workspaceSummary';
@@ -10,6 +13,7 @@ import { SpotBugsDiagnosticsManager } from '../services/diagnosticsManager';
 import { buildWorkspaceAuto } from '../services/workspaceBuildService';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { Finding } from '../model/finding';
+import { getWorkspaceProjectDiscovery } from '../workspace/projectDiscovery';
 import { getPrimaryWorkspaceFolder } from '../workspace/workspaceRoots';
 
 export interface RunFileAnalysisArgs {
@@ -45,11 +49,15 @@ export async function runFileAnalysis(
 
   args.tree.showLoading();
   try {
-    const outcome = await analyzeFile(args.config, fileUri);
+    const result = await analyzeFileDetailed(args.config, fileUri);
+    const outcome = result.outcome;
     const findings = outcome.findings;
     args.tree.showResults(findings);
     args.diagnostics.updateForFile(fileUri, findings);
-    const notices = buildAnalysisNotices(outcome, { includeHints: true });
+    const notices = buildAnalysisNotices(outcome, {
+      includeHints: true,
+      resolutionIssues: result.context.resolutionIssues,
+    });
     for (const notice of notices) {
       if (notice.level === 'error') {
         notifier.error(notice.message);
@@ -80,6 +88,7 @@ export async function runWorkspaceAnalysis(
   try {
     let aggregated: Finding[] = [];
     let projectResults: ProjectResult[] = [];
+    let resolutionIssues: import('../lsp/javaLsOutcome').AnalysisResolutionIssue[] = [];
     let cancelled = false;
 
     await window.withProgress(
@@ -105,13 +114,13 @@ export async function runWorkspaceAnalysis(
           throw new Error('No workspace folder found.');
         }
 
-        const projectUris = await getWorkspaceProjects(wsFolder.uri);
-        args.tree.showWorkspaceProgress(projectUris);
+        const discovery = await getWorkspaceProjectDiscovery(wsFolder.uri);
+        args.tree.showWorkspaceProgress(discovery.projectUris);
 
-        const res = await analyzeWorkspaceFromProjects(
+        const res = await analyzeWorkspaceFromProjectsDetailed(
           args.config,
           wsFolder.uri,
-          projectUris,
+          discovery.projectUris,
           {
             onStart: (u, idx, total) => {
               progress.report({ message: `${idx}/${total} ${u}` });
@@ -124,6 +133,10 @@ export async function runWorkspaceAnalysis(
         );
         projectResults = res.results;
         aggregated = res.results.flatMap((r) => r.findings);
+        resolutionIssues = [
+          ...discovery.issues,
+          ...res.context.resolutionIssues,
+        ];
         cancelled = res.cancelled === true || token.isCancellationRequested;
       }
     );
@@ -134,8 +147,11 @@ export async function runWorkspaceAnalysis(
 
     args.tree.showResults(aggregated);
     args.diagnostics.replaceAll(aggregated);
-
-    const notices = buildWorkspaceCompletionNotices(projectResults, aggregated.length);
+    const notices = buildWorkspaceCompletionNotices(
+      projectResults,
+      aggregated.length,
+      resolutionIssues
+    );
     for (const notice of notices) {
       if (notice.level === 'error') {
         notifier.error(notice.message);

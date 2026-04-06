@@ -1,16 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Uri } from 'vscode';
+import type { ClasspathLookupOutcome } from '../lsp/javaLsOutcome';
 import { collectClasspathAttempts } from './classpathAttemptSelector';
-import { runClasspathAttempts } from './classpathCommandRunner';
-import { deriveTargetResolutionRoots } from './classpathLayout';
-
-export interface ClasspathResult {
-  output?: string;
-  runtimeClasspaths: string[];
-  targetResolutionRoots: string[];
-  sourcepaths: string[];
-}
+import {
+  runClasspathAttempts,
+  runClasspathAttemptsOutcome,
+} from './classpathCommandRunner';
+import type { ClasspathResult } from './classpathTypes';
 
 export interface ClasspathLookupOptions {
   verbose?: boolean;
@@ -29,12 +26,20 @@ const PREFERRED_OUTPUT_SUFFIXES = [
 
 export type ProjectRef = string | Uri | undefined;
 
+export async function getClasspathsOutcome(
+  project?: ProjectRef,
+  options?: ClasspathLookupOptions
+): Promise<ClasspathLookupOutcome> {
+  const attempts = await collectClasspathAttempts(project);
+  return runClasspathAttemptsOutcome(attempts, options);
+}
+
 export async function getClasspaths(
   project?: ProjectRef,
   options?: ClasspathLookupOptions
 ): Promise<ClasspathResult | undefined> {
-  const attempts = await collectClasspathAttempts(project);
-  return runClasspathAttempts(attempts, options);
+  const outcome = await getClasspathsOutcome(project, options);
+  return outcome.status === 'resolved' ? outcome.classpath : undefined;
 }
 
 export async function deriveOutputFolder(
