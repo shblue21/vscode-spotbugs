@@ -1,7 +1,11 @@
 import { Uri, workspace } from 'vscode';
 import * as path from 'path';
 import { Logger } from '../core/logger';
-import { deriveOutputFolder, getClasspaths } from './classpathService';
+import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
+import {
+  deriveOutputFolder,
+  getClasspathsOutcome,
+} from './classpathService';
 import { primeSourcepathsCache } from './pathResolver';
 import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from './analysisTargetCodes';
 import {
@@ -31,8 +35,13 @@ export interface TargetResolutionFailure {
 
 export type TargetResolution = TargetResolutionOk | TargetResolutionFailure;
 
+export interface TargetResolutionResult {
+  resolution: TargetResolution;
+  issues: AnalysisResolutionIssue[];
+}
+
 export interface TargetResolverDeps {
-  getClasspaths: typeof getClasspaths;
+  getClasspathsOutcome: typeof getClasspathsOutcome;
   deriveOutputFolder: typeof deriveOutputFolder;
   findOutputFolderFromProject: typeof findOutputFolderFromProject;
   hasClassTargets: typeof hasClassTargets;
@@ -44,7 +53,7 @@ export interface TargetResolverDeps {
 }
 
 const defaultDeps: TargetResolverDeps = {
-  getClasspaths,
+  getClasspathsOutcome,
   deriveOutputFolder,
   findOutputFolderFromProject,
   hasClassTargets,
@@ -63,6 +72,12 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     runtimeClasspaths?: string[];
     sourcepaths?: string[];
     outputPath?: string;
+    issues: AnalysisResolutionIssue[];
+  };
+
+  type OutputResolution = {
+    outputPath?: string;
+    usedFallback: boolean;
   };
 
   function noClassTargets(logMessage?: string): TargetResolutionFailure {
@@ -84,9 +99,15 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     let runtimeClasspaths: string[] | undefined;
     let sourcepaths: string[] | undefined;
     let outputPath: string | undefined;
+    let issues: AnalysisResolutionIssue[] = [];
 
     try {
-      const cp = await deps.getClasspaths(project, { logFailures: options.logFailure });
+      const outcome = await deps.getClasspathsOutcome(project, {
+        logFailures: options.logFailure,
+      });
+      issues = outcome.issues;
+      const cp = outcome.status === 'resolved' ? outcome.classpath : undefined;
+
       if (cp && Array.isArray(cp.runtimeClasspaths) && cp.runtimeClasspaths.length > 0) {
         runtimeClasspaths = cp.runtimeClasspaths;
         if (options.logSuccess) {
@@ -116,7 +137,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       }
     }
 
-    return { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath };
+    return { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath, issues };
   }
 
   async function resolveOutputPath(
@@ -124,107 +145,180 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     outputPath: string | undefined,
     classpathsRoot: string,
     projectRoot: string
-  ): Promise<string | undefined> {
+  ): Promise<OutputResolution> {
     let resolved = outputPath;
+    let usedFallback = false;
+
     if (!resolved && Array.isArray(targetResolutionRoots)) {
       resolved = await deps.deriveOutputFolder(targetResolutionRoots, classpathsRoot);
+      usedFallback = !!resolved;
     }
+
     if (!resolved) {
       resolved = await deps.findOutputFolderFromProject(projectRoot);
+      usedFallback = !!resolved;
     }
-    return resolved;
+
+    return {
+      outputPath: resolved,
+      usedFallback,
+    };
   }
 
-  async function resolveFileAnalysisTarget(uri: Uri): Promise<TargetResolution> {
-    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath } =
+  async function resolveFileAnalysisTargetDetailed(
+    uri: Uri
+  ): Promise<TargetResolutionResult> {
+    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath, issues } =
       await readClasspaths(uri, {
       logSuccess: true,
       logEmpty: true,
       logFailure: true,
-      });
+    });
+    const resolutionIssues = [...issues];
 
     const targetPath = uri.fsPath;
     if (!deps.isBytecodeTarget(targetPath)) {
       const workspaceFolder = deps.getWorkspaceFolder(uri);
       const workspacePath = workspaceFolder?.uri.fsPath ?? deps.dirname(targetPath);
-      const resolvedOutput = await resolveOutputPath(
+      const outputResolution = await resolveOutputPath(
         targetResolutionRoots,
         outputPath,
         workspacePath,
         workspacePath
       );
-      if (!resolvedOutput || !(await deps.hasClassTargets(resolvedOutput))) {
-        return noClassTargets(
+      if (
+        !outputResolution.outputPath ||
+        !(await deps.hasClassTargets(outputResolution.outputPath))
+      ) {
+        return {
+          resolution: noClassTargets(
           `Skipping SpotBugs analysis for ${targetPath}: no compiled classes found.`
-        );
+          ),
+          issues: resolutionIssues,
+        };
+      }
+
+      if (outputResolution.usedFallback) {
+        resolutionIssues.push(createOutputFallbackIssue());
       }
     } else if (!(await deps.hasClassTargets(targetPath))) {
-      return noClassTargets(
-        `Skipping SpotBugs analysis for ${targetPath}: target does not exist.`
-      );
+      return {
+        resolution: noClassTargets(
+          `Skipping SpotBugs analysis for ${targetPath}: target does not exist.`
+        ),
+        issues: resolutionIssues,
+      };
     }
 
     return {
-      status: 'ok',
-      target: {
-        targetPath,
-        preferredProject: uri,
-        targetResolutionRoots,
-        runtimeClasspaths,
-        sourcepaths,
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath,
+          preferredProject: uri,
+          targetResolutionRoots,
+          runtimeClasspaths,
+          sourcepaths,
+        },
       },
+      issues: resolutionIssues,
     };
+  }
+
+  async function resolveProjectAnalysisTargetDetailed(
+    projectUri: Uri,
+    workspaceFolder: Uri
+  ): Promise<TargetResolutionResult> {
+    const projectUriString = projectUri.toString();
+    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath, issues } =
+      await readClasspaths(projectUri, {
+        logEmpty: true,
+        logFailure: true,
+      });
+    const resolutionIssues = [...issues];
+    const projectRoot =
+      projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
+    const outputResolution = await resolveOutputPath(
+      targetResolutionRoots,
+      outputPath,
+      workspaceFolder.fsPath,
+      projectRoot
+    );
+    if (!outputResolution.outputPath) {
+      return {
+        resolution: noClassTargets(
+          `Skipping SpotBugs analysis for ${projectUriString}: no output folder.`
+        ),
+        issues: resolutionIssues,
+      };
+    }
+
+    if (!(await deps.hasClassTargets(outputResolution.outputPath))) {
+      return {
+        resolution: noClassTargets(
+          `Skipping SpotBugs analysis for ${projectUriString}: no compiled classes in ${outputResolution.outputPath}`
+        ),
+        issues: resolutionIssues,
+      };
+    }
+
+    if (outputResolution.usedFallback) {
+      resolutionIssues.push(createOutputFallbackIssue());
+    }
+
+    return {
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath: outputResolution.outputPath,
+          preferredProject: projectUri,
+          targetResolutionRoots,
+          runtimeClasspaths,
+          sourcepaths,
+        },
+      },
+      issues: resolutionIssues,
+    };
+  }
+
+  async function resolveFileAnalysisTarget(uri: Uri): Promise<TargetResolution> {
+    const result = await resolveFileAnalysisTargetDetailed(uri);
+    return result.resolution;
   }
 
   async function resolveProjectAnalysisTarget(
     projectUri: Uri,
     workspaceFolder: Uri
   ): Promise<TargetResolution> {
-    const projectUriString = projectUri.toString();
-    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath } =
-      await readClasspaths(projectUri, {
-        logEmpty: true,
-        logFailure: true,
-      });
-    const projectRoot =
-      projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
-    const resolvedOutput = await resolveOutputPath(
-      targetResolutionRoots,
-      outputPath,
-      workspaceFolder.fsPath,
-      projectRoot
-    );
-    if (!resolvedOutput) {
-      return noClassTargets(
-        `Skipping SpotBugs analysis for ${projectUriString}: no output folder.`
-      );
-    }
-
-    if (!(await deps.hasClassTargets(resolvedOutput))) {
-      return noClassTargets(
-        `Skipping SpotBugs analysis for ${projectUriString}: no compiled classes in ${resolvedOutput}`
-      );
-    }
-
-    return {
-      status: 'ok',
-      target: {
-        targetPath: resolvedOutput,
-        preferredProject: projectUri,
-        targetResolutionRoots,
-        runtimeClasspaths,
-        sourcepaths,
-      },
-    };
+    const result = await resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
+    return result.resolution;
   }
 
-  return { resolveFileAnalysisTarget, resolveProjectAnalysisTarget };
+  return {
+    resolveFileAnalysisTarget,
+    resolveFileAnalysisTargetDetailed,
+    resolveProjectAnalysisTarget,
+    resolveProjectAnalysisTargetDetailed,
+  };
 }
 
 const defaultResolver = createTargetResolver();
 
+export async function resolveFileAnalysisTargetDetailed(
+  uri: Uri
+): Promise<TargetResolutionResult> {
+  return defaultResolver.resolveFileAnalysisTargetDetailed(uri);
+}
+
 export async function resolveFileAnalysisTarget(uri: Uri): Promise<TargetResolution> {
   return defaultResolver.resolveFileAnalysisTarget(uri);
+}
+
+export async function resolveProjectAnalysisTargetDetailed(
+  projectUri: Uri,
+  workspaceFolder: Uri
+): Promise<TargetResolutionResult> {
+  return defaultResolver.resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
 }
 
 export async function resolveProjectAnalysisTarget(
@@ -232,4 +326,14 @@ export async function resolveProjectAnalysisTarget(
   workspaceFolder: Uri
 ): Promise<TargetResolution> {
   return defaultResolver.resolveProjectAnalysisTarget(projectUri, workspaceFolder);
+}
+
+function createOutputFallbackIssue(): AnalysisResolutionIssue {
+  return {
+    code: 'OUTPUT_FALLBACK_USED',
+    level: 'info',
+    source: 'target-resolution',
+    phase: 'output-fallback',
+    message: 'Output folder fallback was used because Java build output metadata was unavailable.',
+  };
 }

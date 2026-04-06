@@ -1,11 +1,19 @@
 import { Uri, workspace } from 'vscode';
 import * as path from 'path';
 import { Logger } from '../core/logger';
+import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { JavaLsClient } from '../services/javaLsClient';
 
-export async function getWorkspaceProjectUris(workspaceFolder: Uri): Promise<string[]> {
-  let projectUris = await JavaLsClient.getAllProjects();
-  projectUris = projectUris.filter((uriString) => {
+export interface WorkspaceProjectDiscoveryResult {
+  projectUris: string[];
+  issues: AnalysisResolutionIssue[];
+}
+
+export async function getWorkspaceProjectDiscovery(
+  workspaceFolder: Uri
+): Promise<WorkspaceProjectDiscoveryResult> {
+  const outcome = await JavaLsClient.getAllProjectsOutcome();
+  const projectUris = outcome.projectUris.filter((uriString) => {
     try {
       const fsPath = Uri.parse(uriString).fsPath;
       return path.basename(fsPath) !== 'jdt.ls-java-project';
@@ -14,14 +22,33 @@ export async function getWorkspaceProjectUris(workspaceFolder: Uri): Promise<str
     }
   });
 
-  if (projectUris.length === 0) {
-    projectUris = [workspaceFolder.toString()];
-    Logger.log('No Java projects from LS; falling back to workspace folder analysis.');
-  } else {
+  if (outcome.status === 'resolved' && projectUris.length > 0) {
     Logger.log(`Workspace contains ${projectUris.length} Java projects.`);
+    return {
+      projectUris,
+      issues: outcome.issues,
+    };
   }
 
-  return projectUris;
+  Logger.log('No Java projects from LS; falling back to workspace folder analysis.');
+  return {
+    projectUris: [workspaceFolder.toString()],
+    issues: [
+      ...outcome.issues,
+      {
+        code: 'WORKSPACE_FALLBACK_USED',
+        level: 'info',
+        source: 'project-discovery',
+        phase: 'workspace-fallback',
+        message: 'Workspace-folder fallback was used for project discovery.',
+      },
+    ],
+  };
+}
+
+export async function getWorkspaceProjectUris(workspaceFolder: Uri): Promise<string[]> {
+  const discovery = await getWorkspaceProjectDiscovery(workspaceFolder);
+  return discovery.projectUris;
 }
 
 export async function getProjectRootPaths(): Promise<string[]> {

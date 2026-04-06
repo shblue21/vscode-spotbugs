@@ -1,6 +1,7 @@
 import { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { Config } from '../core/config';
+import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import { ANALYSIS_PROTOCOL_SCHEMA_VERSION } from '../model/analysisProtocol';
@@ -18,7 +19,9 @@ import {
 } from './filterFileValidation';
 import {
   resolveFileAnalysisTarget,
+  resolveFileAnalysisTargetDetailed,
   resolveProjectAnalysisTarget,
+  resolveProjectAnalysisTargetDetailed,
 } from '../workspace/analysisTargetResolver';
 import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 
@@ -38,26 +41,71 @@ export interface WorkspaceResult {
   cancelled?: boolean;
 }
 
-export async function analyzeFile(config: Config, uri: Uri): Promise<AnalysisOutcome> {
+export interface AnalysisExecutionContext {
+  resolutionIssues: AnalysisResolutionIssue[];
+}
+
+export interface AnalysisExecutionResult {
+  outcome: AnalysisOutcome;
+  context: AnalysisExecutionContext;
+}
+
+export interface WorkspaceExecutionResult {
+  results: ProjectResult[];
+  cancelled?: boolean;
+  context: AnalysisExecutionContext;
+}
+
+export async function analyzeFileDetailed(
+  config: Config,
+  uri: Uri
+): Promise<AnalysisExecutionResult> {
+  const context = createExecutionContext();
+
   try {
-    const resolution = await resolveFileAnalysisTarget(uri);
-    if (resolution.status !== 'ok') {
+    const result = await resolveFileAnalysisTargetDetailed(uri);
+    context.resolutionIssues.push(...result.issues);
+
+    if (result.resolution.status !== 'ok') {
       return {
-        findings: [],
-        targetPath: uri.fsPath,
-        failure: {
-          kind: 'target',
-          level: 'warn',
-          code: resolution.errorCode,
-          message: resolution.message,
+        outcome: {
+          findings: [],
+          targetPath: uri.fsPath,
+          failure: {
+            kind: 'target',
+            level: 'warn',
+            code: result.resolution.errorCode,
+            message: result.resolution.message,
+          },
         },
+        context,
       };
     }
-    return await runAnalysis(config, resolution.target);
+
+    try {
+      return {
+        outcome: await runAnalysis(config, result.resolution.target),
+        context,
+      };
+    } catch (error) {
+      Logger.error('Analyzer: analyzeFile failed', error);
+      return {
+        outcome: { findings: [] },
+        context,
+      };
+    }
   } catch (error) {
     Logger.error('Analyzer: analyzeFile failed', error);
-    return { findings: [] };
+    return {
+      outcome: { findings: [] },
+      context,
+    };
   }
+}
+
+export async function analyzeFile(config: Config, uri: Uri): Promise<AnalysisOutcome> {
+  const result = await analyzeFileDetailed(config, uri);
+  return result.outcome;
 }
 
 export async function analyzeWorkspace(
@@ -74,7 +122,7 @@ export async function analyzeWorkspace(
   return analyzeWorkspaceFromProjects(config, workspaceFolder, projectUris, notify, token);
 }
 
-export async function analyzeWorkspaceFromProjects(
+export async function analyzeWorkspaceFromProjectsDetailed(
   config: Config,
   workspaceFolder: Uri,
   projectUris: string[],
@@ -84,8 +132,9 @@ export async function analyzeWorkspaceFromProjects(
     onFail?: (uriString: string, message: string) => void;
   },
   token?: CancellationToken
-): Promise<WorkspaceResult> {
+): Promise<WorkspaceExecutionResult> {
   const results: ProjectResult[] = [];
+  const context = createExecutionContext();
   let cancelled = false;
 
   for (let index = 0; index < projectUris.length; index++) {
@@ -98,17 +147,46 @@ export async function analyzeWorkspaceFromProjects(
 
     notify?.onStart?.(uriString, index + 1, projectUris.length);
 
-    const projectResult = await analyzeProject(config, Uri.parse(uriString), workspaceFolder);
-    if (projectResult.error) {
-      notify?.onFail?.(uriString, projectResult.error);
+    const result = await analyzeProjectDetailed(
+      config,
+      Uri.parse(uriString),
+      workspaceFolder
+    );
+    if (result.projectResult.error) {
+      notify?.onFail?.(uriString, result.projectResult.error);
     } else {
-      notify?.onDone?.(uriString, projectResult.findings.length);
+      notify?.onDone?.(uriString, result.projectResult.findings.length);
     }
 
-    results.push(projectResult);
+    results.push(result.projectResult);
+    context.resolutionIssues.push(...result.context.resolutionIssues);
   }
 
-  return { results, cancelled };
+  return { results, cancelled, context };
+}
+
+export async function analyzeWorkspaceFromProjects(
+  config: Config,
+  workspaceFolder: Uri,
+  projectUris: string[],
+  notify?: {
+    onStart?: (uriString: string, index: number, total: number) => void;
+    onDone?: (uriString: string, count: number) => void;
+    onFail?: (uriString: string, message: string) => void;
+  },
+  token?: CancellationToken
+): Promise<WorkspaceResult> {
+  const result = await analyzeWorkspaceFromProjectsDetailed(
+    config,
+    workspaceFolder,
+    projectUris,
+    notify,
+    token
+  );
+  return {
+    results: result.results,
+    cancelled: result.cancelled,
+  };
 }
 
 export async function getWorkspaceProjects(workspaceFolder: Uri): Promise<string[]> {
@@ -120,25 +198,54 @@ async function analyzeProject(
   project: ProjectRef,
   workspaceFolder: Uri
 ): Promise<ProjectResult> {
+  const result = await analyzeProjectDetailed(config, project, workspaceFolder);
+  return result.projectResult;
+}
+
+async function analyzeProjectDetailed(
+  config: Config,
+  project: ProjectRef,
+  workspaceFolder: Uri
+): Promise<{ projectResult: ProjectResult; context: AnalysisExecutionContext }> {
   const projectUri = normalizeProjectRef(project);
   const projectUriString = projectUri.toString();
+  const context = createExecutionContext();
 
   try {
-    const resolution = await resolveProjectAnalysisTarget(projectUri, workspaceFolder);
-    if (resolution.status !== 'ok') {
+    const result = await resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
+    context.resolutionIssues.push(...result.issues);
+
+    if (result.resolution.status !== 'ok') {
       return {
-        projectUri: projectUriString,
-        findings: [],
-        error: resolution.message,
-        errorCode: resolution.errorCode,
+        projectResult: {
+          projectUri: projectUriString,
+          findings: [],
+          error: result.resolution.message,
+          errorCode: result.resolution.errorCode,
+        },
+        context,
       };
     }
 
-    const outcome = await runAnalysis(config, resolution.target);
-    return projectResultFromOutcome(projectUriString, outcome);
+    try {
+      const outcome = await runAnalysis(config, result.resolution.target);
+      return {
+        projectResult: projectResultFromOutcome(projectUriString, outcome),
+        context,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        projectResult: { projectUri: projectUriString, findings: [], error: message },
+        context,
+      };
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return { projectUri: projectUriString, findings: [], error: message };
+    return {
+      projectResult: { projectUri: projectUriString, findings: [], error: message },
+      context,
+    };
   }
 }
 
@@ -310,4 +417,10 @@ function normalizeProjectRef(project: ProjectRef): Uri {
   }
 
   throw new Error('Unsupported project reference');
+}
+
+function createExecutionContext(): AnalysisExecutionContext {
+  return {
+    resolutionIssues: [],
+  };
 }
