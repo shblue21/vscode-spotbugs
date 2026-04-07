@@ -16,6 +16,11 @@ public class PreferencesApplier {
         // Map effort
         String effortString = toEffortString(cfg.getEffort());
         prefs.setEffort(effortString);
+        if (engine != null) {
+            // FindBugs2 executes whatever is currently stored in AnalysisOptions.
+            // Updating UserPreferences alone leaves the engine pinned to DEFAULT_EFFORT.
+            engine.setAnalysisFeatureSettings(prefs.getAnalysisFeatureSettings());
+        }
 
         // Filter files are applied by FindBugs2#setUserPreferences via configureFilters.
         prefs.setIncludeFilterFiles(toEnabledPathMap(cfg.getIncludeFilterPaths()));
