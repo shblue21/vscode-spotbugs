@@ -1,4 +1,11 @@
 # Changelog
+## [0.4.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.4.0...v0.4.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* **runner:** Apply engine analysis settings ([#26](https://github.com/shblue21/vscode-spotbugs/issues/26)) ([6bebb80](https://github.com/shblue21/vscode-spotbugs/commit/6bebb807187715ce422902e49a3db28f6314d84f))
+
 ## [0.4.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.3.0...v0.4.0) (2026-04-06)
 
 
