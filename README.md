@@ -1,9 +1,9 @@
 > ⚠️ This extension is under active development. Frequent changes and updates are expected.
   
 <p align="center">
-  <img src="https://img.shields.io/visual-studio-marketplace/v/shblue21.vscode-spotbugs" alt="VS Marketplace Version" />
+  <img src="https://vsmarketplacebadges.dev/version-short/shblue21.vscode-spotbugs.svg" alt="VS Marketplace Version" />
   <img src="https://img.shields.io/github/last-commit/shblue21/vscode-spotbugs?logo=github" alt="last-commit" />  
-  <img src="https://img.shields.io/visual-studio-marketplace/d/shblue21.vscode-spotbugs" alt="VS Marketplace Downloads"/>
+  <img src="https://vsmarketplacebadges.dev/downloads-short/shblue21.vscode-spotbugs.svg" alt="VS Marketplace Downloads"/>
 </p>
 
 <div align="center">
