@@ -8,6 +8,31 @@ type WorkspaceFolder = {
   uri: MockUri;
 };
 
+type Listener<T> = (event: T) => unknown;
+
+class MockEventEmitter<T> {
+  private listeners: Listener<T>[] = [];
+
+  readonly event = (listener: Listener<T>) => {
+    this.listeners.push(listener);
+    return {
+      dispose: () => {
+        this.listeners = this.listeners.filter((candidate) => candidate !== listener);
+      },
+    };
+  };
+
+  fire(event: T): void {
+    for (const listener of this.listeners.slice()) {
+      listener(event);
+    }
+  }
+
+  dispose(): void {
+    this.listeners = [];
+  }
+}
+
 class MockUri {
   public readonly scheme: string;
   public readonly fsPath: string;
@@ -42,8 +67,35 @@ class MockUri {
   }
 }
 
+class MockThemeIcon {
+  constructor(public readonly id: string) {}
+}
+
+class MockTreeItem {
+  public description?: string;
+  public tooltip?: string;
+  public iconPath?: unknown;
+  public contextValue?: string;
+  public command?: unknown;
+
+  constructor(
+    public readonly label: string,
+    public readonly collapsibleState?: number
+  ) {}
+}
+
+const MockTreeItemCollapsibleState = {
+  None: 0,
+  Collapsed: 1,
+  Expanded: 2,
+};
+
 type VscodeMock = {
   Uri: typeof MockUri;
+  EventEmitter: typeof MockEventEmitter;
+  TreeItem: typeof MockTreeItem;
+  TreeItemCollapsibleState: typeof MockTreeItemCollapsibleState;
+  ThemeIcon: typeof MockThemeIcon;
   workspace: {
     workspaceFolders: WorkspaceFolder[];
     getWorkspaceFolder: (uri: MockUri) => WorkspaceFolder | undefined;
@@ -53,7 +105,34 @@ type VscodeMock = {
   };
   window: {
     createOutputChannel: (name: string) => { appendLine: (value: string) => void; show: () => void };
+    createTreeView: (
+      viewId: string,
+      options: unknown
+    ) => {
+      onDidChangeSelection: (
+        listener: (event: { selection: unknown[] }) => unknown
+      ) => { dispose: () => void };
+      dispose: () => void;
+    };
+    createWebviewPanel: (
+      viewType: string,
+      title: string,
+      showOptions: unknown,
+      options?: unknown
+    ) => {
+      title: string;
+      webview: { html: string };
+      reveal: (...args: unknown[]) => void;
+      dispose: () => void;
+      onDidDispose: (listener: () => unknown) => { dispose: () => void };
+    };
+    showInformationMessage: (message: string) => Promise<string | undefined>;
     activeTextEditor?: { document: { uri: MockUri } };
+    registerWebviewViewProvider: (
+      viewId: string,
+      provider: unknown,
+      options?: unknown
+    ) => { dispose: () => void };
     withProgress: <T>(
       options: unknown,
       task: (
@@ -66,11 +145,19 @@ type VscodeMock = {
     executeCommand: (...args: unknown[]) => Promise<unknown>;
     getCommands: (filterInternal?: boolean) => Promise<string[]>;
   };
+  env: {
+    clipboard: {
+      writeText: (value: string) => Promise<void>;
+    };
+  };
   extensions: {
     getExtension: (id: string) => unknown;
   };
   ProgressLocation: {
     Notification: number;
+  };
+  ViewColumn: {
+    Beside: number;
   };
 };
 
@@ -79,9 +166,10 @@ let installed = false;
 let currentMock = createVscodeMock();
 
 export function installVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
-  currentMock = createVscodeMock(overrides);
+  const nextMock = createVscodeMock(overrides);
 
   if (!installed) {
+    currentMock = nextMock;
     Module._load = function patchedLoad(request: unknown, parent: unknown, isMain: unknown) {
       if (request === 'vscode') {
         return currentMock;
@@ -89,14 +177,28 @@ export function installVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMo
       return originalLoad.call(this, request, parent, isMain);
     };
     installed = true;
+  } else {
+    updateVscodeMock(currentMock, nextMock);
   }
 
   return currentMock;
 }
 
 export function resetVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
-  currentMock = createVscodeMock(overrides);
+  updateVscodeMock(currentMock, createVscodeMock(overrides));
   return currentMock;
+}
+
+function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
+  Object.assign(target.workspace.fs, source.workspace.fs);
+  target.workspace.workspaceFolders = source.workspace.workspaceFolders;
+  target.workspace.getWorkspaceFolder = source.workspace.getWorkspaceFolder;
+  Object.assign(target.window, source.window);
+  Object.assign(target.commands, source.commands);
+  Object.assign(target.env.clipboard, source.env.clipboard);
+  Object.assign(target.extensions, source.extensions);
+  target.ProgressLocation = source.ProgressLocation;
+  target.ViewColumn = source.ViewColumn;
 }
 
 function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
@@ -119,7 +221,27 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
         appendLine: () => undefined,
         show: () => undefined,
       })),
+    createTreeView:
+      overrides.window?.createTreeView ??
+      (() => ({
+        onDidChangeSelection: () => ({ dispose: () => undefined }),
+        dispose: () => undefined,
+      })),
+    createWebviewPanel:
+      overrides.window?.createWebviewPanel ??
+      (() => ({
+        title: '',
+        webview: { html: '' },
+        reveal: () => undefined,
+        dispose: () => undefined,
+        onDidDispose: () => ({ dispose: () => undefined }),
+      })),
+    showInformationMessage:
+      overrides.window?.showInformationMessage ?? (async () => undefined),
     activeTextEditor: overrides.window?.activeTextEditor,
+    registerWebviewViewProvider:
+      overrides.window?.registerWebviewViewProvider ??
+      (() => ({ dispose: () => undefined })),
     withProgress:
       overrides.window?.withProgress ??
       (async (_options, task) =>
@@ -135,17 +257,29 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
 
   return {
     Uri: MockUri,
+    EventEmitter: MockEventEmitter,
+    TreeItem: MockTreeItem,
+    TreeItemCollapsibleState: MockTreeItemCollapsibleState,
+    ThemeIcon: MockThemeIcon,
     workspace,
     window,
     commands: {
       executeCommand: overrides.commands?.executeCommand ?? (async () => undefined),
       getCommands: overrides.commands?.getCommands ?? (async () => []),
     },
+    env: {
+      clipboard: {
+        writeText: overrides.env?.clipboard?.writeText ?? (async () => undefined),
+      },
+    },
     extensions: {
       getExtension: overrides.extensions?.getExtension ?? (() => undefined),
     },
     ProgressLocation: overrides.ProgressLocation ?? {
       Notification: 15,
+    },
+    ViewColumn: overrides.ViewColumn ?? {
+      Beside: 2,
     },
   };
 }

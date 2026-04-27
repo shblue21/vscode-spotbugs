@@ -5,12 +5,12 @@ import { defaultNotifier } from '../core/notifier';
 import { resolveFindingFilePath } from '../workspace/findingLocator';
 
 /**
- * Opens a source file and navigates to the specified finding location
+ * Reveals a source file and navigates to the specified finding location
  * @param finding The finding information containing file path and line details
  */
-export async function openBugLocation(finding: Finding): Promise<void> {
+export async function revealFindingSource(finding: Finding): Promise<void> {
   try {
-    Logger.log(`Opening bug location: ${finding.message ?? 'SpotBugs finding'}`);
+    Logger.log(`Revealing finding source: ${finding.message ?? 'SpotBugs finding'}`);
     const notifier = defaultNotifier;
 
     const filePath = await resolveFindingFilePath(finding);
@@ -53,7 +53,7 @@ export async function openBugLocation(finding: Finding): Promise<void> {
     await window.showTextDocument(fileUri, options);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.error('Failed to open bug location', error);
+    Logger.error('Failed to reveal finding source', error);
     defaultNotifier.error(`Failed to open file: ${errorMessage}`);
   }
 }

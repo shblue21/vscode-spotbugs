@@ -33,7 +33,11 @@ function collectTestFiles(dir: string): string[] {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...collectTestFiles(fullPath));
-    } else if (entry.isFile() && entry.name.endsWith('.vscode.test.js')) {
+    } else if (
+      entry.isFile() &&
+      entry.name.startsWith('L1.') &&
+      entry.name.endsWith('.vscode.test.js')
+    ) {
       results.push(fullPath);
     }
   }

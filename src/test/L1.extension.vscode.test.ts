@@ -14,7 +14,8 @@ describe('Extension activation', () => {
     const expected = [
       SpotBugsCommands.RUN_ANALYSIS,
       SpotBugsCommands.RUN_WORKSPACE,
-      SpotBugsCommands.OPEN_BUG_LOCATION,
+      SpotBugsCommands.REVEAL_FINDING_SOURCE,
+      SpotBugsCommands.OPEN_FINDING_DETAILS,
       SpotBugsCommands.FILTER_RESULTS,
       SpotBugsCommands.EXPORT_SARIF,
       SpotBugsCommands.RESET_RESULTS,
@@ -23,5 +24,10 @@ describe('Extension activation', () => {
     for (const cmd of expected) {
       assert.ok(registered.includes(cmd), `Missing command: ${cmd}`);
     }
+
+    assert.ok(
+      !registered.includes('spotbugs.openBugLocation'),
+      'Legacy command should not be registered: spotbugs.openBugLocation'
+    );
   });
 });
