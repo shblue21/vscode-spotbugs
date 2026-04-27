@@ -2,7 +2,7 @@ import { Diagnostic, Uri } from 'vscode';
 import { Finding } from '../model/finding';
 import {
   GENERIC_SPOTBUGS_DOCS_URI,
-  rewriteLegacySpotBugsHelpUrl,
+  getAllowedWebDocumentationUrl,
 } from './spotbugsDocumentationLinks';
 
 export const SPOTBUGS_DIAGNOSTIC_SOURCE = 'SpotBugs';
@@ -44,20 +44,14 @@ export function isSpotBugsDiagnostic(diagnostic: Diagnostic): boolean {
 }
 
 function tryParseUri(raw?: string, bugType?: string): Uri | undefined {
-  const value = raw?.trim();
+  const value = getAllowedWebDocumentationUrl(raw, bugType);
   if (!value) {
     return undefined;
   }
 
   try {
-    const url = new URL(value);
-    rewriteLegacySpotBugsHelpUrl(url, bugType);
-    return Uri.parse(url.toString());
+    return Uri.parse(value);
   } catch {
-    try {
-      return Uri.parse(value);
-    } catch {
-      return undefined;
-    }
+    return undefined;
   }
 }

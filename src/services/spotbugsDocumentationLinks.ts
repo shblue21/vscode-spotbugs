@@ -4,6 +4,28 @@ export const GENERIC_SPOTBUGS_DOCS_URI =
 const SPOTBUGS_DOCS_HOSTNAME = 'spotbugs.readthedocs.io';
 const SPOTBUGS_BUG_DESCRIPTIONS_PATH_SUFFIX = '/bugDescriptions.html';
 const LEGACY_SPOTBUGS_ANCHOR_PATTERN = /^[A-Z0-9_]+$/;
+const WEB_DOCUMENTATION_PROTOCOLS = new Set(['http:', 'https:']);
+
+export function getAllowedWebDocumentationUrl(
+  raw?: string,
+  bugType?: string
+): string | undefined {
+  const value = raw?.trim();
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(value);
+    if (!WEB_DOCUMENTATION_PROTOCOLS.has(url.protocol)) {
+      return undefined;
+    }
+    rewriteLegacySpotBugsHelpUrl(url, bugType);
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
 
 export function rewriteLegacySpotBugsHelpUrl(url: URL, bugType?: string): URL {
   const normalizedBugType = normalizeLegacyBugType(bugType);

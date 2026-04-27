@@ -61,7 +61,10 @@ describe('SpotBugs diagnostic explanations', () => {
 
       assert.strictEqual(actions.length, 2);
       assert.strictEqual(actions[0].title, 'Show SpotBugs details');
-      assert.strictEqual(actions[0].command?.command, SpotBugsCommands.OPEN_BUG_LOCATION);
+      assert.strictEqual(
+        actions[0].command?.command,
+        SpotBugsCommands.OPEN_FINDING_DETAILS
+      );
       assert.deepStrictEqual(actions[0].command?.arguments, [
         createFinding(document.uri, { detailHtml, helpUri }),
       ]);
