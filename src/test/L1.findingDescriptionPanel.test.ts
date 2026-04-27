@@ -4,8 +4,15 @@ import {
   sanitizeFindingDetailHtml,
 } from '../ui/findingDescriptionRenderer';
 import { Finding } from '../model/finding';
+import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
+
+installVscodeMock();
 
 describe('findingDescriptionPanel', () => {
+  beforeEach(() => {
+    resetVscodeMock();
+  });
+
   it('renders local HTML detail and rewrites external docs to the slug anchor', () => {
     const html = renderFindingDescriptionHtml(
       makeFinding({
@@ -69,6 +76,43 @@ describe('findingDescriptionPanel', () => {
     assert.ok(html.includes('Plain text fallback'));
     assert.ok(!html.includes('<script'));
     assert.ok(!html.includes('p { color: red; }'));
+  });
+
+  it('reuses the existing details panel across repeated show calls', async () => {
+    let createCount = 0;
+    let revealCount = 0;
+    let disposeCount = 0;
+    const webview = { html: '' };
+    resetVscodeMock({
+      window: {
+        createWebviewPanel: () => {
+          createCount += 1;
+          return {
+            title: '',
+            webview,
+            reveal: () => {
+              revealCount += 1;
+            },
+            dispose: () => {
+              disposeCount += 1;
+            },
+            onDidDispose: () => ({ dispose: () => undefined }),
+          };
+        },
+      } as never,
+    });
+    const detailsPanelModule = await import('../ui/findingDescriptionPanel');
+    const panel = new detailsPanelModule.FindingDescriptionPanel();
+
+    panel.show(makeFinding({ patternId: 'NP_ALWAYS_NULL', type: 'NP_ALWAYS_NULL' }));
+    const firstHtml = webview.html;
+    panel.show(makeFinding({ patternId: 'URF_UNREAD_FIELD', type: 'URF_UNREAD_FIELD' }));
+
+    assert.strictEqual(createCount, 1);
+    assert.strictEqual(revealCount, 2);
+    assert.strictEqual(disposeCount, 0);
+    assert.ok(firstHtml.includes('NP_ALWAYS_NULL'));
+    assert.ok(webview.html.includes('URF_UNREAD_FIELD'));
   });
 });
 

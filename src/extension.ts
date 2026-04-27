@@ -4,17 +4,27 @@ import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './core/utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
-import { openBugLocation } from './commands/navigation';
+import { revealFindingSource } from './commands/navigation';
 import { Config } from './core/config';
 import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
 import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
-import { Finding } from './model/finding';
+import { resolveFindingCommandTarget } from './commands/findingCommandTarget';
+import {
+  clearInspectorBeforeOperation,
+  reconcileInspectorAfterOperation,
+} from './commands/findingInspectorLifecycle';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
 import { SpotBugsDiagnosticCodeActionProvider } from './services/spotbugsDiagnosticCodeActionProvider';
 import { FindingDescriptionPanel } from './ui/findingDescriptionPanel';
+import { bindFindingInspectorToTree } from './ui/findingInspectorController';
+import { FindingInspectorState } from './ui/findingInspectorState';
+import {
+  FINDING_INSPECTOR_VIEW_ID,
+  FindingInspectorViewProvider,
+} from './ui/findingInspectorViewProvider';
 import {
   dispose as disposeTelemetryWrapper,
   initializeFromJsonFile,
@@ -48,6 +58,10 @@ async function doActivate(
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
     const findingDescriptionPanel = new FindingDescriptionPanel();
+    const findingInspectorState = new FindingInspectorState();
+    const findingInspectorViewProvider = new FindingInspectorViewProvider(
+      findingInspectorState
+    );
     const diagnosticCodeActionProvider =
       new SpotBugsDiagnosticCodeActionProvider(diagnosticsManager);
 
@@ -59,6 +73,13 @@ async function doActivate(
       spotbugsTreeView,
       diagnosticsManager,
       findingDescriptionPanel,
+      findingInspectorState,
+      findingInspectorViewProvider,
+      window.registerWebviewViewProvider(
+        FINDING_INSPECTOR_VIEW_ID,
+        findingInspectorViewProvider
+      ),
+      bindFindingInspectorToTree(spotbugsTreeView, findingInspectorState),
       languages.registerCodeActionsProvider(
         { language: 'java' },
         diagnosticCodeActionProvider,
@@ -78,29 +99,56 @@ async function doActivate(
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.RUN_ANALYSIS,
         async (uri: Uri | undefined) => {
-          await checkCode(config, spotbugsTreeDataProvider, diagnosticsManager, uri);
+          await clearInspectorBeforeOperation(findingInspectorState, () =>
+            checkCode(config, spotbugsTreeDataProvider, diagnosticsManager, uri)
+          );
         }
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
-        await runWorkspaceAnalysis(config, spotbugsTreeDataProvider, diagnosticsManager);
+        await clearInspectorBeforeOperation(findingInspectorState, () =>
+          runWorkspaceAnalysis(config, spotbugsTreeDataProvider, diagnosticsManager)
+        );
       }),
 
       instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.OPEN_BUG_LOCATION,
+        SpotBugsCommands.REVEAL_FINDING_SOURCE,
         async (bug) => {
-          if (!isFindingPayload(bug)) {
+          const target = await resolveFindingCommandTarget(
+            bug,
+            findingInspectorState,
+            'go to code'
+          );
+          if (!target) {
             return;
           }
-          await openBugLocation(bug);
-          findingDescriptionPanel.show(bug);
+          await revealFindingSource(target);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.OPEN_FINDING_DETAILS,
+        async (bug) => {
+          const target = await resolveFindingCommandTarget(
+            bug,
+            findingInspectorState,
+            'open details'
+          );
+          if (!target) {
+            return;
+          }
+          findingDescriptionPanel.show(target);
         }
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.FILTER_RESULTS,
         async () => {
-          await selectFindingFilter(spotbugsTreeDataProvider);
+          await reconcileInspectorAfterOperation(
+            findingInspectorState,
+            () => selectFindingFilter(spotbugsTreeDataProvider),
+            () => spotbugsTreeDataProvider.getAllFindings()
+          );
         }
       ),
 
@@ -114,7 +162,9 @@ async function doActivate(
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.RESET_RESULTS,
         async () => {
-          await resetResults(spotbugsTreeDataProvider, diagnosticsManager);
+          await clearInspectorBeforeOperation(findingInspectorState, () =>
+            resetResults(spotbugsTreeDataProvider, diagnosticsManager)
+          );
         }
       )
     );
@@ -122,8 +172,4 @@ async function doActivate(
     const errorMessage = error instanceof Error ? error.message : String(error);
     defaultNotifier.error(`Failed to activate SpotBugs extension: ${errorMessage}`);
   }
-}
-
-function isFindingPayload(value: unknown): value is Finding {
-  return value !== null && typeof value === 'object' && 'location' in value;
 }

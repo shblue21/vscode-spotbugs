@@ -61,7 +61,7 @@ export class SpotBugsDiagnosticCodeActionProvider
           CodeActionKind.QuickFix
         );
         detailAction.command = {
-          command: SpotBugsCommands.OPEN_BUG_LOCATION,
+          command: SpotBugsCommands.OPEN_FINDING_DETAILS,
           title: SHOW_LOCAL_DETAILS_TITLE,
           arguments: [finding],
         };

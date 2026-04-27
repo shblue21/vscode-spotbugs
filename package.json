@@ -56,6 +56,11 @@
         {
           "id": "spotbugs-view",
           "name": "SpotBugs"
+        },
+        {
+          "id": "spotbugs-inspector-view",
+          "name": "Inspector",
+          "type": "webview"
         }
       ]
     },
@@ -149,21 +154,27 @@
       },
       {
         "command": "spotbugs.runWorkspace",
-        "title": "Analyze this workspace",
+        "title": "Analyze SpotBugs Workspace",
         "icon": "$(search)"
       },
       {
-        "command": "spotbugs.openBugLocation",
-        "title": "Open Bug Location"
+        "command": "spotbugs.revealFindingSource",
+        "title": "SpotBugs: Go to Code",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "spotbugs.openFindingDetails",
+        "title": "SpotBugs: Open Finding Details",
+        "icon": "$(open-preview)"
       },
       {
         "command": "spotbugs.filterResults",
-        "title": "Filter SpotBugs Findings",
+        "title": "Filter SpotBugs Results",
         "icon": "$(filter)"
       },
       {
         "command": "spotbugs.exportSarif",
-        "title": "Export SpotBugs Findings (SARIF)",
+        "title": "Export SpotBugs Results (SARIF)",
         "icon": "$(file-code)"
       },
       {
@@ -182,17 +193,37 @@
         {
           "command": "spotbugs.exportSarif",
           "when": "view == spotbugs-view",
-          "group": "navigation@1"
+          "group": "2_spotbugs@1"
         },
         {
           "command": "spotbugs.filterResults",
           "when": "view == spotbugs-view",
-          "group": "navigation@2"
+          "group": "2_spotbugs@2"
         },
         {
           "command": "spotbugs.resetResults",
           "when": "view == spotbugs-view",
-          "group": "navigation@3"
+          "group": "2_spotbugs@3"
+        },
+        {
+          "command": "spotbugs.runWorkspace",
+          "when": "view == spotbugs-inspector-view",
+          "group": "navigation"
+        },
+        {
+          "command": "spotbugs.exportSarif",
+          "when": "view == spotbugs-inspector-view",
+          "group": "2_spotbugs@1"
+        },
+        {
+          "command": "spotbugs.filterResults",
+          "when": "view == spotbugs-inspector-view",
+          "group": "2_spotbugs@2"
+        },
+        {
+          "command": "spotbugs.resetResults",
+          "when": "view == spotbugs-inspector-view",
+          "group": "2_spotbugs@3"
         }
       ],
       "explorer/context": [
@@ -202,6 +233,16 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "spotbugs.revealFindingSource",
+          "when": "view == spotbugs-view && viewItem == spotbugs.bug",
+          "group": "navigation@1"
+        },
+        {
+          "command": "spotbugs.openFindingDetails",
+          "when": "view == spotbugs-view && viewItem == spotbugs.bug",
+          "group": "navigation@2"
+        },
         {
           "command": "spotbugs.exportSarif",
           "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern)",
@@ -238,9 +279,12 @@
     "compile": "tsc -p .",
     "watch": "tsc -p . --watch",
     "pretest": "npm run compile && npm run lint",
-    "test:unit": "mocha \"out/test/**/*.unit.test.js\"",
+    "test:l0": "mocha \"out/test/**/L0.*.test.js\"",
+    "test:l1:unit": "mocha \"out/test/**/L1.*.test.js\" --ignore \"out/test/**/*.vscode.test.js\"",
+    "test:l1": "npm run test:l1:unit && npm run test:vscode",
+    "test:unit": "npm run test:l0 && npm run test:l1:unit",
     "test:vscode": "node out/test/runTest.js",
-    "test": "npm run test:unit && npm run test:vscode",
+    "test": "npm run test:l0 && npm run test:l1",
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",

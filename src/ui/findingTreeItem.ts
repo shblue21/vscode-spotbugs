@@ -1,6 +1,5 @@
 import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
 import { Finding } from '../model/finding';
-import { SpotBugsCommands } from '../constants/commands';
 import { toFindingItemView } from './findingViewModel';
 
 export class CategoryGroupItem extends TreeItem {
@@ -37,12 +36,6 @@ export class FindingItem extends TreeItem {
     this.tooltip = view.tooltip;
     this.iconPath = view.icon;
     this.contextValue = 'spotbugs.bug';
-
-    this.command = {
-      command: SpotBugsCommands.OPEN_BUG_LOCATION,
-      title: 'Open Bug Location',
-      arguments: [finding],
-    };
   }
 }
 
