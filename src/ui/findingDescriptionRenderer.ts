@@ -95,12 +95,6 @@ export function renderFindingDescriptionHtml(finding: Finding): string {
     header {
       padding: 16px 20px 12px;
       border-bottom: 1px solid var(--vscode-panel-border);
-      background:
-        linear-gradient(
-          180deg,
-          color-mix(in srgb, var(--vscode-editorInfo-foreground) 10%, transparent),
-          transparent
-        );
     }
 
     h1 {
