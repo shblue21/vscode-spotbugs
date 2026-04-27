@@ -1,4 +1,11 @@
 # Changelog
+## [0.5.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.4.1...v0.5.0) (2026-04-27)
+
+
+### Features
+
+* add SpotBugs inspector layout ([#29](https://github.com/shblue21/vscode-spotbugs/issues/29)) ([3623769](https://github.com/shblue21/vscode-spotbugs/commit/3623769dc89d0ba4f861dd3c1a97e2bbe498dd68))
+
 ## [0.4.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.4.0...v0.4.1) (2026-04-07)
 
 
