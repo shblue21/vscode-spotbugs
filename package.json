@@ -40,9 +40,10 @@
   ],
   "main": "./out/extension.js",
   "capabilities": {
-    "virtualWorkspaces": true,
+    "virtualWorkspaces": false,
     "untrustedWorkspaces": {
-      "supported": "limited"
+      "supported": false,
+      "description": "SpotBugs requires a trusted Java workspace to build and analyze project contents."
     }
   },
   "contributes": {
@@ -106,6 +107,17 @@
             "default": [],
             "uniqueItems": true,
             "markdownDescription": "Additional SpotBugs aux classpath entries appended after Java Language Server runtime classpath entries. Supports absolute paths and workspace-relative paths for jar files or directories.",
+            "scope": "window"
+          },
+          "spotbugs.plugins.paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^.*\\.jar$"
+            },
+            "default": [],
+            "uniqueItems": true,
+            "markdownDescription": "SpotBugs plugin jar paths. Supports absolute paths and workspace-relative paths.",
             "scope": "window"
           }
         }
