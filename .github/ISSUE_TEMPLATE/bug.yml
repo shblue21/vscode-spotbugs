@@ -1,13 +1,48 @@
-name: Report a Bug
-description: Report an unexpected error or incorrect behavior.
+name: Bug report
+description: Report a bug in the SpotBugs VS Code extension.
+title: "[Bug]: "
 labels:
   - bug
 body:
-  - type: textarea
-    id: description
+  - type: markdown
     attributes:
-      label: What happened?
-      description: Briefly describe the bug.
-      placeholder: e.g., SpotBugs view fails to load results
+      value: |
+        Please describe what went wrong and how to reproduce it.
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Bug description
+      description: Include what happened, how to reproduce it, and what you expected.
+      placeholder: |
+        What happened?
+
+        Steps to reproduce:
+        1.
+        2.
+
+        Expected behavior:
     validations:
       required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Optional. Add versions if they seem relevant.
+      value: |
+        - OS:
+        - VS Code version:
+        - SpotBugs extension version:
+        - Java version:
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Optional. Add logs, screenshots, or a sample project.
+      placeholder: Paste logs, add screenshots, or link a small sample repository.
+    validations:
+      required: false
