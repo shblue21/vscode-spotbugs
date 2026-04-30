@@ -28,6 +28,12 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 - Java 11 or later (JDK)
 - VS Code extension: “Language Support for Java by Red Hat” (redhat.java)
 
+## Privacy / Local Analysis
+
+SpotBugs analysis runs locally in your VS Code workspace. This extension does not send source files, compiled classes, filter files, SARIF output, or SpotBugs findings to a hosted analysis service.
+
+Rule documentation actions may open external SpotBugs documentation links. Basic extension operation telemetry follows VS Code telemetry settings.
+
 ## Getting Started
 
 1) Open a Java project folder in VS Code

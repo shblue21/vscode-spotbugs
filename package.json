@@ -1,7 +1,7 @@
 {
   "name": "vscode-spotbugs",
   "displayName": "SpotBugs",
-  "description": "Visual Studio Code extension for SpotBugs",
+  "description": "Java static analysis and bug detection with SpotBugs, diagnostics, filters, and SARIF export",
   "version": "0.5.0",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
@@ -17,11 +17,13 @@
     "type": "git",
     "url": "https://github.com/shblue21/vscode-spotbugs"
   },
+  "homepage": "https://github.com/shblue21/vscode-spotbugs#readme",
   "bugs": {
     "url": "https://github.com/shblue21/vscode-spotbugs/issues"
   },
   "qna": false,
   "license": "MIT",
+  "pricing": "Free",
   "categories": [
     "Linters",
     "Other"
@@ -36,7 +38,13 @@
     "bug-detection",
     "code-scanning",
     "security",
-    "sast"
+    "sast",
+    "java-linter",
+    "java-static-analysis",
+    "maven",
+    "gradle",
+    "sarif",
+    "vscode"
   ],
   "main": "./out/extension.js",
   "capabilities": {
