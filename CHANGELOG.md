@@ -1,4 +1,11 @@
 # Changelog
+## [0.5.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.0...v0.5.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **manifest:** align VS Code workspace capabilities and settings ([a5eb9b2](https://github.com/shblue21/vscode-spotbugs/commit/a5eb9b26c6ec041b613d7173c73897ec73e750c7))
+
 ## [0.5.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.4.1...v0.5.0) (2026-04-27)
 
 
