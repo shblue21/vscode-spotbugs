@@ -20,6 +20,8 @@ export type ParseResult =
   | { ok: true; value: ParsedAnalysis }
   | { ok: false; error: ParseError };
 
+const INVALID_RESPONSE_MESSAGE = 'Invalid response payload.';
+
 export function parseAnalysisResponse(raw: string): ParseResult {
   let parsed: unknown;
   try {
@@ -29,7 +31,7 @@ export function parseAnalysisResponse(raw: string): ParseResult {
       ok: false,
       error: {
         kind: 'invalid-json',
-        message: 'Invalid response payload.',
+        message: INVALID_RESPONSE_MESSAGE,
         cause,
       },
     };
@@ -51,8 +53,24 @@ export function parseAnalysisResponse(raw: string): ParseResult {
 
   if (parsed && typeof parsed === 'object') {
     const envelope = parsed as AnalysisResponse<Bug>;
-    const errors = Array.isArray(envelope.errors) ? envelope.errors : undefined;
-    const bugs = Array.isArray(envelope.results) ? envelope.results : [];
+    const hasResults = Object.prototype.hasOwnProperty.call(envelope, 'results');
+    const hasErrors = Object.prototype.hasOwnProperty.call(envelope, 'errors');
+    if (!hasResults && !hasErrors) {
+      return invalidResponse();
+    }
+    if (hasResults && !Array.isArray(envelope.results)) {
+      return invalidResponse();
+    }
+    if (hasErrors && !Array.isArray(envelope.errors)) {
+      return invalidResponse();
+    }
+
+    const errors = hasErrors ? envelope.errors : undefined;
+    if (!hasResults && Array.isArray(errors) && errors.length === 0) {
+      return invalidResponse();
+    }
+
+    const bugs = hasResults ? envelope.results ?? [] : [];
     const stats = envelope.stats;
     return {
       ok: true,
@@ -65,5 +83,15 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     };
   }
 
-  return { ok: true, value: { bugs: [] } };
+  return invalidResponse();
+}
+
+function invalidResponse(): ParseResult {
+  return {
+    ok: false,
+    error: {
+      kind: 'invalid-json',
+      message: INVALID_RESPONSE_MESSAGE,
+    },
+  };
 }

@@ -1,14 +1,17 @@
 'use strict';
 
-import { Event, EventEmitter, TreeDataProvider, TreeItem, Uri } from 'vscode';
+import { Event, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, Uri } from 'vscode';
 import { Finding } from '../model/finding';
 import {
   CategoryGroupItem,
   PatternGroupItem,
   FindingItem,
+  type ProjectStatus,
   ProjectStatusItem,
 } from './findingTreeItem';
 import * as path from 'path';
+import type { ProjectResult } from '../services/projectResult';
+import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 import { groupFindingsByCategoryAndPattern } from './treeModel';
 import {
   applyFindingFilters,
@@ -27,6 +30,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private viewItems: TreeItem[] = [];
   private projectItems: Map<string, ProjectStatusItem> = new Map();
+  private workspaceStatusItems: ProjectStatusItem[] = [];
   private cachedResults: Finding[] = [];
   private visibleResults: Finding[] = [];
   private activeFilters: FindingFilterState = {};
@@ -53,6 +57,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showInitialMessage(): void {
     this.projectItems.clear();
+    this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
     this.activeFilters = {};
@@ -62,6 +67,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showLoading(): void {
     this.projectItems.clear();
+    this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
     this.activeFilters = {};
@@ -69,8 +75,21 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this._onDidChangeTreeData.fire(undefined);
   }
 
+  public showAnalysisFailure(message: string, code?: string): void {
+    this.projectItems.clear();
+    this.workspaceStatusItems = [];
+    this.cachedResults = [];
+    this.visibleResults = [];
+    this.activeFilters = {};
+    this.viewItems = [
+      this.createMessageItem(message, code, 'spotbugs.message.error', new ThemeIcon('error')),
+    ];
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
   public showWorkspaceProgress(projectUris: string[]): void {
     this.projectItems.clear();
+    this.workspaceStatusItems = [];
     const items: ProjectStatusItem[] = [];
     for (const uriString of projectUris) {
       const label = this.toDisplayName(uriString);
@@ -87,7 +106,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public updateProjectStatus(
     uriString: string,
-    status: 'pending' | 'running' | 'done' | 'failed',
+    status: ProjectStatus,
     extra?: { count?: number; error?: string }
   ): void {
     const item = this.projectItems.get(uriString);
@@ -95,6 +114,14 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       item.setStatus(status, extra);
       this._onDidChangeTreeData.fire(item);
     }
+  }
+
+  public showWorkspaceResults(projectResults: ProjectResult[]): void {
+    this.projectItems.clear();
+    this.workspaceStatusItems = this.createFinalProjectStatusItems(projectResults);
+    this.cachedResults = projectResults.flatMap((result) => result.findings);
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   private toDisplayName(uriString: string): string {
@@ -108,6 +135,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showResults(findings: Finding[]): void {
     this.projectItems.clear();
+    this.workspaceStatusItems = [];
     this.cachedResults = findings ? findings.slice() : [];
     this.refreshResultsView();
     this._onDidChangeTreeData.fire(undefined);
@@ -173,10 +201,26 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     return [];
   }
 
+  private createFinalProjectStatusItems(projectResults: ProjectResult[]): ProjectStatusItem[] {
+    return projectResults
+      .filter((result) => !!result.error)
+      .map((result) => {
+        const item = new ProjectStatusItem(
+          result.projectUri,
+          this.toDisplayName(result.projectUri)
+        );
+        const status: ProjectStatus =
+          result.errorCode === NO_CLASS_TARGETS_CODE ? 'skipped' : 'failed';
+        item.setStatus(status, { error: result.error });
+        return item;
+      });
+  }
+
   private refreshResultsView(): void {
     if (this.cachedResults.length === 0) {
       this.viewItems = [this.createMessageItem('No issues found.')];
       this.visibleResults = [];
+      this.applyWorkspaceStatusItems();
       return;
     }
 
@@ -186,6 +230,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     if (filteredFindings.length === 0) {
       const emptyState = createFilteredEmptyState(this.cachedResults, this.activeFilters);
       this.viewItems = [this.createMessageItem(emptyState.label, emptyState.description)];
+      this.applyWorkspaceStatusItems();
       return;
     }
 
@@ -196,12 +241,28 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       );
       return new CategoryGroupItem(category.name, patterns, category.total);
     });
+    this.applyWorkspaceStatusItems();
   }
 
-  private createMessageItem(label: string, description?: string): TreeItem {
+  private applyWorkspaceStatusItems(): void {
+    if (this.workspaceStatusItems.length === 0) {
+      return;
+    }
+
+    const resultItems = this.cachedResults.length > 0 ? this.viewItems : [];
+    this.viewItems = [...this.workspaceStatusItems, ...resultItems];
+  }
+
+  private createMessageItem(
+    label: string,
+    description?: string,
+    contextValue = 'spotbugs.message',
+    iconPath?: ThemeIcon
+  ): TreeItem {
     const item = new TreeItem(label);
     item.description = description;
-    item.contextValue = 'spotbugs.message';
+    item.contextValue = contextValue;
+    item.iconPath = iconPath;
     return item;
   }
 }

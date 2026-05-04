@@ -57,31 +57,28 @@ public class AnalyzerService {
         return lastAuxClasspathCount;
     }
 
-    public List<BugInfo> analyzeToBugs(String... filePaths) {
+    public List<BugInfo> analyzeToBugs(String... filePaths) throws java.io.IOException, InterruptedException {
         return analyzeToBugs(null, filePaths);
     }
 
-    public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
-        try {
-            PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
-            if (prepared == null) {
-                return java.util.Collections.emptyList();
-            }
-            SpotBugsRunner runner = new SpotBugsRunner();
-            checkCanceled(monitor);
-            List<BugInfo> bugs = runner.run(
-                    this.findBugs,
-                    prepared.project,
-                    prepared.reporterPriorityThreshold,
-                    prepared.plugins
-            );
-            checkCanceled(monitor);
-            applyFullPaths(bugs, monitor, filePaths);
-            applyRankThreshold(bugs, monitor);
-            return bugs;
-        } catch (Exception e) {
+    public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths)
+            throws java.io.IOException, InterruptedException {
+        PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
+        if (prepared == null) {
             return java.util.Collections.emptyList();
         }
+        SpotBugsRunner runner = new SpotBugsRunner();
+        checkCanceled(monitor);
+        List<BugInfo> bugs = runner.run(
+                this.findBugs,
+                prepared.project,
+                prepared.reporterPriorityThreshold,
+                prepared.plugins
+        );
+        checkCanceled(monitor);
+        applyFullPaths(bugs, monitor, filePaths);
+        applyRankThreshold(bugs, monitor);
+        return bugs;
     }
 
     public String analyzeToNativeSarif(String... filePaths) {

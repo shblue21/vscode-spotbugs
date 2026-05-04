@@ -40,10 +40,11 @@ export class FindingItem extends TreeItem {
 }
 
 // view computations moved to findingViewModel.ts
+export type ProjectStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
 
 export class ProjectStatusItem extends TreeItem {
   public idKey: string;
-  public status: 'pending' | 'running' | 'done' | 'failed' = 'pending';
+  public status: ProjectStatus = 'pending';
   public count?: number;
 
   constructor(idKey: string, label: string) {
@@ -54,7 +55,7 @@ export class ProjectStatusItem extends TreeItem {
   }
 
   public setStatus(
-    status: 'pending' | 'running' | 'done' | 'failed',
+    status: ProjectStatus,
     extra?: { count?: number; error?: string }
   ) {
     this.status = status;
@@ -71,6 +72,9 @@ export class ProjectStatusItem extends TreeItem {
     } else if (status === 'failed') {
       this.iconPath = new ThemeIcon('error');
       this.description = extra?.error ? `Failed: ${extra.error}` : 'Failed';
+    } else if (status === 'skipped') {
+      this.iconPath = new ThemeIcon('warning');
+      this.description = extra?.error ? `Skipped: ${extra.error}` : 'Skipped';
     }
   }
 }

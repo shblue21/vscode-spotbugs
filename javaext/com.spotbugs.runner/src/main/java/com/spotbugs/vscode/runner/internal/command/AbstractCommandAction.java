@@ -20,9 +20,11 @@ public abstract class AbstractCommandAction implements CommandAction {
     public final String execute(ActionInvocation invocation) {
         ActionContext context = new ActionContext(invocation);
         try {
-            context.checkCanceled();
+            context.checkCanceled(cancellationErrorCode());
             CommandResult result = run(context);
-            context.checkCanceled();
+            if (shouldCheckCanceledAfterRun()) {
+                context.checkCanceled(cancellationErrorCode());
+            }
             if (result == null) {
                 return gson.toJson(Collections.emptyMap());
             }
@@ -60,6 +62,21 @@ public abstract class AbstractCommandAction implements CommandAction {
      */
     protected final CommandResult successRaw(String rawJson) {
         return CommandResult.raw(rawJson);
+    }
+
+    /**
+     * Error code to use when wrapper-level cancellation is detected.
+     */
+    protected String cancellationErrorCode() {
+        return DEFAULT_ERROR_CODE;
+    }
+
+    /**
+     * Whether the wrapper should check cancellation again after run(...).
+     * Actions that return their own cancellation envelope with stats can override this.
+     */
+    protected boolean shouldCheckCanceledAfterRun() {
+        return true;
     }
 
     /**
@@ -133,8 +150,12 @@ public abstract class AbstractCommandAction implements CommandAction {
         }
 
         public void checkCanceled() throws CommandActionException {
+            checkCanceled(DEFAULT_ERROR_CODE);
+        }
+
+        public void checkCanceled(String code) throws CommandActionException {
             if (isCanceled()) {
-                throw new CommandActionException(DEFAULT_ERROR_CODE, "Command cancelled");
+                throw new CommandActionException(code, "Command cancelled");
             }
         }
 
