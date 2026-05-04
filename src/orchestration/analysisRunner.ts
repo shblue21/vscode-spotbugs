@@ -52,8 +52,12 @@ export async function runFileAnalysis(
     const result = await analyzeFileDetailed(args.config, fileUri);
     const outcome = result.outcome;
     const findings = outcome.findings;
-    args.tree.showResults(findings);
-    args.diagnostics.updateForFile(fileUri, findings);
+    if (outcome.failure) {
+      args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
+    } else {
+      args.tree.showResults(findings);
+      args.diagnostics.updateForFile(fileUri, findings);
+    }
     const notices = buildAnalysisNotices(outcome, {
       includeHints: true,
       resolutionIssues: result.context.resolutionIssues,
@@ -72,10 +76,11 @@ export async function runFileAnalysis(
       `File analysis finished: elapsedMs=${t1 - t0}, file=${fileUri.fsPath}, findings=${findings.length}`
     );
   } catch (err) {
+    const errorMessage = messageFromUnknown(err);
+    const failureMessage = `SpotBugs analysis failed: ${errorMessage}`;
     Logger.error('An error occurred during SpotBugs analysis', err);
-    notifier.error('An error occurred during SpotBugs analysis. See SpotBugs output channel for details.');
-    args.tree.showResults([]);
-    args.diagnostics.updateForFile(fileUri, []);
+    notifier.error(failureMessage);
+    args.tree.showAnalysisFailure(failureMessage, 'ANALYSIS_FAILED');
   }
 }
 
@@ -145,8 +150,10 @@ export async function runWorkspaceAnalysis(
       return;
     }
 
-    args.tree.showResults(aggregated);
-    args.diagnostics.replaceAll(aggregated);
+    args.tree.showWorkspaceResults(projectResults);
+    if (projectResults.every((result) => !result.error)) {
+      args.diagnostics.replaceAll(aggregated);
+    }
     const notices = buildWorkspaceCompletionNotices(
       projectResults,
       aggregated.length,
@@ -174,4 +181,12 @@ async function focusSpotbugsTree(): Promise<void> {
 
 function getActiveFileUri(): Uri | undefined {
   return window.activeTextEditor?.document.uri;
+}
+
+function messageFromUnknown(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message.trim();
+  }
+  const message = String(error);
+  return message.trim().length > 0 ? message.trim() : 'Unknown error';
 }

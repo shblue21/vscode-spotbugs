@@ -24,8 +24,12 @@ public class CommandResponse {
     }
 
     public static CommandResponse error(String code, String message) {
+        return error(code, message, null);
+    }
+
+    public static CommandResponse error(String code, String message, Map<String, Object> stats) {
         CommandError error = new CommandError(code, message);
-        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), null);
+        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), stats);
     }
 
     public int getSchemaVersion() {

@@ -28,6 +28,25 @@ describe('spotbugsParser', () => {
     }
   });
 
+  it('rejects unsupported JSON protocol shapes', () => {
+    const samples = [
+      JSON.stringify({}),
+      JSON.stringify({ stats: { durationMs: 1 } }),
+      JSON.stringify({ errors: [] }),
+      JSON.stringify(null),
+      JSON.stringify('boom'),
+    ];
+
+    for (const sample of samples) {
+      const result = parseAnalysisResponse(sample);
+      assert.strictEqual(result.ok, false, sample);
+      if (!result.ok) {
+        assert.strictEqual(result.error.kind, 'invalid-json');
+        assert.strictEqual(result.error.message, 'Invalid response payload.');
+      }
+    }
+  });
+
   it('parses envelope responses with errors and stats', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
@@ -45,6 +64,67 @@ describe('spotbugsParser', () => {
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');
       assert.strictEqual(result.value.errors?.[0]?.message, 'warn');
       assert.strictEqual(result.value.stats?.target, '/tmp/Foo');
+    }
+  });
+
+  it('parses terminal analysis failure envelopes with stats', () => {
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        errors: [
+          {
+            code: 'ANALYSIS_FAILED',
+            message: 'boom',
+          },
+        ],
+        stats: {
+          target: '/workspace/build/classes',
+          durationMs: 9,
+          spotbugsVersion: '4.8.3',
+        },
+      })
+    );
+
+    assert.strictEqual(result.ok, true);
+    if (result.ok) {
+      assert.strictEqual(result.value.schemaVersion, 2);
+      assert.deepStrictEqual(result.value.bugs, []);
+      assert.strictEqual(result.value.errors?.[0]?.code, 'ANALYSIS_FAILED');
+      assert.strictEqual(result.value.errors?.[0]?.message, 'boom');
+      assert.strictEqual(result.value.stats?.target, '/workspace/build/classes');
+      assert.strictEqual(result.value.stats?.durationMs, 9);
+      assert.strictEqual(result.value.stats?.spotbugsVersion, '4.8.3');
+    }
+  });
+
+  it('parses terminal analysis cancellation envelopes with stats', () => {
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        errors: [
+          {
+            code: 'ANALYSIS_CANCELLED',
+            message: 'Command cancelled',
+          },
+        ],
+        stats: {
+          target: '/workspace/build/classes',
+          durationMs: 4,
+          spotbugsVersion: '4.8.3',
+        },
+      })
+    );
+
+    assert.strictEqual(result.ok, true);
+    if (result.ok) {
+      assert.strictEqual(result.value.schemaVersion, 2);
+      assert.deepStrictEqual(result.value.bugs, []);
+      assert.strictEqual(result.value.errors?.[0]?.code, 'ANALYSIS_CANCELLED');
+      assert.strictEqual(result.value.errors?.[0]?.message, 'Command cancelled');
+      assert.strictEqual(result.value.stats?.target, '/workspace/build/classes');
+      assert.strictEqual(result.value.stats?.durationMs, 4);
     }
   });
 });

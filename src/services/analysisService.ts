@@ -25,6 +25,9 @@ import {
 } from '../workspace/analysisTargetResolver';
 import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 
+const ERROR_ANALYSIS_FAILED = 'ANALYSIS_FAILED';
+const ERROR_ANALYSIS_NO_RESPONSE = 'ANALYSIS_NO_RESPONSE';
+
 type AnalysisContext = {
   targetPath: string;
   preferredProject?: Uri;
@@ -90,14 +93,22 @@ export async function analyzeFileDetailed(
     } catch (error) {
       Logger.error('Analyzer: analyzeFile failed', error);
       return {
-        outcome: { findings: [] },
+        outcome: createAnalysisFailureOutcome(
+          result.resolution.target.targetPath,
+          ERROR_ANALYSIS_FAILED,
+          messageFromUnknown(error)
+        ),
         context,
       };
     }
   } catch (error) {
     Logger.error('Analyzer: analyzeFile failed', error);
     return {
-      outcome: { findings: [] },
+      outcome: createAnalysisFailureOutcome(
+        uri.fsPath,
+        ERROR_ANALYSIS_FAILED,
+        messageFromUnknown(error)
+      ),
       context,
     };
   }
@@ -300,7 +311,11 @@ async function runAnalysis(
   });
 
   if (!result) {
-    return { findings: [] };
+    return createAnalysisFailureOutcome(
+      targetPath,
+      ERROR_ANALYSIS_NO_RESPONSE,
+      'No response from SpotBugs backend.'
+    );
   }
 
   const parsed = parseAnalysisResponse(result);
@@ -401,6 +416,31 @@ async function runAnalysis(
     outcome.errors = errors;
   }
   return outcome;
+}
+
+function createAnalysisFailureOutcome(
+  targetPath: string,
+  code: string,
+  message: string
+): AnalysisOutcome {
+  return {
+    findings: [],
+    targetPath,
+    failure: {
+      kind: 'analysis-error',
+      level: 'error',
+      code,
+      message: `SpotBugs analysis failed: ${message}`,
+    },
+  };
+}
+
+function messageFromUnknown(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message.trim();
+  }
+  const message = String(error);
+  return message.trim().length > 0 ? message.trim() : 'Unknown error';
 }
 
 function normalizeProjectRef(project: ProjectRef): Uri {
