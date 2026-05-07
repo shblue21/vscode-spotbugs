@@ -2,7 +2,7 @@
 <?pde version="3.8"?>
 <target name="Spotbugs for JDT.LS">
     <locations>
-        <!-- Eclipse SDK 4.32 (2024-12) : JDT Core·Platform 제공 -->
+        <!-- Eclipse SDK 4.27 compile baseline: JDT Core and Platform APIs -->
         <location includeAllPlatforms="false"
                   includeConfigurePhase="false"
                   includeMode="planner"
@@ -13,7 +13,7 @@
             <unit id="org.eclipse.platform.feature.group"  version="0.0.0"/>
         </location>
 
-        <!-- JDT LS 1.46.x 전용 플러그인 -->
+        <!-- JDT LS 1.9.0 compile baseline; runtime JDT LS is supplied by redhat.java -->
         <location includeAllPlatforms="false"
                   includeConfigurePhase="false"
                   includeMode="planner"
