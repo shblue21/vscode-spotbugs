@@ -2,7 +2,7 @@
   "name": "vscode-spotbugs",
   "displayName": "SpotBugs",
   "description": "Java static analysis and bug detection with SpotBugs, diagnostics, filters, and SARIF export",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
