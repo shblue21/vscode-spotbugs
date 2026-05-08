@@ -1,9 +1,7 @@
 package com.spotbugs.vscode.runner.internal.command;
 
-import java.util.List;
 import java.util.Map;
 
-import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandResponse;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
@@ -20,8 +18,8 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     private static final String ERROR_ANALYSIS_FAILED = "ANALYSIS_FAILED";
     private static final String ERROR_ANALYSIS_CANCELLED = "ANALYSIS_CANCELLED";
 
-    private final AnalyzerServiceFactory analyzerFactory;
     private final RunAnalysisRequestParser requestParser;
+    private final AnalysisPipeline pipeline;
     private final RunAnalysisStatsBuilder statsBuilder = new RunAnalysisStatsBuilder();
 
     public RunAnalysisAction() {
@@ -37,8 +35,8 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     }
 
     RunAnalysisAction(ConfigParser parser, ConfigValidator validator, AnalyzerServiceFactory analyzerFactory) {
-        this.analyzerFactory = analyzerFactory != null ? analyzerFactory : AnalyzerService::new;
         this.requestParser = new RunAnalysisRequestParser(parser, validator);
+        this.pipeline = new AnalysisPipeline(analyzerFactory);
     }
 
     @Override
@@ -62,45 +60,32 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         String targetPath = request.getTargetPath();
         AnalysisConfig config = request.getConfig();
 
-        AnalyzerService analyzer = analyzerFactory.create();
-        analyzer.setConfiguration(config);
-        long start = System.currentTimeMillis();
-        try {
-            List<BugInfo> bugs = analyzer.analyzeToBugs(context.monitor(), targetPath);
-            List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();
-            if (context.isCanceled()) {
-                Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
-                return success(CommandResponse.error(
-                        ERROR_ANALYSIS_CANCELLED,
-                        "Command cancelled",
-                        stats
-                ));
-            }
-            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, results.size());
-            return success(CommandResponse.success(results, stats));
-        } catch (java.util.concurrent.CancellationException cancellation) {
-            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
+        AnalysisPipelineResult pipelineResult = pipeline.run(context.monitor(), request);
+        Map<String, Object> stats = statsBuilder.build(
+                targetPath,
+                pipelineResult.getStartMillis(),
+                config,
+                pipelineResult.getAnalyzer(),
+                pipelineResult.getFindingCount()
+        );
+
+        if (pipelineResult.getStatus() == AnalysisPipelineResult.Status.CANCELLED) {
             return success(CommandResponse.error(
                     ERROR_ANALYSIS_CANCELLED,
                     "Command cancelled",
-                    stats
-            ));
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
-            return success(CommandResponse.error(
-                    ERROR_ANALYSIS_CANCELLED,
-                    "Command cancelled",
-                    stats
-            ));
-        } catch (Exception analysisFailure) {
-            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
-            return success(CommandResponse.error(
-                    ERROR_ANALYSIS_FAILED,
-                    rootCauseMessage(analysisFailure),
                     stats
             ));
         }
+
+        if (pipelineResult.getStatus() == AnalysisPipelineResult.Status.FAILED) {
+            return success(CommandResponse.error(
+                    ERROR_ANALYSIS_FAILED,
+                    rootCauseMessage(pipelineResult.getFailure()),
+                    stats
+            ));
+        }
+
+        return success(CommandResponse.success(pipelineResult.getResults(), stats));
     }
 
     private String rootCauseMessage(Throwable throwable) {
@@ -121,9 +106,5 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         return simpleName != null && !simpleName.trim().isEmpty()
                 ? simpleName
                 : root.getClass().getName();
-    }
-
-    interface AnalyzerServiceFactory {
-        AnalyzerService create();
     }
 }

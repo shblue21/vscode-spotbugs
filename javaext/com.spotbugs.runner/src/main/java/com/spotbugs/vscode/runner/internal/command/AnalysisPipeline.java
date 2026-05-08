@@ -1,0 +1,43 @@
+package com.spotbugs.vscode.runner.internal.command;
+
+import java.util.List;
+import java.util.concurrent.CancellationException;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+
+import com.spotbugs.vscode.runner.api.BugInfo;
+import com.spotbugs.vscode.runner.internal.AnalyzerService;
+
+final class AnalysisPipeline {
+
+    private final AnalyzerServiceFactory analyzerFactory;
+
+    AnalysisPipeline() {
+        this(AnalyzerService::new);
+    }
+
+    AnalysisPipeline(AnalyzerServiceFactory analyzerFactory) {
+        this.analyzerFactory = analyzerFactory != null ? analyzerFactory : AnalyzerService::new;
+    }
+
+    AnalysisPipelineResult run(IProgressMonitor monitor, RunAnalysisRequest request) {
+        AnalyzerService analyzer = analyzerFactory.create();
+        analyzer.setConfiguration(request.getConfig());
+        long startMillis = System.currentTimeMillis();
+        try {
+            List<BugInfo> bugs = analyzer.analyzeToBugs(monitor, request.getTargetPath());
+            List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();
+            if (monitor != null && monitor.isCanceled()) {
+                return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+            }
+            return AnalysisPipelineResult.success(analyzer, startMillis, results);
+        } catch (CancellationException cancellation) {
+            return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+        } catch (Exception analysisFailure) {
+            return AnalysisPipelineResult.failed(analyzer, startMillis, analysisFailure);
+        }
+    }
+}
