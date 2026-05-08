@@ -5,6 +5,17 @@ import * as path from 'path';
 type PackageJson = {
   contributes: {
     views: Record<string, Array<{ id: string; name: string; type?: string }>>;
+    configuration: Array<{
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          default?: unknown;
+          markdownDescription?: string;
+          scope?: string;
+        }
+      >;
+    }>;
     commands: Array<{ command: string; title: string; icon?: string }>;
     menus: Record<string, Array<{ command?: string; when?: string; group?: string }>>;
   };
@@ -39,6 +50,26 @@ describe('package contributions', () => {
     assert.strictEqual(commands.get('spotbugs.exportSarif')?.title, 'Export SpotBugs Results (SARIF)');
     assert.strictEqual(commands.get('spotbugs.filterResults')?.title, 'Filter SpotBugs Results');
     assert.strictEqual(commands.get('spotbugs.resetResults')?.title, 'Reset SpotBugs Results');
+  });
+
+  it('contributes a setting for source reveal on result selection', () => {
+    const properties = Object.assign(
+      {},
+      ...manifest.contributes.configuration.map((group) => group.properties ?? {})
+    ) as Record<
+      string,
+      { type?: string; default?: unknown; markdownDescription?: string; scope?: string }
+    >;
+    const setting = properties['spotbugs.results.revealSourceOnSelection'];
+
+    assert.ok(setting);
+    assert.strictEqual(setting.type, 'boolean');
+    assert.strictEqual(setting.default, true);
+    assert.strictEqual(setting.scope, 'window');
+    assert.strictEqual(
+      setting.markdownDescription,
+      'Reveal the source location in a preview editor when selecting a SpotBugs finding in the results tree.'
+    );
   });
 
   it('adds finding leaf context fallbacks for source and details', () => {

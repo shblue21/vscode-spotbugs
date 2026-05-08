@@ -71,6 +71,20 @@ class MockThemeIcon {
   constructor(public readonly id: string) {}
 }
 
+class MockPosition {
+  constructor(
+    public readonly line: number,
+    public readonly character: number
+  ) {}
+}
+
+class MockRange {
+  constructor(
+    public readonly start: MockPosition,
+    public readonly end: MockPosition
+  ) {}
+}
+
 class MockTreeItem {
   public description?: string;
   public tooltip?: string;
@@ -96,8 +110,13 @@ type VscodeMock = {
   TreeItem: typeof MockTreeItem;
   TreeItemCollapsibleState: typeof MockTreeItemCollapsibleState;
   ThemeIcon: typeof MockThemeIcon;
+  Position: typeof MockPosition;
+  Range: typeof MockRange;
   workspace: {
     workspaceFolders: WorkspaceFolder[];
+    getConfiguration: (section?: string) => {
+      get: <T>(key: string) => T | undefined;
+    };
     getWorkspaceFolder: (uri: MockUri) => WorkspaceFolder | undefined;
     fs: {
       stat: (uri: MockUri) => Promise<unknown>;
@@ -126,7 +145,10 @@ type VscodeMock = {
       dispose: () => void;
       onDidDispose: (listener: () => unknown) => { dispose: () => void };
     };
+    showTextDocument: (uri: MockUri, options?: unknown) => Promise<unknown>;
     showInformationMessage: (message: string) => Promise<string | undefined>;
+    showWarningMessage: (message: string) => Promise<string | undefined>;
+    showErrorMessage: (message: string) => Promise<string | undefined>;
     activeTextEditor?: { document: { uri: MockUri } };
     registerWebviewViewProvider: (
       viewId: string,
@@ -192,6 +214,7 @@ export function resetVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock
 function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
   Object.assign(target.workspace.fs, source.workspace.fs);
   target.workspace.workspaceFolders = source.workspace.workspaceFolders;
+  target.workspace.getConfiguration = source.workspace.getConfiguration;
   target.workspace.getWorkspaceFolder = source.workspace.getWorkspaceFolder;
   Object.assign(target.window, source.window);
   Object.assign(target.commands, source.commands);
@@ -205,6 +228,11 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
   const workspaceFolders = overrides.workspace?.workspaceFolders ?? [];
   const workspace = {
     workspaceFolders,
+    getConfiguration:
+      overrides.workspace?.getConfiguration ??
+      (() => ({
+        get: () => undefined,
+      })),
     getWorkspaceFolder:
       overrides.workspace?.getWorkspaceFolder ??
       ((uri: MockUri) =>
@@ -238,6 +266,12 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
       })),
     showInformationMessage:
       overrides.window?.showInformationMessage ?? (async () => undefined),
+    showWarningMessage:
+      overrides.window?.showWarningMessage ?? (async () => undefined),
+    showErrorMessage:
+      overrides.window?.showErrorMessage ?? (async () => undefined),
+    showTextDocument:
+      overrides.window?.showTextDocument ?? (async () => undefined),
     activeTextEditor: overrides.window?.activeTextEditor,
     registerWebviewViewProvider:
       overrides.window?.registerWebviewViewProvider ??
@@ -261,6 +295,8 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
     TreeItem: MockTreeItem,
     TreeItemCollapsibleState: MockTreeItemCollapsibleState,
     ThemeIcon: MockThemeIcon,
+    Position: MockPosition,
+    Range: MockRange,
     workspace,
     window,
     commands: {

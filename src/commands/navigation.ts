@@ -4,11 +4,19 @@ import { Logger } from '../core/logger';
 import { defaultNotifier } from '../core/notifier';
 import { resolveFindingFilePath } from '../workspace/findingLocator';
 
+export interface RevealFindingSourceOptions {
+  preserveFocus?: boolean;
+  preview?: boolean;
+}
+
 /**
  * Reveals a source file and navigates to the specified finding location
  * @param finding The finding information containing file path and line details
  */
-export async function revealFindingSource(finding: Finding): Promise<void> {
+export async function revealFindingSource(
+  finding: Finding,
+  revealOptions: RevealFindingSourceOptions = {}
+): Promise<void> {
   try {
     Logger.log(`Revealing finding source: ${finding.message ?? 'SpotBugs finding'}`);
     const notifier = defaultNotifier;
@@ -40,8 +48,8 @@ export async function revealFindingSource(finding: Finding): Promise<void> {
     }
 
     const options: TextDocumentShowOptions = {
-      preserveFocus: false, // Focus the opened document
-      preview: false, // Open in a permanent tab
+      preserveFocus: revealOptions.preserveFocus ?? false,
+      preview: revealOptions.preview ?? false,
     };
     if (range) {
       options.selection = range;
