@@ -1,6 +1,5 @@
 package com.spotbugs.vscode.runner.internal.command;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +13,6 @@ import com.spotbugs.vscode.runner.internal.config.ConfigParseResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidationResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
-import edu.umd.cs.findbugs.Version;
 
 /**
  * Handles the {@code java.spotbugs.run} workspace command by invoking SpotBugs analysis
@@ -29,6 +27,7 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     private final ConfigParser configParser;
     private final ConfigValidator configValidator;
     private final AnalyzerServiceFactory analyzerFactory;
+    private final RunAnalysisStatsBuilder statsBuilder = new RunAnalysisStatsBuilder();
 
     public RunAnalysisAction() {
         this(new ConfigParser(), new ConfigValidator(), AnalyzerService::new);
@@ -80,17 +79,17 @@ public final class RunAnalysisAction extends AbstractCommandAction {
             List<BugInfo> bugs = analyzer.analyzeToBugs(context.monitor(), targetPath);
             List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();
             if (context.isCanceled()) {
-                Map<String, Object> stats = buildStats(targetPath, start, config, analyzer, 0);
+                Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
                 return success(CommandResponse.error(
                         ERROR_ANALYSIS_CANCELLED,
                         "Command cancelled",
                         stats
                 ));
             }
-            Map<String, Object> stats = buildStats(targetPath, start, config, analyzer, results.size());
+            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, results.size());
             return success(CommandResponse.success(results, stats));
         } catch (java.util.concurrent.CancellationException cancellation) {
-            Map<String, Object> stats = buildStats(targetPath, start, config, analyzer, 0);
+            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
             return success(CommandResponse.error(
                     ERROR_ANALYSIS_CANCELLED,
                     "Command cancelled",
@@ -98,42 +97,20 @@ public final class RunAnalysisAction extends AbstractCommandAction {
             ));
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            Map<String, Object> stats = buildStats(targetPath, start, config, analyzer, 0);
+            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
             return success(CommandResponse.error(
                     ERROR_ANALYSIS_CANCELLED,
                     "Command cancelled",
                     stats
             ));
         } catch (Exception analysisFailure) {
-            Map<String, Object> stats = buildStats(targetPath, start, config, analyzer, 0);
+            Map<String, Object> stats = statsBuilder.build(targetPath, start, config, analyzer, 0);
             return success(CommandResponse.error(
                     ERROR_ANALYSIS_FAILED,
                     rootCauseMessage(analysisFailure),
                     stats
             ));
         }
-    }
-
-    private Map<String, Object> buildStats(
-            String targetPath,
-            long startMillis,
-            AnalysisConfig config,
-            AnalyzerService analyzer,
-            int findingCount
-    ) {
-        long elapsed = System.currentTimeMillis() - startMillis;
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("target", targetPath);
-        stats.put("durationMs", Long.valueOf(elapsed));
-        stats.put("findingCount", Integer.valueOf(findingCount));
-        stats.put("spotbugsVersion", Version.VERSION_STRING);
-        stats.put("targetResolutionRootCount", Integer.valueOf(analyzer.getLastTargetResolutionRootCount()));
-        stats.put("runtimeClasspathCount", Integer.valueOf(config.getRuntimeClasspaths().size()));
-        stats.put("extraAuxClasspathCount", Integer.valueOf(config.getExtraAuxClasspaths().size()));
-        stats.put("auxClasspathCount", Integer.valueOf(analyzer.getLastAuxClasspathCount()));
-        stats.put("targetCount", Integer.valueOf(analyzer.getLastTargetCount()));
-        stats.put("pluginCount", Integer.valueOf(config.getPlugins().size()));
-        return stats;
     }
 
     private String rootCauseMessage(Throwable throwable) {
