@@ -1,4 +1,11 @@
 # Changelog
+## [0.5.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.1...v0.5.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* surface SpotBugs analysis failures ([#34](https://github.com/shblue21/vscode-spotbugs/issues/34)) ([72da785](https://github.com/shblue21/vscode-spotbugs/commit/72da785b1bfe820decae57cc1faeaacc5bb0e3cf))
+
 ## [0.5.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.0...v0.5.1) (2026-04-30)
 
 
