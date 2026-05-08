@@ -7,6 +7,7 @@ import { resolveFindingFilePath } from '../workspace/findingLocator';
 export interface RevealFindingSourceOptions {
   preserveFocus?: boolean;
   preview?: boolean;
+  isCurrentRequest?: () => boolean;
 }
 
 /**
@@ -22,6 +23,11 @@ export async function revealFindingSource(
     const notifier = defaultNotifier;
 
     const filePath = await resolveFindingFilePath(finding);
+
+    if (revealOptions.isCurrentRequest?.() === false) {
+      Logger.log('Skipping stale finding source reveal request.');
+      return;
+    }
 
     if (!filePath) {
       const errorMsg = `Cannot open file: Could not resolve path for ${finding.location.realSourcePath || 'unknown file'}`;

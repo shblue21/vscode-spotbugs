@@ -10,6 +10,7 @@ import { Finding } from '../model/finding';
 export interface FindingSourcePreviewOptions {
   preserveFocus?: boolean;
   preview?: boolean;
+  isCurrentRequest: () => boolean;
 }
 
 export interface FindingInspectorTreeBindingOptions {
@@ -25,7 +26,10 @@ export function bindFindingInspectorToTree(
   inspectorState: FindingInspectorState,
   options: FindingInspectorTreeBindingOptions = {}
 ): Disposable {
+  let sourcePreviewRequestId = 0;
+
   return treeView.onDidChangeSelection(async (event) => {
+    const requestId = ++sourcePreviewRequestId;
     const selected = event.selection[0];
     if (selected instanceof FindingItem) {
       inspectorState.select(selected.finding);
@@ -33,6 +37,7 @@ export function bindFindingInspectorToTree(
         await options.revealFindingSource(selected.finding, {
           preserveFocus: true,
           preview: true,
+          isCurrentRequest: () => requestId === sourcePreviewRequestId,
         });
       }
       return;

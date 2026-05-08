@@ -56,9 +56,34 @@ describe('navigation', () => {
     assert.strictEqual(shown[0].options.preserveFocus, true);
     assert.strictEqual(shown[0].options.preview, true);
   });
+
+  it('does not open source when a preview request becomes stale', async () => {
+    const shown: Array<{ uri: { fsPath: string }; options: Record<string, unknown> }> = [];
+    resetVscodeMock({
+      window: {
+        showTextDocument: async (
+          uri: { fsPath: string },
+          options: Record<string, unknown>
+        ) => {
+          shown.push({ uri, options });
+          return undefined;
+        },
+      },
+    } as never);
+    const { revealFindingSource } = await import('../commands/navigation');
+    const finding = makeFinding();
+
+    await revealFindingSource(finding, {
+      preserveFocus: true,
+      preview: true,
+      isCurrentRequest: () => false,
+    });
+
+    assert.deepStrictEqual(shown, []);
+  });
 });
 
-function makeFinding(): Finding {
+function makeFinding(overrides: Partial<Finding> = {}): Finding {
   return {
     patternId: 'NP_ALWAYS_NULL',
     type: 'NP_ALWAYS_NULL',
@@ -68,5 +93,6 @@ function makeFinding(): Finding {
       fullPath: '/tmp/Example.java',
       startLine: 10,
     },
+    ...overrides,
   };
 }
