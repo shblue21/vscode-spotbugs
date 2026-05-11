@@ -1,8 +1,16 @@
 const cp = require('child_process');
 const path = require('path');
 const fse = require('fs-extra');
+const { assertJavaBackendVersions } = require('./validateJavaBackendVersion');
 
 const server_dir = path.resolve('./javaext');
+
+try {
+  assertJavaBackendVersions(path.resolve('.'));
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
 
 // Run Maven build
 cp.execSync(mvnw() + ' clean package', { cwd: server_dir, stdio: 'inherit' });

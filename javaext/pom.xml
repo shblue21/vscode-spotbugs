@@ -5,7 +5,7 @@
     <groupId>com.spotbugs</groupId>
     <artifactId>parent</artifactId>
     <name>${base.name} :: Parent</name>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.5.2</version>
     <packaging>pom</packaging>
     <properties>
         <base.name>Java Spotbugs Runner</base.name>

@@ -5,7 +5,28 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "javaext/pom.xml",
+          "xpath": "/*[local-name()='project']/*[local-name()='version']"
+        },
+        {
+          "type": "xml",
+          "path": "javaext/com.spotbugs.runner/pom.xml",
+          "xpath": "/*[local-name()='project']/*[local-name()='parent']/*[local-name()='version']"
+        },
+        {
+          "type": "xml",
+          "path": "javaext/com.spotbugs.target/pom.xml",
+          "xpath": "/*[local-name()='project']/*[local-name()='parent']/*[local-name()='version']"
+        },
+        {
+          "type": "generic",
+          "path": "javaext/com.spotbugs.runner/META-INF/MANIFEST.MF"
+        }
+      ]
     }
   }
 }
