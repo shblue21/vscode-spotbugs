@@ -169,6 +169,19 @@
             "scope": "window"
           }
         }
+      },
+      {
+        "type": "object",
+        "title": "SpotBugs: Results",
+        "order": 2,
+        "properties": {
+          "spotbugs.results.revealSourceOnSelection": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Reveal the source location in a preview editor when selecting a SpotBugs finding in the results tree.",
+            "scope": "window"
+          }
+        }
       }
     ],
     "commands": [

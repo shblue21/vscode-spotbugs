@@ -79,7 +79,10 @@ async function doActivate(
         FINDING_INSPECTOR_VIEW_ID,
         findingInspectorViewProvider
       ),
-      bindFindingInspectorToTree(spotbugsTreeView, findingInspectorState),
+      bindFindingInspectorToTree(spotbugsTreeView, findingInspectorState, {
+        revealSourceOnSelection: () => config.revealSourceOnSelection,
+        revealFindingSource,
+      }),
       languages.registerCodeActionsProvider(
         { language: 'java' },
         diagnosticCodeActionProvider,

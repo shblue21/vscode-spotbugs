@@ -28,6 +28,7 @@ export class Config {
   // Legacy payload field kept for compatibility with older Java runner schema.
   public excludeFilterPath?: string;
   public plugins?: string[];
+  public revealSourceOnSelection!: boolean;
 
   public constructor(ctx: ExtensionContext) {
     this._ctx = ctx;
@@ -61,6 +62,12 @@ export class Config {
     );
 
     this.plugins = this.readStringArray(config.get<unknown>(settingKeys.pluginsPaths));
+
+    const revealSourceOnSelection = config.get<boolean | undefined>(
+      settingKeys.resultsRevealSourceOnSelection
+    );
+    this.revealSourceOnSelection =
+      typeof revealSourceOnSelection === 'boolean' ? revealSourceOnSelection : true;
   }
 
   // Resolve a workspace-relative path to absolute (best-effort)
