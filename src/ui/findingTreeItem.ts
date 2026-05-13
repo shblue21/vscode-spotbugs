@@ -1,6 +1,7 @@
 import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
 import { Finding } from '../model/finding';
 import { toFindingItemView } from './findingViewModel';
+import type { FindingGroupKind } from './findingFacets';
 
 export class CategoryGroupItem extends TreeItem {
   public patterns: PatternGroupItem[];
@@ -36,6 +37,20 @@ export class FindingItem extends TreeItem {
     this.tooltip = view.tooltip;
     this.iconPath = view.icon;
     this.contextValue = 'spotbugs.bug';
+  }
+}
+
+export class GenericGroupItem extends TreeItem {
+  constructor(
+    public readonly key: string,
+    public readonly groupKind: FindingGroupKind,
+    label: string,
+    public readonly findings: Finding[],
+    public readonly children: Array<GenericGroupItem | FindingItem>
+  ) {
+    super(`${label} (${findings.length})`, TreeItemCollapsibleState.Collapsed);
+    this.iconPath = new ThemeIcon('list-tree');
+    this.contextValue = 'spotbugs.group';
   }
 }
 
