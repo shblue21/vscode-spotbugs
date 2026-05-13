@@ -2,6 +2,7 @@ import { ThemeIcon } from 'vscode';
 import * as path from 'path';
 import { Finding } from '../model/finding';
 import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
+import { toFindingFacets } from './findingFacets';
 
 export interface FindingItemViewProps {
   label: string;
@@ -13,27 +14,25 @@ export interface FindingItemViewProps {
 export function toFindingItemView(finding: Finding): FindingItemViewProps {
   const label = formatFindingSummary(finding);
 
-  const filePath =
-    finding.location.fullPath ||
-    finding.location.realSourcePath ||
-    finding.location.sourceFile;
-  const fileName = filePath ? path.basename(filePath) : 'Unknown file';
+  const facets = toFindingFacets(finding);
+  const filePath = facets.pathKey;
+  const fileName = filePath ? path.basename(filePath) : facets.pathLabel;
   const startLine =
-    typeof finding.location.startLine === 'number' ? finding.location.startLine : undefined;
+    typeof finding.location.startLine === 'number' && finding.location.startLine > 0
+      ? finding.location.startLine
+      : undefined;
   const endLine =
-    typeof finding.location.endLine === 'number' ? finding.location.endLine : undefined;
+    typeof finding.location.endLine === 'number' && finding.location.endLine > 0
+      ? finding.location.endLine
+      : undefined;
   const lineInfo =
     startLine !== undefined
       ? endLine !== undefined && endLine !== startLine
         ? `${startLine}-${endLine}`
         : `${startLine}`
       : '';
-  const categoryLabel = finding.category || 'Uncategorized';
-  const patternLabel = finding.abbrev || finding.type || 'Unknown';
-  const priorityLabel = finding.priority || 'Unknown';
-  const filePathLabel = filePath || 'Unknown file';
-  const description = `${fileName}${lineInfo ? `:${lineInfo}` : ''} • ${categoryLabel}`;
-  const tooltip = `Pattern: ${patternLabel}\nCategory: ${categoryLabel}\nPriority: ${priorityLabel}\nFile: ${filePathLabel}${lineInfo ? `\nLine: ${lineInfo}` : ''}`;
+  const description = `${fileName}${lineInfo ? `:${lineInfo}` : ''} • ${facets.categoryLabel}`;
+  const tooltip = `Pattern: ${facets.ruleLabel}\nCategory: ${facets.categoryLabel}\nPriority: ${facets.priorityLabel}\nFile: ${facets.pathLabel}${lineInfo ? `\nLine: ${lineInfo}` : ''}`;
   const icon = severityIcon(finding);
   return { label, description, tooltip, icon };
 }
