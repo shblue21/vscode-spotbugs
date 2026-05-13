@@ -240,6 +240,23 @@ describe('spotbugsTreeDataProvider', () => {
     assert.deepStrictEqual(provider.getFindingsForNode(children[1]), [second]);
   });
 
+  it('resolves generic group findings for scoped export', async () => {
+    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
+    const selection = await import('../ui/selection');
+    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const selected = makeFinding({ className: 'com.acme.Example' });
+    const other = makeFinding({ className: 'org.example.Other' });
+
+    provider.showResults([selected, other]);
+    provider.setGroupBy('package');
+
+    const children = await provider.getChildren();
+    const selectedGroup = children.find((child) => child.label === 'com.acme (1)');
+
+    assert.ok(selectedGroup, 'Expected com.acme package group');
+    assert.deepStrictEqual(selection.resolveSpotBugsSelection(provider, selectedGroup), [selected]);
+  });
+
   it('preserves group and sort on new results and resets them on reset', async () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();

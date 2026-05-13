@@ -66,7 +66,7 @@ function isSameFinding(left: Finding, right: Finding): boolean {
   }
 
   return (
-    left.patternId === right.patternId &&
+    findingRuleIdentity(left) === findingRuleIdentity(right) &&
     left.location.fullPath === right.location.fullPath &&
     left.location.realSourcePath === right.location.realSourcePath &&
     left.location.sourceFile === right.location.sourceFile &&
@@ -76,4 +76,8 @@ function isSameFinding(left: Finding, right: Finding): boolean {
     left.methodName === right.methodName &&
     left.fieldName === right.fieldName
   );
+}
+
+function findingRuleIdentity(finding: Finding): string {
+  return finding.type || finding.patternId || finding.abbrev || 'Unknown rule';
 }
