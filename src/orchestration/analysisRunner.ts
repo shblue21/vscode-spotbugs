@@ -16,6 +16,8 @@ import { Finding } from '../model/finding';
 import { getWorkspaceProjectDiscovery } from '../workspace/projectDiscovery';
 import { getPrimaryWorkspaceFolder } from '../workspace/workspaceRoots';
 
+const ERROR_ANALYSIS_CANCELLED = 'ANALYSIS_CANCELLED';
+
 export interface RunFileAnalysisArgs {
   config: Config;
   tree: SpotBugsTreeDataProvider;
@@ -142,7 +144,10 @@ export async function runWorkspaceAnalysis(
           ...discovery.issues,
           ...res.context.resolutionIssues,
         ];
-        cancelled = res.cancelled === true || token.isCancellationRequested;
+        cancelled =
+          res.cancelled === true ||
+          token.isCancellationRequested ||
+          res.results.some(isAnalysisCancelledProjectResult);
       }
     );
 
@@ -194,4 +199,8 @@ function messageFromUnknown(error: unknown): string {
   }
   const message = String(error);
   return message.trim().length > 0 ? message.trim() : 'Unknown error';
+}
+
+function isAnalysisCancelledProjectResult(result: ProjectResult): boolean {
+  return result.errorCode === ERROR_ANALYSIS_CANCELLED;
 }

@@ -388,6 +388,8 @@ describe('spotbugsTreeDataProvider', () => {
     provider.setGroupBy('package');
     provider.setSortBy('rule');
     provider.showWorkspaceProgress(['file:///workspace/project-a']);
+    provider.setSearchQuery('NP');
+    provider.setFilter('category', 'Correctness');
     provider.showWorkspaceCancelled();
 
     const children = await provider.getChildren();
@@ -398,6 +400,8 @@ describe('spotbugsTreeDataProvider', () => {
     assert.deepStrictEqual(provider.getAllFindings(), []);
     assert.strictEqual(provider.getGroupBy(), 'package');
     assert.strictEqual(provider.getSortBy(), 'rule');
+    assert.strictEqual(provider.getSearchQuery(), '');
+    assert.deepStrictEqual(provider.getActiveFilters(), {});
   });
 });
 
