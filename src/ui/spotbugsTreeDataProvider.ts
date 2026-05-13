@@ -117,6 +117,16 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this._onDidChangeTreeData.fire(undefined);
   }
 
+  public showWorkspaceCancelled(): void {
+    this.projectItems.clear();
+    this.workspaceStatusItems = [];
+    this.cachedResults = [];
+    this.visibleResults = [];
+    this.clearTransientViewState();
+    this.viewItems = [this.createMessageItem('SpotBugs workspace analysis cancelled.')];
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
   public updateProjectStatus(
     uriString: string,
     status: ProjectStatus,

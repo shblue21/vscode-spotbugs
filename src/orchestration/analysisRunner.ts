@@ -147,6 +147,7 @@ export async function runWorkspaceAnalysis(
     );
 
     if (cancelled) {
+      args.tree.showWorkspaceCancelled();
       return;
     }
 
@@ -169,9 +170,13 @@ export async function runWorkspaceAnalysis(
       }
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = messageFromUnknown(error);
     Logger.error('An error occurred during workspace analysis', error);
-    notifier.error(`SpotBugs: Workspace analysis failed — ${errorMessage}`);
+    notifier.error(`SpotBugs: Workspace analysis failed - ${errorMessage}`);
+    args.tree.showAnalysisFailure(
+      `SpotBugs workspace analysis failed: ${errorMessage}`,
+      'WORKSPACE_ANALYSIS_FAILED'
+    );
   }
 }
 

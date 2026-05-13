@@ -379,6 +379,26 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(children[1].description, 'Search: "CWE-89"');
     assert.deepStrictEqual(provider.getAllFindings(), []);
   });
+
+  it('renders workspace cancellation without clearing group and sort', async () => {
+    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
+    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+
+    provider.showResults([makeFinding()]);
+    provider.setGroupBy('package');
+    provider.setSortBy('rule');
+    provider.showWorkspaceProgress(['file:///workspace/project-a']);
+    provider.showWorkspaceCancelled();
+
+    const children = await provider.getChildren();
+    assert.strictEqual(children.length, 1);
+    assert.strictEqual(children[0].label, 'SpotBugs workspace analysis cancelled.');
+    assert.strictEqual(children[0].contextValue, 'spotbugs.message');
+    assert.deepStrictEqual(provider.getCachedFindings(), []);
+    assert.deepStrictEqual(provider.getAllFindings(), []);
+    assert.strictEqual(provider.getGroupBy(), 'package');
+    assert.strictEqual(provider.getSortBy(), 'rule');
+  });
 });
 
 function makeFinding(overrides: Partial<Finding> = {}): Finding {
