@@ -46,10 +46,66 @@ describe('package contributions', () => {
       manifest.contributes.commands.map((entry) => [entry.command, entry])
     );
 
-    assert.strictEqual(commands.get('spotbugs.runWorkspace')?.title, 'Analyze SpotBugs Workspace');
+    assert.deepStrictEqual(
+      {
+        title: commands.get('spotbugs.runWorkspace')?.title,
+        icon: commands.get('spotbugs.runWorkspace')?.icon,
+      },
+      {
+        title: 'Analyze SpotBugs Workspace',
+        icon: '$(bug)',
+      }
+    );
     assert.strictEqual(commands.get('spotbugs.exportSarif')?.title, 'Export SpotBugs Results (SARIF)');
     assert.strictEqual(commands.get('spotbugs.filterResults')?.title, 'Filter SpotBugs Results');
     assert.strictEqual(commands.get('spotbugs.resetResults')?.title, 'Reset SpotBugs Results');
+  });
+
+  it('contributes result exploration commands', () => {
+    const commands = new Map(
+      manifest.contributes.commands.map((entry) => [entry.command, entry])
+    );
+
+    assert.deepStrictEqual(
+      {
+        title: commands.get('spotbugs.searchResults')?.title,
+        icon: commands.get('spotbugs.searchResults')?.icon,
+      },
+      {
+        title: 'SpotBugs: Search Results',
+        icon: '$(search)',
+      }
+    );
+    assert.deepStrictEqual(
+      {
+        title: commands.get('spotbugs.clearSearch')?.title,
+        icon: commands.get('spotbugs.clearSearch')?.icon,
+      },
+      {
+        title: 'SpotBugs: Clear Search',
+        icon: '$(clear-all)',
+      }
+    );
+    assert.deepStrictEqual(
+      {
+        title: commands.get('spotbugs.groupResultsBy')?.title,
+        icon: commands.get('spotbugs.groupResultsBy')?.icon,
+      },
+      {
+        title: 'SpotBugs: Group Results By...',
+        icon: '$(group-by-ref-type)',
+      }
+    );
+    assert.deepStrictEqual(
+      {
+        title: commands.get('spotbugs.sortResultsBy')?.title,
+        icon: commands.get('spotbugs.sortResultsBy')?.icon,
+      },
+      {
+        title: 'SpotBugs: Sort Results By...',
+        icon: '$(sort-precedence)',
+      }
+    );
   });
 
   it('contributes a setting for source reveal on result selection', () => {
@@ -91,7 +147,7 @@ describe('package contributions', () => {
     );
   });
 
-  it('keeps category and pattern scoped export', () => {
+  it('keeps category, pattern, and generic group scoped export', () => {
     const itemMenus = manifest.contributes.menus['view/item/context'];
 
     assert.ok(
@@ -99,19 +155,23 @@ describe('package contributions', () => {
         (entry) =>
           entry.command === 'spotbugs.exportSarif' &&
           entry.when ===
-            'view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern)'
+            'view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)'
       )
     );
   });
 
-  it('duplicates top-level actions on both view titles with overflow groups', () => {
+  it('adds result exploration actions only to the results view title', () => {
     const titleMenus = manifest.contributes.menus['view/title'];
 
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-view'), [
       'spotbugs.runWorkspace',
+      'spotbugs.searchResults',
       'spotbugs.exportSarif',
       'spotbugs.filterResults',
       'spotbugs.resetResults',
+      'spotbugs.groupResultsBy',
+      'spotbugs.sortResultsBy',
+      'spotbugs.clearSearch',
     ]);
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-inspector-view'), [
       'spotbugs.runWorkspace',
@@ -120,11 +180,18 @@ describe('package contributions', () => {
       'spotbugs.resetResults',
     ]);
 
-    for (const viewId of ['spotbugs-view', 'spotbugs-inspector-view']) {
-      const menus = titleMenus.filter((entry) => entry.when === `view == ${viewId}`);
-      assert.strictEqual(menus[0].group, 'navigation');
-      assert.ok(menus.slice(1).every((entry) => !entry.group?.startsWith('navigation')));
-    }
+    const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
+    assert.strictEqual(resultMenus[0].group, 'navigation@1');
+    assert.strictEqual(resultMenus[1].group, 'navigation@2');
+    assert.ok(
+      resultMenus
+        .filter((entry) =>
+          entry.command?.startsWith('spotbugs.group') ||
+          entry.command?.startsWith('spotbugs.sort') ||
+          entry.command === 'spotbugs.clearSearch'
+        )
+        .every((entry) => entry.group?.startsWith('3_results'))
+    );
   });
 });
 

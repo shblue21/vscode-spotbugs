@@ -11,6 +11,12 @@ import { defaultNotifier } from './core/notifier';
 import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
+import {
+  clearResultsSearch,
+  groupResultsBy,
+  searchResults,
+  sortResultsBy,
+} from './commands/resultsExplorer';
 import { resolveFindingCommandTarget } from './commands/findingCommandTarget';
 import {
   clearInspectorBeforeOperation,
@@ -150,6 +156,50 @@ async function doActivate(
           await reconcileInspectorAfterOperation(
             findingInspectorState,
             () => selectFindingFilter(spotbugsTreeDataProvider),
+            () => spotbugsTreeDataProvider.getAllFindings()
+          );
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.SEARCH_RESULTS,
+        async () => {
+          await reconcileInspectorAfterOperation(
+            findingInspectorState,
+            () => searchResults(spotbugsTreeDataProvider),
+            () => spotbugsTreeDataProvider.getAllFindings()
+          );
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.CLEAR_SEARCH,
+        async () => {
+          await reconcileInspectorAfterOperation(
+            findingInspectorState,
+            () => clearResultsSearch(spotbugsTreeDataProvider),
+            () => spotbugsTreeDataProvider.getAllFindings()
+          );
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.GROUP_RESULTS_BY,
+        async () => {
+          await reconcileInspectorAfterOperation(
+            findingInspectorState,
+            () => groupResultsBy(spotbugsTreeDataProvider),
+            () => spotbugsTreeDataProvider.getAllFindings()
+          );
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.SORT_RESULTS_BY,
+        async () => {
+          await reconcileInspectorAfterOperation(
+            findingInspectorState,
+            () => sortResultsBy(spotbugsTreeDataProvider),
             () => spotbugsTreeDataProvider.getAllFindings()
           );
         }

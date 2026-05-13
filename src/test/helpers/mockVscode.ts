@@ -104,6 +104,13 @@ const MockTreeItemCollapsibleState = {
   Expanded: 2,
 };
 
+const MockCodeActionKind = {
+  QuickFix: {
+    value: 'quickfix',
+    contains: (kind: { value?: string } | undefined) => kind?.value === 'quickfix',
+  },
+};
+
 type VscodeMock = {
   Uri: typeof MockUri;
   EventEmitter: typeof MockEventEmitter;
@@ -118,6 +125,9 @@ type VscodeMock = {
       get: <T>(key: string) => T | undefined;
     };
     getWorkspaceFolder: (uri: MockUri) => WorkspaceFolder | undefined;
+    onDidChangeConfiguration: (
+      listener: (event: { affectsConfiguration: (section: string) => boolean }) => unknown
+    ) => { dispose: () => void };
     fs: {
       stat: (uri: MockUri) => Promise<unknown>;
     };
@@ -149,6 +159,11 @@ type VscodeMock = {
     showInformationMessage: (message: string) => Promise<string | undefined>;
     showWarningMessage: (message: string) => Promise<string | undefined>;
     showErrorMessage: (message: string) => Promise<string | undefined>;
+    showInputBox: (options?: unknown) => Promise<string | undefined>;
+    showQuickPick: <T>(
+      items: T[] | PromiseLike<T[]>,
+      options?: unknown
+    ) => Promise<T | undefined>;
     activeTextEditor?: { document: { uri: MockUri } };
     registerWebviewViewProvider: (
       viewId: string,
@@ -175,6 +190,16 @@ type VscodeMock = {
   extensions: {
     getExtension: (id: string) => unknown;
   };
+  CodeActionKind: typeof MockCodeActionKind;
+  languages: {
+    createDiagnosticCollection: (name: string) => {
+      clear: () => void;
+      delete: (uri: MockUri) => void;
+      dispose: () => void;
+      set: (uri: MockUri, diagnostics: unknown[]) => void;
+    };
+    registerCodeActionsProvider: (...args: unknown[]) => { dispose: () => void };
+  };
   ProgressLocation: {
     Notification: number;
   };
@@ -183,9 +208,23 @@ type VscodeMock = {
   };
 };
 
+type TelemetryWrapperMock = {
+  initializeFromJsonFile: (...args: unknown[]) => Promise<void>;
+  instrumentOperation: <TArgs extends unknown[], TResult>(
+    operationName: string,
+    operation: (operationId: string, ...args: TArgs) => TResult
+  ) => (...args: TArgs) => TResult;
+  instrumentOperationAsVsCodeCommand: (
+    commandId: string,
+    callback: (...args: unknown[]) => unknown
+  ) => { dispose: () => void };
+  dispose: () => Promise<void>;
+};
+
 const originalLoad = Module._load;
 let installed = false;
 let currentMock = createVscodeMock();
+let currentTelemetryWrapperMock = createTelemetryWrapperMock();
 
 export function installVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
   const nextMock = createVscodeMock(overrides);
@@ -195,6 +234,9 @@ export function installVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMo
     Module._load = function patchedLoad(request: unknown, parent: unknown, isMain: unknown) {
       if (request === 'vscode') {
         return currentMock;
+      }
+      if (request === 'vscode-extension-telemetry-wrapper') {
+        return currentTelemetryWrapperMock;
       }
       return originalLoad.call(this, request, parent, isMain);
     };
@@ -208,7 +250,34 @@ export function installVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMo
 
 export function resetVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
   updateVscodeMock(currentMock, createVscodeMock(overrides));
+  resetTelemetryWrapperMock();
   return currentMock;
+}
+
+export function resetTelemetryWrapperMock(
+  overrides: Partial<TelemetryWrapperMock> = {}
+): TelemetryWrapperMock {
+  currentTelemetryWrapperMock = createTelemetryWrapperMock(overrides);
+  return currentTelemetryWrapperMock;
+}
+
+function createTelemetryWrapperMock(
+  overrides: Partial<TelemetryWrapperMock> = {}
+): TelemetryWrapperMock {
+  return {
+    initializeFromJsonFile:
+      overrides.initializeFromJsonFile ?? (async () => undefined),
+    instrumentOperation:
+      overrides.instrumentOperation ??
+      (<TArgs extends unknown[], TResult>(
+        _operationName: string,
+        operation: (operationId: string, ...args: TArgs) => TResult
+      ) => (...args: TArgs) => operation('test-operation', ...args)),
+    instrumentOperationAsVsCodeCommand:
+      overrides.instrumentOperationAsVsCodeCommand ??
+      (() => ({ dispose: () => undefined })),
+    dispose: overrides.dispose ?? (async () => undefined),
+  };
 }
 
 function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
@@ -216,10 +285,13 @@ function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
   target.workspace.workspaceFolders = source.workspace.workspaceFolders;
   target.workspace.getConfiguration = source.workspace.getConfiguration;
   target.workspace.getWorkspaceFolder = source.workspace.getWorkspaceFolder;
+  target.workspace.onDidChangeConfiguration = source.workspace.onDidChangeConfiguration;
   Object.assign(target.window, source.window);
   Object.assign(target.commands, source.commands);
   Object.assign(target.env.clipboard, source.env.clipboard);
   Object.assign(target.extensions, source.extensions);
+  target.CodeActionKind = source.CodeActionKind;
+  Object.assign(target.languages, source.languages);
   target.ProgressLocation = source.ProgressLocation;
   target.ViewColumn = source.ViewColumn;
 }
@@ -237,6 +309,9 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
       overrides.workspace?.getWorkspaceFolder ??
       ((uri: MockUri) =>
         workspaceFolders.find((folder) => uri.fsPath.startsWith(folder.uri.fsPath))),
+    onDidChangeConfiguration:
+      overrides.workspace?.onDidChangeConfiguration ??
+      (() => ({ dispose: () => undefined })),
     fs: {
       stat: overrides.workspace?.fs?.stat ?? (async () => ({})),
     },
@@ -270,6 +345,10 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
       overrides.window?.showWarningMessage ?? (async () => undefined),
     showErrorMessage:
       overrides.window?.showErrorMessage ?? (async () => undefined),
+    showInputBox:
+      overrides.window?.showInputBox ?? (async () => undefined),
+    showQuickPick:
+      overrides.window?.showQuickPick ?? (async () => undefined),
     showTextDocument:
       overrides.window?.showTextDocument ?? (async () => undefined),
     activeTextEditor: overrides.window?.activeTextEditor,
@@ -310,6 +389,20 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
     },
     extensions: {
       getExtension: overrides.extensions?.getExtension ?? (() => undefined),
+    },
+    CodeActionKind: overrides.CodeActionKind ?? MockCodeActionKind,
+    languages: {
+      createDiagnosticCollection:
+        overrides.languages?.createDiagnosticCollection ??
+        (() => ({
+          clear: () => undefined,
+          delete: () => undefined,
+          dispose: () => undefined,
+          set: () => undefined,
+        })),
+      registerCodeActionsProvider:
+        overrides.languages?.registerCodeActionsProvider ??
+        (() => ({ dispose: () => undefined })),
     },
     ProgressLocation: overrides.ProgressLocation ?? {
       Notification: 15,
