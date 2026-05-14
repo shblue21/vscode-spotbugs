@@ -160,6 +160,34 @@ describe('findingInspectorController', () => {
     assert.strictEqual(state.current.finding, finding);
   });
 
+  it('retains current finding and stales preview on generic group selection', async () => {
+    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
+    const findingInspectorState = await import('../ui/findingInspectorState');
+    const findingTreeItem = await import('../ui/findingTreeItem');
+    const finding = makeFinding();
+    const state = new findingInspectorState.FindingInspectorState();
+    const tree = createTreeHarness();
+    let isCurrentRequest: (() => boolean) | undefined;
+
+    bindFindingInspectorToTree(tree.view, state, {
+      revealSourceOnSelection: () => true,
+      revealFindingSource: async (_nextFinding, options) => {
+        isCurrentRequest = options.isCurrentRequest;
+      },
+    });
+
+    await tree.fireSelection(new findingTreeItem.FindingItem(finding));
+    assert.strictEqual(isCurrentRequest?.(), true);
+
+    await tree.fireSelection(
+      new findingTreeItem.GenericGroupItem('com.acme', 'package', 'com.acme', [finding], [])
+    );
+
+    assert.strictEqual(state.current.status, 'retained');
+    assert.strictEqual(state.current.finding, finding);
+    assert.strictEqual(isCurrentRequest?.(), false);
+  });
+
   it('ignores unknown and status selections', async () => {
     const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
     const findingInspectorState = await import('../ui/findingInspectorState');

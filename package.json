@@ -192,7 +192,7 @@
       {
         "command": "spotbugs.runWorkspace",
         "title": "Analyze SpotBugs Workspace",
-        "icon": "$(search)"
+        "icon": "$(bug)"
       },
       {
         "command": "spotbugs.revealFindingSource",
@@ -218,6 +218,26 @@
         "command": "spotbugs.resetResults",
         "title": "Reset SpotBugs Results",
         "icon": "$(trash)"
+      },
+      {
+        "command": "spotbugs.searchResults",
+        "title": "SpotBugs: Search Results",
+        "icon": "$(search)"
+      },
+      {
+        "command": "spotbugs.clearSearch",
+        "title": "SpotBugs: Clear Search",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "spotbugs.groupResultsBy",
+        "title": "SpotBugs: Group Results By...",
+        "icon": "$(group-by-ref-type)"
+      },
+      {
+        "command": "spotbugs.sortResultsBy",
+        "title": "SpotBugs: Sort Results By...",
+        "icon": "$(sort-precedence)"
       }
     ],
     "menus": {
@@ -225,7 +245,12 @@
         {
           "command": "spotbugs.runWorkspace",
           "when": "view == spotbugs-view",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "spotbugs.searchResults",
+          "when": "view == spotbugs-view",
+          "group": "navigation@2"
         },
         {
           "command": "spotbugs.exportSarif",
@@ -241,6 +266,21 @@
           "command": "spotbugs.resetResults",
           "when": "view == spotbugs-view",
           "group": "2_spotbugs@3"
+        },
+        {
+          "command": "spotbugs.groupResultsBy",
+          "when": "view == spotbugs-view",
+          "group": "3_results@1"
+        },
+        {
+          "command": "spotbugs.sortResultsBy",
+          "when": "view == spotbugs-view",
+          "group": "3_results@2"
+        },
+        {
+          "command": "spotbugs.clearSearch",
+          "when": "view == spotbugs-view",
+          "group": "3_results@3"
         },
         {
           "command": "spotbugs.runWorkspace",
@@ -282,7 +322,7 @@
         },
         {
           "command": "spotbugs.exportSarif",
-          "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern)",
+          "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)",
           "group": "navigation@3"
         }
       ],

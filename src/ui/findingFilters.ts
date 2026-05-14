@@ -1,13 +1,10 @@
-import { formatFindingPatternLabel, rankToSeverity } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
+import {
+  FindingFacetFilterKind,
+  toFindingFacets,
+} from './findingFacets';
 
-export type FindingFilterKind =
-  | 'severity'
-  | 'category'
-  | 'package'
-  | 'class'
-  | 'path'
-  | 'rule';
+export type FindingFilterKind = FindingFacetFilterKind;
 
 export type FindingFilterState = Partial<Record<FindingFilterKind, string>>;
 
@@ -36,14 +33,7 @@ const FILTER_KIND_ORDER: FindingFilterKind[] = [
   'rule',
 ];
 
-const SEVERITY_LABELS: Record<'error' | 'warning' | 'info', string> = {
-  error: 'Error',
-  warning: 'Warning',
-  info: 'Info',
-};
-
 const SEVERITY_ORDER = ['Error', 'Warning', 'Info'];
-const DEFAULT_PACKAGE_LABEL = '<default package>';
 
 export function getFindingFilterKinds(): FindingFilterKind[] {
   return FILTER_KIND_ORDER.slice();
@@ -172,81 +162,40 @@ function toFindingFilterOption(
   kind: FindingFilterKind,
   finding: Finding
 ): Omit<FindingFilterOption, 'count'> | undefined {
+  const facets = toFindingFacets(finding);
+  const value = facets.filterValues[kind];
+  if (!value) {
+    return undefined;
+  }
+
   if (kind === 'severity') {
-    const severity = rankToSeverity(finding.rank);
     return {
-      value: SEVERITY_LABELS[severity],
-      label: SEVERITY_LABELS[severity],
+      value,
+      label: facets.severityLabel,
       detail:
-        severity === 'error'
+        facets.severityKey === 'error'
           ? 'Rank 1-4'
-          : severity === 'warning'
+          : facets.severityKey === 'warning'
             ? 'Rank 5-9'
             : 'Rank 10+ or unknown',
     };
   }
 
-  if (kind === 'category') {
-    const category = finding.category || 'Uncategorized';
-    return { value: category, label: category };
+  if (kind === 'rule') {
+    return {
+      value,
+      label: facets.ruleLabel,
+      detail: value,
+    };
   }
 
-  if (kind === 'package') {
-    const packageName = extractPackageName(finding);
-    if (!packageName) {
-      return undefined;
-    }
-    return { value: packageName, label: packageName };
-  }
-
-  if (kind === 'class') {
-    const className = finding.className;
-    if (!className) {
-      return undefined;
-    }
-    return { value: className, label: className };
-  }
-
-  if (kind === 'path') {
-    const filePath =
-      finding.location.fullPath || finding.location.realSourcePath || finding.location.sourceFile;
-    if (!filePath) {
-      return undefined;
-    }
-    return { value: filePath, label: filePath };
-  }
-
-  const ruleValue = finding.patternId;
-  if (!ruleValue) {
-    return undefined;
-  }
-  return {
-    value: ruleValue,
-    label: formatFindingPatternLabel(finding),
-    detail: ruleValue,
+  const labelByKind: Record<Exclude<FindingFilterKind, 'severity' | 'rule'>, string> = {
+    category: facets.categoryLabel,
+    package: facets.packageLabel,
+    class: facets.classLabel,
+    path: facets.pathLabel,
   };
-}
-
-function extractPackageName(finding: Finding): string | undefined {
-  if (finding.className) {
-    const lastDot = finding.className.lastIndexOf('.');
-    if (lastDot < 0) {
-      return DEFAULT_PACKAGE_LABEL;
-    }
-    return finding.className.substring(0, lastDot);
-  }
-
-  const relativePath = finding.location.realSourcePath;
-  if (!relativePath) {
-    return undefined;
-  }
-
-  const normalized = relativePath.replace(/\\/g, '/');
-  const slashIndex = normalized.lastIndexOf('/');
-  if (slashIndex < 0) {
-    return DEFAULT_PACKAGE_LABEL;
-  }
-  return normalized.substring(0, slashIndex).replace(/\//g, '.');
+  return { value, label: labelByKind[kind] };
 }
 
 function sortFindingFilterOptions(

@@ -407,4 +407,58 @@ describe('analysisService', () => {
     );
     assert.deepStrictEqual(result.results[0].findings, []);
   });
+
+  it('stops workspace analysis when backend returns ANALYSIS_CANCELLED envelopes', async () => {
+    const vscode = installVscodeMock();
+    const resolverModule =
+      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const spotbugsClient =
+      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const analyzedTargets: string[] = [];
+
+    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          preferredProject: projectUri,
+          targetResolutionRoots: ['/workspace/project/target/classes'],
+          runtimeClasspaths: ['/workspace/project/target/classes'],
+          sourcepaths: ['/workspace/project/src/main/java'],
+        },
+      },
+      issues: [],
+    })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
+    spotbugsClient.runSpotBugsAnalysis = (async (request) => {
+      analyzedTargets.push(request.targetPath);
+      return JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        errors: [
+          {
+            code: 'ANALYSIS_CANCELLED',
+            message: 'Command cancelled',
+          },
+        ],
+        stats: {
+          target: '/workspace/project-a/target/classes',
+          durationMs: 4,
+          spotbugsVersion: '4.8.3',
+        },
+      });
+    }) as typeof spotbugsClient.runSpotBugsAnalysis;
+
+    const result = await service.analyzeWorkspaceFromProjectsDetailed(
+      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
+      vscode.Uri.file('/workspace') as any,
+      ['file:///workspace/project-a', 'file:///workspace/project-b']
+    );
+
+    assert.strictEqual(result.cancelled, true);
+    assert.strictEqual(result.results.length, 1);
+    assert.strictEqual(result.results[0].projectUri, 'file:///workspace/project-a');
+    assert.strictEqual(result.results[0].errorCode, 'ANALYSIS_CANCELLED');
+    assert.deepStrictEqual(analyzedTargets, ['/workspace/project-a/target/classes']);
+  });
 });

@@ -26,6 +26,7 @@ import {
 import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 
 const ERROR_ANALYSIS_FAILED = 'ANALYSIS_FAILED';
+const ERROR_ANALYSIS_CANCELLED = 'ANALYSIS_CANCELLED';
 const ERROR_ANALYSIS_NO_RESPONSE = 'ANALYSIS_NO_RESPONSE';
 
 type AnalysisContext = {
@@ -163,14 +164,20 @@ export async function analyzeWorkspaceFromProjectsDetailed(
       Uri.parse(uriString),
       workspaceFolder
     );
+    results.push(result.projectResult);
+    context.resolutionIssues.push(...result.context.resolutionIssues);
+
+    if (isAnalysisCancelledProjectResult(result.projectResult)) {
+      Logger.log('Workspace analysis cancelled by backend.');
+      cancelled = true;
+      break;
+    }
+
     if (result.projectResult.error) {
       notify?.onFail?.(uriString, result.projectResult.error);
     } else {
       notify?.onDone?.(uriString, result.projectResult.findings.length);
     }
-
-    results.push(result.projectResult);
-    context.resolutionIssues.push(...result.context.resolutionIssues);
   }
 
   return { results, cancelled, context };
@@ -441,6 +448,10 @@ function messageFromUnknown(error: unknown): string {
   }
   const message = String(error);
   return message.trim().length > 0 ? message.trim() : 'Unknown error';
+}
+
+function isAnalysisCancelledProjectResult(result: ProjectResult): boolean {
+  return result.errorCode === ERROR_ANALYSIS_CANCELLED;
 }
 
 function normalizeProjectRef(project: ProjectRef): Uri {

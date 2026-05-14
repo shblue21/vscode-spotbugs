@@ -6,13 +6,13 @@ import {
   CategoryGroupItem,
   PatternGroupItem,
   FindingItem,
+  GenericGroupItem,
   type ProjectStatus,
   ProjectStatusItem,
 } from './findingTreeItem';
 import * as path from 'path';
 import type { ProjectResult } from '../services/projectResult';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
-import { groupFindingsByCategoryAndPattern } from './treeModel';
 import {
   applyFindingFilters,
   createFilteredEmptyState,
@@ -21,6 +21,13 @@ import {
   type FindingFilterState,
   getFindingFilterOptions,
 } from './findingFilters';
+import type { FindingGroupKind } from './findingFacets';
+import {
+  buildResultView,
+  type FindingResultGroup,
+  type FindingResultNode,
+  type FindingSortKind,
+} from './resultViewModel';
 
 export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
@@ -34,6 +41,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private cachedResults: Finding[] = [];
   private visibleResults: Finding[] = [];
   private activeFilters: FindingFilterState = {};
+  private searchQuery = '';
+  private groupBy: FindingGroupKind = 'category';
+  private sortBy: FindingSortKind = 'severityRank';
 
   constructor() {
     this.showInitialMessage();
@@ -52,6 +62,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
         element.findings.map((finding) => new FindingItem(finding))
       );
     }
+    if (element instanceof GenericGroupItem) {
+      return Promise.resolve(element.children);
+    }
     return Promise.resolve(this.viewItems);
   }
 
@@ -60,8 +73,8 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
-    this.activeFilters = {};
-    this.viewItems = [this.createMessageItem('Ready to analyze. Click the search icon to start.')];
+    this.resetExplorationState();
+    this.viewItems = [this.createMessageItem('Ready to analyze. Click the bug icon to start.')];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -70,7 +83,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
-    this.activeFilters = {};
+    this.clearTransientViewState();
     this.viewItems = [this.createMessageItem('Analyzing...')];
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -80,7 +93,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
-    this.activeFilters = {};
+    this.clearTransientViewState();
     this.viewItems = [
       this.createMessageItem(message, code, 'spotbugs.message.error', new ThemeIcon('error')),
     ];
@@ -100,7 +113,17 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.viewItems = items;
     this.cachedResults = [];
     this.visibleResults = [];
-    this.activeFilters = {};
+    this.clearTransientViewState();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public showWorkspaceCancelled(): void {
+    this.projectItems.clear();
+    this.workspaceStatusItems = [];
+    this.cachedResults = [];
+    this.visibleResults = [];
+    this.clearTransientViewState();
+    this.viewItems = [this.createMessageItem('SpotBugs workspace analysis cancelled.')];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -118,6 +141,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showWorkspaceResults(projectResults: ProjectResult[]): void {
     this.projectItems.clear();
+    this.clearTransientViewState();
     this.workspaceStatusItems = this.createFinalProjectStatusItems(projectResults);
     this.cachedResults = projectResults.flatMap((result) => result.findings);
     this.refreshResultsView();
@@ -136,6 +160,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   public showResults(findings: Finding[]): void {
     this.projectItems.clear();
     this.workspaceStatusItems = [];
+    this.clearTransientViewState();
     this.cachedResults = findings ? findings.slice() : [];
     this.refreshResultsView();
     this._onDidChangeTreeData.fire(undefined);
@@ -151,6 +176,46 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public getActiveFilters(): FindingFilterState {
     return { ...this.activeFilters };
+  }
+
+  public getSearchQuery(): string {
+    return this.searchQuery;
+  }
+
+  public setSearchQuery(query: string): void {
+    this.searchQuery = query.trim();
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public clearSearchQuery(): void {
+    if (!this.searchQuery) {
+      return;
+    }
+
+    this.searchQuery = '';
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public getGroupBy(): FindingGroupKind {
+    return this.groupBy;
+  }
+
+  public setGroupBy(groupBy: FindingGroupKind): void {
+    this.groupBy = groupBy;
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public getSortBy(): FindingSortKind {
+    return this.sortBy;
+  }
+
+  public setSortBy(sortBy: FindingSortKind): void {
+    this.sortBy = sortBy;
+    this.refreshResultsView();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   public getFilterOptions(kind: FindingFilterKind): FindingFilterOption[] {
@@ -195,6 +260,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     if (element instanceof PatternGroupItem) {
       return element.findings.slice();
     }
+    if (element instanceof GenericGroupItem) {
+      return element.findings.slice();
+    }
     if (element instanceof FindingItem) {
       return [element.finding];
     }
@@ -216,6 +284,18 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       });
   }
 
+  private clearTransientViewState(): void {
+    this.searchQuery = '';
+    this.activeFilters = {};
+  }
+
+  private resetExplorationState(): void {
+    this.searchQuery = '';
+    this.activeFilters = {};
+    this.groupBy = 'category';
+    this.sortBy = 'severityRank';
+  }
+
   private refreshResultsView(): void {
     if (this.cachedResults.length === 0) {
       this.viewItems = [this.createMessageItem('No issues found.')];
@@ -225,23 +305,61 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
 
     const filteredFindings = applyFindingFilters(this.cachedResults, this.activeFilters);
-    this.visibleResults = filteredFindings.slice();
+    const resultView = buildResultView(filteredFindings, {
+      searchQuery: this.searchQuery,
+      groupBy: this.groupBy,
+      sortBy: this.sortBy,
+    });
+    this.visibleResults = resultView.visibleFindings.slice();
 
-    if (filteredFindings.length === 0) {
-      const emptyState = createFilteredEmptyState(this.cachedResults, this.activeFilters);
+    if (resultView.visibleFindings.length === 0) {
+      const emptyState = this.createCurrentEmptyState();
       this.viewItems = [this.createMessageItem(emptyState.label, emptyState.description)];
       this.applyWorkspaceStatusItems();
       return;
     }
 
-    const categories = groupFindingsByCategoryAndPattern(filteredFindings);
-    this.viewItems = categories.map((category) => {
-      const patterns = category.patterns.map(
-        (pattern) => new PatternGroupItem(pattern.label, pattern.findings)
-      );
-      return new CategoryGroupItem(category.name, patterns, category.total);
-    });
+    this.viewItems = this.toTreeItems(resultView.nodes);
     this.applyWorkspaceStatusItems();
+  }
+
+  private toTreeItems(nodes: FindingResultNode[]): TreeItem[] {
+    return nodes.map((node) => {
+      if (node.type === 'finding') {
+        return new FindingItem(node.finding);
+      }
+
+      if (this.groupBy === 'category' && node.groupKind === 'category') {
+        const patterns = node.children
+          .filter((child): child is FindingResultGroup => child.type === 'group')
+          .map((child) => new PatternGroupItem(child.label, child.findings));
+        return new CategoryGroupItem(node.label, patterns, node.total);
+      }
+
+      return this.toGenericGroupItem(node);
+    });
+  }
+
+  private toGenericGroupItem(group: FindingResultGroup): GenericGroupItem {
+    const children = group.children.map((child) =>
+      child.type === 'finding'
+        ? new FindingItem(child.finding)
+        : this.toGenericGroupItem(child)
+    );
+    return new GenericGroupItem(group.key, group.groupKind, group.label, group.findings, children);
+  }
+
+  private createCurrentEmptyState(): { label: string; description?: string } {
+    const filterState = createFilteredEmptyState(this.cachedResults, this.activeFilters);
+    const parts = [
+      filterState.description,
+      this.searchQuery ? `Search: "${this.searchQuery}"` : undefined,
+    ].filter((part): part is string => !!part);
+
+    return {
+      label: 'No cached findings match the current view.',
+      description: parts.join(' | ') || undefined,
+    };
   }
 
   private applyWorkspaceStatusItems(): void {

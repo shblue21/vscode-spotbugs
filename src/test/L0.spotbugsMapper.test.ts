@@ -20,4 +20,15 @@ describe('spotbugsMapper', () => {
     assert.strictEqual(finding.helpUri, 'https://example.test/rule');
     assert.strictEqual(finding.location.fullPath, '/tmp/Example.java');
   });
+
+  it('preserves full SpotBugs type while deriving patternId from abbrev', () => {
+    const finding = mapBugToFinding({
+      type: 'SQL_INJECTION',
+      abbrev: 'SQL',
+      message: 'SQL injection risk',
+    });
+
+    assert.strictEqual(finding.type, 'SQL_INJECTION');
+    assert.strictEqual(finding.patternId, 'SQL');
+  });
 });

@@ -5,6 +5,7 @@ import {
   getFindingFilterOptions,
 } from '../ui/findingFilters';
 import { Finding } from '../model/finding';
+import { mapBugToFinding } from '../lsp/spotbugsMapper';
 
 function makeFinding(overrides: Partial<Finding>): Finding {
   return {
@@ -127,5 +128,78 @@ describe('findingFilters', () => {
 
     assert.strictEqual(emptyState.label, 'No cached findings match the current filters.');
     assert.strictEqual(emptyState.description, 'Severity: Error • Rule: [NP] Null pointer');
+  });
+
+  it('keeps uncategorized filter compatibility without exposing unknown package, class, path, or rule options', () => {
+    const missingFacetFindings = [
+      makeFinding({
+        category: undefined,
+        patternId: undefined,
+        type: undefined,
+        abbrev: undefined,
+        className: undefined,
+        location: {},
+      }),
+    ];
+
+    assert.deepStrictEqual(
+      getFindingFilterOptions(missingFacetFindings, {}, 'package'),
+      []
+    );
+    assert.deepStrictEqual(
+      getFindingFilterOptions(missingFacetFindings, {}, 'class'),
+      []
+    );
+    assert.deepStrictEqual(
+      getFindingFilterOptions(missingFacetFindings, {}, 'path'),
+      []
+    );
+    assert.deepStrictEqual(
+      getFindingFilterOptions(missingFacetFindings, {}, 'category').map(
+        (option) => option.label
+      ),
+      ['Uncategorized']
+    );
+    assert.deepStrictEqual(
+      getFindingFilterOptions(missingFacetFindings, {}, 'rule'),
+      []
+    );
+  });
+
+  it('keeps abbrev-derived rule filters while hiding mapper-synthetic UNKNOWN rules', () => {
+    const mapperRealisticRule = makeFinding({
+      patternId: 'SQL',
+      type: 'SQL_INJECTION',
+      abbrev: 'SQL',
+      message: 'SQL: SQL injection risk',
+    });
+    const mapperSyntheticUnknown = mapBugToFinding({});
+
+    assert.deepStrictEqual(
+      getFindingFilterOptions([mapperRealisticRule], {}, 'rule').map((option) => ({
+        value: option.value,
+        label: option.label,
+        detail: option.detail,
+      })),
+      [
+        {
+          value: 'SQL',
+          label: '[SQL] SQL injection risk',
+          detail: 'SQL',
+        },
+      ]
+    );
+    assert.deepStrictEqual(
+      applyFindingFilters([mapperRealisticRule], { rule: 'SQL' }),
+      [mapperRealisticRule]
+    );
+    assert.deepStrictEqual(
+      applyFindingFilters([mapperRealisticRule], { rule: 'SQL_INJECTION' }),
+      []
+    );
+    assert.deepStrictEqual(
+      getFindingFilterOptions([mapperSyntheticUnknown], {}, 'rule'),
+      []
+    );
   });
 });

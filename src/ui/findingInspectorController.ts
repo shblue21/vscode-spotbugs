@@ -2,6 +2,7 @@ import { Disposable, TreeItem, TreeView } from 'vscode';
 import {
   CategoryGroupItem,
   FindingItem,
+  GenericGroupItem,
   PatternGroupItem,
 } from './findingTreeItem';
 import { FindingInspectorState } from './findingInspectorState';
@@ -43,7 +44,11 @@ export function bindFindingInspectorToTree(
       return;
     }
 
-    if (selected instanceof CategoryGroupItem || selected instanceof PatternGroupItem) {
+    if (
+      selected instanceof CategoryGroupItem ||
+      selected instanceof PatternGroupItem ||
+      selected instanceof GenericGroupItem
+    ) {
       inspectorState.retainCurrent();
     }
   });

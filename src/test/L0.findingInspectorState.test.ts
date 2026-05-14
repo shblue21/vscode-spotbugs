@@ -38,7 +38,7 @@ describe('findingInspectorState', () => {
 
   it('keeps visible selected findings after filter reconciliation by stable identity', async () => {
     const findingInspectorState = await import('../ui/findingInspectorState');
-    const finding = makeFinding('NP_ALWAYS_NULL', undefined);
+    const finding = makeFinding('NP_ALWAYS_NULL', '');
     const state = new findingInspectorState.FindingInspectorState();
 
     state.select(finding);
@@ -57,14 +57,34 @@ describe('findingInspectorState', () => {
 
     assert.strictEqual(state.current.status, 'empty');
   });
+
+  it('does not reconcile distinct full SpotBugs rule types that share an abbrev-derived pattern id', async () => {
+    const findingInspectorState = await import('../ui/findingInspectorState');
+    const state = new findingInspectorState.FindingInspectorState();
+    const selected = makeFinding('SQL', '', 'SQL_INJECTION');
+    const otherRuleSamePatternId = makeFinding(
+      'SQL',
+      '',
+      'SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE'
+    );
+
+    state.select(selected);
+    state.reconcileVisibleFindings([otherRuleSamePatternId]);
+
+    assert.strictEqual(state.current.status, 'empty');
+  });
 });
 
-function makeFinding(patternId: string, instanceHash = `${patternId}-hash`): Finding {
+function makeFinding(
+  patternId: string,
+  instanceHash = `${patternId}-hash`,
+  type = patternId
+): Finding {
   return {
     patternId,
-    type: patternId,
+    type,
     abbrev: patternId.split('_')[0],
-    message: patternId,
+    message: type,
     instanceHash,
     className: 'Example',
     methodName: 'method',

@@ -1,5 +1,10 @@
 import { Finding } from '../model/finding';
-import { CategoryGroupItem, PatternGroupItem, FindingItem } from './findingTreeItem';
+import {
+  CategoryGroupItem,
+  PatternGroupItem,
+  FindingItem,
+  GenericGroupItem,
+} from './findingTreeItem';
 import { SpotBugsTreeDataProvider } from './spotbugsTreeDataProvider';
 
 export function resolveSpotBugsSelection(
@@ -9,6 +14,7 @@ export function resolveSpotBugsSelection(
   if (
     element instanceof CategoryGroupItem ||
     element instanceof PatternGroupItem ||
+    element instanceof GenericGroupItem ||
     element instanceof FindingItem
   ) {
     const scoped = provider.getFindingsForNode(element);

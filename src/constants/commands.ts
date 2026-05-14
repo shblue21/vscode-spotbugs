@@ -15,6 +15,10 @@ export namespace SpotBugsCommands {
   export const FILTER_RESULTS: string = 'spotbugs.filterResults';
   export const EXPORT_SARIF: string = 'spotbugs.exportSarif';
   export const RESET_RESULTS: string = 'spotbugs.resetResults';
+  export const SEARCH_RESULTS: string = 'spotbugs.searchResults';
+  export const CLEAR_SEARCH: string = 'spotbugs.clearSearch';
+  export const GROUP_RESULTS_BY: string = 'spotbugs.groupResultsBy';
+  export const SORT_RESULTS_BY: string = 'spotbugs.sortResultsBy';
 }
 
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)
