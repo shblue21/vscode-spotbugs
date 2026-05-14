@@ -1,4 +1,12 @@
 # Changelog
+## [0.6.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.2...v0.6.0) (2026-05-14)
+
+
+### Features
+
+* reveal source on finding selection ([#39](https://github.com/shblue21/vscode-spotbugs/issues/39)) ([68c6256](https://github.com/shblue21/vscode-spotbugs/commit/68c6256c180cb1e279f94f6220ea4a8088b06c05))
+* add search, group, and sort controls to results view ([#42](https://github.com/shblue21/vscode-spotbugs/issues/42)) ([5a1b3da](https://github.com/shblue21/vscode-spotbugs/commit/5a1b3da65a6e2201816cd6a52d241f4a771f0730))
+
 ## [0.5.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.1...v0.5.2) (2026-05-08)
 
 
