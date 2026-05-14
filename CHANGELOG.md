@@ -1,4 +1,11 @@
 # Changelog
+## [0.6.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.2...v0.6.0) (2026-05-14)
+
+
+### Features
+
+* reveal source on finding selection ([#39](https://github.com/shblue21/vscode-spotbugs/issues/39)) ([68c6256](https://github.com/shblue21/vscode-spotbugs/commit/68c6256c180cb1e279f94f6220ea4a8088b06c05))
+
 ## [0.5.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.1...v0.5.2) (2026-05-08)
 
 
