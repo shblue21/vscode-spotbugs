@@ -160,7 +160,7 @@ describe('package contributions', () => {
     );
   });
 
-  it('adds result exploration actions only to the results view title', () => {
+  it('keeps result exploration actions on results and source navigation on inspector titles', () => {
     const titleMenus = manifest.contributes.menus['view/title'];
 
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-view'), [
@@ -174,10 +174,7 @@ describe('package contributions', () => {
       'spotbugs.clearSearch',
     ]);
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-inspector-view'), [
-      'spotbugs.runWorkspace',
-      'spotbugs.exportSarif',
-      'spotbugs.filterResults',
-      'spotbugs.resetResults',
+      'spotbugs.revealFindingSource',
     ]);
 
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
