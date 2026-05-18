@@ -283,24 +283,9 @@
           "group": "3_results@3"
         },
         {
-          "command": "spotbugs.runWorkspace",
+          "command": "spotbugs.revealFindingSource",
           "when": "view == spotbugs-inspector-view",
-          "group": "navigation"
-        },
-        {
-          "command": "spotbugs.exportSarif",
-          "when": "view == spotbugs-inspector-view",
-          "group": "2_spotbugs@1"
-        },
-        {
-          "command": "spotbugs.filterResults",
-          "when": "view == spotbugs-inspector-view",
-          "group": "2_spotbugs@2"
-        },
-        {
-          "command": "spotbugs.resetResults",
-          "when": "view == spotbugs-inspector-view",
-          "group": "2_spotbugs@3"
+          "group": "navigation@1"
         }
       ],
       "explorer/context": [
