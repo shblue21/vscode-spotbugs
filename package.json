@@ -238,6 +238,11 @@
         "command": "spotbugs.sortResultsBy",
         "title": "SpotBugs: Sort Results By...",
         "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "spotbugs.openSettings",
+        "title": "SpotBugs: Open Settings",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
@@ -251,6 +256,11 @@
           "command": "spotbugs.searchResults",
           "when": "view == spotbugs-view",
           "group": "navigation@2"
+        },
+        {
+          "command": "spotbugs.openSettings",
+          "when": "view == spotbugs-view",
+          "group": "navigation@99"
         },
         {
           "command": "spotbugs.exportSarif",

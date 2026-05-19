@@ -108,6 +108,23 @@ describe('package contributions', () => {
     );
   });
 
+  it('contributes the settings command', () => {
+    const commands = new Map(
+      manifest.contributes.commands.map((entry) => [entry.command, entry])
+    );
+
+    assert.deepStrictEqual(
+      {
+        title: commands.get('spotbugs.openSettings')?.title,
+        icon: commands.get('spotbugs.openSettings')?.icon,
+      },
+      {
+        title: 'SpotBugs: Open Settings',
+        icon: '$(gear)',
+      }
+    );
+  });
+
   it('contributes a setting for source reveal on result selection', () => {
     const properties = Object.assign(
       {},
@@ -166,6 +183,7 @@ describe('package contributions', () => {
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-view'), [
       'spotbugs.runWorkspace',
       'spotbugs.searchResults',
+      'spotbugs.openSettings',
       'spotbugs.exportSarif',
       'spotbugs.filterResults',
       'spotbugs.resetResults',
@@ -180,6 +198,7 @@ describe('package contributions', () => {
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
     assert.strictEqual(resultMenus[0].group, 'navigation@1');
     assert.strictEqual(resultMenus[1].group, 'navigation@2');
+    assert.strictEqual(resultMenus[2].group, 'navigation@99');
     assert.ok(
       resultMenus
         .filter((entry) =>
