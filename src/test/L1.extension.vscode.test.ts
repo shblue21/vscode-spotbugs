@@ -23,6 +23,7 @@ describe('Extension activation', () => {
       SpotBugsCommands.CLEAR_SEARCH,
       SpotBugsCommands.GROUP_RESULTS_BY,
       SpotBugsCommands.SORT_RESULTS_BY,
+      SpotBugsCommands.OPEN_SETTINGS,
     ];
 
     for (const cmd of expected) {

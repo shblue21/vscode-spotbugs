@@ -167,7 +167,7 @@ describe('resultsExplorerCommands', () => {
     ]);
   });
 
-  it('registers result exploration commands during extension activation', async () => {
+  it('registers SpotBugs toolbar commands during extension activation', async () => {
     const registeredCommands = new Map<string, (...args: unknown[]) => unknown>();
     resetTelemetryWrapperMock({
       instrumentOperationAsVsCodeCommand: (
@@ -198,6 +198,7 @@ describe('resultsExplorerCommands', () => {
       'spotbugs.clearSearch',
       'spotbugs.groupResultsBy',
       'spotbugs.sortResultsBy',
+      'spotbugs.openSettings',
     ]) {
       assert.strictEqual(
         typeof registeredCommands.get(commandId),

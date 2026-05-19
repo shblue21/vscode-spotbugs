@@ -11,6 +11,7 @@ import { defaultNotifier } from './core/notifier';
 import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
+import { openSettings } from './commands/settings';
 import {
   clearResultsSearch,
   groupResultsBy,
@@ -204,6 +205,8 @@ async function doActivate(
           );
         }
       ),
+
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_SETTINGS, openSettings),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.EXPORT_SARIF,
