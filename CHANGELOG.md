@@ -1,4 +1,11 @@
 # Changelog
+## [0.6.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.0...v0.6.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **inspector:** use source navigation in inspector title toolbar ([#43](https://github.com/shblue21/vscode-spotbugs/issues/43)) ([9c4d696](https://github.com/shblue21/vscode-spotbugs/commit/9c4d6964fee0202824bf55cea458a05cb26094c2))
+
 ## [0.6.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.5.2...v0.6.0) (2026-05-14)
 
 
