@@ -279,241 +279,136 @@ describe('analysisRunner', () => {
     }
   });
 
-  it('clears workspace progress tree state on cancellation without touching diagnostics', async () => {
-    const vscode = installVscodeMock();
-    resetVscodeMock({
-      workspace: {
-        workspaceFolders: [
-          {
-            name: 'workspace',
-            uri: vscode.Uri.file('/workspace') as any,
-          },
-        ],
-      } as any,
-    });
-    const workspaceBuildService =
-      require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-    const projectDiscovery =
-      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const analysisService =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-    const originalBuildWorkspaceAuto = workspaceBuildService.buildWorkspaceAuto;
-    const originalGetWorkspaceProjectDiscovery = projectDiscovery.getWorkspaceProjectDiscovery;
-    const originalAnalyzeWorkspaceFromProjectsDetailed =
-      analysisService.analyzeWorkspaceFromProjectsDetailed;
-
-    workspaceBuildService.buildWorkspaceAuto = (async () => 0) as typeof workspaceBuildService.buildWorkspaceAuto;
-    projectDiscovery.getWorkspaceProjectDiscovery = (async () => ({
-      projectUris: ['file:///workspace/project-a'],
-      issues: [],
-    })) as typeof projectDiscovery.getWorkspaceProjectDiscovery;
-    analysisService.analyzeWorkspaceFromProjectsDetailed = (async () => ({
-      results: [],
-      cancelled: true,
-      context: {
-        resolutionIssues: [],
-      },
-    })) as typeof analysisService.analyzeWorkspaceFromProjectsDetailed;
-
-    try {
-      const runner =
-        require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
-      const calls: string[] = [];
-
-      await runner.runWorkspaceAnalysis({
-        config: { getAnalysisSettings: () => ({}) } as any,
-        tree: {
-          showWorkspaceProgress: (projectUris: string[]) =>
-            calls.push(`progress:${projectUris.length}`),
-          updateProjectStatus: () => undefined,
-          showWorkspaceCancelled: () => calls.push('cancelled'),
-          showWorkspaceResults: (projectResults: unknown[]) =>
-            calls.push(`workspaceResults:${projectResults.length}`),
-        } as any,
-        diagnostics: {
-          replaceAll: (findings: unknown[]) => calls.push(`diagnostics:${findings.length}`),
-        } as any,
-        notifier: {
-          info: () => undefined,
-          warn: () => undefined,
-          error: () => undefined,
+  for (const scenario of [
+    {
+      name: 'service cancellation flag',
+      tokenCancelled: false,
+      analysisResult: () => ({
+        results: [],
+        cancelled: true,
+        context: {
+          resolutionIssues: [],
         },
-      });
-
-      assert.deepStrictEqual(calls, ['progress:1', 'cancelled']);
-    } finally {
-      workspaceBuildService.buildWorkspaceAuto = originalBuildWorkspaceAuto;
-      projectDiscovery.getWorkspaceProjectDiscovery = originalGetWorkspaceProjectDiscovery;
-      analysisService.analyzeWorkspaceFromProjectsDetailed =
-        originalAnalyzeWorkspaceFromProjectsDetailed;
-    }
-  });
-
-  it('clears workspace progress tree state on VS Code token cancellation', async () => {
-    const vscode = installVscodeMock();
-    resetVscodeMock({
-      workspace: {
-        workspaceFolders: [
+      }),
+    },
+    {
+      name: 'VS Code token cancellation',
+      tokenCancelled: true,
+      analysisResult: () => ({
+        results: [],
+        cancelled: false,
+        context: {
+          resolutionIssues: [],
+        },
+      }),
+    },
+    {
+      name: 'backend cancellation envelope',
+      tokenCancelled: false,
+      analysisResult: () => ({
+        results: [
           {
-            name: 'workspace',
-            uri: vscode.Uri.file('/workspace') as any,
+            projectUri: 'file:///workspace/project-a',
+            findings: [],
+            error: 'SpotBugs analysis failed: [ANALYSIS_CANCELLED] Command cancelled',
+            errorCode: 'ANALYSIS_CANCELLED',
           },
         ],
-      } as any,
-      window: {
-        withProgress: async (
-          _options: unknown,
-          task: (
-            progress: { report: () => void },
-            token: { isCancellationRequested: boolean }
-          ) => Promise<unknown>
-        ) =>
-          task(
+        cancelled: false,
+        context: {
+          resolutionIssues: [],
+        },
+      }),
+    },
+  ]) {
+    it(`clears workspace progress tree state on ${scenario.name}`, async () => {
+      const vscode = installVscodeMock();
+      resetVscodeMock({
+        workspace: {
+          workspaceFolders: [
             {
-              report: () => undefined,
+              name: 'workspace',
+              uri: vscode.Uri.file('/workspace') as any,
             },
-            {
-              isCancellationRequested: true,
+          ],
+        } as any,
+        ...(scenario.tokenCancelled
+          ? {
+              window: {
+                withProgress: async (
+                  _options: unknown,
+                  task: (
+                    progress: { report: () => void },
+                    token: { isCancellationRequested: boolean }
+                  ) => Promise<unknown>
+                ) =>
+                  task(
+                    {
+                      report: () => undefined,
+                    },
+                    {
+                      isCancellationRequested: true,
+                    }
+                  ),
+              } as any,
             }
-          ),
-      } as any,
-    });
-    const workspaceBuildService =
-      require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-    const projectDiscovery =
-      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const analysisService =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-    const originalBuildWorkspaceAuto = workspaceBuildService.buildWorkspaceAuto;
-    const originalGetWorkspaceProjectDiscovery = projectDiscovery.getWorkspaceProjectDiscovery;
-    const originalAnalyzeWorkspaceFromProjectsDetailed =
-      analysisService.analyzeWorkspaceFromProjectsDetailed;
-
-    workspaceBuildService.buildWorkspaceAuto = (async () => 0) as typeof workspaceBuildService.buildWorkspaceAuto;
-    projectDiscovery.getWorkspaceProjectDiscovery = (async () => ({
-      projectUris: ['file:///workspace/project-a'],
-      issues: [],
-    })) as typeof projectDiscovery.getWorkspaceProjectDiscovery;
-    analysisService.analyzeWorkspaceFromProjectsDetailed = (async () => ({
-      results: [],
-      cancelled: false,
-      context: {
-        resolutionIssues: [],
-      },
-    })) as typeof analysisService.analyzeWorkspaceFromProjectsDetailed;
-
-    try {
-      const runner =
-        require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
-      const calls: string[] = [];
-
-      await runner.runWorkspaceAnalysis({
-        config: { getAnalysisSettings: () => ({}) } as any,
-        tree: {
-          showWorkspaceProgress: (projectUris: string[]) =>
-            calls.push(`progress:${projectUris.length}`),
-          updateProjectStatus: () => undefined,
-          showWorkspaceCancelled: () => calls.push('cancelled'),
-          showWorkspaceResults: (projectResults: unknown[]) =>
-            calls.push(`workspaceResults:${projectResults.length}`),
-        } as any,
-        diagnostics: {
-          replaceAll: (findings: unknown[]) => calls.push(`diagnostics:${findings.length}`),
-        } as any,
-        notifier: {
-          info: () => undefined,
-          warn: () => undefined,
-          error: () => undefined,
-        },
+          : {}),
       });
+      const workspaceBuildService =
+        require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
+      const projectDiscovery =
+        require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
+      const analysisService =
+        require('../services/analysisService') as typeof import('../services/analysisService');
+      const originalBuildWorkspaceAuto = workspaceBuildService.buildWorkspaceAuto;
+      const originalGetWorkspaceProjectDiscovery = projectDiscovery.getWorkspaceProjectDiscovery;
+      const originalAnalyzeWorkspaceFromProjectsDetailed =
+        analysisService.analyzeWorkspaceFromProjectsDetailed;
 
-      assert.deepStrictEqual(calls, ['progress:1', 'cancelled']);
-    } finally {
-      workspaceBuildService.buildWorkspaceAuto = originalBuildWorkspaceAuto;
-      projectDiscovery.getWorkspaceProjectDiscovery = originalGetWorkspaceProjectDiscovery;
-      analysisService.analyzeWorkspaceFromProjectsDetailed =
-        originalAnalyzeWorkspaceFromProjectsDetailed;
-    }
-  });
+      workspaceBuildService.buildWorkspaceAuto = (async () => 0) as typeof workspaceBuildService.buildWorkspaceAuto;
+      projectDiscovery.getWorkspaceProjectDiscovery = (async () => ({
+        projectUris: ['file:///workspace/project-a'],
+        issues: [],
+      })) as typeof projectDiscovery.getWorkspaceProjectDiscovery;
+      analysisService.analyzeWorkspaceFromProjectsDetailed = (async () =>
+        scenario.analysisResult()) as typeof analysisService.analyzeWorkspaceFromProjectsDetailed;
 
-  it('clears workspace progress tree state on backend cancellation envelopes', async () => {
-    const vscode = installVscodeMock();
-    resetVscodeMock({
-      workspace: {
-        workspaceFolders: [
-          {
-            name: 'workspace',
-            uri: vscode.Uri.file('/workspace') as any,
+      try {
+        const runner =
+          require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
+        const calls: string[] = [];
+        const errors: string[] = [];
+
+        await runner.runWorkspaceAnalysis({
+          config: { getAnalysisSettings: () => ({}) } as any,
+          tree: {
+            showWorkspaceProgress: (projectUris: string[]) =>
+              calls.push(`progress:${projectUris.length}`),
+            updateProjectStatus: () => undefined,
+            showWorkspaceCancelled: () => calls.push('cancelled'),
+            showWorkspaceResults: (projectResults: unknown[]) =>
+              calls.push(`workspaceResults:${projectResults.length}`),
+          } as any,
+          diagnostics: {
+            replaceAll: (findings: unknown[]) => calls.push(`diagnostics:${findings.length}`),
+          } as any,
+          notifier: {
+            info: () => undefined,
+            warn: () => undefined,
+            error: (message: string) => errors.push(message),
           },
-        ],
-      } as any,
+        });
+
+        assert.deepStrictEqual(calls, ['progress:1', 'cancelled']);
+        assert.deepStrictEqual(errors, []);
+      } finally {
+        workspaceBuildService.buildWorkspaceAuto = originalBuildWorkspaceAuto;
+        projectDiscovery.getWorkspaceProjectDiscovery = originalGetWorkspaceProjectDiscovery;
+        analysisService.analyzeWorkspaceFromProjectsDetailed =
+          originalAnalyzeWorkspaceFromProjectsDetailed;
+      }
     });
-    const workspaceBuildService =
-      require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-    const projectDiscovery =
-      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const analysisService =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-    const originalBuildWorkspaceAuto = workspaceBuildService.buildWorkspaceAuto;
-    const originalGetWorkspaceProjectDiscovery = projectDiscovery.getWorkspaceProjectDiscovery;
-    const originalAnalyzeWorkspaceFromProjectsDetailed =
-      analysisService.analyzeWorkspaceFromProjectsDetailed;
-
-    workspaceBuildService.buildWorkspaceAuto = (async () => 0) as typeof workspaceBuildService.buildWorkspaceAuto;
-    projectDiscovery.getWorkspaceProjectDiscovery = (async () => ({
-      projectUris: ['file:///workspace/project-a'],
-      issues: [],
-    })) as typeof projectDiscovery.getWorkspaceProjectDiscovery;
-    analysisService.analyzeWorkspaceFromProjectsDetailed = (async () => ({
-      results: [
-        {
-          projectUri: 'file:///workspace/project-a',
-          findings: [],
-          error: 'SpotBugs analysis failed: [ANALYSIS_CANCELLED] Command cancelled',
-          errorCode: 'ANALYSIS_CANCELLED',
-        },
-      ],
-      cancelled: false,
-      context: {
-        resolutionIssues: [],
-      },
-    })) as typeof analysisService.analyzeWorkspaceFromProjectsDetailed;
-
-    try {
-      const runner =
-        require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
-      const calls: string[] = [];
-      const errors: string[] = [];
-
-      await runner.runWorkspaceAnalysis({
-        config: { getAnalysisSettings: () => ({}) } as any,
-        tree: {
-          showWorkspaceProgress: (projectUris: string[]) =>
-            calls.push(`progress:${projectUris.length}`),
-          updateProjectStatus: () => undefined,
-          showWorkspaceCancelled: () => calls.push('cancelled'),
-          showWorkspaceResults: (projectResults: unknown[]) =>
-            calls.push(`workspaceResults:${projectResults.length}`),
-        } as any,
-        diagnostics: {
-          replaceAll: (findings: unknown[]) => calls.push(`diagnostics:${findings.length}`),
-        } as any,
-        notifier: {
-          info: () => undefined,
-          warn: () => undefined,
-          error: (message: string) => errors.push(message),
-        },
-      });
-
-      assert.deepStrictEqual(calls, ['progress:1', 'cancelled']);
-      assert.deepStrictEqual(errors, []);
-    } finally {
-      workspaceBuildService.buildWorkspaceAuto = originalBuildWorkspaceAuto;
-      projectDiscovery.getWorkspaceProjectDiscovery = originalGetWorkspaceProjectDiscovery;
-      analysisService.analyzeWorkspaceFromProjectsDetailed =
-        originalAnalyzeWorkspaceFromProjectsDetailed;
-    }
-  });
+  }
 
   it('renders workspace analysis exceptions as failure state without touching diagnostics', async () => {
     const vscode = installVscodeMock();

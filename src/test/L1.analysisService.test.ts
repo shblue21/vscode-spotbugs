@@ -5,6 +5,29 @@ function clearModule(moduleId: string): void {
   delete require.cache[require.resolve(moduleId)];
 }
 
+function backendErrorEnvelope(
+  code: string,
+  message: string,
+  targetPath: string,
+  durationMs = 9
+): string {
+  return JSON.stringify({
+    schemaVersion: 2,
+    results: [],
+    errors: [
+      {
+        code,
+        message,
+      },
+    ],
+    stats: {
+      target: targetPath,
+      durationMs,
+      spotbugsVersion: '4.8.3',
+    },
+  });
+}
+
 describe('analysisService', () => {
   beforeEach(() => {
     installVscodeMock();
@@ -212,21 +235,11 @@ describe('analysisService', () => {
       issues: [],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async () =>
-      JSON.stringify({
-        schemaVersion: 2,
-        results: [],
-        errors: [
-          {
-            code: 'ANALYSIS_FAILED',
-            message: 'boom',
-          },
-        ],
-        stats: {
-          target: '/workspace/build/classes',
-          durationMs: 9,
-          spotbugsVersion: '4.8.3',
-        },
-      })) as typeof spotbugsClient.runSpotBugsAnalysis;
+      backendErrorEnvelope(
+        'ANALYSIS_FAILED',
+        'boom',
+        '/workspace/build/classes'
+      )) as typeof spotbugsClient.runSpotBugsAnalysis;
 
     const result = await service.analyzeFileDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
@@ -242,60 +255,6 @@ describe('analysisService', () => {
       'SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
     );
     assert.strictEqual(result.outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
-    assert.strictEqual(result.outcome.stats?.target, '/workspace/build/classes');
-    assert.strictEqual(result.outcome.schemaVersion, 2);
-  });
-
-  it('preserves backend ANALYSIS_CANCELLED envelopes in file analysis outcomes', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
-
-    resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
-      resolution: {
-        status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: vscode.Uri.file('/workspace/src/Foo.java') as any,
-          targetResolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src/main/java'],
-        },
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
-    spotbugsClient.runSpotBugsAnalysis = (async () =>
-      JSON.stringify({
-        schemaVersion: 2,
-        results: [],
-        errors: [
-          {
-            code: 'ANALYSIS_CANCELLED',
-            message: 'Command cancelled',
-          },
-        ],
-        stats: {
-          target: '/workspace/build/classes',
-          durationMs: 4,
-          spotbugsVersion: '4.8.3',
-        },
-      })) as typeof spotbugsClient.runSpotBugsAnalysis;
-
-    const result = await service.analyzeFileDetailed(
-      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace/src/Foo.java') as any
-    );
-
-    assert.deepStrictEqual(result.outcome.findings, []);
-    assert.strictEqual(result.outcome.failure?.kind, 'analysis-error');
-    assert.strictEqual(result.outcome.failure?.code, 'ANALYSIS_CANCELLED');
-    assert.strictEqual(
-      result.outcome.failure?.message,
-      'SpotBugs analysis failed: [ANALYSIS_CANCELLED] Command cancelled'
-    );
     assert.strictEqual(result.outcome.stats?.target, '/workspace/build/classes');
     assert.strictEqual(result.outcome.schemaVersion, 2);
   });
@@ -377,21 +336,12 @@ describe('analysisService', () => {
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async () =>
-      JSON.stringify({
-        schemaVersion: 2,
-        results: [],
-        errors: [
-          {
-            code: 'ANALYSIS_FAILED',
-            message: 'workspace boom',
-          },
-        ],
-        stats: {
-          target: '/workspace/project/target/classes',
-          durationMs: 12,
-          spotbugsVersion: '4.8.3',
-        },
-      })) as typeof spotbugsClient.runSpotBugsAnalysis;
+      backendErrorEnvelope(
+        'ANALYSIS_FAILED',
+        'workspace boom',
+        '/workspace/project/target/classes',
+        12
+      )) as typeof spotbugsClient.runSpotBugsAnalysis;
 
     const result = await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,

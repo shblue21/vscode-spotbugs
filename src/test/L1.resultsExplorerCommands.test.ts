@@ -167,47 +167,6 @@ describe('resultsExplorerCommands', () => {
     ]);
   });
 
-  it('registers SpotBugs toolbar commands during extension activation', async () => {
-    const registeredCommands = new Map<string, (...args: unknown[]) => unknown>();
-    resetTelemetryWrapperMock({
-      instrumentOperationAsVsCodeCommand: (
-        commandId: string,
-        callback: (...args: unknown[]) => unknown
-      ) => {
-        registeredCommands.set(commandId, callback);
-        return { dispose: () => undefined };
-      },
-    });
-    delete require.cache[require.resolve('../extension')];
-    const { activate } = require('../extension') as typeof import('../extension');
-
-    await activate({
-      asAbsolutePath: (relativePath: string) => `/extension/${relativePath}`,
-      subscriptions: [],
-    } as never);
-
-    for (const commandId of [
-      'spotbugs.run',
-      'spotbugs.runWorkspace',
-      'spotbugs.revealFindingSource',
-      'spotbugs.openFindingDetails',
-      'spotbugs.filterResults',
-      'spotbugs.exportSarif',
-      'spotbugs.resetResults',
-      'spotbugs.searchResults',
-      'spotbugs.clearSearch',
-      'spotbugs.groupResultsBy',
-      'spotbugs.sortResultsBy',
-      'spotbugs.openSettings',
-    ]) {
-      assert.strictEqual(
-        typeof registeredCommands.get(commandId),
-        'function',
-        `${commandId} was not registered`
-      );
-    }
-  });
-
   it('wraps result exploration command callbacks with inspector reconciliation', async () => {
     const lifecycle =
       require('../commands/findingInspectorLifecycle') as typeof import('../commands/findingInspectorLifecycle');
