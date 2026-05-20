@@ -1,8 +1,7 @@
 package com.spotbugs.vscode.runner.internal.command;
 
-import java.util.Map;
-
 import com.spotbugs.vscode.runner.api.CommandResponse;
+import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
@@ -61,7 +60,7 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         AnalysisConfig config = request.getConfig();
 
         AnalysisPipelineResult pipelineResult = pipeline.run(context.monitor(), request);
-        Map<String, Object> stats = statsBuilder.build(
+        RunAnalysisSummary stats = statsBuilder.build(
                 targetPath,
                 pipelineResult.getStartMillis(),
                 config,
