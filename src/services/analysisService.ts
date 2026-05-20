@@ -3,20 +3,14 @@ import { Logger } from '../core/logger';
 import { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisOutcome } from '../model/analysisOutcome';
-import { formatAnalysisErrors } from '../model/analysisErrors';
-import { ANALYSIS_PROTOCOL_SCHEMA_VERSION } from '../model/analysisProtocol';
 import { ProjectRef } from '../workspace/classpathService';
-import { addFullPaths } from '../workspace/pathResolver';
-import { runSpotBugsAnalysis } from '../lsp/spotbugsClient';
-import { parseAnalysisResponse } from '../lsp/spotbugsParser';
-import { buildAnalysisRequestPayload } from '../lsp/analysisRequestBuilder';
-import { mapBugsToFindings } from '../lsp/spotbugsMapper';
 import type { ProjectResult } from './projectResult';
 import { projectResultFromOutcome } from './projectResult';
 import {
-  validateExtraAuxClasspathPreflight,
-  validateFilterFilesPreflight,
-} from './filterFileValidation';
+  AnalysisExecutionTarget,
+  createAnalysisFailureOutcome,
+  runAnalysisTarget,
+} from './analysisExecution';
 import {
   resolveFileAnalysisTarget,
   resolveFileAnalysisTargetDetailed,
@@ -27,15 +21,6 @@ import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 
 const ERROR_ANALYSIS_FAILED = 'ANALYSIS_FAILED';
 const ERROR_ANALYSIS_CANCELLED = 'ANALYSIS_CANCELLED';
-const ERROR_ANALYSIS_NO_RESPONSE = 'ANALYSIS_NO_RESPONSE';
-
-type AnalysisContext = {
-  targetPath: string;
-  preferredProject?: Uri;
-  targetResolutionRoots?: string[] | null;
-  runtimeClasspaths?: string[] | null;
-  sourcepaths?: string[] | null;
-};
 
 export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 export type { ProjectResult } from './projectResult';
@@ -269,177 +254,9 @@ async function analyzeProjectDetailed(
 
 async function runAnalysis(
   config: Config,
-  context: AnalysisContext
+  context: AnalysisExecutionTarget
 ): Promise<AnalysisOutcome> {
-  const targetPath = context.targetPath;
-  const settings = config.getAnalysisSettings(context.preferredProject);
-  const preflightFilterError = await validateFilterFilesPreflight(settings);
-  if (preflightFilterError) {
-    const combined = formatAnalysisErrors([preflightFilterError]);
-    Logger.error(`SpotBugs filter configuration error: ${combined}`);
-    return {
-      findings: [],
-      errors: [preflightFilterError],
-      targetPath,
-      failure: {
-        kind: 'analysis-error',
-        level: 'error',
-        code: preflightFilterError.code,
-        message: `SpotBugs analysis failed: ${combined}`,
-      },
-    };
-  }
-  const preflightAuxClasspathError = await validateExtraAuxClasspathPreflight(settings);
-  if (preflightAuxClasspathError) {
-    const combined = formatAnalysisErrors([preflightAuxClasspathError]);
-    Logger.error(`SpotBugs extra aux classpath configuration error: ${combined}`);
-    return {
-      findings: [],
-      errors: [preflightAuxClasspathError],
-      targetPath,
-      failure: {
-        kind: 'analysis-error',
-        level: 'error',
-        code: preflightAuxClasspathError.code,
-        message: `SpotBugs analysis failed: ${combined}`,
-      },
-    };
-  }
-
-  const payload = buildAnalysisRequestPayload(settings, {
-    targetResolutionRoots: context.targetResolutionRoots ?? null,
-    runtimeClasspaths: context.runtimeClasspaths ?? null,
-    extraAuxClasspaths: settings.extraAuxClasspaths ?? null,
-    sourcepaths: context.sourcepaths ?? null,
-  });
-  const result = await runSpotBugsAnalysis({
-    targetPath: context.targetPath,
-    payload,
-  });
-
-  if (!result) {
-    return createAnalysisFailureOutcome(
-      targetPath,
-      ERROR_ANALYSIS_NO_RESPONSE,
-      'No response from SpotBugs backend.'
-    );
-  }
-
-  const parsed = parseAnalysisResponse(result);
-  if (!parsed.ok) {
-    if (parsed.error.kind === 'invalid-json') {
-      Logger.error('Failed to parse analysis result', parsed.error.cause ?? parsed.error.message);
-      return {
-        findings: [],
-        targetPath,
-        failure: {
-          kind: 'invalid-json',
-          level: 'error',
-          message: 'SpotBugs analysis failed: Invalid response payload.',
-        },
-      };
-    }
-    Logger.error(`SpotBugs analysis error: ${parsed.error.message}`);
-    return {
-      findings: [],
-      targetPath,
-      failure: {
-        kind: 'analysis-error',
-        level: 'error',
-        message: `SpotBugs analysis failed: ${parsed.error.message}`,
-      },
-    };
-  }
-
-  const { bugs, errors, stats, schemaVersion } = parsed.value;
-
-  if (
-    typeof schemaVersion === 'number' &&
-    schemaVersion !== ANALYSIS_PROTOCOL_SCHEMA_VERSION
-  ) {
-    Logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
-  }
-  if (Array.isArray(errors) && errors.length > 0) {
-    const combined = formatAnalysisErrors(errors);
-    Logger.error(`SpotBugs analysis error: ${combined}`);
-    const hasResults = bugs.length > 0;
-    if (!hasResults) {
-      const firstErrorCode = errors.find((error) => !!error.code)?.code;
-      return {
-        findings: [],
-        errors,
-        stats,
-        targetPath,
-        schemaVersion,
-        failure: {
-          kind: 'analysis-error',
-          level: 'error',
-          code: firstErrorCode,
-          message: `SpotBugs analysis failed: ${combined}`,
-        },
-      };
-    }
-  }
-
-  const findings = mapBugsToFindings(bugs);
-  const withFullPaths = await addFullPaths(findings, context.preferredProject);
-  const logParts: string[] = [];
-  logParts.push(`findings=${withFullPaths.length}`);
-  if (typeof stats?.durationMs === 'number') {
-    logParts.push(`durationMs=${stats.durationMs}`);
-  }
-  if (typeof stats?.target === 'string') {
-    logParts.push(`target=${stats.target}`);
-  }
-  if (typeof stats?.spotbugsVersion === 'string') {
-    logParts.push(`spotbugsVersion=${stats.spotbugsVersion}`);
-  }
-  if (typeof stats?.targetResolutionRootCount === 'number') {
-    logParts.push(`targetResolutionRootCount=${stats.targetResolutionRootCount}`);
-  }
-  if (typeof stats?.runtimeClasspathCount === 'number') {
-    logParts.push(`runtimeClasspathCount=${stats.runtimeClasspathCount}`);
-  }
-  if (typeof stats?.extraAuxClasspathCount === 'number') {
-    logParts.push(`extraAuxClasspathCount=${stats.extraAuxClasspathCount}`);
-  }
-  if (typeof stats?.auxClasspathCount === 'number') {
-    logParts.push(`auxClasspathCount=${stats.auxClasspathCount}`);
-  }
-  if (typeof stats?.targetCount === 'number') {
-    logParts.push(`targetCount=${stats.targetCount}`);
-  }
-  if (typeof stats?.pluginCount === 'number') {
-    logParts.push(`pluginCount=${stats.pluginCount}`);
-  }
-  Logger.log(`Successfully parsed and added full paths (${logParts.join(', ')}).`);
-  const outcome: AnalysisOutcome = {
-    findings: withFullPaths,
-    stats,
-    targetPath,
-    schemaVersion,
-  };
-  if (Array.isArray(errors) && errors.length > 0) {
-    outcome.errors = errors;
-  }
-  return outcome;
-}
-
-function createAnalysisFailureOutcome(
-  targetPath: string,
-  code: string,
-  message: string
-): AnalysisOutcome {
-  return {
-    findings: [],
-    targetPath,
-    failure: {
-      kind: 'analysis-error',
-      level: 'error',
-      code,
-      message: `SpotBugs analysis failed: ${message}`,
-    },
-  };
+  return runAnalysisTarget(config, context);
 }
 
 function messageFromUnknown(error: unknown): string {

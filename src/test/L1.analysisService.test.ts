@@ -5,34 +5,12 @@ function clearModule(moduleId: string): void {
   delete require.cache[require.resolve(moduleId)];
 }
 
-function backendErrorEnvelope(
-  code: string,
-  message: string,
-  targetPath: string,
-  durationMs = 9
-): string {
-  return JSON.stringify({
-    schemaVersion: 2,
-    results: [],
-    errors: [
-      {
-        code,
-        message,
-      },
-    ],
-    stats: {
-      target: targetPath,
-      durationMs,
-      spotbugsVersion: '4.8.3',
-    },
-  });
-}
-
 describe('analysisService', () => {
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
     clearModule('../services/analysisService');
+    clearModule('../services/analysisExecution');
     clearModule('../workspace/analysisTargetResolver');
     clearModule('../workspace/pathResolver');
     clearModule('../lsp/spotbugsClient');
@@ -173,92 +151,6 @@ describe('analysisService', () => {
     assert.strictEqual(result.outcome.targetPath, '/workspace/build/classes');
   });
 
-  it('turns missing backend responses into file analysis failure outcomes', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
-
-    resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
-      resolution: {
-        status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: vscode.Uri.file('/workspace/src/Foo.java') as any,
-          targetResolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src/main/java'],
-        },
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
-    spotbugsClient.runSpotBugsAnalysis = (async () =>
-      undefined) as typeof spotbugsClient.runSpotBugsAnalysis;
-
-    const result = await service.analyzeFileDetailed(
-      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace/src/Foo.java') as any
-    );
-
-    assert.deepStrictEqual(result.outcome.findings, []);
-    assert.strictEqual(result.outcome.failure?.kind, 'analysis-error');
-    assert.strictEqual(result.outcome.failure?.level, 'error');
-    assert.strictEqual(result.outcome.failure?.code, 'ANALYSIS_NO_RESPONSE');
-    assert.strictEqual(
-      result.outcome.failure?.message,
-      'SpotBugs analysis failed: No response from SpotBugs backend.'
-    );
-    assert.strictEqual(result.outcome.targetPath, '/workspace/build/classes');
-  });
-
-  it('turns backend ANALYSIS_FAILED envelopes into file analysis failure outcomes', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
-
-    resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
-      resolution: {
-        status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: vscode.Uri.file('/workspace/src/Foo.java') as any,
-          targetResolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src/main/java'],
-        },
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
-    spotbugsClient.runSpotBugsAnalysis = (async () =>
-      backendErrorEnvelope(
-        'ANALYSIS_FAILED',
-        'boom',
-        '/workspace/build/classes'
-      )) as typeof spotbugsClient.runSpotBugsAnalysis;
-
-    const result = await service.analyzeFileDetailed(
-      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace/src/Foo.java') as any
-    );
-
-    assert.deepStrictEqual(result.outcome.findings, []);
-    assert.strictEqual(result.outcome.failure?.kind, 'analysis-error');
-    assert.strictEqual(result.outcome.failure?.level, 'error');
-    assert.strictEqual(result.outcome.failure?.code, 'ANALYSIS_FAILED');
-    assert.strictEqual(
-      result.outcome.failure?.message,
-      'SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
-    );
-    assert.strictEqual(result.outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
-    assert.strictEqual(result.outcome.stats?.target, '/workspace/build/classes');
-    assert.strictEqual(result.outcome.schemaVersion, 2);
-  });
-
   it('preserves workspace/project resolution issues when analysis execution throws after target resolution', async () => {
     const vscode = installVscodeMock();
     const resolverModule =
@@ -312,50 +204,6 @@ describe('analysisService', () => {
       result.results.map((project) => project.error),
       ['analysis boom', 'analysis boom']
     );
-  });
-
-  it('marks workspace projects failed when backend returns ANALYSIS_FAILED envelopes', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
-
-    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
-      resolution: {
-        status: 'ok',
-        target: {
-          targetPath: '/workspace/project/target/classes',
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/project/target/classes'],
-          runtimeClasspaths: ['/workspace/project/target/classes'],
-          sourcepaths: ['/workspace/project/src/main/java'],
-        },
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
-    spotbugsClient.runSpotBugsAnalysis = (async () =>
-      backendErrorEnvelope(
-        'ANALYSIS_FAILED',
-        'workspace boom',
-        '/workspace/project/target/classes',
-        12
-      )) as typeof spotbugsClient.runSpotBugsAnalysis;
-
-    const result = await service.analyzeWorkspaceFromProjectsDetailed(
-      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace') as any,
-      ['file:///workspace/project']
-    );
-
-    assert.strictEqual(result.results.length, 1);
-    assert.strictEqual(result.results[0].errorCode, 'ANALYSIS_FAILED');
-    assert.strictEqual(
-      result.results[0].error,
-      'SpotBugs analysis failed: [ANALYSIS_FAILED] workspace boom'
-    );
-    assert.deepStrictEqual(result.results[0].findings, []);
   });
 
   it('stops workspace analysis when backend returns ANALYSIS_CANCELLED envelopes', async () => {
