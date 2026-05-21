@@ -1,6 +1,8 @@
 import * as assert from 'assert';
 import { buildAnalysisRequestPayload } from '../lsp/analysisRequestBuilder';
+import type { AnalysisRequest } from '../model/analysisProtocol';
 import type { AnalysisSettings } from '../core/config';
+import { readAnalysisProtocolFixtureJson } from './helpers/analysisProtocolFixtures';
 
 function makeSettings(overrides: Partial<AnalysisSettings> = {}): AnalysisSettings {
   return {
@@ -10,6 +12,38 @@ function makeSettings(overrides: Partial<AnalysisSettings> = {}): AnalysisSettin
 }
 
 describe('analysisRequestBuilder', () => {
+  it('builds the shared run-analysis request payload fixture', () => {
+    const fixture = readAnalysisProtocolFixtureJson<AnalysisRequest>(
+      'run-analysis-request-full.json'
+    );
+    const includeFilterPaths = ['test-fixtures/analysis-protocol/include-filter.xml'];
+    const excludeFilterPaths = ['test-fixtures/analysis-protocol/exclude-filter.xml'];
+    const excludeBaselineBugsPaths = ['test-fixtures/analysis-protocol/baseline-bugs.xml'];
+    const excludeFilterPath = 'test-fixtures/analysis-protocol/legacy-exclude-filter.xml';
+
+    const payload = buildAnalysisRequestPayload(
+      makeSettings({
+        effort: 'max',
+        extraAuxClasspaths: ['.'],
+        includeFilterPaths,
+        excludeFilterPaths,
+        excludeBaselineBugsPaths,
+        excludeFilterPath,
+        plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
+        priorityThreshold: 5,
+      }),
+      {
+        targetResolutionRoots: ['/workspace/build/classes', '/workspace/build/generated'],
+        runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
+        extraAuxClasspaths: ['.'],
+        sourcepaths: ['/workspace/src/main/java', '/workspace/generated/sources'],
+      }
+    );
+
+    assert.strictEqual(fixture.targetPath, '/workspace/build/classes');
+    assert.deepStrictEqual(payload, fixture.payload);
+  });
+
   it('includes include/exclude/excludeBaseline filter paths in payload', () => {
     const include = ['/tmp/spotbugs/include.xml'];
     const exclude = ['/tmp/spotbugs/exclude.xml'];

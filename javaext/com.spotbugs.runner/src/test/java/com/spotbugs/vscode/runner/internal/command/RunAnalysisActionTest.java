@@ -20,7 +20,8 @@ import com.spotbugs.vscode.runner.internal.AnalyzerService;
 public class RunAnalysisActionTest {
 
     @Test
-    public void executeWrapsAnalyzerFailuresWithRootCauseAsAnalysisFailedEnvelope() {
+    public void executeWrapsAnalyzerFailuresWithRootCauseAsAnalysisFailedEnvelope() throws Exception {
+        JsonObject expected = AnalysisProtocolFixture.readJsonObject("run-analysis-response-error-with-stats.json");
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
             public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
@@ -29,12 +30,34 @@ public class RunAnalysisActionTest {
         });
 
         JsonObject response = executeDefault(action);
+        JsonObject expectedError = expected.getAsJsonArray("errors").get(0).getAsJsonObject();
+        JsonObject expectedStats = expected.getAsJsonObject("stats");
+        JsonObject stats = response.getAsJsonObject("stats");
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
-        assertEquals(0, response.getAsJsonArray("results").size());
-        assertEquals("ANALYSIS_FAILED", firstError(response).get("code").getAsString());
-        assertEquals("inner", firstError(response).get("message").getAsString());
-        assertEquals(0, response.getAsJsonObject("stats").get("findingCount").getAsInt());
+        assertEquals(expected.get("schemaVersion").getAsInt(), response.get("schemaVersion").getAsInt());
+        assertEquals(expected.getAsJsonArray("results").size(), response.getAsJsonArray("results").size());
+        assertEquals(expectedError.get("code").getAsString(), firstError(response).get("code").getAsString());
+        assertEquals(expectedError.get("message").getAsString(), firstError(response).get("message").getAsString());
+        assertEquals(expectedStats.keySet(), stats.keySet());
+        assertEquals(expectedStats.get("target").getAsString(), stats.get("target").getAsString());
+        assertTrue(stats.get("durationMs").getAsLong() >= expectedStats.get("durationMs").getAsLong());
+        assertEquals(expectedStats.get("findingCount").getAsInt(), stats.get("findingCount").getAsInt());
+        assertTrue(stats.get("spotbugsVersion").getAsString().length() > 0);
+        assertEquals(
+                expectedStats.get("targetResolutionRootCount").getAsInt(),
+                stats.get("targetResolutionRootCount").getAsInt()
+        );
+        assertEquals(
+                expectedStats.get("runtimeClasspathCount").getAsInt(),
+                stats.get("runtimeClasspathCount").getAsInt()
+        );
+        assertEquals(
+                expectedStats.get("extraAuxClasspathCount").getAsInt(),
+                stats.get("extraAuxClasspathCount").getAsInt()
+        );
+        assertEquals(expectedStats.get("auxClasspathCount").getAsInt(), stats.get("auxClasspathCount").getAsInt());
+        assertEquals(expectedStats.get("targetCount").getAsInt(), stats.get("targetCount").getAsInt());
+        assertEquals(expectedStats.get("pluginCount").getAsInt(), stats.get("pluginCount").getAsInt());
     }
 
     @Test

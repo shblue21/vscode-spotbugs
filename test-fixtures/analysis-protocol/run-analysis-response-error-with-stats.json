@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "results": [],
+  "errors": [
+    {
+      "code": "ANALYSIS_FAILED",
+      "message": "inner"
+    }
+  ],
+  "stats": {
+    "target": "/workspace/build/classes",
+    "durationMs": 0,
+    "findingCount": 0,
+    "spotbugsVersion": "fixture",
+    "targetResolutionRootCount": 0,
+    "runtimeClasspathCount": 0,
+    "extraAuxClasspathCount": 0,
+    "auxClasspathCount": 0,
+    "targetCount": 0,
+    "pluginCount": 0
+  }
+}

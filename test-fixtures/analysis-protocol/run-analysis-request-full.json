@@ -1,0 +1,37 @@
+{
+  "targetPath": "/workspace/build/classes",
+  "payload": {
+    "schemaVersion": 2,
+    "effort": "max",
+    "targetResolutionRoots": [
+      "/workspace/build/classes",
+      "/workspace/build/generated"
+    ],
+    "runtimeClasspaths": [
+      "/workspace/build/classes",
+      "/workspace/lib/dependency.jar"
+    ],
+    "extraAuxClasspaths": [
+      "."
+    ],
+    "sourcepaths": [
+      "/workspace/src/main/java",
+      "/workspace/generated/sources"
+    ],
+    "priorityThreshold": 5,
+    "includeFilterPaths": [
+      "test-fixtures/analysis-protocol/include-filter.xml"
+    ],
+    "excludeFilterPaths": [
+      "test-fixtures/analysis-protocol/exclude-filter.xml"
+    ],
+    "excludeBaselineBugsPaths": [
+      "test-fixtures/analysis-protocol/baseline-bugs.xml"
+    ],
+    "excludeFilterPath": "test-fixtures/analysis-protocol/legacy-exclude-filter.xml",
+    "plugins": [
+      "/workspace/plugin-a.jar",
+      "/workspace/plugin-b.jar"
+    ]
+  }
+}
