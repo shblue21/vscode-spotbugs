@@ -1,5 +1,7 @@
 import * as assert from 'assert';
 import { parseAnalysisResponse } from '../lsp/spotbugsParser';
+import type { AnalysisResponse } from '../model/analysisProtocol';
+import { readAnalysisProtocolFixtureJson } from './helpers/analysisProtocolFixtures';
 
 describe('spotbugsParser', () => {
   it('returns invalid-json error for malformed payloads', () => {
@@ -68,33 +70,17 @@ describe('spotbugsParser', () => {
   });
 
   it('parses terminal analysis failure envelopes with stats', () => {
-    const result = parseAnalysisResponse(
-      JSON.stringify({
-        schemaVersion: 2,
-        results: [],
-        errors: [
-          {
-            code: 'ANALYSIS_FAILED',
-            message: 'boom',
-          },
-        ],
-        stats: {
-          target: '/workspace/build/classes',
-          durationMs: 9,
-          spotbugsVersion: '4.8.3',
-        },
-      })
+    const fixture = readAnalysisProtocolFixtureJson<AnalysisResponse>(
+      'run-analysis-response-error-with-stats.json'
     );
+    const result = parseAnalysisResponse(JSON.stringify(fixture));
 
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.schemaVersion, 2);
-      assert.deepStrictEqual(result.value.bugs, []);
-      assert.strictEqual(result.value.errors?.[0]?.code, 'ANALYSIS_FAILED');
-      assert.strictEqual(result.value.errors?.[0]?.message, 'boom');
-      assert.strictEqual(result.value.stats?.target, '/workspace/build/classes');
-      assert.strictEqual(result.value.stats?.durationMs, 9);
-      assert.strictEqual(result.value.stats?.spotbugsVersion, '4.8.3');
+      assert.strictEqual(result.value.schemaVersion, fixture.schemaVersion);
+      assert.deepStrictEqual(result.value.bugs, fixture.results);
+      assert.deepStrictEqual(result.value.errors, fixture.errors);
+      assert.deepStrictEqual(result.value.stats, fixture.stats);
     }
   });
 
