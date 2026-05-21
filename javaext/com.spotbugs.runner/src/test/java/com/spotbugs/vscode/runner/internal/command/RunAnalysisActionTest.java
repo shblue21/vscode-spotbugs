@@ -2,6 +2,7 @@ package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -12,9 +13,12 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.junit.Test;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotbugs.vscode.runner.api.BugInfo;
+import com.spotbugs.vscode.runner.api.CommandResponse;
+import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
 
 public class RunAnalysisActionTest {
@@ -155,6 +159,38 @@ public class RunAnalysisActionTest {
         assertTrue(stats.get("durationMs").getAsLong() >= 0L);
         assertEquals(0, stats.get("findingCount").getAsInt());
         assertTrue(stats.get("spotbugsVersion").getAsString().length() > 0);
+        assertEquals(7, stats.get("targetResolutionRootCount").getAsInt());
+        assertEquals(2, stats.get("runtimeClasspathCount").getAsInt());
+        assertEquals(1, stats.get("extraAuxClasspathCount").getAsInt());
+        assertEquals(4, stats.get("auxClasspathCount").getAsInt());
+        assertEquals(5, stats.get("targetCount").getAsInt());
+        assertEquals(2, stats.get("pluginCount").getAsInt());
+    }
+
+    @Test
+    public void commandResponseKeepsStatsJsonFieldForTypedRunAnalysisSummary() {
+        RunAnalysisSummary summary = new RunAnalysisSummary(
+                "/workspace/build/classes",
+                42L,
+                3,
+                "4.9.8",
+                7,
+                2,
+                1,
+                4,
+                5,
+                2
+        );
+
+        CommandResponse response = CommandResponse.success(Collections.emptyList(), summary);
+        JsonObject json = JsonParser.parseString(new Gson().toJson(response)).getAsJsonObject();
+        JsonObject stats = json.getAsJsonObject("stats");
+
+        assertSame(summary, response.getStats());
+        assertEquals("/workspace/build/classes", stats.get("target").getAsString());
+        assertEquals(42L, stats.get("durationMs").getAsLong());
+        assertEquals(3, stats.get("findingCount").getAsInt());
+        assertEquals("4.9.8", stats.get("spotbugsVersion").getAsString());
         assertEquals(7, stats.get("targetResolutionRootCount").getAsInt());
         assertEquals(2, stats.get("runtimeClasspathCount").getAsInt());
         assertEquals(1, stats.get("extraAuxClasspathCount").getAsInt());
