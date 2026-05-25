@@ -1,4 +1,4 @@
-import { AnalysisError, AnalysisResponse, AnalysisStats } from '../model/analysisProtocol';
+import { AnalysisError, AnalysisStats } from '../model/analysisProtocol';
 import { Bug } from '../model/bug';
 
 export type ParseErrorKind = 'invalid-json' | 'analysis-error';
@@ -48,37 +48,39 @@ export function parseAnalysisResponse(raw: string): ParseResult {
   }
 
   if (Array.isArray(parsed)) {
-    return { ok: true, value: { bugs: parsed as Bug[] } };
+    return isBugArray(parsed) ? { ok: true, value: { bugs: parsed } } : invalidResponse();
   }
 
   if (parsed && typeof parsed === 'object') {
-    const envelope = parsed as AnalysisResponse<Bug>;
+    const envelope = parsed as Record<string, unknown>;
     const hasResults = Object.prototype.hasOwnProperty.call(envelope, 'results');
     const hasErrors = Object.prototype.hasOwnProperty.call(envelope, 'errors');
     if (!hasResults && !hasErrors) {
       return invalidResponse();
     }
-    if (hasResults && !Array.isArray(envelope.results)) {
+    if (hasResults && !isBugArray(envelope.results)) {
       return invalidResponse();
     }
     if (hasErrors && !Array.isArray(envelope.errors)) {
       return invalidResponse();
     }
 
-    const errors = hasErrors ? envelope.errors : undefined;
+    const errors = hasErrors ? normalizeAnalysisErrors(envelope.errors) : undefined;
     if (!hasResults && Array.isArray(errors) && errors.length === 0) {
       return invalidResponse();
     }
 
-    const bugs = hasResults ? envelope.results ?? [] : [];
-    const stats = envelope.stats;
+    const bugs = hasResults ? (envelope.results as Bug[]) : [];
+    const stats = normalizeAnalysisStats(envelope.stats);
+    const schemaVersion =
+      typeof envelope.schemaVersion === 'number' ? envelope.schemaVersion : undefined;
     return {
       ok: true,
       value: {
         bugs,
         errors,
         stats,
-        schemaVersion: envelope.schemaVersion,
+        schemaVersion,
       },
     };
   }
@@ -94,4 +96,77 @@ function invalidResponse(): ParseResult {
       message: INVALID_RESPONSE_MESSAGE,
     },
   };
+}
+
+function isBugArray(value: unknown): value is Bug[] {
+  return Array.isArray(value) && value.every(isRecord);
+}
+
+function normalizeAnalysisErrors(value: unknown): AnalysisError[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const errors: AnalysisError[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) {
+      continue;
+    }
+
+    const error: AnalysisError = {};
+    if (typeof item.code === 'string') {
+      error.code = item.code;
+    }
+    if (typeof item.message === 'string') {
+      error.message = item.message;
+    }
+    if (error.code || error.message) {
+      errors.push(error);
+    }
+  }
+  return errors;
+}
+
+function normalizeAnalysisStats(value: unknown): AnalysisStats | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const stats: AnalysisStats = {};
+  copyStringField(value, stats, 'target');
+  copyNumberField(value, stats, 'durationMs');
+  copyNumberField(value, stats, 'findingCount');
+  copyStringField(value, stats, 'spotbugsVersion');
+  copyNumberField(value, stats, 'targetResolutionRootCount');
+  copyNumberField(value, stats, 'runtimeClasspathCount');
+  copyNumberField(value, stats, 'extraAuxClasspathCount');
+  copyNumberField(value, stats, 'auxClasspathCount');
+  copyNumberField(value, stats, 'targetCount');
+  copyNumberField(value, stats, 'pluginCount');
+
+  return Object.keys(stats).length > 0 ? stats : undefined;
+}
+
+function copyStringField<T extends keyof AnalysisStats>(
+  source: Record<string, unknown>,
+  target: AnalysisStats,
+  key: T
+): void {
+  if (typeof source[key] === 'string') {
+    target[key] = source[key] as AnalysisStats[T];
+  }
+}
+
+function copyNumberField<T extends keyof AnalysisStats>(
+  source: Record<string, unknown>,
+  target: AnalysisStats,
+  key: T
+): void {
+  if (typeof source[key] === 'number') {
+    target[key] = source[key] as AnalysisStats[T];
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
 }

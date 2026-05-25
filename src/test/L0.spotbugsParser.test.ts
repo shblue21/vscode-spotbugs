@@ -30,11 +30,25 @@ describe('spotbugsParser', () => {
     }
   });
 
+  it('rejects array responses with non-object entries', () => {
+    const samples = [JSON.stringify([null]), JSON.stringify(['NP']), JSON.stringify([[]])];
+
+    for (const sample of samples) {
+      const result = parseAnalysisResponse(sample);
+      assert.strictEqual(result.ok, false, sample);
+      if (!result.ok) {
+        assert.strictEqual(result.error.kind, 'invalid-json');
+        assert.strictEqual(result.error.message, 'Invalid response payload.');
+      }
+    }
+  });
+
   it('rejects unsupported JSON protocol shapes', () => {
     const samples = [
       JSON.stringify({}),
       JSON.stringify({ stats: { durationMs: 1 } }),
       JSON.stringify({ errors: [] }),
+      JSON.stringify({ errors: [null, 'bad', {}] }),
       JSON.stringify(null),
       JSON.stringify('boom'),
     ];
@@ -66,6 +80,111 @@ describe('spotbugsParser', () => {
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');
       assert.strictEqual(result.value.errors?.[0]?.message, 'warn');
       assert.strictEqual(result.value.stats?.target, '/tmp/Foo');
+    }
+  });
+
+  it('rejects envelope result arrays with non-object entries', () => {
+    const samples = [
+      JSON.stringify({ schemaVersion: 2, results: [null] }),
+      JSON.stringify({ schemaVersion: 2, results: ['NP'] }),
+      JSON.stringify({ schemaVersion: 2, results: [[]] }),
+    ];
+
+    for (const sample of samples) {
+      const result = parseAnalysisResponse(sample);
+      assert.strictEqual(result.ok, false, sample);
+      if (!result.ok) {
+        assert.strictEqual(result.error.kind, 'invalid-json');
+        assert.strictEqual(result.error.message, 'Invalid response payload.');
+      }
+    }
+  });
+
+  it('normalizes envelope errors to string code and message fields', () => {
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        errors: [
+          null,
+          'bad',
+          { code: 7, message: 'message only' },
+          { code: 'CODE_ONLY', message: 9 },
+          { code: 'VALID', message: 'valid message', extra: 'ignored' },
+          {},
+        ],
+      })
+    );
+
+    assert.strictEqual(result.ok, true);
+    if (result.ok) {
+      assert.deepStrictEqual(result.value.errors, [
+        { message: 'message only' },
+        { code: 'CODE_ONLY' },
+        { code: 'VALID', message: 'valid message' },
+      ]);
+    }
+  });
+
+  it('normalizes envelope stats and schemaVersion without failing usable results', () => {
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        schemaVersion: '2',
+        results: [{ type: 'UR' }],
+        stats: {
+          target: '/tmp/Foo',
+          durationMs: '12',
+          findingCount: 1,
+          spotbugsVersion: '4.9.8',
+          targetResolutionRootCount: 2,
+          runtimeClasspathCount: false,
+          extraAuxClasspathCount: 3,
+          auxClasspathCount: 4,
+          targetCount: null,
+          pluginCount: 5,
+          ignored: 'value',
+        },
+      })
+    );
+
+    assert.strictEqual(result.ok, true);
+    if (result.ok) {
+      assert.strictEqual(result.value.schemaVersion, undefined);
+      assert.deepStrictEqual(result.value.stats, {
+        target: '/tmp/Foo',
+        findingCount: 1,
+        spotbugsVersion: '4.9.8',
+        targetResolutionRootCount: 2,
+        extraAuxClasspathCount: 3,
+        auxClasspathCount: 4,
+        pluginCount: 5,
+      });
+    }
+  });
+
+  it('ignores malformed stats values without rejecting the envelope', () => {
+    const samples = [
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
+        stats: 'bad',
+      }),
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
+        stats: { ignored: 'value', durationMs: '12' },
+      }),
+    ];
+
+    for (const sample of samples) {
+      const result = parseAnalysisResponse(sample);
+      assert.strictEqual(result.ok, true, sample);
+      if (result.ok) {
+        assert.strictEqual(result.value.stats, undefined);
+        assert.strictEqual(result.value.errors?.[0]?.code, 'ANALYSIS_FAILED');
+      }
     }
   });
 
