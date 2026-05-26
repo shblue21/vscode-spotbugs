@@ -55,6 +55,41 @@ describe('analysisService', () => {
     assert.strictEqual(publicOutcome.failure?.code, 'NO_CLASS_TARGETS');
   });
 
+  it('carries file-analysis diagnostic scope into detailed analysis context', async () => {
+    const vscode = installVscodeMock();
+    const folderUri = vscode.Uri.file('/workspace/src') as any;
+    const resolverModule =
+      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const spotbugsClient =
+      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+
+    resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath: '/workspace/build/classes',
+          preferredProject: folderUri,
+          targetResolutionRoots: ['/workspace/build/classes'],
+          runtimeClasspaths: ['/workspace/build/classes'],
+          sourcepaths: ['/workspace/src'],
+          diagnosticScope: { kind: 'folder', uri: folderUri },
+        },
+      },
+      issues: [],
+    })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
+    spotbugsClient.runSpotBugsAnalysis = (async () =>
+      undefined) as typeof spotbugsClient.runSpotBugsAnalysis;
+
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const result = await service.analyzeFileDetailed(
+      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
+      folderUri
+    );
+
+    assert.strictEqual(result.context.diagnosticScope?.kind, 'folder');
+    assert.strictEqual(result.context.diagnosticScope?.uri.fsPath, folderUri.fsPath);
+  });
+
   it('aggregates per-project resolution issues in analyzeWorkspaceFromProjectsDetailed', async () => {
     const resolverModule =
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');

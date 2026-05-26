@@ -144,4 +144,173 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'no-class-targets');
     assert.deepStrictEqual(result.issues, []);
   });
+
+  for (const { name, targetPath, expectedKind } of [
+    {
+      name: 'Java source file analysis',
+      targetPath: '/workspace/project/src/main/java/demo/Repro.java',
+      expectedKind: 'file' as const,
+    },
+    {
+      name: 'source folder analysis',
+      targetPath: '/workspace/project/src/main/java',
+      expectedKind: 'folder' as const,
+    },
+    {
+      name: 'selected output root analysis',
+      targetPath: '/workspace/project/target/classes',
+      expectedKind: 'returned-files' as const,
+    },
+    {
+      name: 'selected output subfolder analysis',
+      targetPath: '/workspace/project/target/classes/demo',
+      expectedKind: 'returned-files' as const,
+    },
+    {
+      name: 'output child folders starting with dot-dot characters',
+      targetPath: '/workspace/project/target/classes/..generated',
+      expectedKind: 'returned-files' as const,
+    },
+    {
+      name: 'output-prefix sibling folder',
+      targetPath: '/workspace/project/target/classes-sibling/demo',
+      expectedKind: 'folder' as const,
+    },
+  ]) {
+    it(`classifies ${name} as ${expectedKind} diagnostic scope`, async () => {
+      const vscode = installVscodeMock();
+      const resolver = createResolver(vscode, {
+        outputPath: '/workspace/project/target/classes',
+      });
+
+      await assertResolvedDiagnosticScope(vscode, resolver, targetPath, expectedKind);
+    });
+  }
+
+  it('classifies alternate output root subfolders as returned-files diagnostic scope', async () => {
+    const vscode = installVscodeMock();
+    const resolver = createResolver(vscode, {
+      outputPath: '/workspace/project/target/classes',
+      runtimeClasspaths: ['/workspace/project/deps/library.jar'],
+      targetResolutionRoots: [
+        '/workspace/project/target/classes',
+        '/workspace/project/target/test-classes',
+      ],
+    });
+
+    await assertResolvedDiagnosticScope(
+      vscode,
+      resolver,
+      '/workspace/project/target/test-classes/demo',
+      'returned-files'
+    );
+  });
+
+  it('classifies derived output subfolders as returned-files when classpath output is absent', async () => {
+    const vscode = installVscodeMock();
+    const resolver = createResolver(vscode, {
+      derivedOutputPath: '/workspace/project/build/classes/java/main',
+      expectedDeriveRoots: ['/workspace/project/unmatched-runtime-entry'],
+      runtimeClasspaths: ['/workspace/project/deps/library.jar'],
+      targetResolutionRoots: ['/workspace/project/unmatched-runtime-entry'],
+    });
+
+    await assertResolvedDiagnosticScope(
+      vscode,
+      resolver,
+      '/workspace/project/build/classes/java/main/demo',
+      'returned-files'
+    );
+  });
+
+  it('classifies bytecode and archive analysis as returned-files diagnostic scope', async () => {
+    const vscode = installVscodeMock();
+    const resolver = createResolver(vscode, {});
+
+    for (const targetPath of [
+      '/workspace/project/target/classes/demo/Repro.class',
+      '/workspace/project/build/libs/app.jar',
+      '/workspace/project/build/libs/app.zip',
+    ]) {
+      await assertResolvedDiagnosticScope(vscode, resolver, targetPath, 'returned-files');
+    }
+  });
 });
+
+function createResolver(
+  vscode: ReturnType<typeof installVscodeMock>,
+  options: Parameters<typeof createResolverDeps>[1]
+) {
+  const resolverModule =
+    require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+  return resolverModule.createTargetResolver(createResolverDeps(vscode, options));
+}
+
+async function assertResolvedDiagnosticScope(
+  vscode: ReturnType<typeof installVscodeMock>,
+  resolver: {
+    resolveFileAnalysisTargetDetailed(uri: unknown): Promise<any>;
+  },
+  targetPath: string,
+  expectedKind: 'file' | 'folder' | 'returned-files'
+): Promise<void> {
+  const uri = vscode.Uri.file(targetPath) as any;
+  const result = await resolver.resolveFileAnalysisTargetDetailed(uri);
+
+  assert.strictEqual(result.resolution.status, 'ok');
+  assert.deepStrictEqual(
+    result.resolution.status === 'ok'
+      ? {
+          kind: result.resolution.target.diagnosticScope?.kind,
+          uri: result.resolution.target.diagnosticScope?.uri.fsPath,
+        }
+      : undefined,
+    { kind: expectedKind, uri: uri.fsPath }
+  );
+}
+
+function createResolverDeps(
+  vscode: ReturnType<typeof installVscodeMock>,
+  options: {
+    outputPath?: string;
+    derivedOutputPath?: string;
+    expectedDeriveRoots?: string[];
+    runtimeClasspaths?: string[];
+    targetResolutionRoots?: string[];
+  }
+) {
+  const targetResolutionRoots =
+    options.targetResolutionRoots ?? (options.outputPath ? [options.outputPath] : []);
+  const runtimeClasspaths = options.runtimeClasspaths ?? targetResolutionRoots;
+  return {
+    getClasspathsOutcome: async () => ({
+      status: 'resolved' as const,
+      classpath: {
+        output: options.outputPath,
+        runtimeClasspaths,
+        targetResolutionRoots,
+        sourcepaths: [],
+      },
+      issues: [],
+    }),
+    deriveOutputFolder: async (roots: string[]) => {
+      if (options.expectedDeriveRoots) {
+        assert.deepStrictEqual(roots, options.expectedDeriveRoots);
+      }
+      return options.derivedOutputPath ?? options.outputPath;
+    },
+    findOutputFolderFromProject: async () => undefined,
+    hasClassTargets: async () => true,
+    isBytecodeTarget: (targetPath: string) =>
+      ['.class', '.jar', '.zip'].includes(path.extname(targetPath).toLowerCase()),
+    primeSourcepathsCache: () => undefined,
+    getWorkspaceFolder: () =>
+      ({
+        name: 'workspace',
+        index: 0,
+        uri: vscode.Uri.file('/workspace') as any,
+      }) as any,
+    dirname: path.dirname,
+    logger: { log: () => undefined } as any,
+  };
+}

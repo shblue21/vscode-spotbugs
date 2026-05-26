@@ -17,7 +17,7 @@ function createNoopTree() {
 
 function createNoopDiagnostics() {
   return {
-    updateForFile: () => undefined,
+    replaceForScope: () => undefined,
     replaceAll: () => undefined,
   } as any;
 }
@@ -50,21 +50,11 @@ describe('analysisRunner', () => {
     const loggerModule =
       require('../core/logger') as typeof import('../core/logger');
     const originalRunFileAnalysisSession = session.runFileAnalysisSession;
-    const originalAnalyzeFileDetailed = analysisService.analyzeFileDetailed;
     const delegated: unknown[] = [];
 
     session.runFileAnalysisSession = (async (args: unknown) => {
       delegated.push(args);
     }) as typeof session.runFileAnalysisSession;
-    analysisService.analyzeFileDetailed = (async () => ({
-      outcome: {
-        findings: [],
-        targetPath: '/workspace/src/Foo.java',
-      },
-      context: {
-        resolutionIssues: [],
-      },
-    })) as typeof analysisService.analyzeFileDetailed;
     Date.now = () => 1234;
 
     try {
@@ -138,7 +128,6 @@ describe('analysisRunner', () => {
     } finally {
       Date.now = originalDateNow;
       session.runFileAnalysisSession = originalRunFileAnalysisSession;
-      analysisService.analyzeFileDetailed = originalAnalyzeFileDetailed;
     }
   });
 
@@ -303,8 +292,6 @@ describe('analysisRunner', () => {
     const originalRunWorkspaceAnalysisSession = session.runWorkspaceAnalysisSession;
     const originalBuildWorkspaceAuto = workspaceBuildService.buildWorkspaceAuto;
     const originalGetWorkspaceProjectDiscovery = projectDiscovery.getWorkspaceProjectDiscovery;
-    const originalAnalyzeWorkspaceFromProjectsDetailed =
-      analysisService.analyzeWorkspaceFromProjectsDetailed;
     const delegated: unknown[] = [];
 
     session.runWorkspaceAnalysisSession = (async (args: unknown) => {
@@ -323,17 +310,6 @@ describe('analysisRunner', () => {
       projectUris: ['file:///workspace/project-a'],
       issues: [],
     })) as typeof projectDiscovery.getWorkspaceProjectDiscovery;
-    analysisService.analyzeWorkspaceFromProjectsDetailed = (async () => ({
-      results: [
-        {
-          projectUri: 'file:///workspace/project-a',
-          findings: [],
-        },
-      ],
-      context: {
-        resolutionIssues: [],
-      },
-    })) as typeof analysisService.analyzeWorkspaceFromProjectsDetailed;
 
     try {
       const runner =
@@ -362,18 +338,33 @@ describe('analysisRunner', () => {
         tree: unknown;
         diagnostics: unknown;
         notifier: unknown;
+        dependencies: {
+          analyzeWorkspaceFromProjectsDetailed: unknown;
+          buildWorkspaceAuto: unknown;
+          getWorkspaceProjectDiscovery: unknown;
+        };
       };
       assert.strictEqual(delegatedArgs.config, config);
       assert.strictEqual(delegatedArgs.tree, tree);
       assert.strictEqual(delegatedArgs.diagnostics, diagnostics);
       assert.strictEqual(delegatedArgs.notifier, notifierModule.defaultNotifier);
+      assert.strictEqual(
+        delegatedArgs.dependencies.analyzeWorkspaceFromProjectsDetailed,
+        analysisService.analyzeWorkspaceFromProjectsDetailed
+      );
+      assert.strictEqual(
+        delegatedArgs.dependencies.buildWorkspaceAuto,
+        workspaceBuildService.buildWorkspaceAuto
+      );
+      assert.strictEqual(
+        delegatedArgs.dependencies.getWorkspaceProjectDiscovery,
+        projectDiscovery.getWorkspaceProjectDiscovery
+      );
       assert.deepStrictEqual(progressTokens, [progress, token]);
     } finally {
       session.runWorkspaceAnalysisSession = originalRunWorkspaceAnalysisSession;
       workspaceBuildService.buildWorkspaceAuto = originalBuildWorkspaceAuto;
       projectDiscovery.getWorkspaceProjectDiscovery = originalGetWorkspaceProjectDiscovery;
-      analysisService.analyzeWorkspaceFromProjectsDetailed =
-        originalAnalyzeWorkspaceFromProjectsDetailed;
     }
   });
 });

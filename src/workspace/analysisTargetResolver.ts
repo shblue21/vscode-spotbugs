@@ -1,6 +1,7 @@
 import { Uri, workspace } from 'vscode';
 import * as path from 'path';
 import { Logger } from '../core/logger';
+import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import {
   deriveOutputFolder,
@@ -20,6 +21,7 @@ export interface AnalysisTarget {
   targetResolutionRoots?: string[];
   runtimeClasspaths?: string[];
   sourcepaths?: string[];
+  diagnosticScope?: DiagnosticUpdateScope;
 }
 
 export interface TargetResolutionOk {
@@ -177,6 +179,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     const resolutionIssues = [...issues];
 
     const targetPath = uri.fsPath;
+    let resolvedOutputPath: string | undefined;
     if (!deps.isBytecodeTarget(targetPath)) {
       const workspaceFolder = deps.getWorkspaceFolder(uri);
       const workspacePath = workspaceFolder?.uri.fsPath ?? deps.dirname(targetPath);
@@ -186,6 +189,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
         workspacePath,
         workspacePath
       );
+      resolvedOutputPath = outputResolution.outputPath;
       if (
         !outputResolution.outputPath ||
         !(await deps.hasClassTargets(outputResolution.outputPath))
@@ -210,6 +214,11 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       };
     }
 
+    const classTargetRoots = uniquePaths([
+      resolvedOutputPath,
+      ...(targetResolutionRoots ?? []),
+    ]);
+
     return {
       resolution: {
         status: 'ok',
@@ -219,6 +228,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
           targetResolutionRoots,
           runtimeClasspaths,
           sourcepaths,
+          diagnosticScope: createDiagnosticScope(uri, targetPath, classTargetRoots),
         },
       },
       issues: resolutionIssues,
@@ -336,4 +346,52 @@ function createOutputFallbackIssue(): AnalysisResolutionIssue {
     phase: 'output-fallback',
     message: 'Output folder fallback was used because Java build output metadata was unavailable.',
   };
+}
+
+function createDiagnosticScope(
+  uri: Uri,
+  targetPath: string,
+  classTargetRoots: readonly string[] = []
+): DiagnosticUpdateScope {
+  const ext = path.extname(targetPath).toLowerCase();
+  if (ext === '.java') {
+    return { kind: 'file', uri };
+  }
+  if (
+    ext === '.class' ||
+    ext === '.jar' ||
+    ext === '.zip' ||
+    classTargetRoots.some((root) => isPathInsideOrEqual(root, targetPath))
+  ) {
+    return { kind: 'returned-files', uri };
+  }
+  return { kind: 'folder', uri };
+}
+
+function uniquePaths(paths: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const candidate of paths) {
+    if (!candidate) {
+      continue;
+    }
+    const key = path.resolve(candidate);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(candidate);
+  }
+  return result;
+}
+
+function isPathInsideOrEqual(parentPath: string, candidatePath: string): boolean {
+  const relative = path.relative(path.resolve(parentPath), path.resolve(candidatePath));
+  return (
+    relative === '' ||
+    (relative.length > 0 &&
+      relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
 }
