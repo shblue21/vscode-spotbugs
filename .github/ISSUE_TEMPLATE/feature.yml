@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an idea for the SpotBugs VS Code extension.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the feature you would like to see and why it would help.
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature description
+      description: Describe the problem, use case, or improvement you have in mind.
+      placeholder: |
+        What would you like to add or improve?
+
+        Why would this be useful?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Describe any workaround or alternative you have tried.
+      placeholder: Is there another way to solve this today?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Optional. Add screenshots, examples, or links that help explain the request.
+      placeholder: Add any extra details here.
+    validations:
+      required: false

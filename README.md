@@ -4,6 +4,9 @@
   <img src="https://vsmarketplacebadges.dev/version-short/shblue21.vscode-spotbugs.svg" alt="VS Marketplace Version" />
   <img src="https://img.shields.io/github/last-commit/shblue21/vscode-spotbugs?logo=github" alt="last-commit" />  
   <img src="https://vsmarketplacebadges.dev/downloads-short/shblue21.vscode-spotbugs.svg" alt="VS Marketplace Downloads"/>
+  <a href="https://github.com/shblue21/vscode-spotbugs/issues/new?template=feature.yml">
+    <img src="https://img.shields.io/badge/feature%20requests-welcome-2ea44f?logo=github&logoColor=white" alt="Feature requests welcome" />
+  </a>
 </p>
 
 <div align="center">
