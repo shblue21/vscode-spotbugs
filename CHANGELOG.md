@@ -1,4 +1,12 @@
 # Changelog
+## [0.6.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.1...v0.6.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* publish folder analysis diagnostics for child files ([#54](https://github.com/shblue21/vscode-spotbugs/issues/54)) ([8872af8](https://github.com/shblue21/vscode-spotbugs/commit/8872af8c453810c0794e83ddf0751c3fd2a04043))
+* resolve and validate SpotBugs plugin jar paths ([#56](https://github.com/shblue21/vscode-spotbugs/issues/56)) ([c7ba987](https://github.com/shblue21/vscode-spotbugs/commit/c7ba987761433c4f24f37c511f9a9c436d9a28fa))
+
 ## [0.6.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.0...v0.6.1) (2026-05-19)
 
 
