@@ -34,6 +34,7 @@ type LoggerLike = Pick<typeof Logger, 'log' | 'error'>;
 export interface AnalysisExecutorDeps {
   validateFilterFilesPreflight: typeof filterFileValidation.validateFilterFilesPreflight;
   validateExtraAuxClasspathPreflight: typeof filterFileValidation.validateExtraAuxClasspathPreflight;
+  validatePluginJarsPreflight: typeof filterFileValidation.validatePluginJarsPreflight;
   buildAnalysisRequestPayload: typeof analysisRequestBuilder.buildAnalysisRequestPayload;
   runSpotBugsAnalysis: typeof spotbugsClient.runSpotBugsAnalysis;
   parseAnalysisResponse: typeof spotbugsParser.parseAnalysisResponse;
@@ -48,6 +49,8 @@ function createDefaultDeps(): AnalysisExecutorDeps {
       filterFileValidation.validateFilterFilesPreflight,
     validateExtraAuxClasspathPreflight:
       filterFileValidation.validateExtraAuxClasspathPreflight,
+    validatePluginJarsPreflight:
+      filterFileValidation.validatePluginJarsPreflight,
     buildAnalysisRequestPayload:
       analysisRequestBuilder.buildAnalysisRequestPayload,
     runSpotBugsAnalysis: spotbugsClient.runSpotBugsAnalysis,
@@ -114,6 +117,23 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
           kind: 'analysis-error',
           level: 'error',
           code: preflightAuxClasspathError.code,
+          message: `SpotBugs analysis failed: ${combined}`,
+        },
+      };
+    }
+
+    const preflightPluginError = await deps.validatePluginJarsPreflight(settings);
+    if (preflightPluginError) {
+      const combined = formatAnalysisErrors([preflightPluginError]);
+      deps.logger.error(`SpotBugs plugin configuration error: ${combined}`);
+      return {
+        findings: [],
+        errors: [preflightPluginError],
+        targetPath,
+        failure: {
+          kind: 'analysis-error',
+          level: 'error',
+          code: preflightPluginError.code,
           message: `SpotBugs analysis failed: ${combined}`,
         },
       };

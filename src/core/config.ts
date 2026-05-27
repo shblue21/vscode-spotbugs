@@ -178,8 +178,9 @@ export class Config {
     if (excludeBaselineBugsPaths) {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }
-    if (Array.isArray(this.plugins) && this.plugins.length > 0) {
-      settings.plugins = this.plugins.slice();
+    const plugins = this.resolvePathsToAbsolute(this.plugins, resource);
+    if (plugins) {
+      settings.plugins = plugins;
     }
     return settings;
   }
