@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Spotbugs Runner Plugin
 Bundle-SymbolicName: com.spotbugs.runner;singleton:=true
 x-release-please-start-version: marker
-Bundle-Version: 0.6.1
+Bundle-Version: 0.6.2
 x-release-please-end: marker
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: org.eclipse.jdt.ls.core,
