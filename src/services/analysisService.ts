@@ -3,6 +3,7 @@ import { Logger } from '../core/logger';
 import { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisOutcome } from '../model/analysisOutcome';
+import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import { ProjectRef } from '../workspace/classpathService';
 import type { ProjectResult } from './projectResult';
 import { projectResultFromOutcome } from './projectResult';
@@ -32,6 +33,7 @@ export interface WorkspaceResult {
 
 export interface AnalysisExecutionContext {
   resolutionIssues: AnalysisResolutionIssue[];
+  diagnosticScope?: DiagnosticUpdateScope;
 }
 
 export interface AnalysisExecutionResult {
@@ -70,6 +72,7 @@ export async function analyzeFileDetailed(
         context,
       };
     }
+    context.diagnosticScope = result.resolution.target.diagnosticScope;
 
     try {
       return {

@@ -3,6 +3,7 @@ import type { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import type { Notifier } from '../core/notifier';
 import type { AnalysisNotice } from '../model/analysisOutcome';
+import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { Finding } from '../model/finding';
 import type {
   AnalysisExecutionResult,
@@ -50,7 +51,7 @@ export interface WorkspaceAnalysisSessionTree {
 }
 
 export interface AnalysisSessionDiagnostics {
-  updateForFile(targetUri: Uri, findings: Finding[]): void;
+  replaceForScope(scope: DiagnosticUpdateScope, findings: Finding[]): void;
   replaceAll(findings: Finding[]): void;
 }
 
@@ -112,7 +113,10 @@ export async function runFileAnalysisSession(
       args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
     } else {
       args.tree.showResults(findings);
-      args.diagnostics.updateForFile(args.uri, findings);
+      args.diagnostics.replaceForScope(
+        result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },
+        findings
+      );
     }
 
     emitNotices(

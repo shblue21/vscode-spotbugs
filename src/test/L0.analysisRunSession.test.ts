@@ -110,8 +110,8 @@ describe('analysisRunSession file analysis', () => {
           calls.push(`failure:${code ?? ''}:${message}`),
       },
       diagnostics: {
-        updateForFile: (targetUri: Uri, findings: Finding[]) =>
-          calls.push(`diagnostics:${targetUri.fsPath}:${findings.length}`),
+        replaceForScope: (scope, findings: Finding[]) =>
+          calls.push(`diagnostics:${scope.kind}:${scope.uri.fsPath}:${findings.length}`),
         replaceAll: () => calls.push('replaceAll'),
       },
       notifier: {
@@ -129,10 +129,58 @@ describe('analysisRunSession file analysis', () => {
     assert.deepStrictEqual(calls, [
       'loading',
       'results:1',
-      'diagnostics:/workspace/src/Foo.java:1',
+      'diagnostics:file:/workspace/src/Foo.java:1',
       'log:File analysis finished: elapsedMs=125, file=/workspace/src/Foo.java, findings=1',
     ]);
     assert.deepStrictEqual(infos, []);
+  });
+
+  it('uses diagnostic scope from detailed file analysis context', async () => {
+    const vscode = installVscodeMock();
+    const folderUri = vscode.Uri.file('/workspace/src') as unknown as Uri;
+    const finding = createFinding('/workspace/src/Foo.java');
+    const calls: string[] = [];
+    const deps = createBaseDependencies(vscode);
+
+    deps.analyzeFileDetailed = async () => ({
+      outcome: {
+        findings: [finding],
+        targetPath: folderUri.fsPath,
+      },
+      context: {
+        resolutionIssues: [],
+        diagnosticScope: { kind: 'folder', uri: folderUri },
+      },
+    });
+
+    await runFileAnalysisSession({
+      config: { getAnalysisSettings: () => ({}) } as any,
+      tree: {
+        showLoading: () => calls.push('loading'),
+        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
+        showAnalysisFailure: (message: string, code?: string) =>
+          calls.push(`failure:${code ?? ''}:${message}`),
+      },
+      diagnostics: {
+        replaceForScope: (scope, findings: Finding[]) =>
+          calls.push(`diagnostics:${scope.kind}:${scope.uri.fsPath}:${findings.length}`),
+        replaceAll: () => calls.push('replaceAll'),
+      },
+      notifier: {
+        info: () => undefined,
+        warn: () => undefined,
+        error: () => undefined,
+      },
+      uri: folderUri,
+      startedAtMs: 1000,
+      dependencies: deps,
+    });
+
+    assert.deepStrictEqual(calls, [
+      'loading',
+      'results:1',
+      'diagnostics:folder:/workspace/src:1',
+    ]);
   });
 
   it('renders file analysis failures without updating diagnostics', async () => {
@@ -171,7 +219,7 @@ describe('analysisRunSession file analysis', () => {
           calls.push(`failure:${code ?? ''}:${message}`),
       },
       diagnostics: {
-        updateForFile: () => calls.push('diagnostics:update'),
+        replaceForScope: () => calls.push('diagnostics:update'),
         replaceAll: () => calls.push('replaceAll'),
       },
       notifier: {
@@ -218,7 +266,7 @@ describe('analysisRunSession file analysis', () => {
           calls.push(`failure:${code ?? ''}:${message}`),
       },
       diagnostics: {
-        updateForFile: () => calls.push('diagnostics:update'),
+        replaceForScope: () => calls.push('diagnostics:update'),
         replaceAll: () => calls.push('replaceAll'),
       },
       notifier: {
@@ -293,7 +341,8 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
         },
       },
       diagnostics: {
-        updateForFile: () => calls.push('diagnostics:updateForFile'),
+        replaceForScope: (scope, findings: Finding[]) =>
+          calls.push(`diagnostics:${scope.kind}:${scope.uri.fsPath}:${findings.length}`),
         replaceAll: (findings: Finding[]) => calls.push(`replaceAll:${findings.length}`),
       },
       notifier: {
