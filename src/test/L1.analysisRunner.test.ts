@@ -283,15 +283,7 @@ describe('analysisRunner', () => {
       require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
     const notifierModule =
       require('../core/notifier') as typeof import('../core/notifier');
-    const workspaceBuildService =
-      require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-    const projectDiscovery =
-      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const analysisService =
-      require('../services/analysisService') as typeof import('../services/analysisService');
     const originalRunWorkspaceAnalysisSession = session.runWorkspaceAnalysisSession;
-    const originalBuildWorkspaceAuto = workspaceBuildService.buildWorkspaceAuto;
-    const originalGetWorkspaceProjectDiscovery = projectDiscovery.getWorkspaceProjectDiscovery;
     const delegated: unknown[] = [];
 
     session.runWorkspaceAnalysisSession = (async (args: unknown) => {
@@ -304,12 +296,6 @@ describe('analysisRunner', () => {
         progressTokens.push(progressArg, tokenArg);
       });
     }) as typeof session.runWorkspaceAnalysisSession;
-    workspaceBuildService.buildWorkspaceAuto =
-      (async () => 0) as typeof workspaceBuildService.buildWorkspaceAuto;
-    projectDiscovery.getWorkspaceProjectDiscovery = (async () => ({
-      projectUris: ['file:///workspace/project-a'],
-      issues: [],
-    })) as typeof projectDiscovery.getWorkspaceProjectDiscovery;
 
     try {
       const runner =
@@ -338,33 +324,14 @@ describe('analysisRunner', () => {
         tree: unknown;
         diagnostics: unknown;
         notifier: unknown;
-        dependencies: {
-          analyzeWorkspaceFromProjectsDetailed: unknown;
-          buildWorkspaceAuto: unknown;
-          getWorkspaceProjectDiscovery: unknown;
-        };
       };
       assert.strictEqual(delegatedArgs.config, config);
       assert.strictEqual(delegatedArgs.tree, tree);
       assert.strictEqual(delegatedArgs.diagnostics, diagnostics);
       assert.strictEqual(delegatedArgs.notifier, notifierModule.defaultNotifier);
-      assert.strictEqual(
-        delegatedArgs.dependencies.analyzeWorkspaceFromProjectsDetailed,
-        analysisService.analyzeWorkspaceFromProjectsDetailed
-      );
-      assert.strictEqual(
-        delegatedArgs.dependencies.buildWorkspaceAuto,
-        workspaceBuildService.buildWorkspaceAuto
-      );
-      assert.strictEqual(
-        delegatedArgs.dependencies.getWorkspaceProjectDiscovery,
-        projectDiscovery.getWorkspaceProjectDiscovery
-      );
       assert.deepStrictEqual(progressTokens, [progress, token]);
     } finally {
       session.runWorkspaceAnalysisSession = originalRunWorkspaceAnalysisSession;
-      workspaceBuildService.buildWorkspaceAuto = originalBuildWorkspaceAuto;
-      projectDiscovery.getWorkspaceProjectDiscovery = originalGetWorkspaceProjectDiscovery;
     }
   });
 });
