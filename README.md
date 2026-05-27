@@ -59,6 +59,7 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 - `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
 - `spotbugs.analysis.priorityThreshold`: Report bugs with rank less than or equal to this value (1 = most severe, 20 = least). Default: `9`.
 - `spotbugs.analysis.extraAuxClasspaths`: Additional SpotBugs aux classpath entries appended after Java LS runtime classpath entries. Supports absolute and workspace-relative jar/directory paths.
+- `spotbugs.plugins.paths`: SpotBugs plugin jar paths loaded before analysis. Supports absolute and workspace-relative `.jar` paths.
 
 Source target resolution stays separate from aux classpath configuration. SpotBugs uses Java LS runtime classpaths plus any `extraAuxClasspaths` entries for aux analysis, and falls back to the runner's system classpath only when neither source provides any entries.
 
@@ -67,11 +68,3 @@ Source target resolution stays separate from aux classpath configuration. SpotBu
 - `spotbugs.filters.includePaths`: SpotBugs XML include filter paths (`-include`). Supports absolute and workspace-relative paths.
 - `spotbugs.filters.excludePaths`: SpotBugs XML exclude filter paths (`-exclude`). Supports absolute and workspace-relative paths.
 - `spotbugs.filters.excludeBaselineBugsPaths`: SpotBugs XML baseline bug collection paths (`-excludeBugs`). Supports absolute and workspace-relative paths.
-
-If any configured filter file is invalid, analysis stops immediately and an error is shown with a code.
-
-- `CFG_FILTER_NOT_FOUND`
-- `CFG_FILTER_NOT_FILE`
-- `CFG_FILTER_UNREADABLE`
-- `CFG_FILTER_XML_INVALID`
-- `CFG_BASELINE_XML_INVALID`

@@ -121,11 +121,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "pattern": "^.*\\.jar$"
+              "pattern": "^.*\\.[jJ][aA][rR]$"
             },
             "default": [],
             "uniqueItems": true,
-            "markdownDescription": "SpotBugs plugin jar paths. Supports absolute paths and workspace-relative paths.",
+            "markdownDescription": "SpotBugs plugin jar paths loaded before analysis. Supports absolute paths and workspace-relative `.jar` paths. Invalid entries stop analysis with a configuration error.",
             "scope": "window"
           }
         }

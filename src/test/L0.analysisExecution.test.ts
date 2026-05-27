@@ -49,6 +49,7 @@ function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecut
   return {
     validateFilterFilesPreflight: async () => undefined,
     validateExtraAuxClasspathPreflight: async () => undefined,
+    validatePluginJarsPreflight: async () => undefined,
     buildAnalysisRequestPayload: (settings, options) => ({
       schemaVersion: 2,
       effort: settings.effort,
@@ -156,6 +157,55 @@ describe('analysisExecution', () => {
     assert.strictEqual(
       outcome.failure?.message,
       'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] Extra aux classpath not found'
+    );
+  });
+
+  it('short-circuits plugin jar preflight failures before backend execution', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    const callOrder: string[] = [];
+    const backendCalls: unknown[] = [];
+    const executor = createAnalysisExecutor(
+      makeDeps({
+        validateFilterFilesPreflight: async () => {
+          callOrder.push('filter');
+          return undefined;
+        },
+        validateExtraAuxClasspathPreflight: async () => {
+          callOrder.push('aux');
+          return undefined;
+        },
+        validatePluginJarsPreflight: async () => {
+          callOrder.push('plugin');
+          return {
+            code: 'CFG_PLUGIN_NOT_FOUND',
+            message: 'SpotBugs plugin jar not found',
+          };
+        },
+        buildAnalysisRequestPayload: () => {
+          throw new Error('buildAnalysisRequestPayload should not run');
+        },
+        runSpotBugsAnalysis: async (request) => {
+          backendCalls.push(request);
+          return JSON.stringify({ schemaVersion: 2, results: [] });
+        },
+      })
+    );
+
+    const outcome = await executor.run(
+      makeConfig({ effort: 'default', plugins: ['/workspace/missing-plugin.jar'] }),
+      makeTarget(installVscodeMock())
+    );
+
+    assert.deepStrictEqual(callOrder, ['filter', 'aux', 'plugin']);
+    assert.deepStrictEqual(backendCalls, []);
+    assert.deepStrictEqual(outcome.findings, []);
+    assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
+    assert.strictEqual(outcome.errors?.[0]?.code, 'CFG_PLUGIN_NOT_FOUND');
+    assert.strictEqual(outcome.failure?.kind, 'analysis-error');
+    assert.strictEqual(outcome.failure?.code, 'CFG_PLUGIN_NOT_FOUND');
+    assert.strictEqual(
+      outcome.failure?.message,
+      'SpotBugs analysis failed: [CFG_PLUGIN_NOT_FOUND] SpotBugs plugin jar not found'
     );
   });
 

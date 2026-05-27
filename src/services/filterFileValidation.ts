@@ -11,6 +11,10 @@ const CODE_FILTER_UNREADABLE = 'CFG_FILTER_UNREADABLE';
 const CODE_AUX_CLASSPATH_NOT_FOUND = 'CFG_AUX_CLASSPATH_NOT_FOUND';
 const CODE_AUX_CLASSPATH_INVALID_ENTRY = 'CFG_AUX_CLASSPATH_INVALID_ENTRY';
 const CODE_AUX_CLASSPATH_UNREADABLE = 'CFG_AUX_CLASSPATH_UNREADABLE';
+const CODE_PLUGIN_NOT_FOUND = 'CFG_PLUGIN_NOT_FOUND';
+const CODE_PLUGIN_NOT_FILE = 'CFG_PLUGIN_NOT_FILE';
+const CODE_PLUGIN_NOT_JAR = 'CFG_PLUGIN_NOT_JAR';
+const CODE_PLUGIN_UNREADABLE = 'CFG_PLUGIN_UNREADABLE';
 
 export async function validateFilterFilesPreflight(
   settings: AnalysisSettings
@@ -70,6 +74,56 @@ export async function validateExtraAuxClasspathPreflight(
   return undefined;
 }
 
+export async function validatePluginJarsPreflight(
+  settings: AnalysisSettings
+): Promise<AnalysisError | undefined> {
+  const paths = settings.plugins;
+  if (!Array.isArray(paths) || paths.length === 0) {
+    return undefined;
+  }
+
+  for (const rawPath of paths) {
+    const absolutePath = toAbsolutePath(rawPath);
+    let stat: fs.Stats | undefined;
+    try {
+      stat = await safeStat(absolutePath);
+    } catch (error) {
+      return {
+        code: CODE_PLUGIN_UNREADABLE,
+        message: `SpotBugs plugin jar is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
+      };
+    }
+    if (!stat) {
+      return {
+        code: CODE_PLUGIN_NOT_FOUND,
+        message: `SpotBugs plugin jar not found: ${absolutePath}`,
+      };
+    }
+    if (!stat.isFile()) {
+      return {
+        code: CODE_PLUGIN_NOT_FILE,
+        message: `SpotBugs plugin path is not a regular file: ${absolutePath}`,
+      };
+    }
+    if (!isJarPath(absolutePath)) {
+      return {
+        code: CODE_PLUGIN_NOT_JAR,
+        message: `SpotBugs plugin path must be a .jar file: ${absolutePath}`,
+      };
+    }
+    try {
+      await assertReadableFile(absolutePath);
+    } catch (error) {
+      return {
+        code: CODE_PLUGIN_UNREADABLE,
+        message: `SpotBugs plugin jar is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
+      };
+    }
+  }
+
+  return undefined;
+}
+
 async function validateFilterGroup(
   kind: FilterKind,
   paths: string[] | undefined
@@ -117,11 +171,16 @@ async function safeStat(absolutePath: string): Promise<fs.Stats | undefined> {
     return await fs.promises.stat(absolutePath);
   } catch (error) {
     const errno = error as NodeJS.ErrnoException;
-    if (errno && errno.code === 'ENOENT') {
+    if (errno && (errno.code === 'ENOENT' || errno.code === 'ENOTDIR')) {
       return undefined;
     }
     throw error;
   }
+}
+
+async function assertReadableFile(filePath: string): Promise<void> {
+  const handle = await fs.promises.open(filePath, 'r');
+  await handle.close();
 }
 
 function toAbsolutePath(rawPath: string): string {
@@ -135,6 +194,10 @@ function toAbsolutePath(rawPath: string): string {
 function isArchivePath(filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
   return ext === '.jar' || ext === '.zip';
+}
+
+function isJarPath(filePath: string): boolean {
+  return path.extname(filePath).toLowerCase() === '.jar';
 }
 
 function rootCauseMessage(error: unknown): string {
