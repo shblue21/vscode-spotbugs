@@ -68,3 +68,11 @@ Source target resolution stays separate from aux classpath configuration. SpotBu
 - `spotbugs.filters.includePaths`: SpotBugs XML include filter paths (`-include`). Supports absolute and workspace-relative paths.
 - `spotbugs.filters.excludePaths`: SpotBugs XML exclude filter paths (`-exclude`). Supports absolute and workspace-relative paths.
 - `spotbugs.filters.excludeBaselineBugsPaths`: SpotBugs XML baseline bug collection paths (`-excludeBugs`). Supports absolute and workspace-relative paths.
+
+## License
+
+The source code for this extension is licensed under the MIT License. This
+extension uses and may bundle SpotBugs, which is licensed under the GNU Lesser
+General Public License, version 2.1. Third-party components retain their
+respective licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
+details.

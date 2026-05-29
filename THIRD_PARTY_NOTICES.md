@@ -1,23 +1,41 @@
-# Third‑Party Notices
+# Third-Party Notices
 
-This extension bundles third‑party components inside its Java runtime JAR(s). The following notices are provided for attribution and license compliance.
+The source code for SpotBugs for VS Code is licensed under the MIT License unless
+otherwise noted.
+
+This extension uses and may bundle third-party components that remain under
+their own licenses. The notices below are provided for the main runtime
+components and project assets used by this extension.
 
 ## SpotBugs
-- Project: SpotBugs (com.github.spotbugs:spotbugs)
-- License: GNU Lesser General Public License v2.1 (LGPL‑2.1)
+
+- Project: SpotBugs
+- Website: https://spotbugs.github.io/
 - Source: https://github.com/spotbugs/spotbugs
-- License Text: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+- Maven artifact: `com.github.spotbugs:spotbugs`
+- License: GNU Lesser General Public License, version 2.1
+- License text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+SpotBugs is used to perform Java static analysis. Packaged VSIX builds may
+include SpotBugs in the Java runner artifacts under `server/`.
 
 ## Gson
-- Project: Gson (com.google.code.gson:gson)
-- License: Apache License, Version 2.0
+
+- Project: Gson
 - Source: https://github.com/google/gson
-- License Text: Excerpt below; full text at http://www.apache.org/licenses/LICENSE-2.0
+- Maven artifact: `com.google.code.gson:gson`
+- License: Apache License 2.0
+- License text: https://www.apache.org/licenses/LICENSE-2.0
 
----
+Gson is used by the Java runner for JSON serialization.
 
-Apache License, Version 2.0 (Excerpt)
+## SpotBugs Name and Visual Assets
 
-You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+The SpotBugs name is used to identify compatibility with the SpotBugs project.
+SpotBugs project logos and icons are licensed by the SpotBugs project under the
+Creative Commons Attribution 4.0 International License.
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+## Other Dependencies
+
+This project also uses npm and Maven dependencies for building, testing, and
+runtime integration. Those dependencies retain their respective licenses.
