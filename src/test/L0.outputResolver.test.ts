@@ -41,11 +41,36 @@ describe('outputResolver', () => {
     }
   });
 
+  it('detects archive bytecode targets under a directory', async () => {
+    for (const archiveName of ['app.jar', 'app.zip', 'APP.JAR', 'LIB.ZIP']) {
+      const dir = await makeTempDir();
+      try {
+        await writeFile(path.join(dir, 'libs', archiveName));
+        const has = await hasClassTargets(dir);
+        assert.strictEqual(has, true, archiveName);
+      } finally {
+        await cleanup(dir);
+      }
+    }
+  });
+
   it('finds default output folders with class files', async () => {
     const dir = await makeTempDir();
     try {
       const outputDir = path.join(dir, 'build', 'classes', 'java', 'main');
       await writeFile(path.join(outputDir, 'Foo.class'));
+      const found = await findOutputFolderFromProject(dir);
+      assert.strictEqual(found, outputDir);
+    } finally {
+      await cleanup(dir);
+    }
+  });
+
+  it('finds default output folders with archive bytecode targets', async () => {
+    const dir = await makeTempDir();
+    try {
+      const outputDir = path.join(dir, 'build', 'classes', 'java', 'main');
+      await writeFile(path.join(outputDir, 'libs', 'app.ZIP'));
       const found = await findOutputFolderFromProject(dir);
       assert.strictEqual(found, outputDir);
     } finally {

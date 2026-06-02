@@ -5,13 +5,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 
 /**
- * Resolves input paths (.java/.class/.jar/directories) into concrete analysis targets
- * (.class and .jar files). Uses target-resolution root directories to map sources to outputs.
+ * Resolves input paths (.java/.class/.jar/.zip/directories) into concrete analysis targets
+ * (.class, .jar, and .zip files). Uses target-resolution root directories to map sources to outputs.
  */
 public class TargetResolver {
 
@@ -38,7 +39,7 @@ public class TargetResolver {
                 }
                 continue;
             }
-            if (p.endsWith(".class") || p.endsWith(".jar")) {
+            if (isAnalysisTargetFile(p)) {
                 if (f.exists() && f.isFile()) addIfNew(f.getAbsolutePath(), targets, seen);
                 continue;
             }
@@ -68,7 +69,7 @@ public class TargetResolver {
                 continue;
             }
             String name = c.getName();
-            if (name.endsWith(".class") || name.endsWith(".jar")) {
+            if (isAnalysisTargetFile(name)) {
                 addIfNew(c.getAbsolutePath(), out, seen);
                 continue;
             }
@@ -196,6 +197,14 @@ public class TargetResolver {
     private String stripExtension(String name) {
         int i = name.lastIndexOf('.');
         return (i >= 0) ? name.substring(0, i) : name;
+    }
+
+    private boolean isAnalysisTargetFile(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(".class") || lower.endsWith(".jar") || lower.endsWith(".zip");
     }
 
     private void addIfNew(String path, List<String> out, Set<String> seen) {
