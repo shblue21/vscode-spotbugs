@@ -25,7 +25,7 @@ export async function hasClassTargets(targetPath: string): Promise<boolean> {
       return isBytecodeTarget(targetPath);
     }
     if (stat.isDirectory()) {
-      return await containsClassFile(targetPath);
+      return await containsBytecodeTarget(targetPath);
     }
   } catch {
     return false;
@@ -45,7 +45,7 @@ export async function findOutputFolderFromProject(
   return undefined;
 }
 
-async function containsClassFile(root: string): Promise<boolean> {
+async function containsBytecodeTarget(root: string): Promise<boolean> {
   const queue: string[] = [root];
   while (queue.length > 0) {
     const current = queue.pop();
@@ -60,7 +60,7 @@ async function containsClassFile(root: string): Promise<boolean> {
     }
     for (const entry of entries) {
       if (entry.isFile()) {
-        if (entry.name.toLowerCase().endsWith('.class')) {
+        if (isBytecodeTarget(entry.name)) {
           return true;
         }
         continue;
@@ -72,4 +72,3 @@ async function containsClassFile(root: string): Promise<boolean> {
   }
   return false;
 }
-
