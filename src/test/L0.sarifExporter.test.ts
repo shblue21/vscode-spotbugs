@@ -91,6 +91,59 @@ describe('buildSarifLog', () => {
     });
   });
 
+  it('prefers workspace-relative fullPath over package-relative realSourcePath', () => {
+    const finding = makeFinding({
+      type: 'NP_NULL_ON_SOME_PATH',
+      shortDescription: 'Null pointer dereference',
+      location: {
+        fullPath: '/__WORKSPACE_ROOT__/src/main/java/com/acme/Foo.java',
+        realSourcePath: 'com/acme/Foo.java',
+        sourceFile: 'Foo.java',
+        startLine: 12,
+      },
+    });
+
+    const actual = buildSarifLog([finding], {
+      workspaceRootPath: placeholderWorkspaceRoot,
+    });
+
+    assert.strictEqual(getFirstArtifactUri(actual), 'src/main/java/com/acme/Foo.java');
+  });
+
+  it('keeps workspace-relative fullPath when a child path starts with dots', () => {
+    const finding = makeFinding({
+      location: {
+        fullPath: '/__WORKSPACE_ROOT__/..generated/com/acme/Foo.java',
+        realSourcePath: 'com/acme/Foo.java',
+        sourceFile: 'Foo.java',
+        startLine: 12,
+      },
+    });
+
+    const actual = buildSarifLog([finding], {
+      workspaceRootPath: placeholderWorkspaceRoot,
+    });
+
+    assert.strictEqual(getFirstArtifactUri(actual), '..generated/com/acme/Foo.java');
+  });
+
+  it('keeps realSourcePath when fullPath is outside the workspace root', () => {
+    const finding = makeFinding({
+      location: {
+        fullPath: '/external/src/main/java/com/acme/Foo.java',
+        realSourcePath: 'com/acme/Foo.java',
+        sourceFile: 'Foo.java',
+        startLine: 12,
+      },
+    });
+
+    const actual = buildSarifLog([finding], {
+      workspaceRootPath: placeholderWorkspaceRoot,
+    });
+
+    assert.strictEqual(getFirstArtifactUri(actual), 'com/acme/Foo.java');
+  });
+
   it('omits regions when the start line is unknown and normalizes workspace paths', () => {
     const finding = makeFinding({
       type: 'UUF_UNUSED_FIELD',
@@ -169,4 +222,8 @@ function makeFinding(overrides: Partial<Finding>): Finding {
     },
     ...overrides,
   };
+}
+
+function getFirstArtifactUri(log: ReturnType<typeof buildSarifLog>): string | undefined {
+  return log.runs[0]?.results[0]?.locations?.[0]?.physicalLocation.artifactLocation.uri;
 }

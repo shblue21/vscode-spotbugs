@@ -10,17 +10,20 @@ export function getSarifArtifactUri(
   finding: Finding,
   options: SarifArtifactUriOptions = {}
 ): string | undefined {
-  const sourcePath = toPortablePath(finding.location.realSourcePath);
-  if (sourcePath) {
-    return sourcePath;
-  }
-
   const fullPath = finding.location.fullPath;
   if (fullPath && path.isAbsolute(fullPath)) {
     const workspaceRelative = toWorkspaceRelativePath(fullPath, options.workspaceRootPath);
     if (workspaceRelative) {
       return workspaceRelative;
     }
+  }
+
+  const sourcePath = toPortablePath(finding.location.realSourcePath);
+  if (sourcePath) {
+    return sourcePath;
+  }
+
+  if (fullPath && path.isAbsolute(fullPath)) {
     return pathToFileURL(fullPath).toString();
   }
 
@@ -53,7 +56,8 @@ function toWorkspaceRelativePath(
   const relativePath = path.relative(workspaceRootPath, targetPath);
   if (
     !relativePath ||
-    relativePath.startsWith('..') ||
+    relativePath === '..' ||
+    relativePath.startsWith(`..${path.sep}`) ||
     path.isAbsolute(relativePath)
   ) {
     return undefined;
