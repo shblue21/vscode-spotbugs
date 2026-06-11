@@ -125,9 +125,12 @@ public class AnalyzerService {
         Project project = new Project();
         ClasspathConfigurer cpCfg = new ClasspathConfigurer();
         List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.targetResolutionRoots);
+        List<String> sourcepaths = this.config != null
+                ? this.config.getSourcepaths()
+                : java.util.Collections.emptyList();
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         TargetResolver resolver = new TargetResolver();
-        List<String> targets = resolver.resolveTargets(filePaths, targetResolutionRootDirs, monitor);
+        List<String> targets = resolver.resolveTargets(filePaths, targetResolutionRootDirs, sourcepaths, monitor);
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
