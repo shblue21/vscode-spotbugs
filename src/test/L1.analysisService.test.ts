@@ -34,7 +34,7 @@ describe('analysisService', () => {
           level: 'info',
           source: 'target-resolution',
           phase: 'output-fallback',
-          message: 'Output folder fallback was used because Java build output metadata was unavailable.',
+          message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
         },
       ],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;

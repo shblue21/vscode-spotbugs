@@ -178,7 +178,7 @@ function translateResolutionIssue(
         level: 'info',
         code: issue.code,
         message:
-          'SpotBugs: Java build output metadata was unavailable; output folder fallback was used.',
+          'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
       };
     case 'JAVA_LS_NO_RESULT':
       return translateJavaLsLookupFallbackNotice(issue, context);
