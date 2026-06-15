@@ -28,7 +28,7 @@ public class PreferencesApplier {
         prefs.setExcludeBugsFiles(toEnabledPathMap(cfg.getExcludeBaselineBugsPaths()));
 
         // rank threshold is handled via BugReporter in SpotBugsExecutor
-        // plugins are loaded via a temporary context ClassLoader in SpotBugsExecutor
+        // plugins are loaded explicitly by SpotBugsExecutor for the current analysis project
     }
 
     private static String toEffortString(Effort e) {
