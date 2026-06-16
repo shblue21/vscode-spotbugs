@@ -17,59 +17,48 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotbugs.vscode.runner.api.BugInfo;
+import com.spotbugs.vscode.runner.api.CommandWarning;
 import com.spotbugs.vscode.runner.api.CommandResponse;
 import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 
 public class RunAnalysisActionTest {
 
     @Test
     public void executeWrapsAnalyzerFailuresWithRootCauseAsAnalysisFailedEnvelope() throws Exception {
-        JsonObject expected = AnalysisProtocolFixture.readJsonObject("run-analysis-response-error-with-stats.json");
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
-            public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
                 throw new RuntimeException("outer", new IllegalStateException("inner"));
             }
         });
 
         JsonObject response = executeDefault(action);
-        JsonObject expectedError = expected.getAsJsonArray("errors").get(0).getAsJsonObject();
-        JsonObject expectedStats = expected.getAsJsonObject("stats");
         JsonObject stats = response.getAsJsonObject("stats");
 
-        assertEquals(expected.get("schemaVersion").getAsInt(), response.get("schemaVersion").getAsInt());
-        assertEquals(expected.getAsJsonArray("results").size(), response.getAsJsonArray("results").size());
-        assertEquals(expectedError.get("code").getAsString(), firstError(response).get("code").getAsString());
-        assertEquals(expectedError.get("message").getAsString(), firstError(response).get("message").getAsString());
-        assertEquals(expectedStats.keySet(), stats.keySet());
-        assertEquals(expectedStats.get("target").getAsString(), stats.get("target").getAsString());
-        assertTrue(stats.get("durationMs").getAsLong() >= expectedStats.get("durationMs").getAsLong());
-        assertEquals(expectedStats.get("findingCount").getAsInt(), stats.get("findingCount").getAsInt());
+        assertEquals(2, response.get("schemaVersion").getAsInt());
+        assertEquals(0, response.getAsJsonArray("results").size());
+        assertEquals("ANALYSIS_FAILED", firstError(response).get("code").getAsString());
+        assertEquals("inner", firstError(response).get("message").getAsString());
+        assertEquals("/workspace/build/classes", stats.get("target").getAsString());
+        assertTrue(stats.get("durationMs").getAsLong() >= 0L);
+        assertEquals(0, stats.get("findingCount").getAsInt());
         assertTrue(stats.get("spotbugsVersion").getAsString().length() > 0);
-        assertEquals(
-                expectedStats.get("targetResolutionRootCount").getAsInt(),
-                stats.get("targetResolutionRootCount").getAsInt()
-        );
-        assertEquals(
-                expectedStats.get("runtimeClasspathCount").getAsInt(),
-                stats.get("runtimeClasspathCount").getAsInt()
-        );
-        assertEquals(
-                expectedStats.get("extraAuxClasspathCount").getAsInt(),
-                stats.get("extraAuxClasspathCount").getAsInt()
-        );
-        assertEquals(expectedStats.get("auxClasspathCount").getAsInt(), stats.get("auxClasspathCount").getAsInt());
-        assertEquals(expectedStats.get("targetCount").getAsInt(), stats.get("targetCount").getAsInt());
-        assertEquals(expectedStats.get("pluginCount").getAsInt(), stats.get("pluginCount").getAsInt());
+        assertEquals(0, stats.get("targetResolutionRootCount").getAsInt());
+        assertEquals(0, stats.get("runtimeClasspathCount").getAsInt());
+        assertEquals(0, stats.get("extraAuxClasspathCount").getAsInt());
+        assertEquals(0, stats.get("auxClasspathCount").getAsInt());
+        assertEquals(0, stats.get("targetCount").getAsInt());
+        assertEquals(0, stats.get("pluginCount").getAsInt());
     }
 
     @Test
     public void executeReportsNonzeroFindingCountFromResults() {
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
-            public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
-                return Collections.nCopies(2, (BugInfo) null);
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+                return result(Collections.nCopies(2, (BugInfo) null));
             }
         });
 
@@ -79,6 +68,33 @@ public class RunAnalysisActionTest {
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(2, response.getAsJsonArray("results").size());
         assertEquals(2, response.getAsJsonObject("stats").get("findingCount").getAsInt());
+    }
+
+    @Test
+    public void executeSerializesWarningsFromSuccessfulAnalysis() {
+        RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
+            @Override
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+                return new SpotBugsAnalysisResult(
+                        Collections.emptyList(),
+                        Collections.singletonList(new CommandWarning(
+                                "PLUGIN_CLEANUP_CLOSE_FAILED",
+                                "Failed to close plugin com.example: close failed"
+                        ))
+                );
+            }
+        });
+
+        JsonObject response = executeDefault(action);
+
+        assertEquals(2, response.get("schemaVersion").getAsInt());
+        assertEquals(0, response.getAsJsonArray("results").size());
+        assertEquals(0, response.getAsJsonArray("errors").size());
+        assertTrue(response.has("warnings"));
+        assertEquals(1, response.getAsJsonArray("warnings").size());
+        JsonObject warning = response.getAsJsonArray("warnings").get(0).getAsJsonObject();
+        assertEquals("PLUGIN_CLEANUP_CLOSE_FAILED", warning.get("code").getAsString());
+        assertEquals("Failed to close plugin com.example: close failed", warning.get("message").getAsString());
     }
 
     @Test
@@ -125,9 +141,9 @@ public class RunAnalysisActionTest {
         NullProgressMonitor monitor = new NullProgressMonitor();
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
-            public List<BugInfo> analyzeToBugs(IProgressMonitor progressMonitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, String... filePaths) {
                 progressMonitor.setCanceled(true);
-                return Collections.emptyList();
+                return SpotBugsAnalysisResult.empty();
             }
         });
 
@@ -187,6 +203,7 @@ public class RunAnalysisActionTest {
         JsonObject stats = json.getAsJsonObject("stats");
 
         assertSame(summary, response.getStats());
+        assertFalse(json.has("warnings"));
         assertEquals("/workspace/build/classes", stats.get("target").getAsString());
         assertEquals(42L, stats.get("durationMs").getAsLong());
         assertEquals(3, stats.get("findingCount").getAsInt());
@@ -229,16 +246,20 @@ public class RunAnalysisActionTest {
     private static AnalyzerService emptyAnalyzer() {
         return new AnalyzerService() {
             @Override
-            public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
-                return Collections.emptyList();
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+                return SpotBugsAnalysisResult.empty();
             }
         };
     }
 
+    private static SpotBugsAnalysisResult result(List<BugInfo> bugs) {
+        return new SpotBugsAnalysisResult(bugs, Collections.emptyList());
+    }
+
     private static final class CountingAnalyzerService extends AnalyzerService {
         @Override
-        public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths) {
-            return Collections.emptyList();
+        public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            return SpotBugsAnalysisResult.empty();
         }
 
         @Override

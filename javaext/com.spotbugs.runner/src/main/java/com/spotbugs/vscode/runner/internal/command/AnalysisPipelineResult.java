@@ -1,9 +1,9 @@
 package com.spotbugs.vscode.runner.internal.command;
 
-import java.util.List;
-
 import com.spotbugs.vscode.runner.api.BugInfo;
+import com.spotbugs.vscode.runner.api.CommandWarning;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 
 final class AnalysisPipelineResult {
 
@@ -16,25 +16,25 @@ final class AnalysisPipelineResult {
     private final Status status;
     private final AnalyzerService analyzer;
     private final long startMillis;
-    private final List<BugInfo> results;
+    private final SpotBugsAnalysisResult result;
     private final Throwable failure;
 
     private AnalysisPipelineResult(
             Status status,
             AnalyzerService analyzer,
             long startMillis,
-            List<BugInfo> results,
+            SpotBugsAnalysisResult result,
             Throwable failure
     ) {
         this.status = status;
         this.analyzer = analyzer;
         this.startMillis = startMillis;
-        this.results = results != null ? results : java.util.Collections.emptyList();
+        this.result = result != null ? result : SpotBugsAnalysisResult.empty();
         this.failure = failure;
     }
 
-    static AnalysisPipelineResult success(AnalyzerService analyzer, long startMillis, List<BugInfo> results) {
-        return new AnalysisPipelineResult(Status.SUCCESS, analyzer, startMillis, results, null);
+    static AnalysisPipelineResult success(AnalyzerService analyzer, long startMillis, SpotBugsAnalysisResult result) {
+        return new AnalysisPipelineResult(Status.SUCCESS, analyzer, startMillis, result, null);
     }
 
     static AnalysisPipelineResult cancelled(AnalyzerService analyzer, long startMillis) {
@@ -42,7 +42,7 @@ final class AnalysisPipelineResult {
                 Status.CANCELLED,
                 analyzer,
                 startMillis,
-                java.util.Collections.emptyList(),
+                SpotBugsAnalysisResult.empty(),
                 null
         );
     }
@@ -52,7 +52,7 @@ final class AnalysisPipelineResult {
                 Status.FAILED,
                 analyzer,
                 startMillis,
-                java.util.Collections.emptyList(),
+                SpotBugsAnalysisResult.empty(),
                 failure
         );
     }
@@ -69,12 +69,16 @@ final class AnalysisPipelineResult {
         return startMillis;
     }
 
-    List<BugInfo> getResults() {
-        return results;
+    java.util.List<BugInfo> getResults() {
+        return result.getBugs();
+    }
+
+    java.util.List<CommandWarning> getWarnings() {
+        return result.getWarnings();
     }
 
     int getFindingCount() {
-        return results.size();
+        return getResults().size();
     }
 
     Throwable getFailure() {

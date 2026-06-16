@@ -1,4 +1,8 @@
-import { AnalysisError, AnalysisStats } from '../model/analysisProtocol';
+import {
+  AnalysisError,
+  AnalysisStats,
+  AnalysisWarning,
+} from '../model/analysisProtocol';
 import { Bug } from '../model/bug';
 
 export type ParseErrorKind = 'invalid-json' | 'analysis-error';
@@ -12,6 +16,8 @@ export interface ParseError {
 export interface ParsedAnalysis {
   bugs: Bug[];
   errors?: AnalysisError[];
+  warnings?: AnalysisWarning[];
+  ignoredMalformedWarnings?: boolean;
   stats?: AnalysisStats;
   schemaVersion?: number;
 }
@@ -55,6 +61,7 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     const envelope = parsed as Record<string, unknown>;
     const hasResults = Object.prototype.hasOwnProperty.call(envelope, 'results');
     const hasErrors = Object.prototype.hasOwnProperty.call(envelope, 'errors');
+    const hasWarnings = Object.prototype.hasOwnProperty.call(envelope, 'warnings');
     if (!hasResults && !hasErrors) {
       return invalidResponse();
     }
@@ -70,6 +77,12 @@ export function parseAnalysisResponse(raw: string): ParseResult {
       return invalidResponse();
     }
 
+    const warnings =
+      hasWarnings && Array.isArray(envelope.warnings)
+        ? normalizeAnalysisWarnings(envelope.warnings)
+        : undefined;
+    const ignoredMalformedWarnings =
+      hasWarnings && !Array.isArray(envelope.warnings) ? true : undefined;
     const bugs = hasResults ? (envelope.results as Bug[]) : [];
     const stats = normalizeAnalysisStats(envelope.stats);
     const schemaVersion =
@@ -79,6 +92,8 @@ export function parseAnalysisResponse(raw: string): ParseResult {
       value: {
         bugs,
         errors,
+        warnings,
+        ignoredMalformedWarnings,
         stats,
         schemaVersion,
       },
@@ -125,6 +140,12 @@ function normalizeAnalysisErrors(value: unknown): AnalysisError[] {
     }
   }
   return errors;
+}
+
+function normalizeAnalysisWarnings(value: unknown[]): AnalysisWarning[] {
+  return normalizeAnalysisErrors(value).filter(
+    (warning) => typeof warning.code === 'string' && typeof warning.message === 'string'
+  );
 }
 
 function normalizeAnalysisStats(value: unknown): AnalysisStats | undefined {

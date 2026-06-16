@@ -43,6 +43,19 @@ export function buildAnalysisNotices(
     }
   }
 
+  if (
+    !hasTerminalFailure &&
+    Array.isArray(outcome.warnings) &&
+    outcome.warnings.length > 0
+  ) {
+    notices.push({
+      level: 'warn',
+      message: `SpotBugs analysis completed with cleanup warnings: ${formatAnalysisErrors(
+        outcome.warnings
+      )}`,
+    });
+  }
+
   notices.push(
     ...buildResolutionIssueNotices(options.resolutionIssues ?? [], {
       terminal: hasTerminalFailure,

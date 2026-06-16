@@ -1,6 +1,7 @@
 package com.spotbugs.vscode.runner.internal;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -9,9 +10,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+
+import com.spotbugs.vscode.runner.api.CommandWarning;
 
 import org.junit.After;
 import org.junit.Before;
@@ -97,6 +102,58 @@ public class SpotBugsExecutorPluginLoadingTest {
         assertNull("Retried plugin should not leak after analysis completes", Plugin.getByPluginId(pluginId));
     }
 
+    @Test
+    public void closeOnlyCleanupFailureReturnsWarningAndDoesNotBlockLaterPluginLoad() throws Exception {
+        File pluginJar = findSecBugsPluginJar();
+        SpotBugsExecutor executor = new SpotBugsExecutor(
+                new CapturingFindBugs(FINDSECBUGS_PLUGIN_ID),
+                new Project(),
+                3,
+                Collections.singletonList(pluginJar.getAbsolutePath()),
+                new CloseFailingLifecycle()
+        );
+
+        SpotBugsAnalysisResult result = executor.executeBugsWithWarnings();
+
+        List<CommandWarning> warnings = result.getWarnings();
+        assertEquals(1, warnings.size());
+        assertEquals("PLUGIN_CLEANUP_CLOSE_FAILED", warnings.get(0).getCode());
+        assertTrue(warnings.get(0).getMessage().contains(FINDSECBUGS_PLUGIN_ID));
+        assertTrue(warnings.get(0).getMessage().contains("close failed"));
+        assertNull("Plugin should not remain globally registered after close warning", Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID));
+
+    }
+
+    @Test
+    public void closeFailureBeforeLaterRemoveFailureIsSuppressedOnTerminalFailure() throws Exception {
+        String removeFailurePluginId = "com.spotbugs.vscode.test.remove." + System.nanoTime();
+        String closeFailurePluginId = "com.spotbugs.vscode.test.close." + System.nanoTime();
+        File removeFailurePlugin = createPluginJar(removeFailurePluginId, "remove-failure-plugin.jar", false);
+        File closeFailurePlugin = createPluginJar(closeFailurePluginId, "close-failure-plugin.jar", false);
+        RuntimeException removeFailure = new RuntimeException("remove failed");
+        IOException closeFailure = new IOException("close failed");
+
+        try {
+            new SpotBugsExecutor(
+                    new CapturingFindBugs(removeFailurePluginId),
+                    new Project(),
+                    3,
+                    Arrays.asList(
+                            removeFailurePlugin.getAbsolutePath(),
+                            closeFailurePlugin.getAbsolutePath()
+                    ),
+                    new TargetedFailingLifecycle(removeFailurePluginId, removeFailure, closeFailurePluginId, closeFailure)
+            ).executeBugsWithWarnings();
+            fail("Expected plugin removal failure to fail analysis");
+        } catch (RuntimeException expected) {
+            assertTrue("Terminal failure should be remove failure", expected == removeFailure);
+            assertSuppressed(expected, closeFailure);
+        } finally {
+            removePluginIfLoaded(removeFailurePluginId);
+            removePluginIfLoaded(closeFailurePluginId);
+        }
+    }
+
     private static File findSecBugsPluginJar() {
         File jar = new File(System.getProperty(
                 "findsecbugs.plugin.jar",
@@ -116,6 +173,26 @@ public class SpotBugsExecutorPluginLoadingTest {
             }
         }
         DetectorFactoryCollection.resetInstance(null);
+    }
+
+    private static void removePluginIfLoaded(String pluginId) {
+        Plugin existing = Plugin.getByPluginId(pluginId);
+        if (existing != null) {
+            Plugin.removeCustomPlugin(existing);
+            try {
+                existing.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    private static void assertSuppressed(Throwable failure, Throwable suppressed) {
+        for (Throwable candidate : failure.getSuppressed()) {
+            if (candidate == suppressed) {
+                return;
+            }
+        }
+        fail("Expected suppressed failure: " + suppressed);
     }
 
     private File createPluginJar(String pluginId, String fileName, boolean includeMissingDetector) throws IOException {
@@ -149,6 +226,50 @@ public class SpotBugsExecutorPluginLoadingTest {
                 + "<Details>SpotBugs runner test plugin</Details>"
                 + "</Plugin>"
                 + "</MessageCollection>";
+    }
+
+    private static final class CloseFailingLifecycle implements PluginLifecycle {
+
+        @Override
+        public void closePlugin(Plugin plugin) throws IOException {
+            throw new IOException("close failed");
+        }
+    }
+
+    private static final class TargetedFailingLifecycle implements PluginLifecycle {
+
+        private final String removeFailurePluginId;
+        private final RuntimeException removeFailure;
+        private final String closeFailurePluginId;
+        private final IOException closeFailure;
+
+        private TargetedFailingLifecycle(
+                String removeFailurePluginId,
+                RuntimeException removeFailure,
+                String closeFailurePluginId,
+                IOException closeFailure
+        ) {
+            this.removeFailurePluginId = removeFailurePluginId;
+            this.removeFailure = removeFailure;
+            this.closeFailurePluginId = closeFailurePluginId;
+            this.closeFailure = closeFailure;
+        }
+
+        @Override
+        public void removeCustomPlugin(Plugin plugin) {
+            if (removeFailurePluginId.equals(plugin.getPluginId())) {
+                throw removeFailure;
+            }
+            PluginLifecycle.super.removeCustomPlugin(plugin);
+        }
+
+        @Override
+        public void closePlugin(Plugin plugin) throws IOException {
+            if (closeFailurePluginId.equals(plugin.getPluginId())) {
+                throw closeFailure;
+            }
+            PluginLifecycle.super.closePlugin(plugin);
+        }
     }
 
     private static final class CapturingFindBugs extends FindBugs2 {

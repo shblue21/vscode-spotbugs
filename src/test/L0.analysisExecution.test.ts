@@ -350,6 +350,45 @@ describe('analysisExecution', () => {
     );
   });
 
+  it('does not expose cleanup warnings on terminal backend errors', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    const logMessages: string[] = [];
+    const executor = createAnalysisExecutor(
+      makeDeps({
+        parseAnalysisResponse: () => ({
+          ok: true,
+          value: {
+            bugs: [],
+            errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
+            warnings: [
+              {
+                code: 'PLUGIN_CLEANUP_FAILED',
+                message: 'Could not delete plugin',
+              },
+            ],
+          },
+        }),
+        logger: {
+          log: (message) => logMessages.push(String(message)),
+          error: () => undefined,
+        },
+      })
+    );
+
+    const outcome = await executor.run(
+      makeConfig(),
+      makeTarget(installVscodeMock())
+    );
+
+    assert.deepStrictEqual(outcome.findings, []);
+    assert.strictEqual(outcome.warnings, undefined);
+    assert.ok(
+      !logMessages.includes(
+        'SpotBugs analysis warning: [PLUGIN_CLEANUP_FAILED] Could not delete plugin'
+      )
+    );
+  });
+
   it('returns partial-success findings with backend errors and enriched paths', async () => {
     const vscode = installVscodeMock();
     const { createAnalysisExecutor } = loadAnalysisExecution();
@@ -397,4 +436,40 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.stats?.durationMs, 12);
     assert.strictEqual(outcome.schemaVersion, 2);
   });
+
+  it('returns successful empty findings with backend warnings', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    const executor = createAnalysisExecutor(
+      makeDeps({
+        parseAnalysisResponse: () => ({
+          ok: true,
+          value: {
+            bugs: [],
+            warnings: [
+              {
+                code: 'PLUGIN_CLEANUP_FAILED',
+                message: 'Could not delete plugin',
+              },
+            ],
+            schemaVersion: 2,
+          },
+        }),
+      })
+    );
+
+    const outcome = await executor.run(
+      makeConfig(),
+      makeTarget(installVscodeMock())
+    );
+
+    assert.deepStrictEqual(outcome.findings, []);
+    assert.strictEqual(outcome.failure, undefined);
+    assert.deepStrictEqual(outcome.warnings, [
+      {
+        code: 'PLUGIN_CLEANUP_FAILED',
+        message: 'Could not delete plugin',
+      },
+    ]);
+  });
+
 });

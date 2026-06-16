@@ -183,6 +183,60 @@ describe('analysisRunSession file analysis', () => {
     ]);
   });
 
+  it('renders warning-only file outcomes as successful empty results', async () => {
+    const vscode = installVscodeMock();
+    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+    const calls: string[] = [];
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    const deps = createBaseDependencies(vscode);
+
+    deps.analyzeFileDetailed = async () => ({
+      outcome: {
+        findings: [],
+        targetPath: '/workspace/build/classes',
+        warnings: [
+          {
+            code: 'PLUGIN_CLEANUP_FAILED',
+            message: 'Could not delete plugin jar',
+          },
+        ],
+      },
+      context: {
+        resolutionIssues: [],
+      },
+    });
+
+    await runFileAnalysisSession({
+      config: { getAnalysisSettings: () => ({}) } as any,
+      tree: {
+        showLoading: () => calls.push('loading'),
+        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
+        showAnalysisFailure: (message: string, code?: string) =>
+          calls.push(`failure:${code ?? ''}:${message}`),
+      },
+      diagnostics: {
+        replaceForScope: (_scope, findings: Finding[]) =>
+          calls.push(`diagnostics:${findings.length}`),
+        replaceAll: () => calls.push('replaceAll'),
+      },
+      notifier: {
+        info: () => undefined,
+        warn: (message: string) => warnings.push(message),
+        error: (message: string) => errors.push(message),
+      },
+      uri,
+      startedAtMs: 1000,
+      dependencies: deps,
+    });
+
+    assert.deepStrictEqual(calls, ['loading', 'results:0', 'diagnostics:0']);
+    assert.deepStrictEqual(warnings, [
+      'SpotBugs analysis completed with cleanup warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar',
+    ]);
+    assert.deepStrictEqual(errors, []);
+  });
+
   it('renders file analysis failures without updating diagnostics', async () => {
     const vscode = installVscodeMock();
     const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
@@ -397,6 +451,53 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(harness.infos, [
       'SpotBugs: Workspace analysis completed - 1 issue found.',
     ]);
+  });
+
+  it('renders warning-only workspace results without adding tree-visible warning state', async () => {
+    const projectResult: ProjectResult = {
+      projectUri: 'file:///workspace/project-a',
+      findings: [],
+    };
+    const harness = createWorkspaceHarness({
+      getWorkspaceProjectDiscovery: async () => ({
+        projectUris: ['file:///workspace/project-a'],
+        issues: [],
+      }),
+      analyzeWorkspaceFromProjectsDetailed: async (_config, _workspace, projectUris, notify) => {
+        notify?.onStart?.(projectUris[0], 1, 1);
+        notify?.onDone?.(projectUris[0], 0);
+        return {
+          results: [projectResult],
+          context: {
+            resolutionIssues: [],
+            cleanupWarnings: [
+              {
+                projectUri: projectUris[0],
+                warning: {
+                  code: 'PLUGIN_CLEANUP_FAILED',
+                  message: 'Could not delete plugin jar',
+                },
+              },
+            ],
+          },
+        };
+      },
+    });
+
+    await runWorkspaceAnalysisSession(harness.args);
+
+    assert.deepStrictEqual(harness.calls, [
+      'progress:1',
+      'status:file:///workspace/project-a:running::',
+      'status:file:///workspace/project-a:done:0:',
+      'workspaceResults:1',
+      'replaceAll:0',
+    ]);
+    assert.deepStrictEqual(harness.workspaceResults, [[projectResult]]);
+    assert.deepStrictEqual(harness.warnings, [
+      'SpotBugs: Workspace analysis completed - No issues found. Cleanup warnings occurred in 1 project; see the SpotBugs output for details.',
+    ]);
+    assert.deepStrictEqual(harness.errors, []);
   });
 
   it('renders workspace results only after the progress callback resolves', async () => {

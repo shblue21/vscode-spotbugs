@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
+import com.spotbugs.vscode.runner.api.CommandWarning;
 
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugInstance;
@@ -36,13 +37,25 @@ public class SpotBugsExecutor {
     private final BugCollectionBugReporter defaultBugReporter;
     private final Integer reporterPriorityThreshold; // 1..3 (High..Low) or null
     private final List<String> pluginJars; // optional
+    private final PluginLifecycle pluginLifecycle;
 
     public SpotBugsExecutor(FindBugs2 findBugs, Project project, Integer reporterPriorityThreshold, List<String> pluginJars) {
+        this(findBugs, project, reporterPriorityThreshold, pluginJars, PluginLifecycle.DEFAULT);
+    }
+
+    SpotBugsExecutor(
+            FindBugs2 findBugs,
+            Project project,
+            Integer reporterPriorityThreshold,
+            List<String> pluginJars,
+            PluginLifecycle pluginLifecycle
+    ) {
         this.findBugs = findBugs;
         this.project = project;
         this.defaultBugReporter = new BugCollectionBugReporter(project);
         this.reporterPriorityThreshold = reporterPriorityThreshold;
         this.pluginJars = pluginJars;
+        this.pluginLifecycle = pluginLifecycle != null ? pluginLifecycle : PluginLifecycle.DEFAULT;
         // Keep behavior compatible: default to 1 (highest only) if not provided
         this.defaultBugReporter.setPriorityThreshold(
                 this.reporterPriorityThreshold != null ? this.reporterPriorityThreshold.intValue() : 1
@@ -50,24 +63,42 @@ public class SpotBugsExecutor {
     }
 
     public List<BugInfo> executeBugs() throws IOException, InterruptedException {
+        return executeBugsWithWarnings().getBugs();
+    }
+
+    public SpotBugsAnalysisResult executeBugsWithWarnings() throws IOException, InterruptedException {
         synchronized (SPOTBUGS_GLOBAL_LOCK) {
-            try (LoadedPlugins ignored = LoadedPlugins.load(pluginJars, project)) {
+            LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
+            List<BugInfo> bugs;
+            try {
                 execute(defaultBugReporter);
-                return collectBugs(defaultBugReporter);
+                bugs = collectBugs(defaultBugReporter);
+            } catch (IOException | InterruptedException | RuntimeException | Error failure) {
+                loadedPlugins.closeAfterFailure(failure);
+                throw failure;
             }
+            List<CommandWarning> warnings = loadedPlugins.closeAfterSuccess();
+            return new SpotBugsAnalysisResult(bugs, warnings);
         }
     }
 
     public String executeNativeSarif() throws IOException, InterruptedException {
         synchronized (SPOTBUGS_GLOBAL_LOCK) {
-            try (LoadedPlugins ignored = LoadedPlugins.load(pluginJars, project)) {
+            LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
+            String sarif;
+            try {
                 StringWriter writer = new StringWriter();
                 SarifBugReporter reporter = new SarifBugReporter(project);
                 reporter.setPriorityThreshold(this.reporterPriorityThreshold != null ? this.reporterPriorityThreshold.intValue() : 1);
                 reporter.setWriter(new PrintWriter(writer));
                 execute(reporter);
-                return writer.toString();
+                sarif = writer.toString();
+            } catch (IOException | InterruptedException | RuntimeException | Error failure) {
+                loadedPlugins.closeAfterFailure(failure);
+                throw failure;
             }
+            loadedPlugins.closeAfterSuccess();
+            return sarif;
         }
     }
 
@@ -118,19 +149,25 @@ public class SpotBugsExecutor {
         return bugList;
     }
 
-    private static final class LoadedPlugins implements AutoCloseable {
+    private static final class LoadedPlugins {
 
         private final List<Plugin> loadedPlugins = new ArrayList<>();
+        private final PluginLifecycle lifecycle;
 
-        private static LoadedPlugins load(List<String> pluginJars, Project project) throws IOException {
-            LoadedPlugins loaded = new LoadedPlugins();
+        private LoadedPlugins(PluginLifecycle lifecycle) {
+            this.lifecycle = lifecycle;
+        }
+
+        private static LoadedPlugins load(List<String> pluginJars, Project project, PluginLifecycle lifecycle)
+                throws IOException {
+            LoadedPlugins loaded = new LoadedPlugins(lifecycle);
             try {
                 for (File pluginJar : pluginJarFiles(pluginJars)) {
                     loaded.load(pluginJar, project);
                 }
                 return loaded;
             } catch (IOException | RuntimeException e) {
-                loaded.close(e);
+                loaded.closeAfterFailure(e);
                 throw e;
             }
         }
@@ -146,7 +183,7 @@ public class SpotBugsExecutor {
             }
 
             try {
-                Plugin plugin = Plugin.loadCustomPlugin(pluginJar, project);
+                Plugin plugin = lifecycle.loadCustomPlugin(pluginJar, project);
                 if (plugin != null) {
                     loadedPlugins.add(plugin);
                 }
@@ -160,29 +197,36 @@ public class SpotBugsExecutor {
             }
         }
 
-        @Override
-        public void close() {
-            close(null);
-        }
-
-        private void close(Throwable failure) {
+        private List<CommandWarning> closeAfterSuccess() {
             boolean resetDetectorFactories = !loadedPlugins.isEmpty();
-            RuntimeException closeFailure = null;
+            RuntimeException terminalFailure = null;
+            List<CloseFailure> closeFailures = new ArrayList<>();
             try {
                 for (int i = loadedPlugins.size() - 1; i >= 0; i--) {
                     Plugin plugin = loadedPlugins.get(i);
+                    RuntimeException removeFailure = null;
                     try {
-                        Plugin.removeCustomPlugin(plugin);
+                        lifecycle.removeCustomPlugin(plugin);
                     } catch (RuntimeException e) {
-                        if (failure != null) {
-                            failure.addSuppressed(e);
-                        } else if (closeFailure == null) {
-                            closeFailure = e;
+                        removeFailure = e;
+                        if (terminalFailure == null) {
+                            terminalFailure = e;
+                            addSuppressed(terminalFailure, closeFailures);
                         } else {
-                            closeFailure.addSuppressed(e);
+                            terminalFailure.addSuppressed(e);
                         }
                     } finally {
-                        closePlugin(plugin, failure != null ? failure : closeFailure);
+                        try {
+                            lifecycle.closePlugin(plugin);
+                        } catch (IOException e) {
+                            if (removeFailure != null) {
+                                removeFailure.addSuppressed(e);
+                            } else if (terminalFailure != null) {
+                                terminalFailure.addSuppressed(e);
+                            } else {
+                                closeFailures.add(new CloseFailure(plugin, e));
+                            }
+                        }
                     }
                 }
             } finally {
@@ -190,17 +234,42 @@ public class SpotBugsExecutor {
                     DetectorFactoryCollection.resetInstance(null);
                 }
             }
-            if (failure == null && closeFailure != null) {
-                throw closeFailure;
+            if (terminalFailure != null) {
+                throw terminalFailure;
+            }
+            List<CommandWarning> warnings = new ArrayList<>();
+            for (CloseFailure closeFailure : closeFailures) {
+                warnings.add(closeWarning(closeFailure.plugin, closeFailure.failure));
+            }
+            return warnings;
+        }
+
+        private void closeAfterFailure(Throwable failure) {
+            boolean resetDetectorFactories = !loadedPlugins.isEmpty();
+            try {
+                for (int i = loadedPlugins.size() - 1; i >= 0; i--) {
+                    Plugin plugin = loadedPlugins.get(i);
+                    try {
+                        lifecycle.removeCustomPlugin(plugin);
+                    } catch (RuntimeException e) {
+                        failure.addSuppressed(e);
+                    } finally {
+                        closePlugin(plugin, failure);
+                    }
+                }
+            } finally {
+                if (resetDetectorFactories) {
+                    DetectorFactoryCollection.resetInstance(null);
+                }
             }
         }
 
-        private static void cleanupAfterFailedLoad(SpotBugsPluginState stateBeforeLoad, Throwable failure) {
+        private void cleanupAfterFailedLoad(SpotBugsPluginState stateBeforeLoad, Throwable failure) {
             for (Map.Entry<URI, Plugin> entry : Plugin.getAllPluginsMap().entrySet()) {
                 if (!stateBeforeLoad.hasPluginUri(entry.getKey())) {
                     Plugin plugin = entry.getValue();
                     try {
-                        Plugin.removeCustomPlugin(plugin);
+                        lifecycle.removeCustomPlugin(plugin);
                     } catch (RuntimeException e) {
                         failure.addSuppressed(e);
                     } finally {
@@ -212,13 +281,55 @@ public class SpotBugsExecutor {
             DetectorFactoryCollection.resetInstance(null);
         }
 
-        private static void closePlugin(Plugin plugin, Throwable failure) {
+        private void closePlugin(Plugin plugin, Throwable failure) {
             try {
-                plugin.close();
+                lifecycle.closePlugin(plugin);
             } catch (IOException e) {
                 if (failure != null) {
                     failure.addSuppressed(e);
                 }
+            }
+        }
+
+        private static CommandWarning closeWarning(Plugin plugin, IOException failure) {
+            String pluginId = pluginId(plugin);
+            String detail = failure.getMessage();
+            if (detail == null || detail.trim().isEmpty()) {
+                detail = failure.getClass().getName();
+            } else {
+                detail = detail.trim();
+            }
+            String pluginLabel = pluginId != null && !pluginId.trim().isEmpty()
+                    ? " plugin " + pluginId.trim()
+                    : " plugin";
+            return new CommandWarning(
+                    "PLUGIN_CLEANUP_CLOSE_FAILED",
+                    "Failed to close SpotBugs" + pluginLabel + ": " + detail
+            );
+        }
+
+        private static String pluginId(Plugin plugin) {
+            try {
+                return plugin != null ? plugin.getPluginId() : null;
+            } catch (RuntimeException e) {
+                return null;
+            }
+        }
+
+        private static void addSuppressed(Throwable failure, List<CloseFailure> closeFailures) {
+            for (CloseFailure closeFailure : closeFailures) {
+                failure.addSuppressed(closeFailure.failure);
+            }
+        }
+
+        private static final class CloseFailure {
+
+            private final Plugin plugin;
+            private final IOException failure;
+
+            private CloseFailure(Plugin plugin, IOException failure) {
+                this.plugin = plugin;
+                this.failure = failure;
             }
         }
     }

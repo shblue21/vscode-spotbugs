@@ -63,22 +63,28 @@ public class AnalyzerService {
 
     public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths)
             throws java.io.IOException, InterruptedException {
+        return analyzeToBugsWithWarnings(monitor, filePaths).getBugs();
+    }
+
+    public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths)
+            throws java.io.IOException, InterruptedException {
         PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
         if (prepared == null) {
-            return java.util.Collections.emptyList();
+            return SpotBugsAnalysisResult.empty();
         }
         SpotBugsRunner runner = new SpotBugsRunner();
         checkCanceled(monitor);
-        List<BugInfo> bugs = runner.run(
+        SpotBugsAnalysisResult result = runner.runWithWarnings(
                 this.findBugs,
                 prepared.project,
                 prepared.reporterPriorityThreshold,
                 prepared.plugins
         );
         checkCanceled(monitor);
+        List<BugInfo> bugs = result != null ? result.getBugs() : java.util.Collections.emptyList();
         applyFullPaths(bugs, monitor, filePaths);
         applyRankThreshold(bugs, monitor);
-        return bugs;
+        return result != null ? new SpotBugsAnalysisResult(bugs, result.getWarnings()) : SpotBugsAnalysisResult.empty();
     }
 
     public String analyzeToNativeSarif(String... filePaths) {

@@ -1,12 +1,11 @@
 package com.spotbugs.vscode.runner.internal.command;
 
-import java.util.List;
 import java.util.concurrent.CancellationException;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 
-import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 
 final class AnalysisPipeline {
 
@@ -25,12 +24,11 @@ final class AnalysisPipeline {
         analyzer.setConfiguration(request.getConfig());
         long startMillis = System.currentTimeMillis();
         try {
-            List<BugInfo> bugs = analyzer.analyzeToBugs(monitor, request.getTargetPath());
-            List<BugInfo> results = bugs != null ? bugs : java.util.Collections.emptyList();
+            SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(monitor, request.getTargetPath());
             if (monitor != null && monitor.isCanceled()) {
                 return AnalysisPipelineResult.cancelled(analyzer, startMillis);
             }
-            return AnalysisPipelineResult.success(analyzer, startMillis, results);
+            return AnalysisPipelineResult.success(analyzer, startMillis, result);
         } catch (CancellationException cancellation) {
             return AnalysisPipelineResult.cancelled(analyzer, startMillis);
         } catch (InterruptedException interrupted) {

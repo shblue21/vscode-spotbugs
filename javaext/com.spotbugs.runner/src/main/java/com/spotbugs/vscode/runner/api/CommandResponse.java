@@ -9,17 +9,28 @@ public class CommandResponse {
     private final int schemaVersion;
     private final Object results;
     private final List<CommandError> errors;
+    private final List<CommandWarning> warnings;
     private final RunAnalysisSummary stats;
 
-    private CommandResponse(Object results, List<CommandError> errors, RunAnalysisSummary stats) {
+    private CommandResponse(
+            Object results,
+            List<CommandError> errors,
+            List<CommandWarning> warnings,
+            RunAnalysisSummary stats
+    ) {
         this.schemaVersion = SCHEMA_VERSION;
         this.results = results != null ? results : Collections.emptyList();
         this.errors = errors != null ? errors : Collections.emptyList();
+        this.warnings = warnings != null && !warnings.isEmpty() ? warnings : null;
         this.stats = stats;
     }
 
     public static CommandResponse success(Object results, RunAnalysisSummary stats) {
-        return new CommandResponse(results, Collections.emptyList(), stats);
+        return new CommandResponse(results, Collections.emptyList(), null, stats);
+    }
+
+    public static CommandResponse success(Object results, RunAnalysisSummary stats, List<CommandWarning> warnings) {
+        return new CommandResponse(results, Collections.emptyList(), warnings, stats);
     }
 
     public static CommandResponse error(String code, String message) {
@@ -28,7 +39,7 @@ public class CommandResponse {
 
     public static CommandResponse error(String code, String message, RunAnalysisSummary stats) {
         CommandError error = new CommandError(code, message);
-        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), stats);
+        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), null, stats);
     }
 
     public int getSchemaVersion() {
@@ -41,6 +52,10 @@ public class CommandResponse {
 
     public List<CommandError> getErrors() {
         return errors;
+    }
+
+    public List<CommandWarning> getWarnings() {
+        return warnings != null ? warnings : Collections.emptyList();
     }
 
     public RunAnalysisSummary getStats() {
