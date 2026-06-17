@@ -81,10 +81,10 @@ public class AnalyzerService {
                 prepared.plugins
         );
         checkCanceled(monitor);
-        List<BugInfo> bugs = result != null ? result.getBugs() : java.util.Collections.emptyList();
+        List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, filePaths);
         applyRankThreshold(bugs, monitor);
-        return result != null ? new SpotBugsAnalysisResult(bugs, result.getWarnings()) : SpotBugsAnalysisResult.empty();
+        return new SpotBugsAnalysisResult(bugs, result.getWarnings());
     }
 
     public String analyzeToNativeSarif(String... filePaths) {

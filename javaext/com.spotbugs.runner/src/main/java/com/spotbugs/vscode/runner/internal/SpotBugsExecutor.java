@@ -248,14 +248,7 @@ public class SpotBugsExecutor {
             boolean resetDetectorFactories = !loadedPlugins.isEmpty();
             try {
                 for (int i = loadedPlugins.size() - 1; i >= 0; i--) {
-                    Plugin plugin = loadedPlugins.get(i);
-                    try {
-                        lifecycle.removeCustomPlugin(plugin);
-                    } catch (RuntimeException e) {
-                        failure.addSuppressed(e);
-                    } finally {
-                        closePlugin(plugin, failure);
-                    }
+                    removeAndClose(loadedPlugins.get(i), failure);
                 }
             } finally {
                 if (resetDetectorFactories) {
@@ -267,18 +260,21 @@ public class SpotBugsExecutor {
         private void cleanupAfterFailedLoad(SpotBugsPluginState stateBeforeLoad, Throwable failure) {
             for (Map.Entry<URI, Plugin> entry : Plugin.getAllPluginsMap().entrySet()) {
                 if (!stateBeforeLoad.hasPluginUri(entry.getKey())) {
-                    Plugin plugin = entry.getValue();
-                    try {
-                        lifecycle.removeCustomPlugin(plugin);
-                    } catch (RuntimeException e) {
-                        failure.addSuppressed(e);
-                    } finally {
-                        closePlugin(plugin, failure);
-                    }
+                    removeAndClose(entry.getValue(), failure);
                 }
             }
             stateBeforeLoad.restoreLoadedPluginIds(failure);
             DetectorFactoryCollection.resetInstance(null);
+        }
+
+        private void removeAndClose(Plugin plugin, Throwable failure) {
+            try {
+                lifecycle.removeCustomPlugin(plugin);
+            } catch (RuntimeException e) {
+                failure.addSuppressed(e);
+            } finally {
+                closePlugin(plugin, failure);
+            }
         }
 
         private void closePlugin(Plugin plugin, Throwable failure) {

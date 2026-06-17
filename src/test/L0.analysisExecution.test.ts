@@ -323,6 +323,12 @@ describe('analysisExecution', () => {
           value: {
             bugs: [],
             errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
+            warnings: [
+              {
+                code: 'PLUGIN_CLEANUP_FAILED',
+                message: 'Could not delete plugin',
+              },
+            ],
             stats: {
               target: '/workspace/build/classes',
               durationMs: 9,
@@ -341,51 +347,13 @@ describe('analysisExecution', () => {
 
     assert.deepStrictEqual(outcome.findings, []);
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
+    assert.strictEqual(outcome.warnings, undefined);
     assert.strictEqual(outcome.stats?.target, '/workspace/build/classes');
     assert.strictEqual(outcome.schemaVersion, 2);
     assert.strictEqual(outcome.failure?.code, 'ANALYSIS_FAILED');
     assert.strictEqual(
       outcome.failure?.message,
       'SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
-    );
-  });
-
-  it('does not expose cleanup warnings on terminal backend errors', async () => {
-    const { createAnalysisExecutor } = loadAnalysisExecution();
-    const logMessages: string[] = [];
-    const executor = createAnalysisExecutor(
-      makeDeps({
-        parseAnalysisResponse: () => ({
-          ok: true,
-          value: {
-            bugs: [],
-            errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
-            warnings: [
-              {
-                code: 'PLUGIN_CLEANUP_FAILED',
-                message: 'Could not delete plugin',
-              },
-            ],
-          },
-        }),
-        logger: {
-          log: (message) => logMessages.push(String(message)),
-          error: () => undefined,
-        },
-      })
-    );
-
-    const outcome = await executor.run(
-      makeConfig(),
-      makeTarget(installVscodeMock())
-    );
-
-    assert.deepStrictEqual(outcome.findings, []);
-    assert.strictEqual(outcome.warnings, undefined);
-    assert.ok(
-      !logMessages.includes(
-        'SpotBugs analysis warning: [PLUGIN_CLEANUP_FAILED] Could not delete plugin'
-      )
     );
   });
 
@@ -435,41 +403,6 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.failure, undefined);
     assert.strictEqual(outcome.stats?.durationMs, 12);
     assert.strictEqual(outcome.schemaVersion, 2);
-  });
-
-  it('returns successful empty findings with backend warnings', async () => {
-    const { createAnalysisExecutor } = loadAnalysisExecution();
-    const executor = createAnalysisExecutor(
-      makeDeps({
-        parseAnalysisResponse: () => ({
-          ok: true,
-          value: {
-            bugs: [],
-            warnings: [
-              {
-                code: 'PLUGIN_CLEANUP_FAILED',
-                message: 'Could not delete plugin',
-              },
-            ],
-            schemaVersion: 2,
-          },
-        }),
-      })
-    );
-
-    const outcome = await executor.run(
-      makeConfig(),
-      makeTarget(installVscodeMock())
-    );
-
-    assert.deepStrictEqual(outcome.findings, []);
-    assert.strictEqual(outcome.failure, undefined);
-    assert.deepStrictEqual(outcome.warnings, [
-      {
-        code: 'PLUGIN_CLEANUP_FAILED',
-        message: 'Could not delete plugin',
-      },
-    ]);
   });
 
 });

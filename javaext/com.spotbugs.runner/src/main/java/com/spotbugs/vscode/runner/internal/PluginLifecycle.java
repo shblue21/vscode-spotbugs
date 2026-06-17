@@ -8,8 +8,7 @@ import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.Project;
 
 interface PluginLifecycle {
-    PluginLifecycle DEFAULT = new PluginLifecycle() {
-    };
+    PluginLifecycle DEFAULT = new PluginLifecycle() {};
 
     default Plugin loadCustomPlugin(File pluginJar, Project project) throws PluginException {
         return Plugin.loadCustomPlugin(pluginJar, project);

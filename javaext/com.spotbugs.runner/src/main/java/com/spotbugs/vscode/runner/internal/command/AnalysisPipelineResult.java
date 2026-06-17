@@ -38,23 +38,11 @@ final class AnalysisPipelineResult {
     }
 
     static AnalysisPipelineResult cancelled(AnalyzerService analyzer, long startMillis) {
-        return new AnalysisPipelineResult(
-                Status.CANCELLED,
-                analyzer,
-                startMillis,
-                SpotBugsAnalysisResult.empty(),
-                null
-        );
+        return new AnalysisPipelineResult(Status.CANCELLED, analyzer, startMillis, null, null);
     }
 
     static AnalysisPipelineResult failed(AnalyzerService analyzer, long startMillis, Throwable failure) {
-        return new AnalysisPipelineResult(
-                Status.FAILED,
-                analyzer,
-                startMillis,
-                SpotBugsAnalysisResult.empty(),
-                failure
-        );
+        return new AnalysisPipelineResult(Status.FAILED, analyzer, startMillis, null, failure);
     }
 
     Status getStatus() {
