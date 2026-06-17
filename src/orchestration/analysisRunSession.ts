@@ -7,6 +7,7 @@ import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { Finding } from '../model/finding';
 import type {
   AnalysisExecutionResult,
+  ProjectCleanupWarning,
   WorkspaceExecutionResult,
 } from '../services/analysisService';
 import type { ProjectResult } from '../services/projectResult';
@@ -147,6 +148,7 @@ export async function runWorkspaceAnalysisSession(
     let aggregated: Finding[] = [];
     let projectResults: ProjectResult[] = [];
     let resolutionIssues: AnalysisResolutionIssue[] = [];
+    let cleanupWarnings: ProjectCleanupWarning[] = [];
     let cancelled = false;
 
     await args.runWithProgress(async (progress, token) => {
@@ -189,6 +191,7 @@ export async function runWorkspaceAnalysisSession(
       projectResults = res.results;
       aggregated = res.results.flatMap((result) => result.findings);
       resolutionIssues = [...discovery.issues, ...res.context.resolutionIssues];
+      cleanupWarnings = res.context.cleanupWarnings ?? [];
       cancelled =
         res.cancelled === true ||
         token.isCancellationRequested ||
@@ -207,7 +210,12 @@ export async function runWorkspaceAnalysisSession(
 
     emitNotices(
       args.notifier,
-      buildWorkspaceCompletionNotices(projectResults, aggregated.length, resolutionIssues)
+      buildWorkspaceCompletionNotices(
+        projectResults,
+        aggregated.length,
+        resolutionIssues,
+        cleanupWarnings
+      )
     );
   } catch (error) {
     renderWorkspaceAnalysisFailure(args, error);

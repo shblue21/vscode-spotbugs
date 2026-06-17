@@ -1,10 +1,12 @@
 import { AnalysisError } from './analysisProtocol';
 
-export function formatAnalysisErrors(errors: AnalysisError[]): string {
-  const messages = errors.map((err) => {
-    const code = err.code ? `[${err.code}]` : '';
-    const message = err.message || 'Unknown error';
+export function formatAnalysisErrors(
+  errors: Pick<AnalysisError, 'code' | 'message'>[]
+): string {
+  const formatted = errors.map((messageInfo) => {
+    const code = messageInfo.code ? `[${messageInfo.code}]` : '';
+    const message = messageInfo.message || 'Unknown error';
     return `${code} ${message}`.trim();
   });
-  return messages.join('; ');
+  return formatted.join('; ');
 }

@@ -216,7 +216,14 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     context: AnalysisExecutionTarget
   ): Promise<AnalysisOutcome> {
     const targetPath = context.targetPath;
-    const { bugs, errors, stats, schemaVersion } = parsed;
+    const { bugs, errors, warnings, ignoredMalformedWarnings, stats, schemaVersion } =
+      parsed;
+    const hasErrors = Array.isArray(errors) && errors.length > 0;
+    const hasTerminalErrors = hasErrors && bugs.length === 0;
+    const reportableWarnings =
+      !hasTerminalErrors && Array.isArray(warnings) && warnings.length > 0
+        ? warnings
+        : undefined;
 
     if (
       typeof schemaVersion === 'number' &&
@@ -224,7 +231,17 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     ) {
       deps.logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
     }
-    if (Array.isArray(errors) && errors.length > 0) {
+    if (ignoredMalformedWarnings && !hasTerminalErrors) {
+      deps.logger.log(
+        'SpotBugs analysis warning: Ignored malformed warnings field in analysis response.'
+      );
+    }
+    if (reportableWarnings) {
+      deps.logger.log(
+        `SpotBugs analysis warning: ${formatAnalysisErrors(reportableWarnings)}`
+      );
+    }
+    if (hasErrors) {
       const combined = formatAnalysisErrors(errors);
       deps.logger.error(`SpotBugs analysis error: ${combined}`);
       const hasResults = bugs.length > 0;
@@ -260,6 +277,9 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     };
     if (Array.isArray(errors) && errors.length > 0) {
       outcome.errors = errors;
+    }
+    if (reportableWarnings) {
+      outcome.warnings = reportableWarnings;
     }
     return outcome;
   }

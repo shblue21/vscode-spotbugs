@@ -49,6 +49,10 @@ describe('spotbugsParser', () => {
       JSON.stringify({ stats: { durationMs: 1 } }),
       JSON.stringify({ errors: [] }),
       JSON.stringify({ errors: [null, 'bad', {}] }),
+      JSON.stringify({
+        schemaVersion: 2,
+        warnings: [{ code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' }],
+      }),
       JSON.stringify(null),
       JSON.stringify('boom'),
     ];
@@ -80,6 +84,24 @@ describe('spotbugsParser', () => {
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');
       assert.strictEqual(result.value.errors?.[0]?.message, 'warn');
       assert.strictEqual(result.value.stats?.target, '/tmp/Foo');
+    }
+  });
+
+  it('parses empty results with warnings as a successful response', () => {
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        warnings: [{ code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' }],
+      })
+    );
+
+    assert.strictEqual(result.ok, true);
+    if (result.ok) {
+      assert.deepStrictEqual(result.value.bugs, []);
+      assert.deepStrictEqual(result.value.warnings, [
+        { code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' },
+      ]);
     }
   });
 

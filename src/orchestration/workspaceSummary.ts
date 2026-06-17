@@ -2,12 +2,14 @@ import type { AnalysisNotice } from '../model/analysisOutcome';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { buildResolutionIssueNotices } from './analysisNotices';
 import type { ProjectResult } from '../services/projectResult';
+import type { ProjectCleanupWarning } from '../services/analysisService';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 
 export function buildWorkspaceCompletionNotices(
   projectResults: ProjectResult[],
   findingCount: number,
-  resolutionIssues: AnalysisResolutionIssue[] = []
+  resolutionIssues: AnalysisResolutionIssue[] = [],
+  cleanupWarnings: ProjectCleanupWarning[] = []
 ): AnalysisNotice[] {
   const skippedCount = projectResults.filter(
     (result) => result.errorCode === NO_CLASS_TARGETS_CODE
@@ -19,13 +21,16 @@ export function buildWorkspaceCompletionNotices(
   const hasTerminalFailure =
     (projectResults.length > 0 && skippedCount === projectResults.length) ||
     (failedCount > 0 && succeededCount === 0);
+  const cleanupWarningSentence = buildCleanupWarningSentence(cleanupWarnings);
   const notices: AnalysisNotice[] = [];
 
   if (projectResults.length > 0 && skippedCount === projectResults.length) {
     notices.push(
       {
         level: 'warn',
-        message: 'SpotBugs could not build the project. Run a manual build, then try again.',
+        message:
+          'SpotBugs could not build the project. Run a manual build, then try again.' +
+          cleanupWarningSentence,
       }
     );
   } else if (failedCount > 0) {
@@ -40,7 +45,8 @@ export function buildWorkspaceCompletionNotices(
           level: 'error',
           message:
             `SpotBugs: Workspace analysis failed - ${formatProjectCount(failedCount)} failed.` +
-            `${skippedSentence} See the SpotBugs view for project errors.`,
+            `${skippedSentence} See the SpotBugs view for project errors.` +
+            cleanupWarningSentence,
         }
       );
     } else {
@@ -54,7 +60,7 @@ export function buildWorkspaceCompletionNotices(
         message:
           `SpotBugs: Workspace analysis completed with failures - ${formatProjectCount(
             failedCount
-          )} failed.` + `${skippedSentence} ${successSummary}`,
+          )} failed.` + `${skippedSentence} ${successSummary}` + cleanupWarningSentence,
       });
     }
   } else {
@@ -63,16 +69,18 @@ export function buildWorkspaceCompletionNotices(
         level: 'warn',
         message:
           `SpotBugs skipped ${formatProjectCount(skippedCount)} because the build failed. ` +
-          'Run a manual build, then try again.',
+          'Run a manual build, then try again.' +
+          cleanupWarningSentence,
       });
     }
 
     notices.push({
-      level: 'info',
+      level: cleanupWarningSentence.length > 0 && skippedCount === 0 ? 'warn' : 'info',
       message:
-        findingCount === 0
+        (findingCount === 0
           ? 'SpotBugs: Workspace analysis completed - No issues found.'
-          : `SpotBugs: Workspace analysis completed - ${formatIssueCount(findingCount)} found.`,
+          : `SpotBugs: Workspace analysis completed - ${formatIssueCount(findingCount)} found.`) +
+        (skippedCount === 0 ? cleanupWarningSentence : ''),
     });
   }
 
@@ -90,6 +98,18 @@ function formatProjectCount(count: number): string {
 
 function formatIssueCount(count: number): string {
   return `${count} issue${count === 1 ? '' : 's'}`;
+}
+
+function buildCleanupWarningSentence(
+  cleanupWarnings: ProjectCleanupWarning[]
+): string {
+  const uniqueProjectCount = new Set(
+    cleanupWarnings.map((warning) => warning.projectUri)
+  ).size;
+  if (uniqueProjectCount === 0) {
+    return '';
+  }
+  return ` Cleanup warnings occurred in ${formatProjectCount(uniqueProjectCount)}; see the SpotBugs output for details.`;
 }
 
 function dedupeNotices(notices: AnalysisNotice[]): AnalysisNotice[] {

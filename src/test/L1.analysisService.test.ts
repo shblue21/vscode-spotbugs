@@ -134,6 +134,66 @@ describe('analysisService', () => {
     assert.strictEqual(legacy.results.length, 2);
   });
 
+  it('aggregates backend cleanup warnings in workspace context without adding project result state', async () => {
+    const vscode = installVscodeMock();
+    const resolverModule =
+      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const spotbugsClient =
+      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+
+    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          preferredProject: projectUri,
+          targetResolutionRoots: ['/workspace/project/target/classes'],
+          runtimeClasspaths: ['/workspace/project/target/classes'],
+          sourcepaths: ['/workspace/project/src/main/java'],
+        },
+      },
+      issues: [],
+    })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
+    spotbugsClient.runSpotBugsAnalysis = (async () =>
+      JSON.stringify({
+        schemaVersion: 2,
+        results: [],
+        warnings: [
+          {
+            code: 'PLUGIN_CLEANUP_FAILED',
+            message: 'Could not delete plugin jar',
+          },
+        ],
+        stats: {
+          target: '/workspace/project-a/target/classes',
+          durationMs: 4,
+        },
+      })) as typeof spotbugsClient.runSpotBugsAnalysis;
+
+    const result = await service.analyzeWorkspaceFromProjectsDetailed(
+      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
+      vscode.Uri.file('/workspace') as any,
+      ['file:///workspace/project-a']
+    );
+
+    assert.deepStrictEqual(result.context.cleanupWarnings, [
+      {
+        projectUri: 'file:///workspace/project-a',
+        warning: {
+          code: 'PLUGIN_CLEANUP_FAILED',
+          message: 'Could not delete plugin jar',
+        },
+      },
+    ]);
+    assert.deepStrictEqual(result.results, [
+      {
+        projectUri: 'file:///workspace/project-a',
+        findings: [],
+      },
+    ]);
+  });
+
   it('preserves file resolution issues when analysis execution throws after target resolution', async () => {
     const vscode = installVscodeMock();
     const resolverModule =

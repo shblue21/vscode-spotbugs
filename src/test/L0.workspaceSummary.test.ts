@@ -131,6 +131,31 @@ describe('workspaceSummary', () => {
     ]);
   });
 
+  it('returns a warning completion notice when cleanup warnings are the only non-success condition', () => {
+    const notices = buildWorkspaceCompletionNotices(
+      [makeProjectResult()],
+      0,
+      [],
+      [
+        {
+          projectUri: 'file:///workspace/project-a',
+          warning: {
+            code: 'PLUGIN_CLEANUP_FAILED',
+            message: 'Could not delete plugin jar',
+          },
+        },
+      ]
+    );
+
+    assert.deepStrictEqual(notices, [
+      {
+        level: 'warn',
+        message:
+          'SpotBugs: Workspace analysis completed - No issues found. Cleanup warnings occurred in 1 project; see the SpotBugs output for details.',
+      },
+    ]);
+  });
+
   it('appends translated resolution notices while suppressing generic workspace fallback notices', () => {
     const notices = buildWorkspaceCompletionNotices([makeProjectResult()], 0, [
       {

@@ -28,6 +28,8 @@ export interface AnalysisError {
   message?: string;
 }
 
+export type AnalysisWarning = AnalysisError;
+
 export interface AnalysisStats {
   target?: string;
   durationMs?: number;
@@ -45,5 +47,6 @@ export interface AnalysisResponse<TBug = Bug> {
   schemaVersion?: number;
   results?: TBug[];
   errors?: AnalysisError[];
+  warnings?: AnalysisWarning[];
   stats?: AnalysisStats;
 }

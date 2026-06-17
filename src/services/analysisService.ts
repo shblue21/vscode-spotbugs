@@ -3,6 +3,7 @@ import { Logger } from '../core/logger';
 import { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisOutcome } from '../model/analysisOutcome';
+import type { AnalysisWarning } from '../model/analysisProtocol';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import { ProjectRef } from '../workspace/classpathService';
 import type { ProjectResult } from './projectResult';
@@ -31,8 +32,14 @@ export interface WorkspaceResult {
   cancelled?: boolean;
 }
 
+export interface ProjectCleanupWarning {
+  projectUri: string;
+  warning: AnalysisWarning;
+}
+
 export interface AnalysisExecutionContext {
   resolutionIssues: AnalysisResolutionIssue[];
+  cleanupWarnings?: ProjectCleanupWarning[];
   diagnosticScope?: DiagnosticUpdateScope;
 }
 
@@ -154,6 +161,7 @@ export async function analyzeWorkspaceFromProjectsDetailed(
     );
     results.push(result.projectResult);
     context.resolutionIssues.push(...result.context.resolutionIssues);
+    context.cleanupWarnings?.push(...(result.context.cleanupWarnings ?? []));
 
     if (isAnalysisCancelledProjectResult(result.projectResult)) {
       Logger.log('Workspace analysis cancelled by backend.');
@@ -235,6 +243,14 @@ async function analyzeProjectDetailed(
 
     try {
       const outcome = await runAnalysis(config, result.resolution.target);
+      if (Array.isArray(outcome.warnings)) {
+        context.cleanupWarnings?.push(
+          ...outcome.warnings.map((warning) => ({
+            projectUri: projectUriString,
+            warning,
+          }))
+        );
+      }
       return {
         projectResult: projectResultFromOutcome(projectUriString, outcome),
         context,
@@ -293,5 +309,6 @@ function normalizeProjectRef(project: ProjectRef): Uri {
 function createExecutionContext(): AnalysisExecutionContext {
   return {
     resolutionIssues: [],
+    cleanupWarnings: [],
   };
 }

@@ -318,6 +318,34 @@ describe('analysisNotices', () => {
     ]);
   });
 
+  it('emits cleanup warning notices without converting zero-finding outcomes into failures', () => {
+    const notices = buildAnalysisNotices(
+      {
+        findings: [],
+        warnings: [
+          {
+            code: 'PLUGIN_CLEANUP_FAILED',
+            message: 'Could not delete plugin jar',
+          },
+        ],
+      }
+    );
+
+    assert.ok(
+      notices.some(
+        (notice) =>
+          notice.level === 'warn' &&
+          notice.message ===
+            'SpotBugs analysis completed with cleanup warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar'
+      )
+    );
+    assert.ok(
+      notices.every(
+        (notice) => !notice.message.startsWith('SpotBugs analysis failed:')
+      )
+    );
+  });
+
   it('still surfaces JAVA_LS_REQUEST_FAILED on non-terminal analysis outcomes', () => {
     const notices = buildAnalysisNotices(
       {

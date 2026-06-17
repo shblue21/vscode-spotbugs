@@ -20,8 +20,17 @@ public class SpotBugsRunner {
 
     public List<BugInfo> run(FindBugs2 findBugs, Project project, Integer reporterPriorityThreshold, java.util.List<String> pluginJars)
             throws IOException, InterruptedException {
+        return runWithWarnings(findBugs, project, reporterPriorityThreshold, pluginJars).getBugs();
+    }
+
+    public SpotBugsAnalysisResult runWithWarnings(
+            FindBugs2 findBugs,
+            Project project,
+            Integer reporterPriorityThreshold,
+            java.util.List<String> pluginJars
+    ) throws IOException, InterruptedException {
         SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, reporterPriorityThreshold, pluginJars);
-        return executor.executeBugs();
+        return executor.executeBugsWithWarnings();
     }
 
     public String runNativeSarif(

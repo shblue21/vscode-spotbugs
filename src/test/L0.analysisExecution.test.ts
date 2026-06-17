@@ -323,6 +323,12 @@ describe('analysisExecution', () => {
           value: {
             bugs: [],
             errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
+            warnings: [
+              {
+                code: 'PLUGIN_CLEANUP_FAILED',
+                message: 'Could not delete plugin',
+              },
+            ],
             stats: {
               target: '/workspace/build/classes',
               durationMs: 9,
@@ -341,6 +347,7 @@ describe('analysisExecution', () => {
 
     assert.deepStrictEqual(outcome.findings, []);
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
+    assert.strictEqual(outcome.warnings, undefined);
     assert.strictEqual(outcome.stats?.target, '/workspace/build/classes');
     assert.strictEqual(outcome.schemaVersion, 2);
     assert.strictEqual(outcome.failure?.code, 'ANALYSIS_FAILED');
@@ -397,4 +404,5 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.stats?.durationMs, 12);
     assert.strictEqual(outcome.schemaVersion, 2);
   });
+
 });
