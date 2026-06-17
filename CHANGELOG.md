@@ -1,4 +1,14 @@
 # Changelog
+## [0.6.3](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.2...v0.6.3) (2026-06-17)
+
+
+### Bug Fixes
+
+* **runner:** align target archive detection ([dc5c8c1](https://github.com/shblue21/vscode-spotbugs/commit/dc5c8c1a5cad308363944f3c11b9dd4a68d9425d))
+* **runner:** load configured SpotBugs plugins ([4e2cbe1](https://github.com/shblue21/vscode-spotbugs/commit/4e2cbe10e82c94e050a9a32c5a38646ba6e587a9))
+* **runner:** surface SpotBugs plugin cleanup warnings ([#62](https://github.com/shblue21/vscode-spotbugs/issues/62)) ([a6234a1](https://github.com/shblue21/vscode-spotbugs/commit/a6234a14e9cea6fdc4614a35cbe0da55a49c7dd5))
+* scope source analysis to mapped output roots ([#60](https://github.com/shblue21/vscode-spotbugs/issues/60)) ([6109eab](https://github.com/shblue21/vscode-spotbugs/commit/6109eab5d5bf42eb966208490f73b558141ebea0))
+
 ## [0.6.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.1...v0.6.2) (2026-05-27)
 
 
