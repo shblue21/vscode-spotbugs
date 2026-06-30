@@ -1,7 +1,7 @@
 {
   "name": "vscode-spotbugs",
-  "displayName": "SpotBugs",
-  "description": "Java static analysis and bug detection with SpotBugs, diagnostics, filters, and SARIF export",
+  "displayName": "%displayName%",
+  "description": "%description%",
   "version": "0.6.3",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
@@ -47,11 +47,12 @@
     "vscode"
   ],
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "capabilities": {
     "virtualWorkspaces": false,
     "untrustedWorkspaces": {
       "supported": false,
-      "description": "SpotBugs requires a trusted Java workspace to build and analyze project contents."
+      "description": "%capabilities.untrustedWorkspaces.description%"
     }
   },
   "contributes": {
@@ -59,7 +60,7 @@
       "activitybar": [
         {
           "id": "spotbugs-container",
-          "title": "SpotBugs",
+          "title": "%contributes.viewsContainers.activitybar.spotbugs-container.title%",
           "icon": "images/spotbugs_icon.png"
         }
       ]
@@ -68,11 +69,11 @@
       "spotbugs-container": [
         {
           "id": "spotbugs-view",
-          "name": "SpotBugs"
+          "name": "%contributes.views.spotbugs-container.spotbugs-view.name%"
         },
         {
           "id": "spotbugs-inspector-view",
-          "name": "Inspector",
+          "name": "%contributes.views.spotbugs-container.spotbugs-inspector-view.name%",
           "type": "webview"
         }
       ]
@@ -80,7 +81,7 @@
     "configuration": [
       {
         "type": "object",
-        "title": "SpotBugs: Analysis",
+        "title": "%contributes.configuration.analysis.title%",
         "order": 0,
         "properties": {
           "spotbugs.analysis.effort": {
@@ -92,17 +93,17 @@
               "max"
             ],
             "enumDescriptions": [
-              "Disables several analyses that increase precision but also increase memory consumption.",
-              "Run several analyses to find bugs",
-              "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete"
+              "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.min%",
+              "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.default%",
+              "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.max%"
             ],
-            "markdownDescription": "Set analysis effort level.",
+            "markdownDescription": "%contributes.configuration.spotbugs.analysis.effort.markdownDescription%",
             "scope": "window"
           },
           "spotbugs.analysis.priorityThreshold": {
             "type": "number",
             "default": 9,
-            "markdownDescription": "Report bugs with rank less than or equal to this value (1 most severe, 20 least). Leave unset to use default behavior.",
+            "markdownDescription": "%contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription%",
             "minimum": 1,
             "maximum": 20,
             "scope": "window"
@@ -114,7 +115,7 @@
             },
             "default": [],
             "uniqueItems": true,
-            "markdownDescription": "Additional SpotBugs aux classpath entries appended after Java Language Server runtime classpath entries. Supports absolute paths and workspace-relative paths for jar files or directories.",
+            "markdownDescription": "%contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription%",
             "scope": "window"
           },
           "spotbugs.plugins.paths": {
@@ -125,14 +126,14 @@
             },
             "default": [],
             "uniqueItems": true,
-            "markdownDescription": "SpotBugs plugin jar paths loaded before analysis. Supports absolute paths and workspace-relative `.jar` paths. Invalid entries stop analysis with a configuration error.",
+            "markdownDescription": "%contributes.configuration.spotbugs.plugins.paths.markdownDescription%",
             "scope": "window"
           }
         }
       },
       {
         "type": "object",
-        "title": "SpotBugs: Filters",
+        "title": "%contributes.configuration.filters.title%",
         "order": 1,
         "properties": {
           "spotbugs.filters.includePaths": {
@@ -143,7 +144,7 @@
             },
             "default": [],
             "uniqueItems": true,
-            "markdownDescription": "SpotBugs XML include filter file paths (`-include`). Supports absolute paths and workspace-relative paths.",
+            "markdownDescription": "%contributes.configuration.spotbugs.filters.includePaths.markdownDescription%",
             "scope": "window"
           },
           "spotbugs.filters.excludePaths": {
@@ -154,7 +155,7 @@
             },
             "default": [],
             "uniqueItems": true,
-            "markdownDescription": "SpotBugs XML exclude filter file paths (`-exclude`). Supports absolute paths and workspace-relative paths.",
+            "markdownDescription": "%contributes.configuration.spotbugs.filters.excludePaths.markdownDescription%",
             "scope": "window"
           },
           "spotbugs.filters.excludeBaselineBugsPaths": {
@@ -165,20 +166,20 @@
             },
             "default": [],
             "uniqueItems": true,
-            "markdownDescription": "SpotBugs XML baseline bug collection file paths (`-excludeBugs`). Supports absolute paths and workspace-relative paths.",
+            "markdownDescription": "%contributes.configuration.spotbugs.filters.excludeBaselineBugsPaths.markdownDescription%",
             "scope": "window"
           }
         }
       },
       {
         "type": "object",
-        "title": "SpotBugs: Results",
+        "title": "%contributes.configuration.results.title%",
         "order": 2,
         "properties": {
           "spotbugs.results.revealSourceOnSelection": {
             "type": "boolean",
             "default": true,
-            "markdownDescription": "Reveal the source location in a preview editor when selecting a SpotBugs finding in the results tree.",
+            "markdownDescription": "%contributes.configuration.spotbugs.results.revealSourceOnSelection.markdownDescription%",
             "scope": "window"
           }
         }
@@ -187,61 +188,61 @@
     "commands": [
       {
         "command": "spotbugs.run",
-        "title": "Analyze File/Folder"
+        "title": "%contributes.commands.spotbugs.run.title%"
       },
       {
         "command": "spotbugs.runWorkspace",
-        "title": "Analyze SpotBugs Workspace",
+        "title": "%contributes.commands.spotbugs.runWorkspace.title%",
         "icon": "$(bug)"
       },
       {
         "command": "spotbugs.revealFindingSource",
-        "title": "SpotBugs: Go to Code",
+        "title": "%contributes.commands.spotbugs.revealFindingSource.title%",
         "icon": "$(go-to-file)"
       },
       {
         "command": "spotbugs.openFindingDetails",
-        "title": "SpotBugs: Open Finding Details",
+        "title": "%contributes.commands.spotbugs.openFindingDetails.title%",
         "icon": "$(open-preview)"
       },
       {
         "command": "spotbugs.filterResults",
-        "title": "Filter SpotBugs Results",
+        "title": "%contributes.commands.spotbugs.filterResults.title%",
         "icon": "$(filter)"
       },
       {
         "command": "spotbugs.exportSarif",
-        "title": "Export SpotBugs Results (SARIF)",
+        "title": "%contributes.commands.spotbugs.exportSarif.title%",
         "icon": "$(file-code)"
       },
       {
         "command": "spotbugs.resetResults",
-        "title": "Reset SpotBugs Results",
+        "title": "%contributes.commands.spotbugs.resetResults.title%",
         "icon": "$(trash)"
       },
       {
         "command": "spotbugs.searchResults",
-        "title": "SpotBugs: Search Results",
+        "title": "%contributes.commands.spotbugs.searchResults.title%",
         "icon": "$(search)"
       },
       {
         "command": "spotbugs.clearSearch",
-        "title": "SpotBugs: Clear Search",
+        "title": "%contributes.commands.spotbugs.clearSearch.title%",
         "icon": "$(clear-all)"
       },
       {
         "command": "spotbugs.groupResultsBy",
-        "title": "SpotBugs: Group Results By...",
+        "title": "%contributes.commands.spotbugs.groupResultsBy.title%",
         "icon": "$(group-by-ref-type)"
       },
       {
         "command": "spotbugs.sortResultsBy",
-        "title": "SpotBugs: Sort Results By...",
+        "title": "%contributes.commands.spotbugs.sortResultsBy.title%",
         "icon": "$(sort-precedence)"
       },
       {
         "command": "spotbugs.openSettings",
-        "title": "SpotBugs: Open Settings",
+        "title": "%contributes.commands.spotbugs.openSettings.title%",
         "icon": "$(gear)"
       }
     ],
@@ -337,7 +338,7 @@
     "submenus": [
       {
         "id": "spotbugs.context",
-        "label": "SpotBugs"
+        "label": "%contributes.submenus.spotbugs.context.label%"
       }
     ],
     "javaExtensions": [
@@ -360,6 +361,7 @@
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
+    "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
     "build-server": "node scripts/buildJdtlsExt.js",
     "generate:sarif-fixture": "node scripts/generateSarifFixture.js"
   },
@@ -373,6 +375,7 @@
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
+    "@vscode/l10n-dev": "^0.0.35",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^9.1.2",

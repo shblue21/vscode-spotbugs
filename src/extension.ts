@@ -1,4 +1,4 @@
-import { ExtensionContext, languages, window, Uri, workspace } from 'vscode';
+import { ExtensionContext, languages, l10n, window, Uri, workspace } from 'vscode';
 import { SETTINGS_SECTION } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
@@ -226,6 +226,6 @@ async function doActivate(
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    defaultNotifier.error(`Failed to activate SpotBugs extension: ${errorMessage}`);
+    defaultNotifier.error(l10n.t('Failed to activate SpotBugs extension: {0}', errorMessage));
   }
 }

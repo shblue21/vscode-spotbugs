@@ -1,17 +1,31 @@
+import type * as vscode from 'vscode';
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
 import { getAllowedWebDocumentationUrl } from '../services/spotbugsDocumentationLinks';
 import { getFindingDescriptionTitle } from './findingDescriptionRenderer';
 import { FindingInspectorSnapshot } from './findingInspectorState';
 
+type Localize = (message: string, ...args: Array<string | number | boolean>) => string;
+type LocalizationApi = {
+  l10n: { t: Localize };
+  readonly vscodeL10nType?: typeof vscode.l10n;
+};
+
+const fallbackVscode: LocalizationApi = {
+  l10n: {
+    t: formatFallback,
+  },
+};
+
 export function renderFindingInspectorHtml(
   snapshot: FindingInspectorSnapshot,
-  nonce: string
+  nonce: string,
+  vscode: LocalizationApi = fallbackVscode
 ): string {
   const body =
     snapshot.status === 'empty'
-      ? renderEmptyState()
-      : renderFinding(snapshot.finding, snapshot.status);
+      ? renderEmptyState(vscode)
+      : renderFinding(snapshot.finding, snapshot.status, vscode);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -100,47 +114,50 @@ export function renderFindingInspectorHtml(
 </html>`;
 }
 
-function renderEmptyState(): string {
-  return '<p class="empty">Select a finding to inspect it.</p>';
+function renderEmptyState(vscode: LocalizationApi): string {
+  return `<p class="empty">${escapeHtml(vscode.l10n.t('Select a finding to inspect it.'))}</p>`;
 }
 
 function renderFinding(
   finding: Finding,
-  status: 'selected' | 'retained'
+  status: 'selected' | 'retained',
+  vscode: LocalizationApi
 ): string {
   const title = getFindingDescriptionTitle(finding);
   const stateLabel =
-    status === 'retained' ? 'Last inspected finding' : 'Selected finding';
+    status === 'retained'
+      ? vscode.l10n.t('Last inspected finding')
+      : vscode.l10n.t('Selected finding');
   const reportedMessage = formatReportedMessage(finding);
-  const severity = formatSeverityLabel(finding);
-  const location = formatLocation(finding);
+  const severity = formatSeverityLabel(finding, vscode);
+  const location = formatLocation(finding, vscode);
   const docsAction = getAllowedWebDocumentationUrl(finding.helpUri, finding.type)
-    ? '<button class="secondary" data-command="openDocs">Open docs</button>'
+    ? `<button class="secondary" data-command="openDocs">${escapeHtml(vscode.l10n.t('Open docs'))}</button>`
     : '';
 
   return `<section>
     <div class="state">${escapeHtml(stateLabel)}</div>
     <h2 title="${escapeAttribute(title)}"><span class="severity" aria-label="${escapeAttribute(severity)}">!</span> ${escapeHtml(title)}</h2>
-    <h3>Reported here</h3>
+    <h3>${escapeHtml(vscode.l10n.t('Reported here'))}</h3>
     <p class="reported-message" title="${escapeAttribute(reportedMessage)}">${escapeHtml(reportedMessage)}</p>
     <dl>
-      <dt>Location</dt><dd class="path" title="${escapeAttribute(location)}">${escapeHtml(location)}</dd>
-      ${finding.className ? `<dt>Class</dt><dd title="${escapeAttribute(finding.className)}">${escapeHtml(finding.className)}</dd>` : ''}
-      ${finding.methodName ? `<dt>Method</dt><dd title="${escapeAttribute(finding.methodName)}">${escapeHtml(finding.methodName)}</dd>` : ''}
-      ${finding.fieldName ? `<dt>Field</dt><dd title="${escapeAttribute(finding.fieldName)}">${escapeHtml(finding.fieldName)}</dd>` : ''}
+      <dt>${escapeHtml(vscode.l10n.t('Location'))}</dt><dd class="path" title="${escapeAttribute(location)}">${escapeHtml(location)}</dd>
+      ${finding.className ? `<dt>${escapeHtml(vscode.l10n.t('Class'))}</dt><dd title="${escapeAttribute(finding.className)}">${escapeHtml(finding.className)}</dd>` : ''}
+      ${finding.methodName ? `<dt>${escapeHtml(vscode.l10n.t('Method'))}</dt><dd title="${escapeAttribute(finding.methodName)}">${escapeHtml(finding.methodName)}</dd>` : ''}
+      ${finding.fieldName ? `<dt>${escapeHtml(vscode.l10n.t('Field'))}</dt><dd title="${escapeAttribute(finding.fieldName)}">${escapeHtml(finding.fieldName)}</dd>` : ''}
     </dl>
-    <h3>Rule</h3>
+    <h3>${escapeHtml(vscode.l10n.t('Rule'))}</h3>
     <dl>
-      <dt>Pattern</dt><dd>${escapeHtml(finding.patternId)}</dd>
-      ${finding.category ? `<dt>Category</dt><dd>${escapeHtml(finding.category)}</dd>` : ''}
-      ${finding.priority ? `<dt>Priority</dt><dd>${escapeHtml(finding.priority)}</dd>` : ''}
-      ${typeof finding.rank === 'number' ? `<dt>Rank</dt><dd>${String(finding.rank)}</dd>` : ''}
+      <dt>${escapeHtml(vscode.l10n.t('Pattern'))}</dt><dd>${escapeHtml(finding.patternId)}</dd>
+      ${finding.category ? `<dt>${escapeHtml(vscode.l10n.t('Category'))}</dt><dd>${escapeHtml(finding.category)}</dd>` : ''}
+      ${finding.priority ? `<dt>${escapeHtml(vscode.l10n.t('Priority'))}</dt><dd>${escapeHtml(finding.priority)}</dd>` : ''}
+      ${typeof finding.rank === 'number' ? `<dt>${escapeHtml(vscode.l10n.t('Rank'))}</dt><dd>${String(finding.rank)}</dd>` : ''}
       ${typeof finding.cweId === 'number' ? `<dt>CWE</dt><dd>${String(finding.cweId)}</dd>` : ''}
     </dl>
     <div class="actions">
-      <button data-command="revealSource">Go to code</button>
-      <button data-command="openDetails">Open details</button>
-      <button class="secondary" data-command="copyRuleId">Copy rule id</button>
+      <button data-command="revealSource">${escapeHtml(vscode.l10n.t('Go to code'))}</button>
+      <button data-command="openDetails">${escapeHtml(vscode.l10n.t('Open details'))}</button>
+      <button class="secondary" data-command="copyRuleId">${escapeHtml(vscode.l10n.t('Copy rule id'))}</button>
       ${docsAction}
     </div>
   </section>`;
@@ -154,22 +171,22 @@ function formatReportedMessage(finding: Finding): string {
   return formatFindingSummary(finding);
 }
 
-function formatSeverityLabel(finding: Finding): string {
+function formatSeverityLabel(finding: Finding, vscode: LocalizationApi): string {
   if (finding.priority) {
-    return `Priority ${finding.priority}`;
+    return vscode.l10n.t('Priority {0}', finding.priority);
   }
   if (typeof finding.rank === 'number') {
-    return `Rank ${finding.rank}`;
+    return vscode.l10n.t('Rank {0}', finding.rank);
   }
-  return 'SpotBugs finding';
+  return vscode.l10n.t('SpotBugs finding');
 }
 
-function formatLocation(finding: Finding): string {
+function formatLocation(finding: Finding, vscode: LocalizationApi): string {
   const file =
     finding.location.realSourcePath ??
     finding.location.fullPath ??
     finding.location.sourceFile ??
-    'Unknown source';
+    vscode.l10n.t('Unknown source');
   const start = finding.location.startLine;
   const end = finding.location.endLine;
 
@@ -193,4 +210,14 @@ function escapeHtml(value: string): string {
 
 function escapeAttribute(value: string): string {
   return escapeHtml(value);
+}
+
+function formatFallback(
+  message: string,
+  ...args: Array<string | number | boolean>
+): string {
+  return message.replace(/\{(\d+)\}/g, (placeholder, indexValue: string) => {
+    const index = Number(indexValue);
+    return index < args.length ? String(args[index]) : placeholder;
+  });
 }

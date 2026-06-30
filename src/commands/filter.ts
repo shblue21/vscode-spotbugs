@@ -1,4 +1,4 @@
-import { QuickPickItem, window } from 'vscode';
+import { QuickPickItem, l10n, window } from 'vscode';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import {
   FindingFilterKind,
@@ -20,7 +20,9 @@ export async function selectFindingFilter(
 ): Promise<void> {
   const cachedFindings = provider.getCachedFindings();
   if (cachedFindings.length === 0) {
-    await window.showInformationMessage('No cached SpotBugs findings available to filter.');
+    await window.showInformationMessage(
+      l10n.t('No cached SpotBugs findings available to filter.')
+    );
     return;
   }
 
@@ -33,9 +35,15 @@ export async function selectFindingFilter(
     }
 
     const description = currentValue
-      ? `Current: ${getFindingFilterDisplayLabel(cachedFindings, filterKind, currentValue)}`
+      ? l10n.t(
+          'Current: {0}',
+          getFindingFilterDisplayLabel(cachedFindings, filterKind, currentValue)
+        )
       : undefined;
-    const detail = `${options.length} available value${options.length === 1 ? '' : 's'}`;
+    const detail =
+      options.length === 1
+        ? l10n.t('{0} available value', options.length)
+        : l10n.t('{0} available values', options.length);
     return [
       {
         action: 'kind' as const,
@@ -50,14 +58,14 @@ export async function selectFindingFilter(
   if (Object.keys(activeFilters).length > 0) {
     kindItems.push({
       action: 'clear-all',
-      label: 'Clear all filters',
-      description: 'Restore the full cached result set',
+      label: l10n.t('Clear all filters'),
+      description: l10n.t('Restore the full cached result set'),
     });
   }
 
   const selectedKind = await window.showQuickPick<FilterKindPickItem>(kindItems, {
-    title: 'SpotBugs Filters',
-    placeHolder: 'Choose a filter kind to update',
+    title: l10n.t('SpotBugs Filters'),
+    placeHolder: l10n.t('Choose a filter kind to update'),
   });
 
   if (!selectedKind) {
@@ -77,7 +85,7 @@ export async function selectFindingFilter(
   if (currentValue) {
     valueItems.push({
       action: 'clear-kind',
-      label: `Clear ${getFindingFilterKindLabel(kind)} filter`,
+      label: l10n.t('Clear {0} filter', getFindingFilterKindLabel(kind)),
       description: getFindingFilterDisplayLabel(cachedFindings, kind, currentValue),
     });
   }
@@ -93,8 +101,11 @@ export async function selectFindingFilter(
   );
 
   const selectedValue = await window.showQuickPick<FilterValuePickItem>(valueItems, {
-    title: `SpotBugs Filter: ${getFindingFilterKindLabel(kind)}`,
-    placeHolder: `Choose a ${getFindingFilterKindLabel(kind).toLowerCase()} value`,
+    title: l10n.t('SpotBugs Filter: {0}', getFindingFilterKindLabel(kind)),
+    placeHolder: l10n.t(
+      'Choose a {0} value',
+      getFindingFilterKindLabel(kind).toLowerCase()
+    ),
   });
 
   if (!selectedValue) {
@@ -110,5 +121,5 @@ export async function selectFindingFilter(
 }
 
 function formatFindingCount(count: number): string {
-  return `${count} finding${count === 1 ? '' : 's'}`;
+  return count === 1 ? l10n.t('{0} finding', count) : l10n.t('{0} findings', count);
 }

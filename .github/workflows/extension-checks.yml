@@ -6,8 +6,10 @@ on:
       - '**'
     paths:
       - 'src/**'
+      - 'l10n/**'
       - 'test-fixtures/**'
       - 'package.json'
+      - 'package.nls*.json'
       - 'package-lock.json'
       - 'tsconfig.json'
       - 'eslint.config.js'
@@ -18,8 +20,10 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'l10n/**'
       - 'test-fixtures/**'
       - 'package.json'
+      - 'package.nls*.json'
       - 'package-lock.json'
       - 'tsconfig.json'
       - 'eslint.config.js'

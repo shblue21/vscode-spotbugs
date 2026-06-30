@@ -1,4 +1,4 @@
-import { window, workspace, Uri } from 'vscode';
+import { l10n, window, workspace, Uri } from 'vscode';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { buildSarifLog } from '../services/sarifExporter';
 import { Logger } from '../core/logger';
@@ -11,7 +11,9 @@ export async function exportSarifReport(
 ): Promise<void> {
   const findings = resolveSpotBugsSelection(provider, element);
   if (findings.length === 0) {
-    await window.showInformationMessage('No SpotBugs findings available to export.');
+    await window.showInformationMessage(
+      l10n.t('No SpotBugs findings available to export.')
+    );
     return;
   }
 
@@ -20,7 +22,7 @@ export async function exportSarifReport(
   const saveUri = await window.showSaveDialog({
     defaultUri,
     filters: { sarif: ['sarif', 'json'] },
-    saveLabel: 'Export SARIF',
+    saveLabel: l10n.t('Export SARIF'),
   });
   if (!saveUri) {
     return;
@@ -37,12 +39,20 @@ export async function exportSarifReport(
       `SpotBugs SARIF export completed (${findings.length} findings) -> ${saveUri.fsPath}`
     );
     await window.showInformationMessage(
-      `SpotBugs exported ${findings.length} finding${findings.length === 1 ? '' : 's'} to ${saveUri.fsPath}`
+      findings.length === 1
+        ? l10n.t('SpotBugs exported {0} finding to {1}', findings.length, saveUri.fsPath)
+        : l10n.t(
+            'SpotBugs exported {0} findings to {1}',
+            findings.length,
+            saveUri.fsPath
+          )
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     Logger.error('Failed to export SARIF report', error);
-    await window.showErrorMessage(`Failed to export SpotBugs SARIF: ${message}`);
+    await window.showErrorMessage(
+      l10n.t('Failed to export SpotBugs SARIF: {0}', message)
+    );
   }
 }
 

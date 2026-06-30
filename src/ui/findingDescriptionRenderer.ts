@@ -1,3 +1,4 @@
+import type * as vscode from 'vscode';
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
 import {
@@ -31,17 +32,32 @@ const DETAIL_HTML_ALLOWED_TAGS = [
 const DETAIL_HTML_ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 const DETAIL_HTML_ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 
-export function renderFindingDescriptionHtml(finding: Finding): string {
+type Localize = (message: string, ...args: Array<string | number | boolean>) => string;
+type LocalizationApi = {
+  l10n: { t: Localize };
+  readonly vscodeL10nType?: typeof vscode.l10n;
+};
+
+const fallbackVscode: LocalizationApi = {
+  l10n: {
+    t: formatFallback,
+  },
+};
+
+export function renderFindingDescriptionHtml(
+  finding: Finding,
+  vscode: LocalizationApi = fallbackVscode
+): string {
   const title = getFindingDescriptionTitle(finding);
   const summary = formatFindingSummary(finding);
   const docsHref =
     getExternalDocsHref(finding.helpUri, finding.type) ??
     GENERIC_SPOTBUGS_DOCS_URI;
-  const body = renderDescriptionBody(finding);
+  const body = renderDescriptionBody(finding, vscode);
   const metadata = [
-    finding.type ? ['Pattern', finding.type] : undefined,
-    finding.category ? ['Category', finding.category] : undefined,
-    finding.priority ? ['Priority', finding.priority] : undefined,
+    finding.type ? [vscode.l10n.t('Pattern'), finding.type] : undefined,
+    finding.category ? [vscode.l10n.t('Category'), finding.category] : undefined,
+    finding.priority ? [vscode.l10n.t('Priority'), finding.priority] : undefined,
   ].filter((entry): entry is [string, string] => Array.isArray(entry));
 
   const metadataHtml = metadata
@@ -156,7 +172,7 @@ export function renderFindingDescriptionHtml(finding: Finding): string {
     <p class="summary">${escapeHtml(summary)}</p>
     ${metadataHtml ? `<ul class="meta">${metadataHtml}</ul>` : ''}
     <div class="link-row">
-      <a href="${escapeAttribute(docsHref)}">Open external SpotBugs docs</a>
+      <a href="${escapeAttribute(docsHref)}">${escapeHtml(vscode.l10n.t('Open external SpotBugs docs'))}</a>
     </div>
   </header>
   <main>
@@ -173,7 +189,7 @@ export function sanitizeFindingDetailHtml(
   return sanitizeHtml(raw, getFindingDetailSanitizeOptions(currentBugType)).trim();
 }
 
-function renderDescriptionBody(finding: Finding): string {
+function renderDescriptionBody(finding: Finding, vscode: LocalizationApi): string {
   const detailHtml = finding.detailHtml?.trim();
   if (detailHtml) {
     const sanitized = sanitizeFindingDetailHtml(detailHtml, finding.type);
@@ -187,7 +203,7 @@ function renderDescriptionBody(finding: Finding): string {
     return `<div class="fallback">${escapeHtml(longDescription).replace(/\n/g, '<br>')}</div>`;
   }
 
-  return '<div class="fallback">No local SpotBugs description is available for this finding.</div>';
+  return `<div class="fallback">${escapeHtml(vscode.l10n.t('No local SpotBugs description is available for this finding.'))}</div>`;
 }
 
 export function getFindingDescriptionTitle(finding: Finding): string {
@@ -271,4 +287,14 @@ function getAllowedAbsoluteUrl(
   }
 
   return undefined;
+}
+
+function formatFallback(
+  message: string,
+  ...args: Array<string | number | boolean>
+): string {
+  return message.replace(/\{(\d+)\}/g, (placeholder, indexValue: string) => {
+    const index = Number(indexValue);
+    return index < args.length ? String(args[index]) : placeholder;
+  });
 }

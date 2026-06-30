@@ -1,4 +1,4 @@
-import { commands, ProgressLocation, window, type Uri } from 'vscode';
+import { commands, l10n, ProgressLocation, window, type Uri } from 'vscode';
 import { Config } from '../core/config';
 import { Logger } from '../core/logger';
 import { Notifier, defaultNotifier } from '../core/notifier';
@@ -39,7 +39,7 @@ export async function runFileAnalysis(
 
   const fileUri = args.uri ?? getActiveFileUri();
   if (!fileUri) {
-    notifier.error('No Java file selected for SpotBugs analysis.');
+    notifier.error(l10n.t('No Java file selected for SpotBugs analysis.'));
     Logger.log('No Java file selected for analysis.');
     return;
   }
@@ -73,7 +73,7 @@ export async function runWorkspaceAnalysis(
         window.withProgress(
           {
             location: ProgressLocation.Notification,
-            title: 'SpotBugs: Analyzing workspace',
+            title: l10n.t('SpotBugs: Analyzing workspace'),
             cancellable: true,
           },
           task

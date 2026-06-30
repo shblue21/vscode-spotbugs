@@ -1,4 +1,4 @@
-import { TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
+import { TreeItem, TreeItemCollapsibleState, ThemeIcon, l10n } from 'vscode';
 import { Finding } from '../model/finding';
 import { toFindingItemView } from './findingViewModel';
 import type { FindingGroupKind } from './findingFacets';
@@ -10,7 +10,10 @@ export class CategoryGroupItem extends TreeItem {
     super(`${category} (${totalCount})`, TreeItemCollapsibleState.Expanded);
     this.patterns = patterns;
     this.iconPath = new ThemeIcon('folder');
-    this.description = `${patterns.length} pattern${patterns.length !== 1 ? 's' : ''}`;
+    this.description =
+      patterns.length === 1
+        ? l10n.t('{0} pattern', patterns.length)
+        : l10n.t('{0} patterns', patterns.length);
     this.contextValue = 'spotbugs.category';
   }
 }
@@ -66,7 +69,7 @@ export class ProjectStatusItem extends TreeItem {
     super(label, TreeItemCollapsibleState.None);
     this.idKey = idKey;
     this.iconPath = new ThemeIcon('clock');
-    this.description = 'Pending';
+    this.description = l10n.t('Pending');
   }
 
   public setStatus(
@@ -76,20 +79,27 @@ export class ProjectStatusItem extends TreeItem {
     this.status = status;
     if (status === 'pending') {
       this.iconPath = new ThemeIcon('clock');
-      this.description = 'Pending';
+      this.description = l10n.t('Pending');
     } else if (status === 'running') {
       this.iconPath = new ThemeIcon('sync');
-      this.description = 'Analyzing…';
+      this.description = l10n.t('Analyzing…');
     } else if (status === 'done') {
       this.iconPath = new ThemeIcon('check');
       this.count = extra?.count;
-      this.description = typeof this.count === 'number' ? `Done (${this.count})` : 'Done';
+      this.description =
+        typeof this.count === 'number'
+          ? l10n.t('Done ({0})', this.count)
+          : l10n.t('Done');
     } else if (status === 'failed') {
       this.iconPath = new ThemeIcon('error');
-      this.description = extra?.error ? `Failed: ${extra.error}` : 'Failed';
+      this.description = extra?.error
+        ? l10n.t('Failed: {0}', extra.error)
+        : l10n.t('Failed');
     } else if (status === 'skipped') {
       this.iconPath = new ThemeIcon('warning');
-      this.description = extra?.error ? `Skipped: ${extra.error}` : 'Skipped';
+      this.description = extra?.error
+        ? l10n.t('Skipped: {0}', extra.error)
+        : l10n.t('Skipped');
     }
   }
 }

@@ -1,4 +1,4 @@
-import { commands, env, window } from 'vscode';
+import { commands, env, l10n, window } from 'vscode';
 import type { Disposable, WebviewView, WebviewViewProvider } from 'vscode';
 import { SpotBugsCommands } from '../constants/commands';
 import { getFindingRuleDocumentationUri } from '../services/spotbugsDiagnosticSupport';
@@ -49,7 +49,8 @@ export class FindingInspectorViewProvider
     }
     this.view.webview.html = renderFindingInspectorHtml(
       this.state.current,
-      createNonce()
+      createNonce(),
+      { l10n: { t: (message, ...args) => l10n.t(message, ...args) } }
     );
   }
 
@@ -57,7 +58,7 @@ export class FindingInspectorViewProvider
     const finding = this.state.current.finding;
     if (!finding) {
       await window.showInformationMessage(
-        'No SpotBugs finding is currently selected.'
+        l10n.t('No SpotBugs finding is currently selected.')
       );
       return;
     }
@@ -75,7 +76,7 @@ export class FindingInspectorViewProvider
     if (message.type === 'copyRuleId') {
       await env.clipboard.writeText(finding.patternId);
       await window.showInformationMessage(
-        `Copied SpotBugs rule id: ${finding.patternId}`
+        l10n.t('Copied SpotBugs rule id: {0}', finding.patternId)
       );
       return;
     }
@@ -84,7 +85,7 @@ export class FindingInspectorViewProvider
       const target = getFindingRuleDocumentationUri(finding);
       if (!target) {
         await window.showInformationMessage(
-          'No SpotBugs rule documentation is available.'
+          l10n.t('No SpotBugs rule documentation is available.')
         );
         return;
       }
