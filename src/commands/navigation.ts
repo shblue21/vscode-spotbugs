@@ -1,4 +1,4 @@
-import { window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
+import { l10n, window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
 import { Finding } from '../model/finding';
 import { Logger } from '../core/logger';
 import { defaultNotifier } from '../core/notifier';
@@ -30,7 +30,10 @@ export async function revealFindingSource(
     }
 
     if (!filePath) {
-      const errorMsg = `Cannot open file: Could not resolve path for ${finding.location.realSourcePath || 'unknown file'}`;
+      const errorMsg = l10n.t(
+        'Cannot open file: Could not resolve path for {0}',
+        finding.location.realSourcePath || l10n.t('unknown file')
+      );
       Logger.error(errorMsg);
       notifier.error(errorMsg);
       return;
@@ -68,7 +71,7 @@ export async function revealFindingSource(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     Logger.error('Failed to reveal finding source', error);
-    defaultNotifier.error(`Failed to open file: ${errorMessage}`);
+    defaultNotifier.error(l10n.t('Failed to open file: {0}', errorMessage));
   }
 }
 

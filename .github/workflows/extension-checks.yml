@@ -6,6 +6,7 @@ on:
       - '**'
     paths:
       - 'src/**'
+      - 'l10n/**'
       - 'test-fixtures/**'
       - 'package.json'
       - 'package.nls*.json'
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'l10n/**'
       - 'test-fixtures/**'
       - 'package.json'
       - 'package.nls*.json'

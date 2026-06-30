@@ -1,4 +1,4 @@
-import { ThemeIcon } from 'vscode';
+import { ThemeIcon, l10n } from 'vscode';
 import * as path from 'path';
 import { Finding } from '../model/finding';
 import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
@@ -32,7 +32,15 @@ export function toFindingItemView(finding: Finding): FindingItemViewProps {
         : `${startLine}`
       : '';
   const description = `${fileName}${lineInfo ? `:${lineInfo}` : ''} • ${facets.categoryLabel}`;
-  const tooltip = `Pattern: ${facets.ruleLabel}\nCategory: ${facets.categoryLabel}\nPriority: ${facets.priorityLabel}\nFile: ${facets.pathLabel}${lineInfo ? `\nLine: ${lineInfo}` : ''}`;
+  const tooltip = [
+    l10n.t('Pattern: {0}', facets.ruleLabel),
+    l10n.t('Category: {0}', facets.categoryLabel),
+    l10n.t('Priority: {0}', facets.priorityLabel),
+    l10n.t('File: {0}', facets.pathLabel),
+    lineInfo ? l10n.t('Line: {0}', lineInfo) : undefined,
+  ]
+    .filter((line): line is string => !!line)
+    .join('\n');
   const icon = severityIcon(finding);
   return { label, description, tooltip, icon };
 }

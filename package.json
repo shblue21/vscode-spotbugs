@@ -47,6 +47,7 @@
     "vscode"
   ],
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "capabilities": {
     "virtualWorkspaces": false,
     "untrustedWorkspaces": {
@@ -360,6 +361,7 @@
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
+    "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
     "build-server": "node scripts/buildJdtlsExt.js",
     "generate:sarif-fixture": "node scripts/generateSarifFixture.js"
   },
@@ -373,6 +375,7 @@
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
+    "@vscode/l10n-dev": "^0.0.35",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^9.1.2",

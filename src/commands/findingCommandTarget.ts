@@ -1,4 +1,4 @@
-import { window } from 'vscode';
+import { l10n, window } from 'vscode';
 import { Finding } from '../model/finding';
 import { FindingInspectorState } from '../ui/findingInspectorState';
 
@@ -16,13 +16,19 @@ export async function resolveFindingCommandTarget(
   if (snapshot.status !== 'empty') {
     if (snapshot.status === 'retained') {
       await window.showInformationMessage(
-        `SpotBugs: ${actionLabel} uses the Last inspected finding (${snapshot.finding.patternId}).`
+        l10n.t(
+          'SpotBugs: {0} uses the Last inspected finding ({1}).',
+          actionLabel,
+          snapshot.finding.patternId
+        )
       );
     }
     return snapshot.finding;
   }
 
-  await window.showInformationMessage('No SpotBugs finding is currently selected.');
+  await window.showInformationMessage(
+    l10n.t('No SpotBugs finding is currently selected.')
+  );
   return undefined;
 }
 

@@ -1,4 +1,4 @@
-import { QuickPickItem, window } from 'vscode';
+import { QuickPickItem, l10n, window } from 'vscode';
 import { FindingGroupKind } from '../ui/findingFacets';
 import { FindingSortKind } from '../ui/resultViewModel';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
@@ -7,31 +7,33 @@ type GroupPickItem = QuickPickItem & { value: FindingGroupKind };
 type SortPickItem = QuickPickItem & { value: FindingSortKind };
 
 const GROUP_ITEMS: GroupPickItem[] = [
-  { label: 'Category', value: 'category' },
-  { label: 'Package', value: 'package' },
-  { label: 'Class', value: 'class' },
-  { label: 'Path', value: 'path' },
-  { label: 'Priority', value: 'priority' },
-  { label: 'Rule', value: 'rule' },
+  { label: l10n.t('Category'), value: 'category' },
+  { label: l10n.t('Package'), value: 'package' },
+  { label: l10n.t('Class'), value: 'class' },
+  { label: l10n.t('Path'), value: 'path' },
+  { label: l10n.t('Priority'), value: 'priority' },
+  { label: l10n.t('Rule'), value: 'rule' },
 ];
 
 const SORT_ITEMS: SortPickItem[] = [
-  { label: 'Severity / Rank', value: 'severityRank' },
-  { label: 'Path / Line', value: 'pathLine' },
-  { label: 'Rule', value: 'rule' },
+  { label: l10n.t('Severity / Rank'), value: 'severityRank' },
+  { label: l10n.t('Path / Line'), value: 'pathLine' },
+  { label: l10n.t('Rule'), value: 'rule' },
 ];
 
 export async function searchResults(
   provider: SpotBugsTreeDataProvider
 ): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
-    await window.showInformationMessage('No cached SpotBugs findings available to search.');
+    await window.showInformationMessage(
+      l10n.t('No cached SpotBugs findings available to search.')
+    );
     return;
   }
 
   const value = await window.showInputBox({
-    title: 'SpotBugs Search Results',
-    prompt: 'Search SpotBugs results',
+    title: l10n.t('SpotBugs Search Results'),
+    prompt: l10n.t('Search SpotBugs results'),
     value: provider.getSearchQuery(),
   });
 
@@ -47,7 +49,7 @@ export async function clearResultsSearch(
 ): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
     await window.showInformationMessage(
-      'No cached SpotBugs findings available to clear search.'
+      l10n.t('No cached SpotBugs findings available to clear search.')
     );
     return;
   }
@@ -59,7 +61,9 @@ export async function groupResultsBy(
   provider: SpotBugsTreeDataProvider
 ): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
-    await window.showInformationMessage('No cached SpotBugs findings available to group.');
+    await window.showInformationMessage(
+      l10n.t('No cached SpotBugs findings available to group.')
+    );
     return;
   }
 
@@ -67,11 +71,11 @@ export async function groupResultsBy(
   const selected = await window.showQuickPick(
     GROUP_ITEMS.map((item) => ({
       ...item,
-      description: item.value === current ? 'Current' : undefined,
+      description: item.value === current ? l10n.t('Current') : undefined,
     })),
     {
-      title: 'SpotBugs Group Results By',
-      placeHolder: 'Choose a grouping mode',
+      title: l10n.t('SpotBugs Group Results By'),
+      placeHolder: l10n.t('Choose a grouping mode'),
     }
   );
 
@@ -84,7 +88,9 @@ export async function sortResultsBy(
   provider: SpotBugsTreeDataProvider
 ): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
-    await window.showInformationMessage('No cached SpotBugs findings available to sort.');
+    await window.showInformationMessage(
+      l10n.t('No cached SpotBugs findings available to sort.')
+    );
     return;
   }
 
@@ -92,11 +98,11 @@ export async function sortResultsBy(
   const selected = await window.showQuickPick(
     SORT_ITEMS.map((item) => ({
       ...item,
-      description: item.value === current ? 'Current' : undefined,
+      description: item.value === current ? l10n.t('Current') : undefined,
     })),
     {
-      title: 'SpotBugs Sort Results By',
-      placeHolder: 'Choose a sorting mode',
+      title: l10n.t('SpotBugs Sort Results By'),
+      placeHolder: l10n.t('Choose a sorting mode'),
     }
   );
 

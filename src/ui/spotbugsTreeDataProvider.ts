@@ -1,6 +1,14 @@
 'use strict';
 
-import { Event, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, Uri } from 'vscode';
+import {
+  Event,
+  EventEmitter,
+  ThemeIcon,
+  TreeDataProvider,
+  TreeItem,
+  Uri,
+  l10n,
+} from 'vscode';
 import { Finding } from '../model/finding';
 import {
   CategoryGroupItem,
@@ -74,7 +82,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.cachedResults = [];
     this.visibleResults = [];
     this.resetExplorationState();
-    this.viewItems = [this.createMessageItem('Ready to analyze. Click the bug icon to start.')];
+    this.viewItems = [
+      this.createMessageItem(l10n.t('Ready to analyze. Click the bug icon to start.')),
+    ];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -84,7 +94,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.cachedResults = [];
     this.visibleResults = [];
     this.clearTransientViewState();
-    this.viewItems = [this.createMessageItem('Analyzing...')];
+    this.viewItems = [this.createMessageItem(l10n.t('Analyzing...'))];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -123,7 +133,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.cachedResults = [];
     this.visibleResults = [];
     this.clearTransientViewState();
-    this.viewItems = [this.createMessageItem('SpotBugs workspace analysis cancelled.')];
+    this.viewItems = [
+      this.createMessageItem(l10n.t('SpotBugs workspace analysis cancelled.')),
+    ];
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -298,7 +310,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private refreshResultsView(): void {
     if (this.cachedResults.length === 0) {
-      this.viewItems = [this.createMessageItem('No issues found.')];
+      this.viewItems = [this.createMessageItem(l10n.t('No issues found.'))];
       this.visibleResults = [];
       this.applyWorkspaceStatusItems();
       return;
@@ -353,11 +365,11 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     const filterState = createFilteredEmptyState(this.cachedResults, this.activeFilters);
     const parts = [
       filterState.description,
-      this.searchQuery ? `Search: "${this.searchQuery}"` : undefined,
+      this.searchQuery ? l10n.t('Search: "{0}"', this.searchQuery) : undefined,
     ].filter((part): part is string => !!part);
 
     return {
-      label: 'No cached findings match the current view.',
+      label: l10n.t('No cached findings match the current view.'),
       description: parts.join(' | ') || undefined,
     };
   }

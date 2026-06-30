@@ -187,6 +187,9 @@ type VscodeMock = {
       writeText: (value: string) => Promise<void>;
     };
   };
+  l10n: {
+    t: (message: string, ...args: unknown[]) => string;
+  };
   extensions: {
     getExtension: (id: string) => unknown;
   };
@@ -289,6 +292,7 @@ function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
   Object.assign(target.window, source.window);
   Object.assign(target.commands, source.commands);
   Object.assign(target.env.clipboard, source.env.clipboard);
+  target.l10n = source.l10n;
   Object.assign(target.extensions, source.extensions);
   target.CodeActionKind = source.CodeActionKind;
   Object.assign(target.languages, source.languages);
@@ -387,6 +391,9 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
         writeText: overrides.env?.clipboard?.writeText ?? (async () => undefined),
       },
     },
+    l10n: overrides.l10n ?? {
+      t: formatL10nFallback,
+    },
     extensions: {
       getExtension: overrides.extensions?.getExtension ?? (() => undefined),
     },
@@ -411,4 +418,11 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
       Beside: 2,
     },
   };
+}
+
+function formatL10nFallback(message: string, ...args: unknown[]): string {
+  return message.replace(/\{(\d+)\}/g, (placeholder, indexValue: string) => {
+    const index = Number(indexValue);
+    return index < args.length ? String(args[index]) : placeholder;
+  });
 }
