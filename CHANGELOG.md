@@ -1,4 +1,11 @@
 # Changelog
+## [0.7.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.3...v0.7.0) (2026-06-30)
+
+
+### Features
+
+* **i18n:** add localization support ([#73](https://github.com/shblue21/vscode-spotbugs/issues/73)) ([e835171](https://github.com/shblue21/vscode-spotbugs/commit/e835171977cb334e68d2b170605358449be2d27a))
+
 ## [0.6.3](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.2...v0.6.3) (2026-06-17)
 
 
