@@ -28,8 +28,29 @@ describe('package contributions', () => {
     assert.ok(views.some((view) => view.id === 'spotbugs-view'));
     const inspector = views.find((view) => view.id === 'spotbugs-inspector-view');
     assert.ok(inspector);
-    assert.strictEqual(inspector.name, 'Inspector');
+    assert.ok(hasManifestNlsPlaceholder(inspector.name));
     assert.strictEqual(inspector.type, 'webview');
+  });
+
+  it('has default NLS values for every manifest placeholder', () => {
+    const defaultMessages = readPackageNlsJson();
+    const koreanMessages = readPackageNlsKoJson();
+    const placeholderKeys = collectManifestNlsPlaceholderKeys(manifest);
+
+    assert.ok(placeholderKeys.size > 0, 'package.json should contain NLS placeholders');
+    for (const key of placeholderKeys) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(defaultMessages, key),
+        `package.nls.json is missing ${key}`
+      );
+    }
+
+    for (const key of Object.keys(koreanMessages)) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(defaultMessages, key),
+        `package.nls.ko.json contains unknown key ${key}`
+      );
+    }
   });
 
   it('contributes command ids used by result tree actions and removes openBugLocation', () => {
@@ -148,3 +169,66 @@ function readPackageJson(): PackageJson {
   const manifestPath = path.resolve(__dirname, '../../package.json');
   return JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as PackageJson;
 }
+
+function readPackageNlsJson(): Record<string, string> {
+  return readFlatStringMap('package.nls.json');
+}
+
+function readPackageNlsKoJson(): Record<string, string> {
+  return readFlatStringMap('package.nls.ko.json');
+}
+
+function readFlatStringMap(fileName: string): Record<string, string> {
+  const filePath = path.resolve(__dirname, '../..', fileName);
+  const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as unknown;
+
+  assert.ok(
+    parsed && typeof parsed === 'object' && !Array.isArray(parsed),
+    `${fileName} must be a flat object with string values`
+  );
+
+  const messages: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+    assert.strictEqual(typeof value, 'string', `${fileName}.${key} must be a string`);
+    messages[key] = value as string;
+  }
+  return messages;
+}
+
+function hasManifestNlsPlaceholder(value: string): boolean {
+  NLS_PLACEHOLDER_PATTERN.lastIndex = 0;
+  return NLS_PLACEHOLDER_PATTERN.test(value);
+}
+
+function collectManifestNlsPlaceholderKeys(value: unknown): Set<string> {
+  const keys = new Set<string>();
+  collectManifestNlsPlaceholderKeysInto(value, keys);
+  return keys;
+}
+
+function collectManifestNlsPlaceholderKeysInto(value: unknown, keys: Set<string>): void {
+  if (typeof value === 'string') {
+    NLS_PLACEHOLDER_PATTERN.lastIndex = 0;
+    for (const match of value.matchAll(NLS_PLACEHOLDER_PATTERN)) {
+      keys.add(match[1]);
+    }
+    return;
+  }
+
+  if (!value || typeof value !== 'object') {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectManifestNlsPlaceholderKeysInto(item, keys);
+    }
+    return;
+  }
+
+  for (const item of Object.values(value)) {
+    collectManifestNlsPlaceholderKeysInto(item, keys);
+  }
+}
+
+const NLS_PLACEHOLDER_PATTERN = /%([^%]+)%/g;
