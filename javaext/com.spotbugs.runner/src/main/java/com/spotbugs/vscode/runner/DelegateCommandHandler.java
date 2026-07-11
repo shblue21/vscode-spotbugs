@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.spotbugs.vscode.runner.api.CommandResponse;
 import com.spotbugs.vscode.runner.internal.command.ActionInvocation;
 import com.spotbugs.vscode.runner.internal.command.CommandAction;
+import com.spotbugs.vscode.runner.internal.command.PluginInventoryAction;
 import com.spotbugs.vscode.runner.internal.command.RunAnalysisAction;
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
@@ -47,6 +48,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
     private Map<String, CommandAction> initialiseActions() {
         Map<String, CommandAction> map = new HashMap<>();
         register(map, new RunAnalysisAction());
+        register(map, new PluginInventoryAction());
         return Collections.unmodifiableMap(map);
     }
 

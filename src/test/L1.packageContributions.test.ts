@@ -23,13 +23,16 @@ type PackageJson = {
 describe('package contributions', () => {
   const manifest = readPackageJson();
 
-  it('contributes the results tree and inspector views', () => {
+  it('contributes the results tree, inspector, and plugin inventory views', () => {
     const views = manifest.contributes.views['spotbugs-container'];
     assert.ok(views.some((view) => view.id === 'spotbugs-view'));
     const inspector = views.find((view) => view.id === 'spotbugs-inspector-view');
     assert.ok(inspector);
     assert.ok(hasManifestNlsPlaceholder(inspector.name));
     assert.strictEqual(inspector.type, 'webview');
+    const plugins = views.find((view) => view.id === 'spotbugs-plugins-view');
+    assert.ok(plugins);
+    assert.ok(hasManifestNlsPlaceholder(plugins.name));
   });
 
   it('has default NLS values for every manifest placeholder', () => {
@@ -68,13 +71,14 @@ describe('package contributions', () => {
       'spotbugs.groupResultsBy',
       'spotbugs.sortResultsBy',
       'spotbugs.openSettings',
+      'spotbugs.refreshPluginInventory',
     ]) {
       assert.ok(commands.includes(command), `${command} missing from contributes.commands`);
     }
     assert.ok(!commands.includes('spotbugs.openBugLocation'));
   });
 
-  it('contributes a setting for source reveal on result selection', () => {
+  it('contributes configuration settings', () => {
     const properties = Object.assign(
       {},
       ...manifest.contributes.configuration.map((group) => group.properties ?? {})
@@ -138,6 +142,9 @@ describe('package contributions', () => {
     ]);
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-inspector-view'), [
       'spotbugs.revealFindingSource',
+    ]);
+    assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-plugins-view'), [
+      'spotbugs.refreshPluginInventory',
     ]);
 
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');

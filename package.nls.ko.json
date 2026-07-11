@@ -5,6 +5,7 @@
   "contributes.viewsContainers.activitybar.spotbugs-container.title": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-view.name": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-inspector-view.name": "검사기",
+  "contributes.views.spotbugs-container.spotbugs-plugins-view.name": "플러그인",
   "contributes.configuration.analysis.title": "SpotBugs: 분석",
   "contributes.configuration.filters.title": "SpotBugs: 필터",
   "contributes.configuration.results.title": "SpotBugs: 결과",
@@ -31,5 +32,6 @@
   "contributes.commands.spotbugs.groupResultsBy.title": "SpotBugs: 결과 그룹화 기준...",
   "contributes.commands.spotbugs.sortResultsBy.title": "SpotBugs: 결과 정렬 기준...",
   "contributes.commands.spotbugs.openSettings.title": "SpotBugs: 설정 열기",
+  "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: 플러그인 새로 고침",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }

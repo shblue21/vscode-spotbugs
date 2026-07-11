@@ -1,6 +1,7 @@
 import { ExtensionContext, languages, l10n, window, Uri, workspace } from 'vscode';
 import { SETTINGS_SECTION } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
+import { PluginInventoryTreeDataProvider } from './ui/pluginInventoryTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './core/utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
@@ -12,6 +13,10 @@ import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
 import { openSettings } from './commands/settings';
+import {
+  invalidatePluginInventoryRefresh,
+  refreshPluginInventory,
+} from './commands/pluginInventory';
 import {
   clearResultsSearch,
   groupResultsBy,
@@ -63,6 +68,7 @@ async function doActivate(
     const config = new Config(context);
 
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
+    const pluginInventoryTreeDataProvider = new PluginInventoryTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
     const findingDescriptionPanel = new FindingDescriptionPanel();
     const findingInspectorState = new FindingInspectorState();
@@ -75,9 +81,13 @@ async function doActivate(
     const spotbugsTreeView = window.createTreeView('spotbugs-view', {
       treeDataProvider: spotbugsTreeDataProvider,
     });
+    const pluginInventoryTreeView = window.createTreeView('spotbugs-plugins-view', {
+      treeDataProvider: pluginInventoryTreeDataProvider,
+    });
 
     context.subscriptions.push(
       spotbugsTreeView,
+      pluginInventoryTreeView,
       diagnosticsManager,
       findingDescriptionPanel,
       findingInspectorState,
@@ -103,6 +113,8 @@ async function doActivate(
         if (e.affectsConfiguration(SETTINGS_SECTION)) {
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
+          invalidatePluginInventoryRefresh();
+          pluginInventoryTreeDataProvider.showInitialMessage();
         }
       }),
 
@@ -207,6 +219,13 @@ async function doActivate(
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_SETTINGS, openSettings),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
+        async (uri: Uri | undefined) => {
+          await refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri);
+        }
+      ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.EXPORT_SARIF,

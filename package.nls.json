@@ -5,6 +5,7 @@
   "contributes.viewsContainers.activitybar.spotbugs-container.title": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-view.name": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-inspector-view.name": "Inspector",
+  "contributes.views.spotbugs-container.spotbugs-plugins-view.name": "Plugins",
   "contributes.configuration.analysis.title": "SpotBugs: Analysis",
   "contributes.configuration.filters.title": "SpotBugs: Filters",
   "contributes.configuration.results.title": "SpotBugs: Results",
@@ -31,5 +32,6 @@
   "contributes.commands.spotbugs.groupResultsBy.title": "SpotBugs: Group Results By...",
   "contributes.commands.spotbugs.sortResultsBy.title": "SpotBugs: Sort Results By...",
   "contributes.commands.spotbugs.openSettings.title": "SpotBugs: Open Settings",
+  "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: Refresh Plugins",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }

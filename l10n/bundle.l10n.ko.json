@@ -85,5 +85,13 @@
   "{0} finding": "발견 항목 {0}개",
   "{0} findings": "발견 항목 {0}개",
   "{0} pattern": "패턴 {0}개",
-  "{0} patterns": "패턴 {0}개"
+  "{0} patterns": "패턴 {0}개",
+  "Refresh to inspect configured SpotBugs plugin jars.": "설정된 SpotBugs 플러그인 jar를 검사하려면 새로 고침하세요.",
+  "Inspecting SpotBugs plugin jars...": "SpotBugs 플러그인 jar 검사 중...",
+  "No SpotBugs plugin jars configured.": "설정된 SpotBugs 플러그인 jar가 없습니다.",
+  "Plugin {0}": "플러그인 {0}",
+  "Validated": "검증됨",
+  "Duplicate plugin id": "중복 플러그인 ID",
+  "Load failed": "로드 실패",
+  "Backend error": "백엔드 오류"
 }

@@ -24,6 +24,7 @@ describe('Extension activation', () => {
       SpotBugsCommands.GROUP_RESULTS_BY,
       SpotBugsCommands.SORT_RESULTS_BY,
       SpotBugsCommands.OPEN_SETTINGS,
+      SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
     ];
 
     for (const cmd of expected) {
