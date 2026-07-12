@@ -83,12 +83,12 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
 
 function statusDescription(status: PluginInventoryStatus): string {
   switch (status) {
-    case 'loadable':
+    case 'validated':
       return l10n.t('Validated');
     case 'duplicate-plugin-id':
       return l10n.t('Duplicate plugin id');
-    case 'load-failed':
-      return l10n.t('Load failed');
+    case 'validation-failed':
+      return l10n.t('Validation failed');
     case 'backend-error':
       return l10n.t('Backend error');
   }
@@ -96,11 +96,11 @@ function statusDescription(status: PluginInventoryStatus): string {
 
 function statusIcon(status: PluginInventoryStatus): ThemeIcon {
   switch (status) {
-    case 'loadable':
+    case 'validated':
       return new ThemeIcon('pass');
     case 'duplicate-plugin-id':
       return new ThemeIcon('warning');
-    case 'load-failed':
+    case 'validation-failed':
     case 'backend-error':
       return new ThemeIcon('error');
   }

@@ -105,7 +105,7 @@ describe('pluginInventoryTreeDataProvider', () => {
           index: 0,
           path: '/workspace/plugin-a.jar',
           canonicalPath: '/workspace/plugin-a.jar',
-          status: 'loadable',
+          status: 'validated',
           pluginId: 'com.example.a',
         },
         {
@@ -123,7 +123,7 @@ describe('pluginInventoryTreeDataProvider', () => {
     assert.deepStrictEqual(
       children.map((child) => [child.label, child.description, child.contextValue]),
       [
-        ['plugin-a.jar', 'Validated: com.example.a', 'spotbugs.plugin.loadable'],
+        ['plugin-a.jar', 'Validated: com.example.a', 'spotbugs.plugin.validated'],
         [
           'plugin-b.jar',
           'Duplicate plugin id: com.example.a',
@@ -139,7 +139,7 @@ describe('pluginInventoryParser', () => {
     const result = parsePluginInventoryResponse(
       JSON.stringify({
         results: [
-          { index: 0, path: 'a.jar', status: 'LOADABLE', pluginId: 'a' },
+          { index: 0, path: 'a.jar', status: 'VALIDATED', pluginId: 'a' },
           {
             index: 1,
             path: 'b.jar',
@@ -147,16 +147,21 @@ describe('pluginInventoryParser', () => {
             pluginId: 'a',
             errorMessage: 'Duplicate plugin id',
           },
-          { index: 2, path: 'bad.jar', status: 'LOAD_FAILED', errorMessage: 'bad' },
+          {
+            index: 2,
+            path: 'bad.jar',
+            status: 'VALIDATION_FAILED',
+            errorMessage: 'bad',
+          },
         ],
       })
     );
 
     assert.strictEqual(result.ok, true);
     assert.deepStrictEqual(result.value.items.map((item) => item.status), [
-      'loadable',
+      'validated',
       'duplicate-plugin-id',
-      'load-failed',
+      'validation-failed',
     ]);
     assert.strictEqual(result.value.items[0].pluginId, 'a');
     assert.strictEqual(result.value.items[2].errorMessage, 'bad');
@@ -174,7 +179,12 @@ describe('pluginInventoryParser', () => {
   });
 
   it('rejects malformed responses', () => {
-    for (const raw of ['{', JSON.stringify({ errors: [{}] })]) {
+    for (const raw of [
+      '{',
+      JSON.stringify({ errors: [{}] }),
+      JSON.stringify({ results: [null], errors: [] }),
+      JSON.stringify({ results: [{ path: 'plugin.jar', status: 'VALIDATED' }] }),
+    ]) {
       const result = parsePluginInventoryResponse(raw);
 
       assert.strictEqual(result.ok, false);
@@ -214,7 +224,7 @@ describe('pluginInventoryService', () => {
             {
               index: 0,
               path: '/workspace/plugin-a.jar',
-              status: 'LOADABLE',
+              status: 'VALIDATED',
               pluginId: 'com.example.a',
             },
           ]);
@@ -227,9 +237,11 @@ describe('pluginInventoryService', () => {
         plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
       },
     ]);
-    assert.strictEqual(result.items.length, 1);
-    assert.strictEqual(result.items[0].status, 'loadable');
+    assert.strictEqual(result.items.length, 2);
+    assert.strictEqual(result.items[0].status, 'validated');
     assert.strictEqual(result.items[0].path, '/workspace/plugin-a.jar');
+    assert.strictEqual(result.items[1].status, 'backend-error');
+    assert.strictEqual(result.items[1].path, '/workspace/plugin-b.jar');
   });
 
   it('returns backend-error rows for each configured path when the command fails', async () => {
@@ -253,5 +265,32 @@ describe('pluginInventoryService', () => {
         ['/workspace/plugin-b.jar', 'backend-error', 'Java LS unavailable'],
       ]
     );
+  });
+
+  it('rejects invalid or duplicate backend indexes without reassigning plugins', async () => {
+    for (const results of [
+      [{ index: -1, path: '/workspace/plugin-a.jar', status: 'VALIDATED' }],
+      [
+        { index: 0, path: '/workspace/plugin-a.jar', status: 'VALIDATED' },
+        { index: 0, path: '/workspace/plugin-b.jar', status: 'VALIDATED' },
+      ],
+    ]) {
+      const result = await getPluginInventory(
+        makeConfig({
+          effort: 'default',
+          plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
+        }),
+        undefined,
+        { runPluginInventory: async () => inventoryResponse(results) }
+      );
+
+      assert.deepStrictEqual(
+        result.items.map((item) => [item.path, item.status]),
+        [
+          ['/workspace/plugin-a.jar', 'backend-error'],
+          ['/workspace/plugin-b.jar', 'backend-error'],
+        ]
+      );
+    }
   });
 });

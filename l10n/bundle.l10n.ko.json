@@ -92,6 +92,6 @@
   "Plugin {0}": "플러그인 {0}",
   "Validated": "검증됨",
   "Duplicate plugin id": "중복 플러그인 ID",
-  "Load failed": "로드 실패",
+  "Validation failed": "검증 실패",
   "Backend error": "백엔드 오류"
 }

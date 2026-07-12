@@ -9,9 +9,9 @@ export interface PluginInventoryRequest {
 }
 
 export type PluginInventoryStatus =
-  | 'loadable'
+  | 'validated'
   | 'duplicate-plugin-id'
-  | 'load-failed'
+  | 'validation-failed'
   | 'backend-error';
 
 export interface PluginInventoryItem {
@@ -67,7 +67,16 @@ export function parsePluginInventoryResponse(raw: string): PluginInventoryParseR
     return invalidResponse();
   }
 
-  const items = hasResults ? normalizeItems(parsed.results as unknown[]) : [];
+  const resultValues = hasResults ? (parsed.results as unknown[]) : [];
+  if (
+    resultValues.some(
+      (value) => !isRecord(value) || !Number.isInteger(value.index)
+    )
+  ) {
+    return invalidResponse();
+  }
+
+  const items = normalizeItems(resultValues);
   const errors = hasErrors ? normalizeErrors(parsed.errors) : undefined;
   if (!hasResults && Array.isArray(errors) && errors.length === 0) {
     return invalidResponse();
@@ -89,7 +98,7 @@ function normalizeItems(values: unknown[]): PluginInventoryItem[] {
       continue;
     }
 
-    const index = typeof value.index === 'number' ? value.index : items.length;
+    const index = value.index as number;
     const path = typeof value.path === 'string' ? value.path : '';
     const canonicalPath =
       typeof value.canonicalPath === 'string' ? value.canonicalPath : undefined;
@@ -109,12 +118,12 @@ function normalizeItems(values: unknown[]): PluginInventoryItem[] {
 
 function normalizeStatus(value: unknown): PluginInventoryStatus {
   switch (value) {
-    case 'LOADABLE':
-      return 'loadable';
+    case 'VALIDATED':
+      return 'validated';
     case 'DUPLICATE_PLUGIN_ID':
       return 'duplicate-plugin-id';
-    case 'LOAD_FAILED':
-      return 'load-failed';
+    case 'VALIDATION_FAILED':
+      return 'validation-failed';
     default:
       return 'backend-error';
   }
@@ -193,26 +202,43 @@ export async function getPluginInventory(
 
     return {
       ...parsed.value,
-      items: parsed.value.items.map((item, fallbackIndex) =>
-        withConfiguredPathFallback(item, plugins, fallbackIndex)
-      ),
+      items: completeInventoryItems(parsed.value.items, plugins),
     };
   } catch (error) {
     return backendFailure(plugins, errorMessage(error));
   }
 }
 
-function withConfiguredPathFallback(
-  item: PluginInventoryItem,
-  plugins: string[],
-  fallbackIndex: number
-): PluginInventoryItem {
-  const index = item.index >= 0 ? item.index : fallbackIndex;
-  return {
-    ...item,
-    index,
-    path: item.path || plugins[index] || '',
-  };
+function completeInventoryItems(
+  items: PluginInventoryItem[],
+  plugins: string[]
+): PluginInventoryItem[] {
+  const seen = new Set<number>();
+  if (
+    items.some((item) => {
+      const invalid =
+        !Number.isInteger(item.index) ||
+        item.index < 0 ||
+        item.index >= plugins.length ||
+        seen.has(item.index);
+      seen.add(item.index);
+      return invalid;
+    })
+  ) {
+    return backendFailure(plugins, 'Plugin inventory returned invalid indexes.').items;
+  }
+  const itemsByIndex = new Map(
+    items.map((item) => [item.index, { ...item, path: item.path || plugins[item.index] }] as const)
+  );
+  return plugins.map(
+    (pluginPath, index) =>
+      itemsByIndex.get(index) ?? {
+        index,
+        path: pluginPath,
+        status: 'backend-error',
+        errorMessage: 'Java language server omitted this plugin inventory result.',
+      }
+  );
 }
 
 function backendFailure(plugins: string[], message: string): PluginInventoryResult {

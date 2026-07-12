@@ -1,5 +1,5 @@
 import { ExtensionContext, languages, l10n, window, Uri, workspace } from 'vscode';
-import { SETTINGS_SECTION } from './constants/settings';
+import { SETTINGS_SECTION, settingKeys } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { PluginInventoryTreeDataProvider } from './ui/pluginInventoryTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
@@ -113,8 +113,12 @@ async function doActivate(
         if (e.affectsConfiguration(SETTINGS_SECTION)) {
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
-          invalidatePluginInventoryRefresh();
-          pluginInventoryTreeDataProvider.showInitialMessage();
+          if (
+            e.affectsConfiguration(`${SETTINGS_SECTION}.${settingKeys.pluginsPaths}`)
+          ) {
+            invalidatePluginInventoryRefresh();
+            pluginInventoryTreeDataProvider.showInitialMessage();
+          }
         }
       }),
 

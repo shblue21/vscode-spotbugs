@@ -12,7 +12,7 @@
   "Plugin {0}": "Plugin {0}",
   "Validated": "Validated",
   "Duplicate plugin id": "Duplicate plugin id",
-  "Load failed": "Load failed",
+  "Validation failed": "Validation failed",
   "Backend error": "Backend error",
   "Pattern: {0}": "Pattern: {0}",
   "Category: {0}": "Category: {0}",

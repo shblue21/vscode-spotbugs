@@ -2,6 +2,7 @@ package com.spotbugs.vscode.runner.internal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -19,20 +20,26 @@ import org.junit.rules.TemporaryFolder;
 
 import com.spotbugs.vscode.runner.api.PluginInventoryEntry;
 
+import edu.umd.cs.findbugs.Plugin;
+
 public class PluginInventoryServiceTest {
+
+    private static final String FINDSECBUGS_PLUGIN_ID = "com.h3xstream.findsecbugs";
+    private static final String FINDSECBUGS_FIXTURE_PATH =
+            "target/test-plugins/findsecbugs-plugin-1.11.0.jar";
 
     @Rule
     public TemporaryFolder temp = new TemporaryFolder();
 
     @Test
-    public void inspectReportsLoadFailedForMissingPath() {
+    public void inspectReportsValidationFailedForMissingPath() {
         File missing = new File(temp.getRoot(), "missing.jar");
 
         List<PluginInventoryEntry> entries = new PluginInventoryService()
                 .inspect(Collections.singletonList(missing.getAbsolutePath()));
 
         assertEquals(1, entries.size());
-        assertEquals("LOAD_FAILED", entries.get(0).getStatus());
+        assertEquals("VALIDATION_FAILED", entries.get(0).getStatus());
         assertEquals(missing.getAbsolutePath(), entries.get(0).getPath());
         assertTrue(entries.get(0).getErrorMessage().contains("not found"));
     }
@@ -46,13 +53,26 @@ public class PluginInventoryServiceTest {
                 .inspect(Arrays.asList(first.getAbsolutePath(), second.getAbsolutePath()));
 
         assertEquals(2, entries.size());
-        assertEquals("LOADABLE", entries.get(0).getStatus());
+        assertEquals("VALIDATED", entries.get(0).getStatus());
         assertEquals("com.example.duplicate", entries.get(0).getPluginId());
         assertEquals("DUPLICATE_PLUGIN_ID", entries.get(1).getStatus());
     }
 
     @Test
-    public void inspectTreatsPluginsWithoutPluginIdAsLoadable() throws Exception {
+    public void inspectDoesNotReportSameCanonicalJarAsDuplicatePluginId() throws Exception {
+        File plugin = createPluginJar("com.example.alias", "alias.jar");
+        File alias = new File(temp.newFolder("sub"), "../alias.jar");
+
+        List<PluginInventoryEntry> entries = new PluginInventoryService()
+                .inspect(Arrays.asList(plugin.getAbsolutePath(), alias.getPath()));
+
+        assertEquals("VALIDATED", entries.get(0).getStatus());
+        assertEquals("VALIDATED", entries.get(1).getStatus());
+        assertEquals(entries.get(0).getCanonicalPath(), entries.get(1).getCanonicalPath());
+    }
+
+    @Test
+    public void inspectTreatsPluginsWithoutPluginIdAsValidated() throws Exception {
         File first = createPluginJar(null, "anonymous-first.jar");
         File second = createPluginJar(null, "anonymous-second.jar");
 
@@ -60,9 +80,9 @@ public class PluginInventoryServiceTest {
                 .inspect(Arrays.asList(first.getAbsolutePath(), second.getAbsolutePath()));
 
         assertEquals(2, entries.size());
-        assertEquals("LOADABLE", entries.get(0).getStatus());
+        assertEquals("VALIDATED", entries.get(0).getStatus());
         assertNull(entries.get(0).getPluginId());
-        assertEquals("LOADABLE", entries.get(1).getStatus());
+        assertEquals("VALIDATED", entries.get(1).getStatus());
         assertNull(entries.get(1).getPluginId());
     }
 
@@ -74,8 +94,25 @@ public class PluginInventoryServiceTest {
                 .inspect(Collections.singletonList(plugin.getAbsolutePath()));
 
         assertEquals(1, entries.size());
-        assertEquals("LOAD_FAILED", entries.get(0).getStatus());
+        assertEquals("VALIDATION_FAILED", entries.get(0).getStatus());
         assertTrue(entries.get(0).getErrorMessage().contains("Plugin path is not a jar file"));
+    }
+
+    @Test
+    public void inspectKeepsFindSecBugsVisibleAfterMissingPathWithoutRegisteringIt() throws Exception {
+        File missing = new File(temp.getRoot(), "missing.jar");
+        File findSecBugs = new File(FINDSECBUGS_FIXTURE_PATH).getCanonicalFile();
+        assertTrue("FindSecBugs test fixture is missing", findSecBugs.isFile());
+        Plugin registeredBefore = Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID);
+
+        List<PluginInventoryEntry> entries = new PluginInventoryService()
+                .inspect(Arrays.asList(missing.getAbsolutePath(), findSecBugs.getAbsolutePath()));
+
+        assertEquals(2, entries.size());
+        assertEquals("VALIDATION_FAILED", entries.get(0).getStatus());
+        assertEquals("VALIDATED", entries.get(1).getStatus());
+        assertEquals(FINDSECBUGS_PLUGIN_ID, entries.get(1).getPluginId());
+        assertSame(registeredBefore, Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID));
     }
 
     private File createPluginJar(String pluginId, String fileName) throws Exception {
