@@ -12,6 +12,34 @@ describe('classpathService', () => {
     delete require.cache[require.resolve('../workspace/classpathService')];
   });
 
+  it('keeps strict project lookup scoped to the preferred project', async () => {
+    const vscode = resetVscodeMock();
+    const workspaceA = vscode.Uri.file('/workspace-a');
+    const workspaceB = vscode.Uri.file('/workspace-b');
+    resetVscodeMock({
+      workspace: {
+        workspaceFolders: [
+          { name: 'workspace-a', uri: workspaceA },
+          { name: 'workspace-b', uri: workspaceB },
+        ],
+      },
+    } as never);
+    delete require.cache[require.resolve('../workspace/classpathAttemptSelector')];
+    const { collectClasspathAttempts } = require(
+      '../workspace/classpathAttemptSelector'
+    ) as typeof import('../workspace/classpathAttemptSelector');
+    const project = vscode.Uri.file('/workspace-b/project');
+
+    const attempts = await collectClasspathAttempts(project as never, {
+      strictProject: true,
+    });
+
+    assert.deepStrictEqual(
+      attempts.map((attempt) => attempt.label),
+      [`preferred:${project.toString()}`]
+    );
+  });
+
   it('prepends the output folder, filters archives, and dedupes roots', () => {
     const roots = deriveTargetResolutionRoots('/workspace/build/classes', [
       '/workspace/build/classes',

@@ -13,6 +13,7 @@ import { selectFindingFilter } from './commands/filter';
 import { exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
 import { openSettings } from './commands/settings';
+import { runEnvironmentDoctor } from './commands/environmentDoctor';
 import {
   invalidatePluginInventoryRefresh,
   refreshPluginInventory,
@@ -223,6 +224,11 @@ async function doActivate(
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_SETTINGS, openSettings),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.CHECK_ANALYSIS_ENVIRONMENT,
+        async () => runEnvironmentDoctor(config)
+      ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,

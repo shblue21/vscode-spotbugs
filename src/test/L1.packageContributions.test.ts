@@ -72,6 +72,7 @@ describe('package contributions', () => {
       'spotbugs.sortResultsBy',
       'spotbugs.openSettings',
       'spotbugs.refreshPluginInventory',
+      'spotbugs.checkAnalysisEnvironment',
     ]) {
       assert.ok(commands.includes(command), `${command} missing from contributes.commands`);
     }

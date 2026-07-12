@@ -8,10 +8,12 @@ export interface ClasspathAttempt {
 }
 
 export async function collectClasspathAttempts(
-  project?: ProjectRef
+  project?: ProjectRef,
+  options: { strictProject?: boolean } = {}
 ): Promise<ClasspathAttempt[]> {
   const attempts: ClasspathAttempt[] = [];
   if (project) attempts.push({ label: `preferred:${toUriString(project)}`, arg: project });
+  if (project && options.strictProject) return attempts;
 
   const folders = workspace.workspaceFolders ?? [];
   for (const f of folders) {

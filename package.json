@@ -254,6 +254,11 @@
         "command": "spotbugs.refreshPluginInventory",
         "title": "%contributes.commands.spotbugs.refreshPluginInventory.title%",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "spotbugs.checkAnalysisEnvironment",
+        "title": "%contributes.commands.spotbugs.checkAnalysisEnvironment.title%",
+        "icon": "$(stethoscope)"
       }
     ],
     "menus": {

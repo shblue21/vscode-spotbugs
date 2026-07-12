@@ -33,5 +33,6 @@
   "contributes.commands.spotbugs.sortResultsBy.title": "SpotBugs: Sort Results By...",
   "contributes.commands.spotbugs.openSettings.title": "SpotBugs: Open Settings",
   "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: Refresh Plugins",
+  "contributes.commands.spotbugs.checkAnalysisEnvironment.title": "SpotBugs: Check Analysis Environment",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }

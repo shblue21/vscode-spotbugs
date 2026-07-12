@@ -16,6 +16,7 @@ import {
 export interface ClasspathLookupOptions {
   verbose?: boolean;
   logFailures?: boolean;
+  strictProject?: boolean;
 }
 
 const PREFERRED_OUTPUT_SUFFIXES = [
@@ -41,7 +42,7 @@ export async function getClasspathsOutcome(
   project?: ProjectRef,
   options?: ClasspathLookupOptions
 ): Promise<ClasspathLookupOutcome> {
-  const attempts = await collectClasspathAttempts(project);
+  const attempts = await collectClasspathAttempts(project, options);
   return runClasspathAttemptsOutcome(attempts, options);
 }
 
