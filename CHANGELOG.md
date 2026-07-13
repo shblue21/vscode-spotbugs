@@ -1,4 +1,19 @@
 # Changelog
+## [0.7.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.3...v0.7.0) (2026-07-13)
+
+
+### Features
+
+* **i18n:** add localization support ([#73](https://github.com/shblue21/vscode-spotbugs/issues/73)) ([e835171](https://github.com/shblue21/vscode-spotbugs/commit/e835171977cb334e68d2b170605358449be2d27a))
+* **plugins:** add inventory ([#75](https://github.com/shblue21/vscode-spotbugs/issues/75)) ([cb17a42](https://github.com/shblue21/vscode-spotbugs/commit/cb17a423d600621815e978e8eb337bb15b1c2f38))
+* **plugins:** enrich inventory with metadata and counts ([#76](https://github.com/shblue21/vscode-spotbugs/issues/76)) ([f978fac](https://github.com/shblue21/vscode-spotbugs/commit/f978facbfbde38b6c6405bc84982dff83aa5beed))
+
+
+### Bug Fixes
+
+* **schema:** normalize jar pattern ([a7a49ee](https://github.com/shblue21/vscode-spotbugs/commit/a7a49ee47b01d55d9552427134e96f1a30c0f3dc))
+* **views:** Collapse plugins view by default ([0795eeb](https://github.com/shblue21/vscode-spotbugs/commit/0795eeb56e8b73c538f40b8e5823bc26a1b8a31e))
+
 ## [0.6.3](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.2...v0.6.3) (2026-06-17)
 
 
