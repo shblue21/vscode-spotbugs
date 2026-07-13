@@ -1,6 +1,7 @@
 package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +40,42 @@ public class PluginInventoryActionTest {
         execute(action, "{\"plugins\":[\"  \",\"  /workspace/plugin.jar  \"]}");
 
         assertEquals(Arrays.asList("", "/workspace/plugin.jar"), capturedPaths);
+    }
+
+    @Test
+    public void executeSerializesOptionalPluginMetadataAndCounts() {
+        PluginInventoryEntry complete = new PluginInventoryEntry(
+                0,
+                "/workspace/plugin.jar",
+                "/workspace/plugin.jar",
+                "VALIDATED",
+                "com.example.plugin",
+                "Example plugin",
+                "Example provider",
+                "https://example.com",
+                "1.2.3",
+                2,
+                3,
+                null
+        );
+        PluginInventoryAction action = new PluginInventoryAction(new PluginInventoryService() {
+            @Override
+            public List<PluginInventoryEntry> inspect(List<String> pluginPaths) {
+                return Collections.singletonList(complete);
+            }
+        });
+
+        JsonObject response = execute(action, "{\"plugins\":[\"/workspace/plugin.jar\"]}");
+        JsonObject serialized = response.getAsJsonArray("results")
+                .get(0).getAsJsonObject();
+
+        assertEquals("Example plugin", serialized.get("shortDescription").getAsString());
+        assertEquals("Example provider", serialized.get("provider").getAsString());
+        assertEquals("https://example.com", serialized.get("website").getAsString());
+        assertEquals("1.2.3", serialized.get("version").getAsString());
+        assertEquals(2, serialized.get("detectorCount").getAsInt());
+        assertEquals(3, serialized.get("bugPatternCount").getAsInt());
+        assertFalse(serialized.has("errorMessage"));
     }
 
     private static JsonObject execute(PluginInventoryAction action, Object... args) {

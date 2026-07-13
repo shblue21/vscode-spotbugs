@@ -93,5 +93,13 @@
   "Validated": "검증됨",
   "Duplicate plugin id": "중복 플러그인 ID",
   "Validation failed": "검증 실패",
-  "Backend error": "백엔드 오류"
+  "Backend error": "백엔드 오류",
+  "{0} detector": "탐지기 {0}개",
+  "{0} detectors": "탐지기 {0}개",
+  "{0} rule": "규칙 {0}개",
+  "{0} rules": "규칙 {0}개",
+  "Provider: {0}": "제공자: {0}",
+  "Version: {0}": "버전: {0}",
+  "Declared: {0}": "선언됨: {0}",
+  "Runtime loading was not checked.": "런타임 로딩은 확인하지 않았습니다."
 }

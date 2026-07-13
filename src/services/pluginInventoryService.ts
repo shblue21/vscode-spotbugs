@@ -20,6 +20,12 @@ export interface PluginInventoryItem {
   canonicalPath?: string;
   status: PluginInventoryStatus;
   pluginId?: string;
+  shortDescription?: string;
+  provider?: string;
+  website?: string;
+  version?: string;
+  detectorCount?: number;
+  bugPatternCount?: number;
   errorMessage?: string;
 }
 
@@ -109,11 +115,31 @@ function normalizeItems(values: unknown[]): PluginInventoryItem[] {
       canonicalPath,
       status: normalizeStatus(value.status),
       pluginId: typeof value.pluginId === 'string' ? value.pluginId : undefined,
+      shortDescription: optionalNonBlankString(value.shortDescription),
+      provider: optionalNonBlankString(value.provider),
+      website: optionalNonBlankString(value.website),
+      version: optionalNonBlankString(value.version),
+      detectorCount: optionalCount(value.detectorCount),
+      bugPatternCount: optionalCount(value.bugPatternCount),
       errorMessage:
         typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
     });
   }
   return items;
+}
+
+function optionalNonBlankString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function optionalCount(value: unknown): number | undefined {
+  return Number.isInteger(value) && (value as number) >= 0
+    ? (value as number)
+    : undefined;
 }
 
 function normalizeStatus(value: unknown): PluginInventoryStatus {
