@@ -78,7 +78,8 @@
         },
         {
           "id": "spotbugs-plugins-view",
-          "name": "%contributes.views.spotbugs-container.spotbugs-plugins-view.name%"
+          "name": "%contributes.views.spotbugs-container.spotbugs-plugins-view.name%",
+          "visibility": "collapsed"
         }
       ]
     },
