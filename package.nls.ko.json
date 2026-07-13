@@ -13,7 +13,7 @@
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.min": "정확도를 높이지만 메모리 사용량도 늘리는 여러 분석을 비활성화합니다.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.default": "버그를 찾기 위해 여러 분석을 실행합니다.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.max": "정확도를 높이고 더 많은 버그를 찾는 분석을 활성화하지만, 더 많은 메모리와 완료 시간이 필요할 수 있습니다.",
-  "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "순위가 이 값 이하인 버그를 보고합니다(1이 가장 심각, 20이 가장 낮음). 설정하지 않으면 기본 동작을 사용합니다.",
+  "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "신뢰도가 높음, 중간, 낮음인 버그 중 순위가 이 값 이하인 항목을 보고합니다(1이 가장 심각, 20이 가장 낮음). 실험적 검사 결과는 제외됩니다. 설정하지 않으면 기본 동작을 사용합니다.",
   "contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription": "Java Language Server 런타임 클래스 경로 항목 뒤에 추가되는 SpotBugs 보조 클래스 경로 항목입니다. jar 파일 또는 디렉터리의 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
   "contributes.configuration.spotbugs.plugins.paths.markdownDescription": "분석 전에 로드되는 SpotBugs 플러그인 jar 경로입니다. 절대 경로와 워크스페이스 상대 `.jar` 경로를 지원합니다. 잘못된 항목은 구성 오류로 분석을 중단합니다.",
   "contributes.configuration.spotbugs.filters.includePaths.markdownDescription": "SpotBugs XML include 필터 파일 경로(`-include`)입니다. 절대 경로와 워크스페이스 상대 경로를 지원합니다.",

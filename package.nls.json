@@ -13,7 +13,7 @@
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.min": "Disables several analyses that increase precision but also increase memory consumption.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.default": "Run several analyses to find bugs",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.max": "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete",
-  "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "Report bugs with rank less than or equal to this value (1 most severe, 20 least). Leave unset to use default behavior.",
+  "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "Report High, Medium, and Low confidence bugs with rank less than or equal to this value (1 most severe, 20 least). Experimental findings remain excluded. Leave unset to use default behavior.",
   "contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription": "Additional SpotBugs aux classpath entries appended after Java Language Server runtime classpath entries. Supports absolute paths and workspace-relative paths for jar files or directories.",
   "contributes.configuration.spotbugs.plugins.paths.markdownDescription": "SpotBugs plugin jar paths loaded before analysis. Supports absolute paths and workspace-relative `.jar` paths. Invalid entries stop analysis with a configuration error.",
   "contributes.configuration.spotbugs.filters.includePaths.markdownDescription": "SpotBugs XML include filter file paths (`-include`). Supports absolute paths and workspace-relative paths.",

@@ -77,13 +77,12 @@ public class AnalyzerService {
         SpotBugsAnalysisResult result = runner.runWithWarnings(
                 this.findBugs,
                 prepared.project,
-                prepared.reporterPriorityThreshold,
+                prepared.rankThreshold,
                 prepared.plugins
         );
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, filePaths);
-        applyRankThreshold(bugs, monitor);
         return new SpotBugsAnalysisResult(bugs, result.getWarnings());
     }
 
@@ -102,21 +101,12 @@ public class AnalyzerService {
             return runner.runNativeSarif(
                     this.findBugs,
                     prepared.project,
-                    prepared.reporterPriorityThreshold,
+                    prepared.rankThreshold,
                     prepared.plugins
             );
         } catch (Exception e) {
             return "";
         }
-    }
-
-    private static Integer computeReporterPriorityThreshold(Integer rankThreshold) {
-        if (rankThreshold == null) return Integer.valueOf(1); // preserve prior default behavior
-        int r = Math.max(1, Math.min(20, rankThreshold.intValue()));
-        // Map rank → priority category: High(1..4)=1, Medium(5..9)=2, Low(10..20)=3
-        if (r <= 4) return Integer.valueOf(1);
-        if (r <= 9) return Integer.valueOf(2);
-        return Integer.valueOf(3);
     }
 
     private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, String... filePaths) throws java.io.IOException {
@@ -151,32 +141,11 @@ public class AnalyzerService {
                 this.extraAuxClasspaths
         );
         this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
-        Integer reporterPriority = computeReporterPriorityThreshold(
-                this.config != null ? this.config.getPriorityThreshold() : null
-        );
+        Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
         java.util.List<String> plugins = this.config != null
                 ? this.config.getPlugins()
                 : java.util.Collections.emptyList();
-        return new PreparedAnalysis(project, reporterPriority, plugins);
-    }
-
-    private void applyRankThreshold(List<BugInfo> bugs, IProgressMonitor monitor) {
-        Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
-        if (rankThreshold == null) {
-            return;
-        }
-        final int maxRank = Math.max(1, Math.min(20, rankThreshold.intValue()));
-        java.util.Iterator<BugInfo> it = bugs.iterator();
-        while (it.hasNext()) {
-            checkCanceled(monitor);
-            BugInfo bug = it.next();
-            if (bug == null) {
-                continue;
-            }
-            if (bug.getRank() > maxRank) {
-                it.remove();
-            }
-        }
+        return new PreparedAnalysis(project, rankThreshold, plugins);
     }
 
     private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, String... filePaths) {
@@ -209,12 +178,12 @@ public class AnalyzerService {
 
     private static final class PreparedAnalysis {
         private final Project project;
-        private final Integer reporterPriorityThreshold;
+        private final Integer rankThreshold;
         private final List<String> plugins;
 
-        private PreparedAnalysis(Project project, Integer reporterPriorityThreshold, List<String> plugins) {
+        private PreparedAnalysis(Project project, Integer rankThreshold, List<String> plugins) {
             this.project = project;
-            this.reporterPriorityThreshold = reporterPriorityThreshold;
+            this.rankThreshold = rankThreshold;
             this.plugins = plugins;
         }
     }

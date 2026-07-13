@@ -19,11 +19,13 @@ import com.spotbugs.vscode.runner.api.CommandWarning;
 
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugInstance;
+import edu.umd.cs.findbugs.BugRanker;
 import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.PluginLoader;
+import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.config.UserPreferences;
 import edu.umd.cs.findbugs.sarif.SarifBugReporter;
@@ -35,31 +37,37 @@ public class SpotBugsExecutor {
     private final FindBugs2 findBugs;
     private final Project project;
     private final BugCollectionBugReporter defaultBugReporter;
-    private final Integer reporterPriorityThreshold; // 1..3 (High..Low) or null
+    private final int effectivePriorityThreshold;
+    private final int effectiveRankThreshold;
     private final List<String> pluginJars; // optional
     private final PluginLifecycle pluginLifecycle;
 
-    public SpotBugsExecutor(FindBugs2 findBugs, Project project, Integer reporterPriorityThreshold, List<String> pluginJars) {
-        this(findBugs, project, reporterPriorityThreshold, pluginJars, PluginLifecycle.DEFAULT);
+    public SpotBugsExecutor(FindBugs2 findBugs, Project project, Integer rankThreshold, List<String> pluginJars) {
+        this(findBugs, project, rankThreshold, pluginJars, PluginLifecycle.DEFAULT);
     }
 
     SpotBugsExecutor(
             FindBugs2 findBugs,
             Project project,
-            Integer reporterPriorityThreshold,
+            Integer rankThreshold,
             List<String> pluginJars,
             PluginLifecycle pluginLifecycle
     ) {
         this.findBugs = findBugs;
         this.project = project;
         this.defaultBugReporter = new BugCollectionBugReporter(project);
-        this.reporterPriorityThreshold = reporterPriorityThreshold;
+        this.effectivePriorityThreshold = rankThreshold == null
+                ? Priorities.HIGH_PRIORITY
+                : Priorities.LOW_PRIORITY;
+        this.effectiveRankThreshold = rankThreshold == null
+                ? BugRanker.VISIBLE_RANK_MAX
+                : Math.max(
+                        BugRanker.VISIBLE_RANK_MIN,
+                        Math.min(BugRanker.VISIBLE_RANK_MAX, rankThreshold.intValue())
+                );
         this.pluginJars = pluginJars;
         this.pluginLifecycle = pluginLifecycle != null ? pluginLifecycle : PluginLifecycle.DEFAULT;
-        // Keep behavior compatible: default to 1 (highest only) if not provided
-        this.defaultBugReporter.setPriorityThreshold(
-                this.reporterPriorityThreshold != null ? this.reporterPriorityThreshold.intValue() : 1
-        );
+        configureReporter(this.defaultBugReporter);
     }
 
     public List<BugInfo> executeBugs() throws IOException, InterruptedException {
@@ -89,7 +97,7 @@ public class SpotBugsExecutor {
             try {
                 StringWriter writer = new StringWriter();
                 SarifBugReporter reporter = new SarifBugReporter(project);
-                reporter.setPriorityThreshold(this.reporterPriorityThreshold != null ? this.reporterPriorityThreshold.intValue() : 1);
+                configureReporter(reporter);
                 reporter.setWriter(new PrintWriter(writer));
                 execute(reporter);
                 sarif = writer.toString();
@@ -113,6 +121,11 @@ public class SpotBugsExecutor {
         DetectorFactoryCollection dfc = DetectorFactoryCollection.instance();
         findBugs.setDetectorFactoryCollection(dfc);
         findBugs.execute();
+    }
+
+    private void configureReporter(BugCollectionBugReporter reporter) {
+        reporter.setPriorityThreshold(this.effectivePriorityThreshold);
+        reporter.setRankThreshold(this.effectiveRankThreshold);
     }
 
     private static List<File> pluginJarFiles(List<String> jars) throws IOException {
