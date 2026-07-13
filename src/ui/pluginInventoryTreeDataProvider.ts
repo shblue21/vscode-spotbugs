@@ -64,10 +64,14 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
     const itemPath = item.path || item.canonicalPath || l10n.t('Plugin {0}', item.index + 1);
     const treeItem = new TreeItem(path.basename(itemPath));
     const statusLabel = statusDescription(item.status);
-
-    treeItem.description = item.pluginId
+    const statusAndId = item.pluginId
       ? `${statusLabel}: ${item.pluginId}`
       : statusLabel;
+    const declaredCounts = declaredCountSummary(item);
+
+    treeItem.description = declaredCounts
+      ? `${statusAndId} · ${declaredCounts}`
+      : statusAndId;
     treeItem.tooltip = tooltip(item);
     treeItem.contextValue = `spotbugs.plugin.${item.status}`;
     treeItem.iconPath = statusIcon(item.status);
@@ -107,11 +111,39 @@ function statusIcon(status: PluginInventoryStatus): ThemeIcon {
 }
 
 function tooltip(item: PluginInventoryItem): string {
+  const declaredCounts = declaredCountSummary(item);
   return [
+    item.shortDescription,
+    item.provider ? l10n.t('Provider: {0}', item.provider) : undefined,
+    item.version ? l10n.t('Version: {0}', item.version) : undefined,
+    item.website,
+    declaredCounts ? l10n.t('Declared: {0}', declaredCounts) : undefined,
     item.path,
     item.canonicalPath && item.canonicalPath !== item.path ? item.canonicalPath : undefined,
     item.errorMessage,
+    item.status === 'validated' || item.status === 'duplicate-plugin-id'
+      ? l10n.t('Runtime loading was not checked.')
+      : undefined,
   ]
     .filter((value): value is string => !!value)
     .join('\n');
+}
+
+function declaredCountSummary(item: PluginInventoryItem): string | undefined {
+  const counts: string[] = [];
+  if (item.detectorCount !== undefined) {
+    counts.push(
+      item.detectorCount === 1
+        ? l10n.t('{0} detector', item.detectorCount)
+        : l10n.t('{0} detectors', item.detectorCount)
+    );
+  }
+  if (item.bugPatternCount !== undefined) {
+    counts.push(
+      item.bugPatternCount === 1
+        ? l10n.t('{0} rule', item.bugPatternCount)
+        : l10n.t('{0} rules', item.bugPatternCount)
+    );
+  }
+  return counts.length > 0 ? counts.join(' · ') : undefined;
 }

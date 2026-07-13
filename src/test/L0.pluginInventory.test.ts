@@ -107,6 +107,12 @@ describe('pluginInventoryTreeDataProvider', () => {
           canonicalPath: '/workspace/plugin-a.jar',
           status: 'validated',
           pluginId: 'com.example.a',
+          shortDescription: 'Example security checks',
+          provider: 'Example Inc.',
+          website: 'https://example.com/plugin-a',
+          version: '1.2.3',
+          detectorCount: 2,
+          bugPatternCount: 3,
         },
         {
           index: 1,
@@ -123,7 +129,11 @@ describe('pluginInventoryTreeDataProvider', () => {
     assert.deepStrictEqual(
       children.map((child) => [child.label, child.description, child.contextValue]),
       [
-        ['plugin-a.jar', 'Validated: com.example.a', 'spotbugs.plugin.validated'],
+        [
+          'plugin-a.jar',
+          'Validated: com.example.a · 2 detectors · 3 rules',
+          'spotbugs.plugin.validated',
+        ],
         [
           'plugin-b.jar',
           'Duplicate plugin id: com.example.a',
@@ -131,27 +141,54 @@ describe('pluginInventoryTreeDataProvider', () => {
         ],
       ]
     );
+    assert.strictEqual(
+      children[0].tooltip,
+      [
+        'Example security checks',
+        'Provider: Example Inc.',
+        'Version: 1.2.3',
+        'https://example.com/plugin-a',
+        'Declared: 2 detectors · 3 rules',
+        '/workspace/plugin-a.jar',
+        'Runtime loading was not checked.',
+      ].join('\n')
+    );
   });
 });
 
 describe('pluginInventoryParser', () => {
-  it('maps minimal backend statuses into UI statuses', () => {
+  it('maps backend statuses and optional metadata into UI items', () => {
     const result = parsePluginInventoryResponse(
       JSON.stringify({
         results: [
-          { index: 0, path: 'a.jar', status: 'VALIDATED', pluginId: 'a' },
+          {
+            index: 0,
+            path: 'a.jar',
+            status: 'VALIDATED',
+            pluginId: 'a',
+            shortDescription: 'Example plugin',
+            provider: 'Example provider',
+            website: 'https://example.com',
+            version: '1.2.3',
+            detectorCount: 2,
+            bugPatternCount: 3,
+          },
           {
             index: 1,
             path: 'b.jar',
             status: 'DUPLICATE_PLUGIN_ID',
             pluginId: 'a',
             errorMessage: 'Duplicate plugin id',
+            provider: 42,
+            detectorCount: -1,
           },
           {
             index: 2,
             path: 'bad.jar',
             status: 'VALIDATION_FAILED',
             errorMessage: 'bad',
+            shortDescription: '   ',
+            bugPatternCount: 0,
           },
         ],
       })
@@ -164,6 +201,24 @@ describe('pluginInventoryParser', () => {
       'validation-failed',
     ]);
     assert.strictEqual(result.value.items[0].pluginId, 'a');
+    assert.deepStrictEqual(result.value.items[0], {
+      index: 0,
+      path: 'a.jar',
+      canonicalPath: undefined,
+      status: 'validated',
+      pluginId: 'a',
+      shortDescription: 'Example plugin',
+      provider: 'Example provider',
+      website: 'https://example.com',
+      version: '1.2.3',
+      detectorCount: 2,
+      bugPatternCount: 3,
+      errorMessage: undefined,
+    });
+    assert.strictEqual(result.value.items[1].provider, undefined);
+    assert.strictEqual(result.value.items[1].detectorCount, undefined);
+    assert.strictEqual(result.value.items[2].shortDescription, undefined);
+    assert.strictEqual(result.value.items[2].bugPatternCount, 0);
     assert.strictEqual(result.value.items[2].errorMessage, 'bad');
   });
 

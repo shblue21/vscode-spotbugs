@@ -55,7 +55,10 @@ public class PluginInventoryServiceTest {
         assertEquals(2, entries.size());
         assertEquals("VALIDATED", entries.get(0).getStatus());
         assertEquals("com.example.duplicate", entries.get(0).getPluginId());
+        assertEquals("1.2.3", entries.get(0).getVersion());
         assertEquals("DUPLICATE_PLUGIN_ID", entries.get(1).getStatus());
+        assertEquals(Integer.valueOf(2), entries.get(1).getDetectorCount());
+        assertEquals(Integer.valueOf(3), entries.get(1).getBugPatternCount());
     }
 
     @Test
@@ -112,13 +115,37 @@ public class PluginInventoryServiceTest {
         assertEquals("VALIDATION_FAILED", entries.get(0).getStatus());
         assertEquals("VALIDATED", entries.get(1).getStatus());
         assertEquals(FINDSECBUGS_PLUGIN_ID, entries.get(1).getPluginId());
+        assertEquals("Find Security Bugs", entries.get(1).getShortDescription());
+        assertEquals("Find Security Bugs", entries.get(1).getProvider());
+        assertEquals("https://find-sec-bugs.github.io", entries.get(1).getWebsite());
+        assertNull(entries.get(1).getVersion());
+        assertEquals(Integer.valueOf(114), entries.get(1).getDetectorCount());
+        assertEquals(Integer.valueOf(138), entries.get(1).getBugPatternCount());
         assertSame(registeredBefore, Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID));
     }
 
+    @Test
+    public void inspectKeepsSpotBugsValidationWhenOptionalDescriptorMetadataFails() throws Exception {
+        File plugin = createPluginJarWithDescriptor("invalid-root.jar", "<NotAFindbugsPlugin/>");
+
+        PluginInventoryEntry entry = new PluginInventoryService()
+                .inspect(Collections.singletonList(plugin.getAbsolutePath())).get(0);
+
+        assertEquals("VALIDATED", entry.getStatus());
+        assertEquals("SpotBugs runner test plugin", entry.getShortDescription());
+        assertNull(entry.getVersion());
+        assertNull(entry.getDetectorCount());
+        assertNull(entry.getBugPatternCount());
+    }
+
     private File createPluginJar(String pluginId, String fileName) throws Exception {
+        return createPluginJarWithDescriptor(fileName, findbugsXml(pluginId));
+    }
+
+    private File createPluginJarWithDescriptor(String fileName, String descriptor) throws Exception {
         File jar = temp.newFile(fileName);
         try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar))) {
-            writeJarEntry(out, "findbugs.xml", findbugsXml(pluginId));
+            writeJarEntry(out, "findbugs.xml", descriptor);
             writeJarEntry(out, "messages.xml", messagesXml());
         }
         return jar;
@@ -132,7 +159,15 @@ public class PluginInventoryServiceTest {
 
     private static String findbugsXml(String pluginId) {
         String pluginIdAttribute = pluginId != null ? " pluginid=\"" + pluginId + "\"" : "";
-        return "<FindbugsPlugin" + pluginIdAttribute + " provider=\"SpotBugs Runner Test\" defaultenabled=\"true\">"
+        return "<FindbugsPlugin" + pluginIdAttribute
+                + " provider=\"SpotBugs Runner Test\""
+                + " website=\"https://example.com/spotbugs-runner-test\""
+                + " version=\"1.2.3\" defaultenabled=\"true\">"
+                + "<Detector class=\"com.example.FirstDetector\"/>"
+                + "<Detector class=\"com.example.SecondDetector\"/>"
+                + "<BugPattern type=\"EXAMPLE_ONE\"/>"
+                + "<BugPattern type=\"EXAMPLE_TWO\"/>"
+                + "<BugPattern type=\"EXAMPLE_THREE\"/>"
                 + "</FindbugsPlugin>";
     }
 
