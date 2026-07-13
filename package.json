@@ -75,6 +75,10 @@
           "id": "spotbugs-inspector-view",
           "name": "%contributes.views.spotbugs-container.spotbugs-inspector-view.name%",
           "type": "webview"
+        },
+        {
+          "id": "spotbugs-plugins-view",
+          "name": "%contributes.views.spotbugs-container.spotbugs-plugins-view.name%"
         }
       ]
     },
@@ -244,6 +248,11 @@
         "command": "spotbugs.openSettings",
         "title": "%contributes.commands.spotbugs.openSettings.title%",
         "icon": "$(gear)"
+      },
+      {
+        "command": "spotbugs.refreshPluginInventory",
+        "title": "%contributes.commands.spotbugs.refreshPluginInventory.title%",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -296,6 +305,11 @@
         {
           "command": "spotbugs.revealFindingSource",
           "when": "view == spotbugs-inspector-view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "spotbugs.refreshPluginInventory",
+          "when": "view == spotbugs-plugins-view",
           "group": "navigation@1"
         }
       ],

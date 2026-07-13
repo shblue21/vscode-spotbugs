@@ -4,6 +4,7 @@
   <extension point="org.eclipse.jdt.ls.core.delegateCommandHandler">
     <delegateCommandHandler class="com.spotbugs.vscode.runner.DelegateCommandHandler">
       <command id="java.spotbugs.run"/>
+      <command id="java.spotbugs.plugins.inventory"/>
     </delegateCommandHandler>
   </extension>
 </plugin>

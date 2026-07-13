@@ -197,7 +197,7 @@ function isArchivePath(filePath: string): boolean {
 }
 
 function isJarPath(filePath: string): boolean {
-  return path.extname(filePath).toLowerCase() === '.jar';
+  return path.extname(filePath) === '.jar';
 }
 
 function rootCauseMessage(error: unknown): string {

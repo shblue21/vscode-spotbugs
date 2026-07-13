@@ -20,9 +20,11 @@ export namespace SpotBugsCommands {
   export const GROUP_RESULTS_BY: string = 'spotbugs.groupResultsBy';
   export const SORT_RESULTS_BY: string = 'spotbugs.sortResultsBy';
   export const OPEN_SETTINGS: string = 'spotbugs.openSettings';
+  export const REFRESH_PLUGIN_INVENTORY: string = 'spotbugs.refreshPluginInventory';
 }
 
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)
 export namespace SpotBugsLSCommands {
   export const RUN_ANALYSIS: string = 'java.spotbugs.run';
+  export const PLUGIN_INVENTORY: string = 'java.spotbugs.plugins.inventory';
 }

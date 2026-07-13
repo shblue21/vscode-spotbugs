@@ -170,11 +170,11 @@ describe('filterFileValidation', () => {
     }
   });
 
-  it('returns CFG_PLUGIN_NOT_JAR when a plugin path is not a jar file', async () => {
+  it('returns CFG_PLUGIN_NOT_JAR when a plugin path is not a lowercase jar file', async () => {
     const dir = await makeTempDir();
     try {
-      const pluginPath = path.join(dir, 'findsecbugs.txt');
-      await writeFile(pluginPath, 'plain text');
+      const pluginPath = path.join(dir, 'findsecbugs.JAR');
+      await writeFile(pluginPath, '');
 
       const error = await validatePluginJarsPreflight(
         makeSettings({ plugins: [pluginPath] })
@@ -223,7 +223,7 @@ describe('filterFileValidation', () => {
   it('passes when configured plugin jars are readable files', async () => {
     const dir = await makeTempDir();
     try {
-      const pluginPath = path.join(dir, 'findsecbugs.JAR');
+      const pluginPath = path.join(dir, 'findsecbugs.jar');
       await writeFile(pluginPath, '');
 
       const error = await validatePluginJarsPreflight(
