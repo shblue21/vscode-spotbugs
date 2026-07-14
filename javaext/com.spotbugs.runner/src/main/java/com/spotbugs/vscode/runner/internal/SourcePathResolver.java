@@ -1,6 +1,10 @@
 package com.spotbugs.vscode.runner.internal;
 
 import java.io.File;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -13,13 +17,9 @@ public class SourcePathResolver {
 
     public String resolve(String realSourcePath, List<String> sourcepaths, String targetPath, IProgressMonitor monitor) {
         checkCanceled(monitor);
-        if (realSourcePath == null || realSourcePath.trim().isEmpty()) {
+        String safeRelativePath = SourcePathPolicy.relativeSourcePath(realSourcePath);
+        if (safeRelativePath == null) {
             return null;
-        }
-
-        File realFile = new File(realSourcePath);
-        if (realFile.isAbsolute() && realFile.exists()) {
-            return realFile.getAbsolutePath();
         }
 
         if (sourcepaths != null && !sourcepaths.isEmpty()) {
@@ -28,9 +28,15 @@ public class SourcePathResolver {
                 if (sourceRoot == null || sourceRoot.trim().isEmpty()) {
                     continue;
                 }
-                File candidate = new File(sourceRoot, realSourcePath);
-                if (candidate.exists() && candidate.isFile()) {
-                    return candidate.getAbsolutePath();
+
+                try {
+                    Path normalizedRoot = Paths.get(sourceRoot).toAbsolutePath().normalize();
+                    Path candidate = normalizedRoot.resolve(safeRelativePath).normalize();
+                    if (candidate.startsWith(normalizedRoot) && Files.isRegularFile(candidate)) {
+                        return candidate.toString();
+                    }
+                } catch (InvalidPathException ignored) {
+                    // Ignore malformed configured source roots and try the next one.
                 }
             }
         }
@@ -39,9 +45,9 @@ public class SourcePathResolver {
             File targetFile = new File(targetPath);
             if (targetFile.exists() && targetFile.isFile()) {
                 String normalizedTarget = normalize(targetFile.getPath());
-                String normalizedReal = normalize(realSourcePath);
+                String normalizedReal = normalize(safeRelativePath);
                 if (normalizedTarget.endsWith(normalizedReal) ||
-                    targetFile.getName().equals(new File(realSourcePath).getName())) {
+                    targetFile.getName().equals(new File(safeRelativePath).getName())) {
                     return targetFile.getAbsolutePath();
                 }
             }
