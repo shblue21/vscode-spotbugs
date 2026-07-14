@@ -9,11 +9,30 @@ import type {
   AnalysisSessionDependencies,
   RunWorkspaceAnalysisSessionArgs,
 } from '../orchestration/analysisRunSession';
+import {
+  AnalysisRunCoordinator,
+  type AnalysisRunLease,
+} from '../orchestration/analysisRunCoordinator';
+import type { AnalysisExecutionResult } from '../services/analysisService';
 import type { Finding } from '../model/finding';
 import type { ProjectResult } from '../services/projectResult';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
+
+function createCurrentLease(): AnalysisRunLease {
+  return { isCurrent: () => true };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
 
 function createFinding(file = '/workspace/src/Foo.java'): Finding {
   return {
@@ -65,6 +84,35 @@ function createBaseDependencies(
     },
     now: () => 1100,
   };
+}
+
+function runObservedFileAnalysis(
+  uri: Uri,
+  lease: AnalysisRunLease,
+  dependencies: AnalysisSessionDependencies,
+  calls: string[]
+): Promise<void> {
+  return runFileAnalysisSession({
+    config: { getAnalysisSettings: () => ({}) } as any,
+    tree: {
+      showLoading: () => calls.push('loading'),
+      showResults: () => calls.push('results'),
+      showAnalysisFailure: () => calls.push('failure'),
+    },
+    diagnostics: {
+      replaceForScope: () => calls.push('diagnostics'),
+      replaceAll: () => calls.push('replaceAll'),
+    },
+    notifier: {
+      info: () => calls.push('notice'),
+      warn: () => calls.push('notice'),
+      error: () => calls.push('notice'),
+    },
+    uri,
+    startedAtMs: 1000,
+    lease,
+    dependencies,
+  });
 }
 
 describe('analysisRunSession file analysis', () => {
@@ -121,6 +169,7 @@ describe('analysisRunSession file analysis', () => {
       },
       uri,
       startedAtMs: 1000,
+      lease: createCurrentLease(),
       dependencies: deps,
     });
 
@@ -173,6 +222,7 @@ describe('analysisRunSession file analysis', () => {
       },
       uri: folderUri,
       startedAtMs: 1000,
+      lease: createCurrentLease(),
       dependencies: deps,
     });
 
@@ -227,6 +277,7 @@ describe('analysisRunSession file analysis', () => {
       },
       uri,
       startedAtMs: 1000,
+      lease: createCurrentLease(),
       dependencies: deps,
     });
 
@@ -283,6 +334,7 @@ describe('analysisRunSession file analysis', () => {
       },
       uri,
       startedAtMs: 1000,
+      lease: createCurrentLease(),
       dependencies: deps,
     });
 
@@ -330,6 +382,7 @@ describe('analysisRunSession file analysis', () => {
       },
       uri,
       startedAtMs: 1000,
+      lease: createCurrentLease(),
       dependencies: deps,
     });
 
@@ -339,6 +392,52 @@ describe('analysisRunSession file analysis', () => {
     ]);
     assert.deepStrictEqual(errors, ['SpotBugs analysis failed: transport boom']);
     assert.deepStrictEqual(loggedErrors, ['An error occurred during SpotBugs analysis']);
+  });
+
+  it('does not apply a file result after a newer run begins', async () => {
+    const vscode = installVscodeMock();
+    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+    const result = createDeferred<AnalysisExecutionResult>();
+    const coordinator = new AnalysisRunCoordinator();
+    const calls: string[] = [];
+    const deps = createBaseDependencies(vscode);
+    deps.analyzeFileDetailed = async () => result.promise;
+
+    const run = runObservedFileAnalysis(uri, coordinator.begin(), deps, calls);
+    coordinator.begin();
+    result.resolve({
+      outcome: {
+        findings: [createFinding(uri.fsPath)],
+        targetPath: uri.fsPath,
+      },
+      context: { resolutionIssues: [] },
+    });
+    await run;
+
+    assert.deepStrictEqual(calls, ['loading']);
+  });
+
+  it('does not render a stale exception after its lease is invalidated', async () => {
+    const vscode = installVscodeMock();
+    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+    const result = createDeferred<AnalysisExecutionResult>();
+    const coordinator = new AnalysisRunCoordinator();
+    const calls: string[] = [];
+    const deps = createBaseDependencies(vscode);
+    deps.analyzeFileDetailed = async () => result.promise;
+
+    const run = runObservedFileAnalysis(
+      uri,
+      coordinator.begin(),
+      deps,
+      calls
+    );
+
+    coordinator.invalidate();
+    result.reject(new Error('late failure'));
+    await run;
+
+    assert.deepStrictEqual(calls, ['loading']);
   });
 });
 
@@ -405,6 +504,7 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
         error: (message: string) => errors.push(message),
       },
       runWithProgress,
+      lease: createCurrentLease(),
       dependencies,
     } satisfies RunWorkspaceAnalysisSessionArgs,
   };
@@ -451,6 +551,38 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(harness.infos, [
       'SpotBugs: Workspace analysis completed - 1 issue found.',
     ]);
+  });
+
+  it('ignores stale workspace callbacks and final state after invalidation', async () => {
+    const coordinator = new AnalysisRunCoordinator();
+    const projectUri = 'file:///workspace/project-a';
+    const harness = createWorkspaceHarness({
+      analyzeWorkspaceFromProjectsDetailed: async (
+        _config,
+        _workspace,
+        _projectUris,
+        notify
+      ) => {
+        coordinator.invalidate();
+        notify?.onStart?.(projectUri, 1, 1);
+        notify?.onDone?.(projectUri, 1);
+        notify?.onFail?.(projectUri, 'late failure');
+        return {
+          results: [],
+          cancelled: true,
+          context: { resolutionIssues: [] },
+        };
+      },
+    });
+    harness.args.lease = coordinator.begin();
+
+    await runWorkspaceAnalysisSession(harness.args);
+
+    assert.deepStrictEqual(harness.progressMessages, ['Building Java workspace...']);
+    assert.deepStrictEqual(harness.calls, ['progress:0']);
+    assert.deepStrictEqual(harness.infos, []);
+    assert.deepStrictEqual(harness.warnings, []);
+    assert.deepStrictEqual(harness.errors, []);
   });
 
   it('renders warning-only workspace results without adding tree-visible warning state', async () => {

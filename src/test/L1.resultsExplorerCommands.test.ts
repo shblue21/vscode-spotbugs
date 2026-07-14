@@ -5,6 +5,7 @@ import {
   resetVscodeMock,
 } from './helpers/mockVscode';
 import { Finding } from '../model/finding';
+import { AnalysisRunCoordinator } from '../orchestration/analysisRunCoordinator';
 
 installVscodeMock();
 
@@ -12,6 +13,25 @@ describe('resultsExplorerCommands', () => {
   beforeEach(() => {
     resetVscodeMock();
     resetTelemetryWrapperMock();
+  });
+
+  it('invalidates pending analysis before clearing results', async () => {
+    const { resetResults } = await import('../commands/reset');
+    const coordinator = new AnalysisRunCoordinator();
+    const lease = coordinator.begin();
+    const currentStates: boolean[] = [];
+
+    await resetResults(
+      {
+        showInitialMessage: () => currentStates.push(lease.isCurrent()),
+      } as never,
+      {
+        clearAll: () => currentStates.push(lease.isCurrent()),
+      } as never,
+      coordinator
+    );
+
+    assert.deepStrictEqual(currentStates, [false, false]);
   });
 
   it('sets and clears search through input commands', async () => {

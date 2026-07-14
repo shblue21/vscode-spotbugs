@@ -30,6 +30,7 @@ import {
 } from './commands/findingInspectorLifecycle';
 import { SpotBugsDiagnosticsManager } from './services/diagnosticsManager';
 import { SpotBugsDiagnosticCodeActionProvider } from './services/spotbugsDiagnosticCodeActionProvider';
+import { AnalysisRunCoordinator } from './orchestration/analysisRunCoordinator';
 import { FindingDescriptionPanel } from './ui/findingDescriptionPanel';
 import { bindFindingInspectorToTree } from './ui/findingInspectorController';
 import { FindingInspectorState } from './ui/findingInspectorState';
@@ -70,6 +71,7 @@ async function doActivate(
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
     const pluginInventoryTreeDataProvider = new PluginInventoryTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
+    const analysisRunCoordinator = new AnalysisRunCoordinator();
     const findingDescriptionPanel = new FindingDescriptionPanel();
     const findingInspectorState = new FindingInspectorState();
     const findingInspectorViewProvider = new FindingInspectorViewProvider(
@@ -89,6 +91,7 @@ async function doActivate(
       spotbugsTreeView,
       pluginInventoryTreeView,
       diagnosticsManager,
+      analysisRunCoordinator,
       findingDescriptionPanel,
       findingInspectorState,
       findingInspectorViewProvider,
@@ -126,14 +129,25 @@ async function doActivate(
         SpotBugsCommands.RUN_ANALYSIS,
         async (uri: Uri | undefined) => {
           await clearInspectorBeforeOperation(findingInspectorState, () =>
-            checkCode(config, spotbugsTreeDataProvider, diagnosticsManager, uri)
+            checkCode(
+              config,
+              spotbugsTreeDataProvider,
+              diagnosticsManager,
+              uri,
+              analysisRunCoordinator
+            )
           );
         }
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
         await clearInspectorBeforeOperation(findingInspectorState, () =>
-          runWorkspaceAnalysis(config, spotbugsTreeDataProvider, diagnosticsManager)
+          runWorkspaceAnalysis(
+            config,
+            spotbugsTreeDataProvider,
+            diagnosticsManager,
+            analysisRunCoordinator
+          )
         );
       }),
 
@@ -242,7 +256,11 @@ async function doActivate(
         SpotBugsCommands.RESET_RESULTS,
         async () => {
           await clearInspectorBeforeOperation(findingInspectorState, () =>
-            resetResults(spotbugsTreeDataProvider, diagnosticsManager)
+            resetResults(
+              spotbugsTreeDataProvider,
+              diagnosticsManager,
+              analysisRunCoordinator
+            )
           );
         }
       )

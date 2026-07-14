@@ -12,6 +12,7 @@ import type {
 } from '../services/analysisService';
 import type { ProjectResult } from '../services/projectResult';
 import type { WorkspaceProjectDiscoveryResult } from '../workspace/projectDiscovery';
+import type { AnalysisRunLease } from './analysisRunCoordinator';
 import { buildAnalysisNotices } from './analysisNotices';
 import { buildWorkspaceCompletionNotices } from './workspaceSummary';
 
@@ -87,6 +88,7 @@ export interface RunFileAnalysisSessionArgs {
   notifier: Notifier;
   uri: Uri;
   startedAtMs: number;
+  lease: AnalysisRunLease;
   dependencies: AnalysisSessionDependencies;
 }
 
@@ -96,6 +98,7 @@ export interface RunWorkspaceAnalysisSessionArgs {
   diagnostics: AnalysisSessionDiagnostics;
   notifier: Notifier;
   runWithProgress: AnalysisProgressRunner;
+  lease: AnalysisRunLease;
   dependencies: AnalysisSessionDependencies;
 }
 
@@ -103,10 +106,16 @@ export async function runFileAnalysisSession(
   args: RunFileAnalysisSessionArgs
 ): Promise<void> {
   const { dependencies } = args;
+  if (!args.lease.isCurrent()) {
+    return;
+  }
   args.tree.showLoading();
 
   try {
     const result = await dependencies.analyzeFileDetailed(args.config, args.uri);
+    if (!args.lease.isCurrent()) {
+      return;
+    }
     const outcome = result.outcome;
     const findings = outcome.findings;
 
@@ -135,6 +144,9 @@ export async function runFileAnalysisSession(
     const errorMessage = messageFromUnknown(error);
     const failureMessage = `SpotBugs analysis failed: ${errorMessage}`;
     dependencies.logger.error('An error occurred during SpotBugs analysis', error);
+    if (!args.lease.isCurrent()) {
+      return;
+    }
     args.notifier.error(failureMessage);
     args.tree.showAnalysisFailure(failureMessage, 'ANALYSIS_FAILED');
   }
@@ -144,6 +156,9 @@ export async function runWorkspaceAnalysisSession(
   args: RunWorkspaceAnalysisSessionArgs
 ): Promise<void> {
   const { dependencies } = args;
+  if (!args.lease.isCurrent()) {
+    return;
+  }
   try {
     let aggregated: Finding[] = [];
     let projectResults: ProjectResult[] = [];
@@ -152,8 +167,14 @@ export async function runWorkspaceAnalysisSession(
     let cancelled = false;
 
     await args.runWithProgress(async (progress, token) => {
+      if (!args.lease.isCurrent()) {
+        return;
+      }
       progress.report({ message: 'Building Java workspace...' });
       const buildResult = await dependencies.buildWorkspaceAuto();
+      if (!args.lease.isCurrent()) {
+        return;
+      }
       if (buildResult !== undefined && buildResult !== 0) {
         dependencies.logger.log(
           `Java workspace build returned non-zero (${String(
@@ -169,6 +190,9 @@ export async function runWorkspaceAnalysisSession(
       }
 
       const discovery = await dependencies.getWorkspaceProjectDiscovery(wsFolder.uri);
+      if (!args.lease.isCurrent()) {
+        return;
+      }
       args.tree.showWorkspaceProgress(discovery.projectUris);
 
       const res = await dependencies.analyzeWorkspaceFromProjectsDetailed(
@@ -177,17 +201,29 @@ export async function runWorkspaceAnalysisSession(
         discovery.projectUris,
         {
           onStart: (uriString, index, total) => {
+            if (!args.lease.isCurrent()) {
+              return;
+            }
             progress.report({ message: `${index}/${total} ${uriString}` });
             args.tree.updateProjectStatus(uriString, 'running');
           },
-          onDone: (uriString, count) =>
-            args.tree.updateProjectStatus(uriString, 'done', { count }),
-          onFail: (uriString, message) =>
-            args.tree.updateProjectStatus(uriString, 'failed', { error: message }),
+          onDone: (uriString, count) => {
+            if (args.lease.isCurrent()) {
+              args.tree.updateProjectStatus(uriString, 'done', { count });
+            }
+          },
+          onFail: (uriString, message) => {
+            if (args.lease.isCurrent()) {
+              args.tree.updateProjectStatus(uriString, 'failed', { error: message });
+            }
+          },
         },
         token
       );
 
+      if (!args.lease.isCurrent()) {
+        return;
+      }
       projectResults = res.results;
       aggregated = res.results.flatMap((result) => result.findings);
       resolutionIssues = [...discovery.issues, ...res.context.resolutionIssues];
@@ -198,6 +234,9 @@ export async function runWorkspaceAnalysisSession(
         res.results.some(isAnalysisCancelledProjectResult);
     });
 
+    if (!args.lease.isCurrent()) {
+      return;
+    }
     if (cancelled) {
       args.tree.showWorkspaceCancelled();
       return;
@@ -248,6 +287,9 @@ function renderWorkspaceAnalysisFailure(
 ): void {
   const errorMessage = messageFromUnknown(error);
   args.dependencies.logger.error('An error occurred during workspace analysis', error);
+  if (!args.lease.isCurrent()) {
+    return;
+  }
   args.notifier.error(`SpotBugs: Workspace analysis failed - ${errorMessage}`);
   args.tree.showAnalysisFailure(
     `SpotBugs workspace analysis failed: ${errorMessage}`,
