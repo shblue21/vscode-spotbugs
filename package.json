@@ -106,7 +106,7 @@
             "scope": "window"
           },
           "spotbugs.analysis.priorityThreshold": {
-            "type": "number",
+            "type": "integer",
             "default": 9,
             "markdownDescription": "%contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription%",
             "minimum": 1,

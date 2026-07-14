@@ -42,8 +42,11 @@ export class Config {
     const effort = config.get<string>(settingKeys.analysisEffort) ?? 'default';
     this.effort = (effort || 'default').toLowerCase();
 
-    const pt = config.get<number | undefined>(settingKeys.analysisPriorityThreshold);
-    this.priorityThreshold = typeof pt === 'number' ? pt : undefined;
+    const pt = config.get<unknown>(settingKeys.analysisPriorityThreshold);
+    this.priorityThreshold =
+      typeof pt === 'number' && Number.isInteger(pt) && pt >= 1 && pt <= 20
+        ? pt
+        : undefined;
     this.extraAuxClasspaths = this.readStringArray(
       config.get<unknown>(settingKeys.analysisExtraAuxClasspaths)
     );
