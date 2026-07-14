@@ -1,4 +1,13 @@
 # Changelog
+## [0.7.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.7.0...v0.7.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **analysis:** prevent stale runs from overwriting results ([#80](https://github.com/shblue21/vscode-spotbugs/issues/80)) ([39d07fb](https://github.com/shblue21/vscode-spotbugs/commit/39d07fbd94175b2659910a30bcc5848a5788c7d1))
+* honor exact SpotBugs rank threshold ([#77](https://github.com/shblue21/vscode-spotbugs/issues/77)) ([8022a50](https://github.com/shblue21/vscode-spotbugs/commit/8022a503e61341e94efb0c2ff580a5ca48d7eb16))
+* reject unsafe source paths before file access ([#79](https://github.com/shblue21/vscode-spotbugs/issues/79)) ([6c0ce4c](https://github.com/shblue21/vscode-spotbugs/commit/6c0ce4cdfc2ef346647916ee95b4f560dbd7a72a))
+
 ## [0.7.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.6.3...v0.7.0) (2026-07-13)
 
 
