@@ -12,11 +12,13 @@ import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { getWorkspaceProjectDiscovery } from '../workspace/projectDiscovery';
 import { getPrimaryWorkspaceFolder } from '../workspace/workspaceRoots';
 import * as analysisRunSession from './analysisRunSession';
+import { AnalysisRunCoordinator } from './analysisRunCoordinator';
 
 export interface RunFileAnalysisArgs {
   config: Config;
   tree: SpotBugsTreeDataProvider;
   diagnostics: SpotBugsDiagnosticsManager;
+  coordinator: AnalysisRunCoordinator;
   uri?: Uri;
   notifier?: Notifier;
 }
@@ -25,6 +27,7 @@ export interface RunWorkspaceAnalysisArgs {
   config: Config;
   tree: SpotBugsTreeDataProvider;
   diagnostics: SpotBugsDiagnosticsManager;
+  coordinator: AnalysisRunCoordinator;
   notifier?: Notifier;
 }
 
@@ -35,12 +38,16 @@ export async function runFileAnalysis(
   const startedAtMs = Date.now();
   Logger.log('Command spotbugs.run triggered.');
 
+  const fileUri = args.uri ?? getActiveFileUri();
+  const lease = fileUri ? args.coordinator.begin() : undefined;
   await focusSpotbugsTree();
 
-  const fileUri = args.uri ?? getActiveFileUri();
-  if (!fileUri) {
+  if (!fileUri || !lease) {
     notifier.error(l10n.t('No Java file selected for SpotBugs analysis.'));
     Logger.log('No Java file selected for analysis.');
+    return;
+  }
+  if (!lease.isCurrent()) {
     return;
   }
 
@@ -51,6 +58,7 @@ export async function runFileAnalysis(
     notifier,
     uri: fileUri,
     startedAtMs,
+    lease,
     dependencies: createAnalysisSessionDependencies(),
   });
 }
@@ -59,7 +67,11 @@ export async function runWorkspaceAnalysis(
   args: RunWorkspaceAnalysisArgs
 ): Promise<void> {
   Logger.log('Command spotbugs.runWorkspace triggered.');
+  const lease = args.coordinator.begin();
   await focusSpotbugsTree();
+  if (!lease.isCurrent()) {
+    return;
+  }
   const notifier = args.notifier ?? defaultNotifier;
   const dependencies = createAnalysisSessionDependencies();
 
@@ -68,6 +80,7 @@ export async function runWorkspaceAnalysis(
     tree: args.tree,
     diagnostics: args.diagnostics,
     notifier,
+    lease,
     runWithProgress: (task) =>
       Promise.resolve(
         window.withProgress(

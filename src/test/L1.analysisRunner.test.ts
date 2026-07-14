@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import { AnalysisRunCoordinator } from '../orchestration/analysisRunCoordinator';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
@@ -64,6 +65,12 @@ describe('analysisRunner', () => {
       const config = { getAnalysisSettings: () => ({}) } as any;
       const tree = createNoopTree();
       const diagnostics = createNoopDiagnostics();
+      const coordinator = {
+        begin: () => {
+          commandCalls.push(['coordinator.begin']);
+          return { isCurrent: () => true };
+        },
+      } as AnalysisRunCoordinator;
       const notifier = {
         info: () => undefined,
         warn: () => undefined,
@@ -74,11 +81,15 @@ describe('analysisRunner', () => {
         config,
         tree,
         diagnostics,
+        coordinator,
         uri,
         notifier,
       });
 
-      assert.deepStrictEqual(commandCalls, [['spotbugs-view.focus']]);
+      assert.deepStrictEqual(commandCalls, [
+        ['coordinator.begin'],
+        ['spotbugs-view.focus'],
+      ]);
       assert.strictEqual(delegated.length, 1);
       const args = delegated[0] as {
         config: unknown;
@@ -152,6 +163,7 @@ describe('analysisRunner', () => {
         config: { getAnalysisSettings: () => ({}) } as any,
         tree: createNoopTree(),
         diagnostics: createNoopDiagnostics(),
+        coordinator: new AnalysisRunCoordinator(),
         uri: vscode.Uri.file('/workspace/src/Foo.java') as any,
       });
 
@@ -194,6 +206,7 @@ describe('analysisRunner', () => {
         config: { getAnalysisSettings: () => ({}) } as any,
         tree: createNoopTree(),
         diagnostics: createNoopDiagnostics(),
+        coordinator: new AnalysisRunCoordinator(),
         notifier: {
           info: () => undefined,
           warn: () => undefined,
@@ -241,6 +254,7 @@ describe('analysisRunner', () => {
         config: { getAnalysisSettings: () => ({}) } as any,
         tree: createNoopTree(),
         diagnostics: createNoopDiagnostics(),
+        coordinator: new AnalysisRunCoordinator(),
       });
 
       assert.deepStrictEqual(commandCalls, [['spotbugs-view.focus']]);
@@ -303,11 +317,13 @@ describe('analysisRunner', () => {
       const config = { getAnalysisSettings: () => ({}) } as any;
       const tree = createNoopTree();
       const diagnostics = createNoopDiagnostics();
+      const coordinator = new AnalysisRunCoordinator();
 
       await runner.runWorkspaceAnalysis({
         config,
         tree,
         diagnostics,
+        coordinator,
       });
 
       assert.deepStrictEqual(commandCalls, [['spotbugs-view.focus']]);
