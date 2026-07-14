@@ -18,28 +18,28 @@ public class SpotBugsRunner {
         return executor.executeBugs();
     }
 
-    public List<BugInfo> run(FindBugs2 findBugs, Project project, Integer reporterPriorityThreshold, java.util.List<String> pluginJars)
+    public List<BugInfo> run(FindBugs2 findBugs, Project project, Integer rankThreshold, java.util.List<String> pluginJars)
             throws IOException, InterruptedException {
-        return runWithWarnings(findBugs, project, reporterPriorityThreshold, pluginJars).getBugs();
+        return runWithWarnings(findBugs, project, rankThreshold, pluginJars).getBugs();
     }
 
     public SpotBugsAnalysisResult runWithWarnings(
             FindBugs2 findBugs,
             Project project,
-            Integer reporterPriorityThreshold,
+            Integer rankThreshold,
             java.util.List<String> pluginJars
     ) throws IOException, InterruptedException {
-        SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, reporterPriorityThreshold, pluginJars);
+        SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, rankThreshold, pluginJars);
         return executor.executeBugsWithWarnings();
     }
 
     public String runNativeSarif(
             FindBugs2 findBugs,
             Project project,
-            Integer reporterPriorityThreshold,
+            Integer rankThreshold,
             java.util.List<String> pluginJars
     ) throws IOException, InterruptedException {
-        SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, reporterPriorityThreshold, pluginJars);
+        SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, rankThreshold, pluginJars);
         return executor.executeNativeSarif();
     }
 }
