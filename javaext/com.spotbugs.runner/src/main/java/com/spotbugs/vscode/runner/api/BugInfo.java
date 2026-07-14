@@ -1,5 +1,7 @@
 package com.spotbugs.vscode.runner.api;
 
+import com.spotbugs.vscode.runner.internal.SourcePathPolicy;
+
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.ClassAnnotation;
 import edu.umd.cs.findbugs.FieldAnnotation;
@@ -73,12 +75,16 @@ public class BugInfo {
 
         SourceLineAnnotation sla = bugInstance.getPrimarySourceLineAnnotation();
         if (sla != null) {
-            this.sourceFile = safeString(sla.getSourceFile());
+            String safeSourceFile = SourcePathPolicy.sourceFileName(sla.getSourceFile());
+            String safeSourcePath = safeSourceFile == null
+                    ? null
+                    : SourcePathPolicy.relativeSourcePath(sla.getSourcePath());
+            this.sourceFile = safeString(safeSourcePath == null ? null : safeSourceFile);
             int s = sla.getStartLine();
             int e = sla.getEndLine();
             this.startLine = s > 0 ? s : 0;
             this.endLine = e > 0 ? e : this.startLine;
-            this.realSourcePath = safeString(sla.getRealSourcePath());
+            this.realSourcePath = safeString(safeSourcePath);
         } else {
             this.sourceFile = "";
             this.startLine = 0;
