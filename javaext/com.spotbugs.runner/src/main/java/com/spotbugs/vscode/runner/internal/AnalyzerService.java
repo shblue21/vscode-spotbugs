@@ -78,7 +78,8 @@ public class AnalyzerService {
                 this.findBugs,
                 prepared.project,
                 prepared.rankThreshold,
-                prepared.plugins
+                prepared.plugins,
+                monitor
         );
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();

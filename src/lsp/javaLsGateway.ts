@@ -1,4 +1,4 @@
-import { commands } from 'vscode';
+import { commands, type CancellationToken } from 'vscode';
 import { JavaLanguageServerCommands } from '../constants/commands';
 
 export interface JavaLsClasspathResponse {
@@ -35,10 +35,12 @@ export async function requestAllJavaProjects(): Promise<string[] | undefined> {
 }
 
 export async function requestWorkspaceBuild(
-  full: boolean
+  full: boolean,
+  token?: CancellationToken
 ): Promise<number | undefined> {
+  const args = token ? [full, token] : [full];
   return commands.executeCommand<number>(
-    JavaLanguageServerCommands.BUILD_WORKSPACE,
-    full
+    JavaLanguageServerCommands.COMPILE_WORKSPACE,
+    ...args
   );
 }

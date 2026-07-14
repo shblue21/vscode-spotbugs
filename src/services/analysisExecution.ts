@@ -1,4 +1,4 @@
-import type { Uri } from 'vscode';
+import type { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import type { AnalysisSettings, Config } from '../core/config';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
@@ -66,7 +66,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function run(
     config: AnalysisConfigProvider,
-    context: AnalysisExecutionTarget
+    context: AnalysisExecutionTarget,
+    token?: CancellationToken
   ): Promise<AnalysisOutcome> {
     const settings = config.getAnalysisSettings(context.preferredProject);
     const preflightFailure = await validateAnalysisPreflight(
@@ -77,7 +78,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       return preflightFailure;
     }
 
-    const raw = await executeAnalysisRequest(settings, context);
+    const raw = await executeAnalysisRequest(settings, context, token);
     return analysisOutcomeFromRawResponse(raw, context);
   }
 
@@ -144,7 +145,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function executeAnalysisRequest(
     settings: AnalysisSettings,
-    context: AnalysisExecutionTarget
+    context: AnalysisExecutionTarget,
+    token?: CancellationToken
   ): Promise<string | undefined> {
     const payload = deps.buildAnalysisRequestPayload(settings, {
       targetResolutionRoots: context.targetResolutionRoots ?? null,
@@ -152,10 +154,13 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       extraAuxClasspaths: settings.extraAuxClasspaths ?? null,
       sourcepaths: context.sourcepaths ?? null,
     });
-    return deps.runSpotBugsAnalysis({
-      targetPath: context.targetPath,
-      payload,
-    });
+    return deps.runSpotBugsAnalysis(
+      {
+        targetPath: context.targetPath,
+        payload,
+      },
+      token
+    );
   }
 
   async function analysisOutcomeFromRawResponse(
@@ -329,9 +334,10 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
 export function runAnalysisTarget(
   config: Config,
-  context: AnalysisExecutionTarget
+  context: AnalysisExecutionTarget,
+  token?: CancellationToken
 ): Promise<AnalysisOutcome> {
-  return createAnalysisExecutor().run(config, context);
+  return createAnalysisExecutor().run(config, context, token);
 }
 
 export function createAnalysisFailureOutcome(

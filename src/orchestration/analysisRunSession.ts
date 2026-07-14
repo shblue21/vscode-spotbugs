@@ -13,6 +13,7 @@ import type {
 import type { ProjectResult } from '../services/projectResult';
 import type { WorkspaceProjectDiscoveryResult } from '../workspace/projectDiscovery';
 import type { AnalysisRunLease } from './analysisRunCoordinator';
+import { JavaCompileWorkspaceStatus } from '../constants/commands';
 import { buildAnalysisNotices } from './analysisNotices';
 import { buildWorkspaceCompletionNotices } from './workspaceSummary';
 
@@ -72,7 +73,7 @@ export interface AnalysisSessionDependencies {
     notify?: WorkspaceProgressCallbacks,
     token?: CancellationToken
   ): Promise<WorkspaceExecutionResult>;
-  buildWorkspaceAuto(): Promise<number | undefined>;
+  buildWorkspaceAuto(token?: CancellationToken): Promise<number | undefined>;
   getPrimaryWorkspaceFolder(): WorkspaceFolder | undefined;
   getWorkspaceProjectDiscovery(
     workspaceFolder: Uri
@@ -171,8 +172,15 @@ export async function runWorkspaceAnalysisSession(
         return;
       }
       progress.report({ message: 'Building Java workspace...' });
-      const buildResult = await dependencies.buildWorkspaceAuto();
+      const buildResult = await dependencies.buildWorkspaceAuto(token);
       if (!args.lease.isCurrent()) {
+        return;
+      }
+      if (
+        token.isCancellationRequested ||
+        buildResult === JavaCompileWorkspaceStatus.cancelled
+      ) {
+        cancelled = true;
         return;
       }
       if (buildResult !== undefined && buildResult !== 0) {
@@ -191,6 +199,10 @@ export async function runWorkspaceAnalysisSession(
 
       const discovery = await dependencies.getWorkspaceProjectDiscovery(wsFolder.uri);
       if (!args.lease.isCurrent()) {
+        return;
+      }
+      if (token.isCancellationRequested) {
+        cancelled = true;
         return;
       }
       args.tree.showWorkspaceProgress(discovery.projectUris);

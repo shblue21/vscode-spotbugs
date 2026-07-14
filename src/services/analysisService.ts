@@ -157,13 +157,17 @@ export async function analyzeWorkspaceFromProjectsDetailed(
     const result = await analyzeProjectDetailed(
       config,
       Uri.parse(uriString),
-      workspaceFolder
+      workspaceFolder,
+      token
     );
     results.push(result.projectResult);
     context.resolutionIssues.push(...result.context.resolutionIssues);
     context.cleanupWarnings?.push(...(result.context.cleanupWarnings ?? []));
 
-    if (isAnalysisCancelledProjectResult(result.projectResult)) {
+    if (
+      token?.isCancellationRequested ||
+      isAnalysisCancelledProjectResult(result.projectResult)
+    ) {
       Logger.log('Workspace analysis cancelled by backend.');
       cancelled = true;
       break;
@@ -219,7 +223,8 @@ async function analyzeProject(
 async function analyzeProjectDetailed(
   config: Config,
   project: ProjectRef,
-  workspaceFolder: Uri
+  workspaceFolder: Uri,
+  token?: CancellationToken
 ): Promise<{ projectResult: ProjectResult; context: AnalysisExecutionContext }> {
   const projectUri = normalizeProjectRef(project);
   const projectUriString = projectUri.toString();
@@ -228,6 +233,10 @@ async function analyzeProjectDetailed(
   try {
     const result = await resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
     context.resolutionIssues.push(...result.issues);
+
+    if (token?.isCancellationRequested) {
+      return { projectResult: cancelledProjectResult(projectUriString), context };
+    }
 
     if (result.resolution.status !== 'ok') {
       return {
@@ -242,7 +251,7 @@ async function analyzeProjectDetailed(
     }
 
     try {
-      const outcome = await runAnalysis(config, result.resolution.target);
+      const outcome = await runAnalysis(config, result.resolution.target, token);
       if (Array.isArray(outcome.warnings)) {
         context.cleanupWarnings?.push(
           ...outcome.warnings.map((warning) => ({
@@ -273,9 +282,10 @@ async function analyzeProjectDetailed(
 
 async function runAnalysis(
   config: Config,
-  context: AnalysisExecutionTarget
+  context: AnalysisExecutionTarget,
+  token?: CancellationToken
 ): Promise<AnalysisOutcome> {
-  return runAnalysisTarget(config, context);
+  return runAnalysisTarget(config, context, token);
 }
 
 function messageFromUnknown(error: unknown): string {
@@ -288,6 +298,14 @@ function messageFromUnknown(error: unknown): string {
 
 function isAnalysisCancelledProjectResult(result: ProjectResult): boolean {
   return result.errorCode === ERROR_ANALYSIS_CANCELLED;
+}
+
+function cancelledProjectResult(projectUri: string): ProjectResult {
+  return {
+    projectUri,
+    findings: [],
+    errorCode: ERROR_ANALYSIS_CANCELLED,
+  };
 }
 
 function normalizeProjectRef(project: ProjectRef): Uri {

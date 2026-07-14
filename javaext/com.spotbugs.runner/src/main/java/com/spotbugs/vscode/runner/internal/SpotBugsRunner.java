@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Project;
 
@@ -20,17 +22,18 @@ public class SpotBugsRunner {
 
     public List<BugInfo> run(FindBugs2 findBugs, Project project, Integer rankThreshold, java.util.List<String> pluginJars)
             throws IOException, InterruptedException {
-        return runWithWarnings(findBugs, project, rankThreshold, pluginJars).getBugs();
+        return runWithWarnings(findBugs, project, rankThreshold, pluginJars, null).getBugs();
     }
 
     public SpotBugsAnalysisResult runWithWarnings(
             FindBugs2 findBugs,
             Project project,
             Integer rankThreshold,
-            java.util.List<String> pluginJars
+            java.util.List<String> pluginJars,
+            IProgressMonitor monitor
     ) throws IOException, InterruptedException {
         SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, rankThreshold, pluginJars);
-        return executor.executeBugsWithWarnings();
+        return executor.executeBugsWithWarnings(monitor);
     }
 
     public String runNativeSarif(

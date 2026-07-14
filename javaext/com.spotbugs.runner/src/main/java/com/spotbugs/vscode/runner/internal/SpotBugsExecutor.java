@@ -13,15 +13,19 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
+
+import org.eclipse.core.runtime.IProgressMonitor;
 
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.BugRanker;
 import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
+import edu.umd.cs.findbugs.NoOpFindBugsProgress;
 import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.PluginLoader;
@@ -71,15 +75,21 @@ public class SpotBugsExecutor {
     }
 
     public List<BugInfo> executeBugs() throws IOException, InterruptedException {
-        return executeBugsWithWarnings().getBugs();
+        return executeBugsWithWarnings(null).getBugs();
     }
 
     public SpotBugsAnalysisResult executeBugsWithWarnings() throws IOException, InterruptedException {
+        return executeBugsWithWarnings(null);
+    }
+
+    public SpotBugsAnalysisResult executeBugsWithWarnings(IProgressMonitor monitor)
+            throws IOException, InterruptedException {
         synchronized (SPOTBUGS_GLOBAL_LOCK) {
+            checkCanceled(monitor);
             LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
             List<BugInfo> bugs;
             try {
-                execute(defaultBugReporter);
+                execute(defaultBugReporter, monitor);
                 bugs = collectBugs(defaultBugReporter);
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
                 loadedPlugins.closeAfterFailure(failure);
@@ -99,7 +109,7 @@ public class SpotBugsExecutor {
                 SarifBugReporter reporter = new SarifBugReporter(project);
                 configureReporter(reporter);
                 reporter.setWriter(new PrintWriter(writer));
-                execute(reporter);
+                execute(reporter, null);
                 sarif = writer.toString();
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
                 loadedPlugins.closeAfterFailure(failure);
@@ -110,7 +120,8 @@ public class SpotBugsExecutor {
         }
     }
 
-    private void execute(BugCollectionBugReporter reporter) throws IOException, InterruptedException {
+    private void execute(BugCollectionBugReporter reporter, IProgressMonitor monitor)
+            throws IOException, InterruptedException {
         findBugs.setProject(project);
         findBugs.setBugReporter(reporter);
         UserPreferences currentPreferences = findBugs.getUserPreferences();
@@ -120,7 +131,46 @@ public class SpotBugsExecutor {
         }
         DetectorFactoryCollection dfc = DetectorFactoryCollection.instance();
         findBugs.setDetectorFactoryCollection(dfc);
-        findBugs.execute();
+        if (monitor == null) {
+            findBugs.execute();
+            return;
+        }
+
+        findBugs.setProgressCallback(new NoOpFindBugsProgress() {
+            private void interruptIfCanceled() {
+                if (monitor.isCanceled()) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            @Override
+            public void finishArchive() {
+                interruptIfCanceled();
+            }
+
+            @Override
+            public void startAnalysis(int numClasses) {
+                interruptIfCanceled();
+            }
+
+            @Override
+            public void finishClass() {
+                interruptIfCanceled();
+            }
+        });
+        try {
+            findBugs.execute();
+            checkCanceled(monitor);
+        } finally {
+            findBugs.setProgressCallback(new NoOpFindBugsProgress());
+        }
+    }
+
+    private static void checkCanceled(IProgressMonitor monitor) {
+        if (monitor != null && monitor.isCanceled()) {
+            Thread.interrupted();
+            throw new CancellationException("Command cancelled");
+        }
     }
 
     private void configureReporter(BugCollectionBugReporter reporter) {
