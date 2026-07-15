@@ -29,9 +29,13 @@ export async function exportSarifReport(
   }
 
   try {
+    const workspaceRootPaths = workspace.workspaceFolders?.map(
+      (folder) => folder.uri.fsPath
+    );
     const sarifLog = buildSarifLog(findings, {
       runName: getWorkspaceName(),
-      workspaceRootPath: workspace.workspaceFolders?.[0]?.uri.fsPath,
+      workspaceRootPath: workspaceRootPaths?.[0],
+      workspaceRootPaths,
     });
     const sarifJson = JSON.stringify(sarifLog, null, 2);
     await workspace.fs.writeFile(saveUri, Buffer.from(sarifJson, 'utf8'));
