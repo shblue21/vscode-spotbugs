@@ -35,6 +35,9 @@ final class AnalysisPipeline {
             Thread.currentThread().interrupt();
             return AnalysisPipelineResult.cancelled(analyzer, startMillis);
         } catch (Exception analysisFailure) {
+            if (monitor != null && monitor.isCanceled()) {
+                return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+            }
             return AnalysisPipelineResult.failed(analyzer, startMillis, analysisFailure);
         }
     }

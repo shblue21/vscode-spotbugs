@@ -110,6 +110,24 @@ public class AnalysisPipelineTest {
     }
 
     @Test
+    public void runReturnsCancelledWhenAnalyzerFailureFollowsMonitorCancellation() throws Exception {
+        NullProgressMonitor monitor = new NullProgressMonitor();
+        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
+            @Override
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, String... filePaths)
+                    throws IOException {
+                progressMonitor.setCanceled(true);
+                throw new IOException("wrapped interruption");
+            }
+        });
+
+        AnalysisPipelineResult result = pipeline.run(monitor, request("/workspace/build/classes"));
+
+        assertEquals(AnalysisPipelineResult.Status.CANCELLED, result.getStatus());
+        assertEquals(0, result.getFindingCount());
+    }
+
+    @Test
     public void runReturnsFailedResultWithOriginalException() throws Exception {
         IOException failure = new IOException("analysis boom");
         AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
