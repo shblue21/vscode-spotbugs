@@ -1,9 +1,15 @@
 export namespace JavaLanguageServerCommands {
   export const EXECUTE_WORKSPACE_COMMAND: string = 'java.execute.workspaceCommand';
-  // vscode-java standardLanguageClient commands, true is full compile, false is incremental compile
-  export const BUILD_WORKSPACE: string = 'java.project.build';
+  // vscode-java standardLanguageClient command, true is full compile, false is incremental compile
+  export const COMPILE_WORKSPACE: string = 'java.workspace.compile';
   export const GET_CLASSPATHS: string = 'java.project.getClasspaths';
   export const GET_ALL_JAVA_PROJECTS: string = 'java.project.getAll';
+}
+
+export enum JavaCompileWorkspaceStatus {
+  failed = 0,
+  succeeded = 1,
+  cancelled = 3,
 }
 
 // VS Code command IDs owned by this extension (used in menus/UI)

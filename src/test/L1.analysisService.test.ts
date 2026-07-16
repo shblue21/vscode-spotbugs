@@ -354,4 +354,46 @@ describe('analysisService', () => {
     assert.strictEqual(result.results[0].errorCode, 'ANALYSIS_CANCELLED');
     assert.deepStrictEqual(analyzedTargets, ['/workspace/project-a/target/classes']);
   });
+
+  it('treats a rejected backend request as cancellation when the token is cancelled', async () => {
+    const vscode = installVscodeMock();
+    const resolverModule =
+      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const spotbugsClient =
+      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const token = { isCancellationRequested: false } as any;
+    const analyzedTargets: string[] = [];
+    const failedProjects: string[] = [];
+
+    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          preferredProject: projectUri,
+        },
+      },
+      issues: [],
+    })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
+    spotbugsClient.runSpotBugsAnalysis = (async (request, receivedToken) => {
+      analyzedTargets.push(request.targetPath);
+      assert.strictEqual(receivedToken, token);
+      token.isCancellationRequested = true;
+      throw new Error('request cancelled');
+    }) as typeof spotbugsClient.runSpotBugsAnalysis;
+
+    const result = await service.analyzeWorkspaceFromProjectsDetailed(
+      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
+      vscode.Uri.file('/workspace') as any,
+      ['file:///workspace/project-a', 'file:///workspace/project-b'],
+      { onFail: (projectUri) => failedProjects.push(projectUri) },
+      token
+    );
+
+    assert.strictEqual(result.cancelled, true);
+    assert.strictEqual(result.results.length, 1);
+    assert.deepStrictEqual(failedProjects, []);
+    assert.deepStrictEqual(analyzedTargets, ['/workspace/project-a/target/classes']);
+  });
 });

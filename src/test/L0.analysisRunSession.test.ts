@@ -16,6 +16,7 @@ import {
 import type { AnalysisExecutionResult } from '../services/analysisService';
 import type { Finding } from '../model/finding';
 import type { ProjectResult } from '../services/projectResult';
+import { JavaCompileWorkspaceStatus } from '../constants/commands';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
@@ -511,6 +512,33 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
 }
 
 describe('analysisRunSession workspace analysis', () => {
+  it('stops before discovery when the workspace build is cancelled', async () => {
+    let receivedToken: unknown;
+    let discoveryCalled = false;
+    let analysisCalled = false;
+    const harness = createWorkspaceHarness({
+      buildWorkspaceAuto: async (token) => {
+        receivedToken = token;
+        return JavaCompileWorkspaceStatus.cancelled;
+      },
+      getWorkspaceProjectDiscovery: async () => {
+        discoveryCalled = true;
+        return { projectUris: [], issues: [] };
+      },
+      analyzeWorkspaceFromProjectsDetailed: async () => {
+        analysisCalled = true;
+        return { results: [], context: { resolutionIssues: [] } };
+      },
+    });
+
+    await runWorkspaceAnalysisSession(harness.args);
+
+    assert.strictEqual(receivedToken, harness.token);
+    assert.strictEqual(discoveryCalled, false);
+    assert.strictEqual(analysisCalled, false);
+    assert.deepStrictEqual(harness.calls, ['cancelled']);
+  });
+
   it('applies all-success workspace results and replaces diagnostics once', async () => {
     const finding = createFinding('/workspace/project-a/src/Foo.java');
     const harness = createWorkspaceHarness({
@@ -882,6 +910,7 @@ describe('analysisRunSession workspace analysis', () => {
     {
       name: 'service cancellation flag',
       tokenCancelled: false,
+      expectedCalls: ['progress:1', 'cancelled'],
       result: {
         results: [],
         cancelled: true,
@@ -893,6 +922,7 @@ describe('analysisRunSession workspace analysis', () => {
     {
       name: 'VS Code token cancellation',
       tokenCancelled: true,
+      expectedCalls: ['cancelled'],
       result: {
         results: [],
         cancelled: false,
@@ -904,6 +934,7 @@ describe('analysisRunSession workspace analysis', () => {
     {
       name: 'backend cancellation envelope',
       tokenCancelled: false,
+      expectedCalls: ['progress:1', 'cancelled'],
       result: {
         results: [
           {
@@ -932,7 +963,7 @@ describe('analysisRunSession workspace analysis', () => {
 
       await runWorkspaceAnalysisSession(harness.args);
 
-      assert.deepStrictEqual(harness.calls, ['progress:1', 'cancelled']);
+      assert.deepStrictEqual(harness.calls, scenario.expectedCalls);
       assert.deepStrictEqual(harness.errors, []);
     });
   }
