@@ -23,12 +23,12 @@ import type { ProjectResult } from '../services/projectResult';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 import {
   applyFindingFilters,
-  createFilteredEmptyState,
   type FindingFilterKind,
   type FindingFilterOption,
   type FindingFilterState,
   getFindingFilterOptions,
 } from './findingFilters';
+import { describeLocalizedFindingFilters } from './findingFilterPresentation';
 import type { FindingGroupKind } from './findingFacets';
 import {
   buildResultView,
@@ -362,9 +362,8 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   private createCurrentEmptyState(): { label: string; description?: string } {
-    const filterState = createFilteredEmptyState(this.cachedResults, this.activeFilters);
     const parts = [
-      filterState.description,
+      describeLocalizedFindingFilters(this.cachedResults, this.activeFilters),
       this.searchQuery ? l10n.t('Search: "{0}"', this.searchQuery) : undefined,
     ].filter((part): part is string => !!part);
 
