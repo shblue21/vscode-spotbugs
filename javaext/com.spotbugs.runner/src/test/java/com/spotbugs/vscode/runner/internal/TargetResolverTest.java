@@ -1,12 +1,18 @@
 package com.spotbugs.vscode.runner.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,6 +63,54 @@ public class TargetResolverTest {
         );
 
         assertEquals(sortedPaths(classFile, anonymousClassFile, innerClassFile), sorted(actual));
+    }
+
+    @Test
+    public void resolvesAllTopLevelClassesDeclaredInSelectedJavaFile() throws Exception {
+        File project = temporaryFolder.newFolder("multi-top-level-project");
+        File sourceRoot = mkdirs(project, "src/main/java");
+        File sourcePackage = mkdirs(sourceRoot, "demo");
+        File outputRoot = mkdirs(project, "target/classes");
+        File sourceFile = writeJavaSource(
+                sourcePackage,
+                "Repro.java",
+                "package demo; public class Repro { static class Inner {} } " +
+                        "class Helper { static class Nested {} } " +
+                        "class Same$Source {}"
+        );
+        File foreignDollarSourceFile = writeJavaSource(
+                sourcePackage,
+                "Helper$Foreign.java",
+                "package demo; class Helper$Foreign {}"
+        );
+        compileJavaSources(outputRoot, sourceFile, foreignDollarSourceFile);
+
+        File outputPackage = new File(outputRoot, "demo");
+        File reproClass = new File(outputPackage, "Repro.class");
+        File reproInnerClass = new File(outputPackage, "Repro$Inner.class");
+        File helperClass = new File(outputPackage, "Helper.class");
+        File helperNestedClass = new File(outputPackage, "Helper$Nested.class");
+        File sameSourceDollarClass = new File(outputPackage, "Same$Source.class");
+        File foreignDollarClass = new File(outputPackage, "Helper$Foreign.class");
+        assertTrue(foreignDollarClass.isFile());
+
+        List<String> actual = new TargetResolver().resolveTargets(
+                new String[] { sourceFile.getAbsolutePath() },
+                Collections.singletonList(outputRoot),
+                Collections.singletonList(sourceRoot.getAbsolutePath()),
+                null
+        );
+
+        assertEquals(
+                sortedPaths(
+                        reproClass,
+                        reproInnerClass,
+                        helperClass,
+                        helperNestedClass,
+                        sameSourceDollarClass
+                ),
+                sorted(actual)
+        );
     }
 
     @Test
@@ -304,6 +358,29 @@ public class TargetResolverTest {
         File file = new File(parent, name);
         assertTrue(file.createNewFile());
         return file;
+    }
+
+    private File writeJavaSource(File parent, String name, String source) throws Exception {
+        File file = new File(parent, name);
+        Files.write(file.toPath(), source.getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    private void compileJavaSources(File outputRoot, File... sourceFiles) {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        assertNotNull("Tests require a JDK with javac", compiler);
+        List<String> arguments = listOf(
+                "--release",
+                "8",
+                "-g:source",
+                "-Xlint:-options",
+                "-d",
+                outputRoot.getAbsolutePath()
+        );
+        for (File sourceFile : sourceFiles) {
+            arguments.add(sourceFile.getAbsolutePath());
+        }
+        assertEquals(0, compiler.run(null, null, null, arguments.toArray(new String[0])));
     }
 
     private File mkdirs(File parent, String relativePath) {

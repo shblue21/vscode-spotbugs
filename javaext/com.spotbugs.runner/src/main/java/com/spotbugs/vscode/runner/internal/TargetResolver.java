@@ -6,12 +6,15 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.bcel.classfile.ClassParser;
 import org.eclipse.core.runtime.IProgressMonitor;
 
 /**
@@ -36,6 +39,7 @@ public class TargetResolver {
     ) throws IOException {
         List<String> targets = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        Map<String, String> sourceFileNames = new HashMap<>();
         List<SourceRoot> sourceRoots = normalizeSourceRoots(sourcepaths);
         if (inputs == null) {
             return targets;
@@ -54,10 +58,11 @@ public class TargetResolver {
                         sourceRoots,
                         targets,
                         seen,
+                        sourceFileNames,
                         monitor
                 );
                 if (sourceDirectoryResolution == SourceDirectoryResolution.NOT_SOURCE_DIRECTORY) {
-                    collectTargetsRecursively(f, targetResolutionRootDirs, sourceRoots, targets, seen, monitor);
+                    collectTargetsRecursively(f, targetResolutionRootDirs, sourceRoots, targets, seen, sourceFileNames, monitor);
                 }
                 continue;
             }
@@ -66,13 +71,13 @@ public class TargetResolver {
                 continue;
             }
             if (isJavaSourceFile(p)) {
-                addTargetsForJavaFile(p, targetResolutionRootDirs, sourceRoots, targets, seen, monitor);
+                addTargetsForJavaFile(p, targetResolutionRootDirs, sourceRoots, targets, seen, sourceFileNames, monitor);
                 continue;
             }
             // Unknown type: add existing file or scan directory
             if (f.exists()) {
                 if (f.isFile()) addIfNew(f.getAbsolutePath(), targets, seen);
-                else if (f.isDirectory()) collectTargetsRecursively(f, targetResolutionRootDirs, sourceRoots, targets, seen, monitor);
+                else if (f.isDirectory()) collectTargetsRecursively(f, targetResolutionRootDirs, sourceRoots, targets, seen, sourceFileNames, monitor);
             }
         }
         return targets;
@@ -84,6 +89,7 @@ public class TargetResolver {
             List<SourceRoot> sourceRoots,
             List<String> out,
             Set<String> seen,
+            Map<String, String> sourceFileNames,
             IProgressMonitor monitor
     ) throws IOException {
         File[] children = dir.listFiles();
@@ -91,7 +97,7 @@ public class TargetResolver {
         for (File c : children) {
             checkCanceled(monitor);
             if (c.isDirectory()) {
-                collectTargetsRecursively(c, targetResolutionRootDirs, sourceRoots, out, seen, monitor);
+                collectTargetsRecursively(c, targetResolutionRootDirs, sourceRoots, out, seen, sourceFileNames, monitor);
                 continue;
             }
             if (!c.isFile()) {
@@ -103,7 +109,7 @@ public class TargetResolver {
                 continue;
             }
             if (isJavaSourceFile(name)) {
-                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, sourceRoots, out, seen, monitor);
+                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, sourceRoots, out, seen, sourceFileNames, monitor);
                 continue;
             }
         }
@@ -115,6 +121,7 @@ public class TargetResolver {
             List<SourceRoot> sourceRoots,
             List<String> out,
             Set<String> seen,
+            Map<String, String> sourceFileNames,
             IProgressMonitor monitor
     ) throws IOException {
         List<SourceDirectoryMatch> sourceDirectoryMatches = deriveRelativeDirectoryMatchesFromSource(sourceDir, sourceRoots, monitor);
@@ -144,6 +151,7 @@ public class TargetResolver {
                         sourceRoots,
                         out,
                         seen,
+                        sourceFileNames,
                         monitor
                 );
                 if (out.size() > before) {
@@ -197,6 +205,7 @@ public class TargetResolver {
             List<SourceRoot> sourceRoots,
             List<String> out,
             Set<String> seen,
+            Map<String, String> sourceFileNames,
             IProgressMonitor monitor
     ) throws IOException {
         File[] children = sourceDir.listFiles();
@@ -204,11 +213,11 @@ public class TargetResolver {
         for (File c : children) {
             checkCanceled(monitor);
             if (c.isDirectory()) {
-                collectMappedClassesForSourceTree(c, targetResolutionRootDirs, sourceRoots, out, seen, monitor);
+                collectMappedClassesForSourceTree(c, targetResolutionRootDirs, sourceRoots, out, seen, sourceFileNames, monitor);
                 continue;
             }
             if (c.isFile() && isJavaSourceFile(c.getName())) {
-                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, sourceRoots, out, seen, monitor);
+                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, sourceRoots, out, seen, sourceFileNames, monitor);
             }
         }
     }
@@ -239,6 +248,7 @@ public class TargetResolver {
             List<SourceRoot> sourceRoots,
             List<String> out,
             Set<String> seen,
+            Map<String, String> sourceFileNames,
             IProgressMonitor monitor
     ) throws IOException {
         boolean added = false;
@@ -251,7 +261,15 @@ public class TargetResolver {
                 for (File dir : targetResolutionRootDirs) {
                     checkCanceled(monitor);
                     if (dir == null) continue;
-                    if (addClassFamily(dir, classRel, out, seen, monitor)) {
+                    if (addClassFamily(
+                            dir,
+                            classRel,
+                            new File(javaPath).getName(),
+                            out,
+                            seen,
+                            sourceFileNames,
+                            monitor
+                    )) {
                         added = true;
                         break;
                     }
@@ -268,8 +286,10 @@ public class TargetResolver {
     private boolean addClassFamily(
             File outputRoot,
             String classRel,
+            String sourceFileName,
             List<String> out,
             Set<String> seen,
+            Map<String, String> sourceFileNames,
             IProgressMonitor monitor
     ) {
         File anchor = new File(outputRoot, classRel);
@@ -287,24 +307,46 @@ public class TargetResolver {
             return true;
         }
 
-        List<File> nestedClasses = new ArrayList<>();
+        List<File> sourceClasses = new ArrayList<>();
         String nestedPrefix = baseName + "$";
         for (File sibling : siblings) {
             checkCanceled(monitor);
-            if (!sibling.isFile()) {
+            if (!sibling.isFile() || !sibling.getName().endsWith(".class")) {
                 continue;
             }
             String siblingName = sibling.getName();
-            if (siblingName.startsWith(nestedPrefix) && siblingName.endsWith(".class")) {
-                nestedClasses.add(sibling);
+            String siblingSourceFileName = readSourceFileName(sibling, sourceFileNames);
+            if (
+                    sourceFileName.equals(siblingSourceFileName) ||
+                    (siblingSourceFileName == null && siblingName.startsWith(nestedPrefix))
+            ) {
+                sourceClasses.add(sibling);
             }
         }
-        nestedClasses.sort((a, b) -> a.getName().compareTo(b.getName()));
-        for (File nestedClass : nestedClasses) {
+        sourceClasses.sort((a, b) -> a.getName().compareTo(b.getName()));
+        for (File sourceClass : sourceClasses) {
             checkCanceled(monitor);
-            addIfNew(nestedClass.getAbsolutePath(), out, seen);
+            addIfNew(sourceClass.getAbsolutePath(), out, seen);
         }
         return true;
+    }
+
+    private String readSourceFileName(File classFile, Map<String, String> sourceFileNames) {
+        String classPath = classFile.getAbsolutePath();
+        if (sourceFileNames.containsKey(classPath)) {
+            return sourceFileNames.get(classPath);
+        }
+        String sourceFileName = null;
+        try {
+            sourceFileName = new ClassParser(classPath).parse().getSourceFileName();
+            if ("<Unknown>".equals(sourceFileName)) {
+                sourceFileName = null;
+            }
+        } catch (IOException | RuntimeException ignored) {
+            // A malformed or concurrently-written sibling class is handled by the legacy name fallback.
+        }
+        sourceFileNames.put(classPath, sourceFileName);
+        return sourceFileName;
     }
 
     private List<String> deriveRelativePathsFromSource(
