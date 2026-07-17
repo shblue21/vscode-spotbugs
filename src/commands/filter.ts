@@ -3,9 +3,12 @@ import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import {
   FindingFilterKind,
   getFindingFilterDisplayLabel,
-  getFindingFilterKindLabel,
   getFindingFilterKinds,
 } from '../ui/findingFilters';
+import {
+  localizeFindingFilterKind,
+  localizeFindingFilterText,
+} from '../ui/findingFilterPresentation';
 
 type FilterKindPickItem =
   | (QuickPickItem & { action: 'kind'; filterKind: FindingFilterKind })
@@ -37,7 +40,10 @@ export async function selectFindingFilter(
     const description = currentValue
       ? l10n.t(
           'Current: {0}',
-          getFindingFilterDisplayLabel(cachedFindings, filterKind, currentValue)
+          localizeFindingFilterText(
+            filterKind,
+            getFindingFilterDisplayLabel(cachedFindings, filterKind, currentValue)
+          )
         )
       : undefined;
     const detail =
@@ -48,7 +54,7 @@ export async function selectFindingFilter(
       {
         action: 'kind' as const,
         filterKind,
-        label: getFindingFilterKindLabel(filterKind),
+        label: localizeFindingFilterKind(filterKind),
         description,
         detail,
       },
@@ -78,6 +84,7 @@ export async function selectFindingFilter(
   }
 
   const kind = selectedKind.filterKind;
+  const kindLabel = localizeFindingFilterKind(kind);
   const options = provider.getFilterOptions(kind);
   const valueItems: FilterValuePickItem[] = [];
   const currentValue = activeFilters[kind];
@@ -85,8 +92,11 @@ export async function selectFindingFilter(
   if (currentValue) {
     valueItems.push({
       action: 'clear-kind',
-      label: l10n.t('Clear {0} filter', getFindingFilterKindLabel(kind)),
-      description: getFindingFilterDisplayLabel(cachedFindings, kind, currentValue),
+      label: l10n.t('Clear {0} filter', kindLabel),
+      description: localizeFindingFilterText(
+        kind,
+        getFindingFilterDisplayLabel(cachedFindings, kind, currentValue)
+      ),
     });
   }
 
@@ -94,18 +104,15 @@ export async function selectFindingFilter(
     ...options.map((option) => ({
       action: 'set' as const,
       value: option.value,
-      label: option.label,
+      label: localizeFindingFilterText(kind, option.label),
       description: formatFindingCount(option.count),
-      detail: option.detail,
+      detail: option.detail ? localizeFindingFilterText(kind, option.detail) : undefined,
     }))
   );
 
   const selectedValue = await window.showQuickPick<FilterValuePickItem>(valueItems, {
-    title: l10n.t('SpotBugs Filter: {0}', getFindingFilterKindLabel(kind)),
-    placeHolder: l10n.t(
-      'Choose a {0} value',
-      getFindingFilterKindLabel(kind).toLowerCase()
-    ),
+    title: l10n.t('SpotBugs Filter: {0}', kindLabel),
+    placeHolder: l10n.t('Choose a {0} value', kindLabel.toLocaleLowerCase()),
   });
 
   if (!selectedValue) {
