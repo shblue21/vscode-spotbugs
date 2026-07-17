@@ -1,4 +1,17 @@
 # Changelog
+## [0.7.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.7.1...v0.7.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **analysis:** propagate workspace cancellation ([#82](https://github.com/shblue21/vscode-spotbugs/issues/82)) ([cd2339c](https://github.com/shblue21/vscode-spotbugs/commit/cd2339ca8a525ee0bbe0db118ece9d422ad8200e))
+* cancel superseded analysis runs ([#89](https://github.com/shblue21/vscode-spotbugs/issues/89)) ([32cfa11](https://github.com/shblue21/vscode-spotbugs/commit/32cfa11c49a8a3326cd35f5c6f31ba54126a9a4d))
+* **config:** validate rank threshold settings ([64902c0](https://github.com/shblue21/vscode-spotbugs/commit/64902c029c1b42093451052f913cd69e49f98064))
+* **i18n:** localize finding filters ([#84](https://github.com/shblue21/vscode-spotbugs/issues/84)) ([69d0de2](https://github.com/shblue21/vscode-spotbugs/commit/69d0de29e85460f38c3f49b2bf57d5443abe9cb0))
+* **sarif:** preserve secondary workspace paths ([#83](https://github.com/shblue21/vscode-spotbugs/issues/83)) ([23fffa0](https://github.com/shblue21/vscode-spotbugs/commit/23fffa0215aa28cdffba1212e2288487e2ad26ac))
+* **test:** use correct extension test path ([f985f63](https://github.com/shblue21/vscode-spotbugs/commit/f985f63cbf7137655969de545391ffcac0401931))
+* **ui:** distinguish findings with shared instance hashes ([#85](https://github.com/shblue21/vscode-spotbugs/issues/85)) ([f820bef](https://github.com/shblue21/vscode-spotbugs/commit/f820bef97808717802efdfd23ee5726ccca4551e))
+
 ## [0.7.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.7.0...v0.7.1) (2026-07-14)
 
 
