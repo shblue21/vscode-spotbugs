@@ -1,13 +1,15 @@
 import { Finding } from '../model/finding';
 import { Severity } from '../model/severity';
 import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
-import { getSarifArtifactUri } from './sarifArtifactLocation';
+import {
+  getSarifArtifactUri,
+  type SarifArtifactUriOptions,
+} from './sarifArtifactLocation';
 
-export interface SarifExportOptions {
+export interface SarifExportOptions extends SarifArtifactUriOptions {
   runName?: string;
   toolVersion?: string;
   minRank?: number;
-  workspaceRootPath?: string;
 }
 
 export interface SarifLog {
@@ -98,7 +100,7 @@ export function buildSarifLog(
     if (typeof finding.cweId === 'number' && finding.cweId > 0) {
       cweIds.add(finding.cweId);
     }
-    return createResult(finding, ruleId, options.workspaceRootPath);
+    return createResult(finding, ruleId, options);
   });
 
   const run: SarifRun = {
@@ -172,9 +174,9 @@ function createRule(ruleId: string, finding: Finding): SarifRule {
 function createResult(
   finding: Finding,
   ruleId: string,
-  workspaceRootPath?: string
+  options: SarifArtifactUriOptions
 ): SarifResult {
-  const location = createLocation(finding, workspaceRootPath);
+  const location = createLocation(finding, options);
   const partialFingerprints =
     typeof finding.instanceHash === 'string' && finding.instanceHash.length > 0
       ? { instanceHash: finding.instanceHash }
@@ -190,9 +192,9 @@ function createResult(
 
 function createLocation(
   finding: Finding,
-  workspaceRootPath?: string
+  options: SarifArtifactUriOptions
 ): SarifLocation | undefined {
-  const uri = getSarifArtifactUri(finding, { workspaceRootPath });
+  const uri = getSarifArtifactUri(finding, options);
   const startLine = normalizeLineNumber(finding.location.startLine);
   if (!uri) {
     return undefined;

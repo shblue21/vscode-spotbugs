@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 import { mapBugsToFindings } from '../lsp/spotbugsMapper';
 import { Bug } from '../model/bug';
 import { Finding } from '../model/finding';
@@ -139,9 +140,30 @@ describe('buildSarifLog', () => {
 
     const actual = buildSarifLog([finding], {
       workspaceRootPath: placeholderWorkspaceRoot,
+      workspaceRootPaths: [placeholderWorkspaceRoot, '/__SECONDARY_ROOT__'],
     });
 
     assert.strictEqual(getFirstArtifactUri(actual), 'com/acme/Foo.java');
+  });
+
+  it('keeps an absolute file URI for findings in a secondary workspace root', () => {
+    const secondaryRoot = '/__SECONDARY_ROOT__';
+    const fullPath = `${secondaryRoot}/src/main/java/com/acme/Foo.java`;
+    const finding = makeFinding({
+      location: {
+        fullPath,
+        realSourcePath: 'com/acme/Foo.java',
+        sourceFile: 'Foo.java',
+        startLine: 12,
+      },
+    });
+
+    const actual = buildSarifLog([finding], {
+      workspaceRootPath: placeholderWorkspaceRoot,
+      workspaceRootPaths: [placeholderWorkspaceRoot, secondaryRoot],
+    });
+
+    assert.strictEqual(getFirstArtifactUri(actual), pathToFileURL(fullPath).toString());
   });
 
   it('omits regions when the start line is unknown and normalizes workspace paths', () => {

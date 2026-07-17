@@ -4,6 +4,7 @@ import { Finding } from '../model/finding';
 
 export interface SarifArtifactUriOptions {
   workspaceRootPath?: string;
+  workspaceRootPaths?: string[];
 }
 
 export function getSarifArtifactUri(
@@ -11,10 +12,22 @@ export function getSarifArtifactUri(
   options: SarifArtifactUriOptions = {}
 ): string | undefined {
   const fullPath = finding.location.fullPath;
+  const primaryWorkspaceRootPath =
+    options.workspaceRootPath ?? options.workspaceRootPaths?.[0];
   if (fullPath && path.isAbsolute(fullPath)) {
-    const workspaceRelative = toWorkspaceRelativePath(fullPath, options.workspaceRootPath);
+    const workspaceRelative = toWorkspaceRelativePath(
+      fullPath,
+      primaryWorkspaceRootPath
+    );
     if (workspaceRelative) {
       return workspaceRelative;
+    }
+    if (
+      options.workspaceRootPaths
+        ?.slice(1)
+        .some((rootPath) => toWorkspaceRelativePath(fullPath, rootPath))
+    ) {
+      return pathToFileURL(fullPath).toString();
     }
   }
 
