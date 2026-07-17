@@ -2,7 +2,7 @@
   "name": "vscode-spotbugs",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
