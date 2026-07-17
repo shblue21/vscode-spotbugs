@@ -61,8 +61,8 @@ function isSameFinding(left: Finding, right: Finding): boolean {
   if (left === right) {
     return true;
   }
-  if (left.instanceHash && right.instanceHash) {
-    return left.instanceHash === right.instanceHash;
+  if (left.instanceHash && right.instanceHash && left.instanceHash !== right.instanceHash) {
+    return false;
   }
 
   return (
