@@ -91,6 +91,22 @@ describe('outputResolver', () => {
     }
   });
 
+  it('skips target checks for missing output folders', async () => {
+    const dir = await makeTempDir();
+    try {
+      let checks = 0;
+      const found = await findOutputFolderFromProject(dir, async () => {
+        checks += 1;
+        return false;
+      });
+
+      assert.strictEqual(found, undefined);
+      assert.strictEqual(checks, 0);
+    } finally {
+      await cleanup(dir);
+    }
+  });
+
   it('finds default output folders with archive bytecode targets', async () => {
     const dir = await makeTempDir();
     try {

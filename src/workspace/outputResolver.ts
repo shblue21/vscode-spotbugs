@@ -79,11 +79,22 @@ export async function findOutputFolderFromProject(
     options
   );
   for (const candidate of candidates) {
+    if (!(await isDirectory(candidate.targetPath))) {
+      continue;
+    }
     if (await hasTargets(candidate.targetPath)) {
       return candidate.targetPath;
     }
   }
   return undefined;
+}
+
+async function isDirectory(targetPath: string): Promise<boolean> {
+  try {
+    return (await fs.promises.stat(targetPath)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 export function orderOutputFolderCandidates<T extends OutputFolderCandidate>(
