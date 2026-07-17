@@ -89,7 +89,19 @@ export async function runWorkspaceAnalysis(
             title: l10n.t('SpotBugs: Analyzing workspace'),
             cancellable: true,
           },
-          task
+          async (progress, token) => {
+            const cancellationRegistration = token.onCancellationRequested(() =>
+              lease.cancel()
+            );
+            try {
+              if (token.isCancellationRequested) {
+                lease.cancel();
+              }
+              await task(progress, lease.token ?? token);
+            } finally {
+              cancellationRegistration.dispose();
+            }
+          }
         )
       ),
     dependencies,

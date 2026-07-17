@@ -65,7 +65,11 @@ export interface WorkspaceProgressCallbacks {
 }
 
 export interface AnalysisSessionDependencies {
-  analyzeFileDetailed(config: Config, uri: Uri): Promise<AnalysisExecutionResult>;
+  analyzeFileDetailed(
+    config: Config,
+    uri: Uri,
+    token?: CancellationToken
+  ): Promise<AnalysisExecutionResult>;
   analyzeWorkspaceFromProjectsDetailed(
     config: Config,
     workspaceFolder: Uri,
@@ -113,7 +117,11 @@ export async function runFileAnalysisSession(
   args.tree.showLoading();
 
   try {
-    const result = await dependencies.analyzeFileDetailed(args.config, args.uri);
+    const result = await dependencies.analyzeFileDetailed(
+      args.config,
+      args.uri,
+      args.lease.token
+    );
     if (!args.lease.isCurrent()) {
       return;
     }

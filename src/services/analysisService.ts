@@ -56,7 +56,8 @@ export interface WorkspaceExecutionResult {
 
 export async function analyzeFileDetailed(
   config: Config,
-  uri: Uri
+  uri: Uri,
+  token?: CancellationToken
 ): Promise<AnalysisExecutionResult> {
   const context = createExecutionContext();
 
@@ -83,7 +84,7 @@ export async function analyzeFileDetailed(
 
     try {
       return {
-        outcome: await runAnalysis(config, result.resolution.target),
+        outcome: await runAnalysis(config, result.resolution.target, token),
         context,
       };
     } catch (error) {
