@@ -258,6 +258,12 @@ public class TargetResolver {
                 if (classRel == null) {
                     continue;
                 }
+                boolean ambiguousSourceFileName = hasSameRelativeSourceInAnotherRoot(
+                        javaPath,
+                        rel,
+                        sourceRoots,
+                        monitor
+                );
                 for (File dir : targetResolutionRootDirs) {
                     checkCanceled(monitor);
                     if (dir == null) continue;
@@ -265,6 +271,7 @@ public class TargetResolver {
                             dir,
                             classRel,
                             new File(javaPath).getName(),
+                            ambiguousSourceFileName,
                             out,
                             seen,
                             sourceFileNames,
@@ -287,6 +294,7 @@ public class TargetResolver {
             File outputRoot,
             String classRel,
             String sourceFileName,
+            boolean ambiguousSourceFileName,
             List<String> out,
             Set<String> seen,
             Map<String, String> sourceFileNames,
@@ -317,8 +325,9 @@ public class TargetResolver {
             String siblingName = sibling.getName();
             String siblingSourceFileName = readSourceFileName(sibling, sourceFileNames);
             if (
-                    sourceFileName.equals(siblingSourceFileName) ||
-                    (siblingSourceFileName == null && siblingName.startsWith(nestedPrefix))
+                    (!ambiguousSourceFileName && sourceFileName.equals(siblingSourceFileName)) ||
+                    (siblingName.startsWith(nestedPrefix) &&
+                            (ambiguousSourceFileName || siblingSourceFileName == null))
             ) {
                 sourceClasses.add(sibling);
             }
@@ -347,6 +356,31 @@ public class TargetResolver {
         }
         sourceFileNames.put(classPath, sourceFileName);
         return sourceFileName;
+    }
+
+    private boolean hasSameRelativeSourceInAnotherRoot(
+            String sourcePath,
+            String relativePath,
+            List<SourceRoot> sourceRoots,
+            IProgressMonitor monitor
+    ) {
+        Path source = toNormalizedPath(sourcePath);
+        if (source == null || sourceRoots == null) {
+            return false;
+        }
+        String normalizedRelativePath = normalizePath(relativePath);
+        for (SourceRoot root : sourceRoots) {
+            checkCanceled(monitor);
+            Path candidate = root.path.resolve(normalizedRelativePath).normalize();
+            if (
+                    candidate.startsWith(root.path) &&
+                    !candidate.equals(source) &&
+                    candidate.toFile().isFile()
+            ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<String> deriveRelativePathsFromSource(

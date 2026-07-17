@@ -114,6 +114,46 @@ public class TargetResolverTest {
     }
 
     @Test
+    public void fallsBackToAnchorFamilyForSameNamedSourcesAcrossSourceRoots() throws Exception {
+        File project = temporaryFolder.newFolder("same-named-source-project");
+        File selectedSourceRoot = mkdirs(project, "src/main/java");
+        File otherSourceRoot = mkdirs(project, "generated/java");
+        File selectedSourcePackage = mkdirs(selectedSourceRoot, "demo");
+        File otherSourcePackage = mkdirs(otherSourceRoot, "demo");
+        File outputRoot = mkdirs(project, "target/classes");
+        File selectedSource = writeJavaSource(
+                selectedSourcePackage,
+                "Repro.java",
+                "package demo; public class Repro { static class Inner {} } " +
+                        "class SelectedOnly {}"
+        );
+        File otherSource = writeJavaSource(
+                otherSourcePackage,
+                "Repro.java",
+                "package demo; class OtherRootOnly {}"
+        );
+        compileJavaSources(outputRoot, selectedSource, otherSource);
+
+        File outputPackage = new File(outputRoot, "demo");
+        File reproClass = new File(outputPackage, "Repro.class");
+        File reproInnerClass = new File(outputPackage, "Repro$Inner.class");
+        assertTrue(new File(outputPackage, "SelectedOnly.class").isFile());
+        assertTrue(new File(outputPackage, "OtherRootOnly.class").isFile());
+
+        List<String> actual = new TargetResolver().resolveTargets(
+                new String[] { selectedSource.getAbsolutePath() },
+                Collections.singletonList(outputRoot),
+                listOf(
+                        selectedSourceRoot.getAbsolutePath(),
+                        otherSourceRoot.getAbsolutePath()
+                ),
+                null
+        );
+
+        assertEquals(sortedPaths(reproClass, reproInnerClass), sorted(actual));
+    }
+
+    @Test
     public void prefersLongestConfiguredSourcepathForJavaFile() throws Exception {
         File project = temporaryFolder.newFolder("project");
         File broadSourceRoot = mkdirs(project, "generated-sources");
