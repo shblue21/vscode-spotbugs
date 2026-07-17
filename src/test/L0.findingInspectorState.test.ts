@@ -36,6 +36,19 @@ describe('findingInspectorState', () => {
     assert.strictEqual(state.current.finding, finding);
   });
 
+  it('clears selected findings when the same instance hash belongs to another path', async () => {
+    const findingInspectorState = await import('../ui/findingInspectorState');
+    const finding = makeFinding('NP_ALWAYS_NULL');
+    const state = new findingInspectorState.FindingInspectorState();
+
+    state.select(finding);
+    state.reconcileVisibleFindings([
+      { ...finding, location: { ...finding.location, fullPath: '/tmp/other/Example.java' } },
+    ]);
+
+    assert.strictEqual(state.current.status, 'empty');
+  });
+
   it('keeps visible selected findings after filter reconciliation by stable identity', async () => {
     const findingInspectorState = await import('../ui/findingInspectorState');
     const finding = makeFinding('NP_ALWAYS_NULL', '');
