@@ -1,4 +1,12 @@
-import { ExtensionContext, languages, l10n, window, Uri, workspace } from 'vscode';
+import {
+  CancellationTokenSource,
+  ExtensionContext,
+  languages,
+  l10n,
+  window,
+  Uri,
+  workspace,
+} from 'vscode';
 import { SETTINGS_SECTION, settingKeys } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { PluginInventoryTreeDataProvider } from './ui/pluginInventoryTreeDataProvider';
@@ -71,7 +79,9 @@ async function doActivate(
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
     const pluginInventoryTreeDataProvider = new PluginInventoryTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
-    const analysisRunCoordinator = new AnalysisRunCoordinator();
+    const analysisRunCoordinator = new AnalysisRunCoordinator(
+      () => new CancellationTokenSource()
+    );
     const findingDescriptionPanel = new FindingDescriptionPanel();
     const findingInspectorState = new FindingInspectorState();
     const findingInspectorViewProvider = new FindingInspectorViewProvider(

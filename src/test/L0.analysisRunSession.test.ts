@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import type { Uri } from 'vscode';
+import type { CancellationToken, Uri } from 'vscode';
 import {
   runFileAnalysisSession,
   runWorkspaceAnalysisSession,
@@ -21,8 +21,8 @@ import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
 
-function createCurrentLease(): AnalysisRunLease {
-  return { isCurrent: () => true };
+function createCurrentLease(token?: CancellationToken): AnalysisRunLease {
+  return { token, isCurrent: () => true, cancel: () => undefined };
 }
 
 function createDeferred<T>() {
@@ -130,10 +130,14 @@ describe('analysisRunSession file analysis', () => {
     const config = { getAnalysisSettings: () => ({}) } as any;
     let receivedConfig: unknown;
     let receivedUri: unknown;
+    let receivedToken: unknown;
+    const token = { isCancellationRequested: false } as CancellationToken;
+    const lease = createCurrentLease(token);
     const deps = createBaseDependencies(vscode);
-    deps.analyzeFileDetailed = async (actualConfig, actualUri) => {
+    deps.analyzeFileDetailed = async (actualConfig, actualUri, actualToken) => {
       receivedConfig = actualConfig;
       receivedUri = actualUri;
+      receivedToken = actualToken;
       return {
         outcome: {
           findings: [finding],
@@ -170,12 +174,13 @@ describe('analysisRunSession file analysis', () => {
       },
       uri,
       startedAtMs: 1000,
-      lease: createCurrentLease(),
+      lease,
       dependencies: deps,
     });
 
     assert.strictEqual(receivedConfig, config);
     assert.strictEqual(receivedUri, uri);
+    assert.strictEqual(receivedToken, token);
     assert.deepStrictEqual(calls, [
       'loading',
       'results:1',

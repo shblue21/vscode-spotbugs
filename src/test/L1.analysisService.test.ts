@@ -62,6 +62,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const token = { isCancellationRequested: false } as any;
+    let receivedToken: unknown;
 
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
@@ -77,15 +79,19 @@ describe('analysisService', () => {
       },
       issues: [],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
-    spotbugsClient.runSpotBugsAnalysis = (async () =>
-      undefined) as typeof spotbugsClient.runSpotBugsAnalysis;
+    spotbugsClient.runSpotBugsAnalysis = (async (_request, actualToken) => {
+      receivedToken = actualToken;
+      return undefined;
+    }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
     const service = require('../services/analysisService') as typeof import('../services/analysisService');
     const result = await service.analyzeFileDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      folderUri
+      folderUri,
+      token
     );
 
+    assert.strictEqual(receivedToken, token);
     assert.strictEqual(result.context.diagnosticScope?.kind, 'folder');
     assert.strictEqual(result.context.diagnosticScope?.uri.fsPath, folderUri.fsPath);
   });

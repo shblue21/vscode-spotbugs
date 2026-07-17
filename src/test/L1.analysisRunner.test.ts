@@ -268,7 +268,21 @@ describe('analysisRunner', () => {
   it('opens workspace progress with the current options and forwards token/progress', async () => {
     const vscode = installVscodeMock();
     const progress = { report: () => undefined };
-    const token = { isCancellationRequested: true };
+    let cancellationRegistrationDisposed = false;
+    let cancelProgress: () => void = () => undefined;
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: (listener: () => void) => {
+        cancelProgress = listener;
+        return {
+          dispose: () => {
+            cancellationRegistrationDisposed = true;
+          },
+        };
+      },
+    };
+    const leaseToken = { isCancellationRequested: false } as any;
+    let leaseCancelCalls = 0;
     const optionsSeen: unknown[] = [];
     const progressTokens: unknown[] = [];
     const commandCalls: unknown[][] = [];
@@ -308,6 +322,7 @@ describe('analysisRunner', () => {
         ) => Promise<void>;
       }).runWithProgress(async (progressArg, tokenArg) => {
         progressTokens.push(progressArg, tokenArg);
+        cancelProgress();
       });
     }) as typeof session.runWorkspaceAnalysisSession;
 
@@ -317,7 +332,14 @@ describe('analysisRunner', () => {
       const config = { getAnalysisSettings: () => ({}) } as any;
       const tree = createNoopTree();
       const diagnostics = createNoopDiagnostics();
-      const coordinator = new AnalysisRunCoordinator();
+      const coordinator = new AnalysisRunCoordinator(() => ({
+        token: leaseToken,
+        cancel: () => {
+          leaseCancelCalls += 1;
+          leaseToken.isCancellationRequested = true;
+        },
+        dispose: () => undefined,
+      }));
 
       await runner.runWorkspaceAnalysis({
         config,
@@ -345,7 +367,9 @@ describe('analysisRunner', () => {
       assert.strictEqual(delegatedArgs.tree, tree);
       assert.strictEqual(delegatedArgs.diagnostics, diagnostics);
       assert.strictEqual(delegatedArgs.notifier, notifierModule.defaultNotifier);
-      assert.deepStrictEqual(progressTokens, [progress, token]);
+      assert.deepStrictEqual(progressTokens, [progress, leaseToken]);
+      assert.strictEqual(leaseCancelCalls, 1);
+      assert.strictEqual(cancellationRegistrationDisposed, true);
     } finally {
       session.runWorkspaceAnalysisSession = originalRunWorkspaceAnalysisSession;
     }
