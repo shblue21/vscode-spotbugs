@@ -27,6 +27,7 @@ import org.junit.rules.TemporaryFolder;
 import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Plugin;
+import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.Project;
 
 public class SpotBugsExecutorPluginLoadingTest {
@@ -96,6 +97,37 @@ public class SpotBugsExecutorPluginLoadingTest {
                 new Project(),
                 3,
                 Collections.singletonList(validPlugin.getAbsolutePath())
+        ).executeBugs();
+
+        assertTrue(retryFindBugs.wasExecuted());
+        assertNull("Retried plugin should not leak after analysis completes", Plugin.getByPluginId(pluginId));
+    }
+
+    @Test
+    public void linkageErrorDuringPluginLoadDoesNotBlockRetry() throws Exception {
+        String pluginId = "com.spotbugs.vscode.test.linkage." + System.nanoTime();
+        File pluginJar = createPluginJar(pluginId, "linkage-error-plugin.jar", false);
+
+        try {
+            new SpotBugsExecutor(
+                    new CapturingFindBugs(pluginId),
+                    new Project(),
+                    3,
+                    Collections.singletonList(pluginJar.getAbsolutePath()),
+                    new LinkageFailingLifecycle()
+            ).executeBugs();
+            fail("Expected plugin linkage error to fail analysis");
+        } catch (IOException expected) {
+            assertTrue(expected.getCause() instanceof UnsupportedClassVersionError);
+            assertNull("Failed plugin should not be globally registered", Plugin.getByPluginId(pluginId));
+        }
+
+        CapturingFindBugs retryFindBugs = new CapturingFindBugs(pluginId);
+        new SpotBugsExecutor(
+                retryFindBugs,
+                new Project(),
+                3,
+                Collections.singletonList(pluginJar.getAbsolutePath())
         ).executeBugs();
 
         assertTrue(retryFindBugs.wasExecuted());
@@ -233,6 +265,15 @@ public class SpotBugsExecutorPluginLoadingTest {
         @Override
         public void closePlugin(Plugin plugin) throws IOException {
             throw new IOException("close failed");
+        }
+    }
+
+    private static final class LinkageFailingLifecycle implements PluginLifecycle {
+
+        @Override
+        public Plugin loadCustomPlugin(File pluginJar, Project project) throws PluginException {
+            PluginLifecycle.super.loadCustomPlugin(pluginJar, project);
+            throw new UnsupportedClassVersionError("unsupported class version");
         }
     }
 

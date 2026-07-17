@@ -250,7 +250,7 @@ public class SpotBugsExecutor {
                 if (plugin != null) {
                     loadedPlugins.add(plugin);
                 }
-            } catch (PluginException e) {
+            } catch (PluginException | LinkageError e) {
                 IOException failure = new IOException("Failed to load SpotBugs plugin jar " + pluginJar.getPath(), e);
                 cleanupAfterFailedLoad(stateBeforeLoad, failure);
                 throw failure;
