@@ -14,6 +14,9 @@ export interface Finding {
   category?: string;
   abbrev?: string;
   message?: string;
+  longMessage?: string;
+  categoryDescription?: string;
+  annotationMessages?: string[];
   shortDescription?: string;
   longDescription?: string;
   detailHtml?: string;

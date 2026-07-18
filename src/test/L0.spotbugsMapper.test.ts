@@ -7,6 +7,9 @@ describe('spotbugsMapper', () => {
       type: 'NP_ALWAYS_NULL',
       abbrev: 'NP',
       message: 'Null pointer',
+      longMessage: 'Null value reaches sink',
+      categoryDescription: 'Correctness',
+      annotationMessages: ['Method Example.run()V', '', 7] as unknown as string[],
       detailHtml: '<p>Local detail.</p>',
       longDescription: 'Plain text detail',
       helpUri: 'https://example.test/rule',
@@ -16,6 +19,9 @@ describe('spotbugsMapper', () => {
     });
 
     assert.strictEqual(finding.detailHtml, '<p>Local detail.</p>');
+    assert.strictEqual(finding.longMessage, 'Null value reaches sink');
+    assert.strictEqual(finding.categoryDescription, 'Correctness');
+    assert.deepStrictEqual(finding.annotationMessages, ['Method Example.run()V']);
     assert.strictEqual(finding.longDescription, 'Plain text detail');
     assert.strictEqual(finding.helpUri, 'https://example.test/rule');
     assert.strictEqual(finding.location.fullPath, '/tmp/Example.java');

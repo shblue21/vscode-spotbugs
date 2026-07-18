@@ -26,6 +26,7 @@
   "contributes.commands.spotbugs.openFindingDetails.title": "SpotBugs: 발견 항목 세부 정보 열기",
   "contributes.commands.spotbugs.filterResults.title": "SpotBugs 결과 필터링",
   "contributes.commands.spotbugs.exportSarif.title": "SpotBugs 결과 내보내기(SARIF)",
+  "contributes.commands.spotbugs.exportHtml.title": "SpotBugs 결과 내보내기(HTML)",
   "contributes.commands.spotbugs.resetResults.title": "SpotBugs 결과 재설정",
   "contributes.commands.spotbugs.searchResults.title": "SpotBugs: 결과 검색",
   "contributes.commands.spotbugs.clearSearch.title": "SpotBugs: 검색 지우기",

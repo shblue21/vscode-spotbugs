@@ -106,7 +106,9 @@
   "{0} findings": "{0} findings",
   "No SpotBugs findings available to export.": "No SpotBugs findings available to export.",
   "Export SARIF": "Export SARIF",
+  "Export HTML": "Export HTML",
   "SpotBugs exported {0} finding to {1}": "SpotBugs exported {0} finding to {1}",
   "SpotBugs exported {0} findings to {1}": "SpotBugs exported {0} findings to {1}",
-  "Failed to export SpotBugs SARIF: {0}": "Failed to export SpotBugs SARIF: {0}"
+  "Failed to export SpotBugs SARIF: {0}": "Failed to export SpotBugs SARIF: {0}",
+  "Failed to export SpotBugs HTML: {0}": "Failed to export SpotBugs HTML: {0}"
 }

@@ -22,6 +22,9 @@ export function mapBugToFinding(bug: Bug): Finding {
     category: bug.category,
     abbrev: bug.abbrev,
     message: bug.message,
+    longMessage: bug.longMessage,
+    categoryDescription: bug.categoryDescription,
+    annotationMessages: normalizeStringArray(bug.annotationMessages),
     shortDescription: bug.shortDescription,
     longDescription: bug.longDescription,
     detailHtml: bug.detailHtml,
@@ -35,6 +38,16 @@ export function mapBugToFinding(bug: Bug): Finding {
     fieldName: bug.fieldName,
     location,
   };
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const strings = value.filter(
+    (item): item is string => typeof item === 'string' && item.trim().length > 0
+  );
+  return strings.length > 0 ? strings : undefined;
 }
 
 function normalizePatternId(bug: Bug): string {

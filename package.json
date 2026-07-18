@@ -221,6 +221,11 @@
         "icon": "$(file-code)"
       },
       {
+        "command": "spotbugs.exportHtml",
+        "title": "%contributes.commands.spotbugs.exportHtml.title%",
+        "icon": "$(file)"
+      },
+      {
         "command": "spotbugs.resetResults",
         "title": "%contributes.commands.spotbugs.resetResults.title%",
         "icon": "$(trash)"
@@ -289,6 +294,11 @@
           "group": "2_spotbugs@3"
         },
         {
+          "command": "spotbugs.exportHtml",
+          "when": "view == spotbugs-view",
+          "group": "2_spotbugs@4"
+        },
+        {
           "command": "spotbugs.groupResultsBy",
           "when": "view == spotbugs-view",
           "group": "3_results@1"
@@ -335,6 +345,11 @@
           "command": "spotbugs.exportSarif",
           "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)",
           "group": "navigation@3"
+        },
+        {
+          "command": "spotbugs.exportHtml",
+          "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)",
+          "group": "navigation@4"
         }
       ],
       "spotbugs.context": [

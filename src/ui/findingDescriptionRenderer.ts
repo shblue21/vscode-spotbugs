@@ -28,6 +28,10 @@ const DETAIL_HTML_ALLOWED_TAGS = [
   'sup',
   'sub',
   'a',
+  'table',
+  'tr',
+  'th',
+  'td',
 ];
 const DETAIL_HTML_ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 const DETAIL_HTML_ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);

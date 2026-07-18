@@ -1,4 +1,5 @@
 import { Bug } from './bug';
+import type { AnalysisReportSummary } from './analysisReport';
 
 export const ANALYSIS_PROTOCOL_SCHEMA_VERSION = 2;
 
@@ -49,4 +50,5 @@ export interface AnalysisResponse<TBug = Bug> {
   errors?: AnalysisError[];
   warnings?: AnalysisWarning[];
   stats?: AnalysisStats;
+  reportSummary?: AnalysisReportSummary;
 }

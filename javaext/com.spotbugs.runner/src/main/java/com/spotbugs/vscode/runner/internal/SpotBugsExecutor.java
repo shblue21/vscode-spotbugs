@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 
+import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
 
@@ -31,6 +32,7 @@ import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.PluginLoader;
 import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
+import edu.umd.cs.findbugs.ProjectStats;
 import edu.umd.cs.findbugs.config.UserPreferences;
 import edu.umd.cs.findbugs.sarif.SarifBugReporter;
 
@@ -88,15 +90,17 @@ public class SpotBugsExecutor {
             checkCanceled(monitor);
             LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
             List<BugInfo> bugs;
+            AnalysisReportSummary reportSummary;
             try {
                 execute(defaultBugReporter, monitor);
                 bugs = collectBugs(defaultBugReporter);
+                reportSummary = collectReportSummary(defaultBugReporter);
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
                 loadedPlugins.closeAfterFailure(failure);
                 throw failure;
             }
             List<CommandWarning> warnings = loadedPlugins.closeAfterSuccess();
-            return new SpotBugsAnalysisResult(bugs, warnings);
+            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary);
         }
     }
 
@@ -210,6 +214,15 @@ public class SpotBugsExecutor {
             bugList.add(new BugInfo(bug));
         }
         return bugList;
+    }
+
+    private AnalysisReportSummary collectReportSummary(BugCollectionBugReporter reporter) {
+        ProjectStats stats = reporter.getBugCollection().getProjectStats();
+        return new AnalysisReportSummary(
+                stats.getCodeSize(),
+                stats.getNumClasses(),
+                stats.getPackageStats().size()
+        );
     }
 
     private static final class LoadedPlugins {

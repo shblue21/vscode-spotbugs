@@ -70,6 +70,8 @@ describe('projectResult', () => {
             message: 'partial results',
           },
         ],
+        stats: { spotbugsVersion: '4.9.8' },
+        reportSummary: { analyzedCodeSize: 100 },
       })
     );
 
@@ -82,6 +84,8 @@ describe('projectResult', () => {
           location: {},
         },
       ],
+      spotbugsVersion: '4.9.8',
+      reportSummary: { analyzedCodeSize: 100 },
     });
   });
 });

@@ -16,6 +16,7 @@ import org.junit.Test;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
 import com.spotbugs.vscode.runner.api.CommandResponse;
@@ -197,12 +198,19 @@ public class RunAnalysisActionTest {
                 5,
                 2
         );
+        AnalysisReportSummary reportSummary = new AnalysisReportSummary(1200, 4, 2);
 
-        CommandResponse response = CommandResponse.success(Collections.emptyList(), summary);
+        CommandResponse response = CommandResponse.success(
+                Collections.emptyList(),
+                summary,
+                reportSummary,
+                Collections.emptyList()
+        );
         JsonObject json = JsonParser.parseString(new Gson().toJson(response)).getAsJsonObject();
         JsonObject stats = json.getAsJsonObject("stats");
 
         assertSame(summary, response.getStats());
+        assertSame(reportSummary, response.getReportSummary());
         assertFalse(json.has("warnings"));
         assertEquals("/workspace/build/classes", stats.get("target").getAsString());
         assertEquals(42L, stats.get("durationMs").getAsLong());
@@ -214,6 +222,7 @@ public class RunAnalysisActionTest {
         assertEquals(4, stats.get("auxClasspathCount").getAsInt());
         assertEquals(5, stats.get("targetCount").getAsInt());
         assertEquals(2, stats.get("pluginCount").getAsInt());
+        assertEquals(1200, json.getAsJsonObject("reportSummary").get("analyzedCodeSize").getAsInt());
     }
 
     private static JsonObject executeDefault(RunAnalysisAction action) {

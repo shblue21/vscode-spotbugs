@@ -20,6 +20,7 @@ import {
 } from './findingTreeItem';
 import * as path from 'path';
 import type { ProjectResult } from '../services/projectResult';
+import type { AnalysisReportRun } from '../model/analysisReport';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 import {
   applyFindingFilters,
@@ -48,6 +49,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private workspaceStatusItems: ProjectStatusItem[] = [];
   private cachedResults: Finding[] = [];
   private visibleResults: Finding[] = [];
+  private reportRuns: AnalysisReportRun[] = [];
   private activeFilters: FindingFilterState = {};
   private searchQuery = '';
   private groupBy: FindingGroupKind = 'category';
@@ -81,6 +83,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
+    this.reportRuns = [];
     this.resetExplorationState();
     this.viewItems = [
       this.createMessageItem(l10n.t('Ready to analyze. Click the bug icon to start.')),
@@ -93,6 +96,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
+    this.reportRuns = [];
     this.clearTransientViewState();
     this.viewItems = [this.createMessageItem(l10n.t('Analyzing...'))];
     this._onDidChangeTreeData.fire(undefined);
@@ -103,6 +107,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
+    this.reportRuns = [];
     this.clearTransientViewState();
     this.viewItems = [
       this.createMessageItem(message, code, 'spotbugs.message.error', new ThemeIcon('error')),
@@ -123,6 +128,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.viewItems = items;
     this.cachedResults = [];
     this.visibleResults = [];
+    this.reportRuns = [];
     this.clearTransientViewState();
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -132,6 +138,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.workspaceStatusItems = [];
     this.cachedResults = [];
     this.visibleResults = [];
+    this.reportRuns = [];
     this.clearTransientViewState();
     this.viewItems = [
       this.createMessageItem(l10n.t('SpotBugs workspace analysis cancelled.')),
@@ -156,6 +163,17 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.clearTransientViewState();
     this.workspaceStatusItems = this.createFinalProjectStatusItems(projectResults);
     this.cachedResults = projectResults.flatMap((result) => result.findings);
+    this.reportRuns = projectResults.map((result) => ({
+      projectUri: result.projectUri,
+      findings: result.findings,
+      analysisStatus: result.error
+        ? result.errorCode === NO_CLASS_TARGETS_CODE
+          ? 'skipped'
+          : 'failed'
+        : undefined,
+      spotbugsVersion: result.spotbugsVersion,
+      summary: result.reportSummary,
+    }));
     this.refreshResultsView();
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -169,11 +187,12 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showResults(findings: Finding[]): void {
+  public showResults(findings: Finding[], reportRun?: AnalysisReportRun): void {
     this.projectItems.clear();
     this.workspaceStatusItems = [];
     this.clearTransientViewState();
     this.cachedResults = findings ? findings.slice() : [];
+    this.reportRuns = reportRun ? [{ ...reportRun, findings: this.cachedResults }] : [];
     this.refreshResultsView();
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -184,6 +203,10 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public getAllFindings(): Finding[] {
     return this.visibleResults.slice();
+  }
+
+  public getReportRuns(): AnalysisReportRun[] {
+    return this.reportRuns.map((run) => ({ ...run, findings: run.findings.slice() }));
   }
 
   public getActiveFilters(): FindingFilterState {

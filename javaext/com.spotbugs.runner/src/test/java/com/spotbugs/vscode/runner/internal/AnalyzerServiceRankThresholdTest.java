@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.net.URL;
@@ -16,6 +17,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.ConfigParseResult;
@@ -49,6 +51,24 @@ public class AnalyzerServiceRankThresholdTest {
         assertNativeSarifPresence(9, true);
         assertNativeSarifPresence(20, true);
         assertNativeSarifPresence(null, false);
+    }
+
+    @Test
+    public void structuredResultIncludesPlainReportData() throws Exception {
+        SpotBugsAnalysisResult result = configuredAnalyzer(20).analyzeToBugsWithWarnings(
+                null,
+                fixtureClassPath()
+        );
+        AnalysisReportSummary summary = result.getReportSummary();
+        BugInfo fixtureBug = onlyFixtureBug(result.getBugs());
+
+        assertNotNull(summary);
+        assertEquals(1, summary.getAnalyzedClassCount());
+        assertEquals(1, summary.getAnalyzedPackageCount());
+        assertTrue(summary.getAnalyzedCodeSize() > 0);
+        assertNotNull(fixtureBug.getLongMessage());
+        assertNotNull(fixtureBug.getCategoryDescription());
+        assertFalse(fixtureBug.getAnnotationMessages().isEmpty());
     }
 
     private void assertStructuredPresence(Integer threshold, boolean expected) throws Exception {

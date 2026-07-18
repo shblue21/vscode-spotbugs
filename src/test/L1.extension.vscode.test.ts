@@ -18,6 +18,7 @@ describe('Extension activation', () => {
       SpotBugsCommands.OPEN_FINDING_DETAILS,
       SpotBugsCommands.FILTER_RESULTS,
       SpotBugsCommands.EXPORT_SARIF,
+      SpotBugsCommands.EXPORT_HTML,
       SpotBugsCommands.RESET_RESULTS,
       SpotBugsCommands.SEARCH_RESULTS,
       SpotBugsCommands.CLEAR_SEARCH,

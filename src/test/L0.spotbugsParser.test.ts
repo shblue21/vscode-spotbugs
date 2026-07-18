@@ -166,6 +166,11 @@ describe('spotbugsParser', () => {
           pluginCount: 5,
           ignored: 'value',
         },
+        reportSummary: {
+          analyzedCodeSize: 1200,
+          analyzedClassCount: 4,
+          analyzedPackageCount: 2,
+        },
       })
     );
 
@@ -180,6 +185,11 @@ describe('spotbugsParser', () => {
         extraAuxClasspathCount: 3,
         auxClasspathCount: 4,
         pluginCount: 5,
+      });
+      assert.deepStrictEqual(result.value.reportSummary, {
+        analyzedCodeSize: 1200,
+        analyzedClassCount: 4,
+        analyzedPackageCount: 2,
       });
     }
   });

@@ -84,7 +84,12 @@ public final class RunAnalysisAction extends AbstractCommandAction {
             ));
         }
 
-        return success(CommandResponse.success(pipelineResult.getResults(), stats, pipelineResult.getWarnings()));
+        return success(CommandResponse.success(
+                pipelineResult.getResults(),
+                stats,
+                pipelineResult.getReportSummary(),
+                pipelineResult.getWarnings()
+        ));
     }
 
     private String rootCauseMessage(Throwable throwable) {

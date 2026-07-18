@@ -5,6 +5,7 @@ import type { Notifier } from '../core/notifier';
 import type { AnalysisNotice } from '../model/analysisOutcome';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { Finding } from '../model/finding';
+import type { AnalysisReportRun } from '../model/analysisReport';
 import type {
   AnalysisExecutionResult,
   ProjectCleanupWarning,
@@ -37,7 +38,7 @@ export type AnalysisProgressRunner = (
 
 export interface FileAnalysisSessionTree {
   showLoading(): void;
-  showResults(findings: Finding[]): void;
+  showResults(findings: Finding[], reportRun?: AnalysisReportRun): void;
   showAnalysisFailure(message: string, code?: string): void;
 }
 
@@ -131,7 +132,12 @@ export async function runFileAnalysisSession(
     if (outcome.failure) {
       args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
     } else {
-      args.tree.showResults(findings);
+      args.tree.showResults(findings, {
+        projectUri: args.uri.toString(),
+        findings,
+        spotbugsVersion: outcome.stats?.spotbugsVersion,
+        summary: outcome.reportSummary,
+      });
       args.diagnostics.replaceForScope(
         result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },
         findings

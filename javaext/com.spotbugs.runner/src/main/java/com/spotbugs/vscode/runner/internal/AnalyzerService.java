@@ -84,7 +84,7 @@ public class AnalyzerService {
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, filePaths);
-        return new SpotBugsAnalysisResult(bugs, result.getWarnings());
+        return new SpotBugsAnalysisResult(bugs, result.getWarnings(), result.getReportSummary());
     }
 
     public String analyzeToNativeSarif(String... filePaths) {
