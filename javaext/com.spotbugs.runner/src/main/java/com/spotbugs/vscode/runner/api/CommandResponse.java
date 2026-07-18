@@ -11,26 +11,38 @@ public class CommandResponse {
     private final List<CommandError> errors;
     private final List<CommandWarning> warnings;
     private final RunAnalysisSummary stats;
+    private final AnalysisReportSummary reportSummary;
 
     private CommandResponse(
             Object results,
             List<CommandError> errors,
             List<CommandWarning> warnings,
-            RunAnalysisSummary stats
+            RunAnalysisSummary stats,
+            AnalysisReportSummary reportSummary
     ) {
         this.schemaVersion = SCHEMA_VERSION;
         this.results = results != null ? results : Collections.emptyList();
         this.errors = errors != null ? errors : Collections.emptyList();
         this.warnings = warnings != null && !warnings.isEmpty() ? warnings : null;
         this.stats = stats;
+        this.reportSummary = reportSummary;
     }
 
     public static CommandResponse success(Object results, RunAnalysisSummary stats) {
-        return new CommandResponse(results, Collections.emptyList(), null, stats);
+        return new CommandResponse(results, Collections.emptyList(), null, stats, null);
     }
 
     public static CommandResponse success(Object results, RunAnalysisSummary stats, List<CommandWarning> warnings) {
-        return new CommandResponse(results, Collections.emptyList(), warnings, stats);
+        return new CommandResponse(results, Collections.emptyList(), warnings, stats, null);
+    }
+
+    public static CommandResponse success(
+            Object results,
+            RunAnalysisSummary stats,
+            AnalysisReportSummary reportSummary,
+            List<CommandWarning> warnings
+    ) {
+        return new CommandResponse(results, Collections.emptyList(), warnings, stats, reportSummary);
     }
 
     public static CommandResponse error(String code, String message) {
@@ -39,7 +51,7 @@ public class CommandResponse {
 
     public static CommandResponse error(String code, String message, RunAnalysisSummary stats) {
         CommandError error = new CommandError(code, message);
-        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), null, stats);
+        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), null, stats, null);
     }
 
     public int getSchemaVersion() {
@@ -60,5 +72,9 @@ public class CommandResponse {
 
     public RunAnalysisSummary getStats() {
         return stats;
+    }
+
+    public AnalysisReportSummary getReportSummary() {
+        return reportSummary;
     }
 }

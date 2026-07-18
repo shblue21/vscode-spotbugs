@@ -26,6 +26,7 @@
   "contributes.commands.spotbugs.openFindingDetails.title": "SpotBugs: Open Finding Details",
   "contributes.commands.spotbugs.filterResults.title": "Filter SpotBugs Results",
   "contributes.commands.spotbugs.exportSarif.title": "Export SpotBugs Results (SARIF)",
+  "contributes.commands.spotbugs.exportHtml.title": "Export SpotBugs Results (HTML)",
   "contributes.commands.spotbugs.resetResults.title": "Reset SpotBugs Results",
   "contributes.commands.spotbugs.searchResults.title": "SpotBugs: Search Results",
   "contributes.commands.spotbugs.clearSearch.title": "SpotBugs: Clear Search",

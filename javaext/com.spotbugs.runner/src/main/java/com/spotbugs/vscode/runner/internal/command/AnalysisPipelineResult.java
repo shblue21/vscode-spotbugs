@@ -1,5 +1,6 @@
 package com.spotbugs.vscode.runner.internal.command;
 
+import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
@@ -63,6 +64,10 @@ final class AnalysisPipelineResult {
 
     java.util.List<CommandWarning> getWarnings() {
         return result.getWarnings();
+    }
+
+    AnalysisReportSummary getReportSummary() {
+        return result.getReportSummary();
     }
 
     int getFindingCount() {

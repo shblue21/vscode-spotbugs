@@ -1,12 +1,15 @@
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
 import type { Finding } from '../model/finding';
+import type { AnalysisReportSummary } from '../model/analysisReport';
 
 export interface ProjectResult {
   projectUri: string;
   findings: Finding[];
   error?: string;
   errorCode?: string;
+  spotbugsVersion?: string;
+  reportSummary?: AnalysisReportSummary;
 }
 
 export function projectResultFromOutcome(
@@ -33,8 +36,15 @@ export function projectResultFromOutcome(
     };
   }
 
-  return {
+  const result: ProjectResult = {
     projectUri,
     findings: outcome.findings,
   };
+  if (outcome.stats?.spotbugsVersion) {
+    result.spotbugsVersion = outcome.stats.spotbugsVersion;
+  }
+  if (outcome.reportSummary) {
+    result.reportSummary = outcome.reportSummary;
+  }
+  return result;
 }

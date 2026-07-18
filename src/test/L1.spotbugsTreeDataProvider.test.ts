@@ -96,6 +96,10 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(children[1].label, 'Correctness (1)');
     assert.deepStrictEqual(provider.getCachedFindings(), [makeFinding()]);
     assert.deepStrictEqual(provider.getAllFindings(), [makeFinding()]);
+    const reportRuns = provider.getReportRuns();
+    assert.strictEqual(reportRuns.length, 2);
+    assert.strictEqual(reportRuns[0].analysisStatus, 'failed');
+    assert.strictEqual(reportRuns[1].analysisStatus, undefined);
 
     provider.setFilter('category', 'Correctness');
     const filteredChildren = await provider.getChildren();
@@ -292,10 +296,13 @@ describe('spotbugsTreeDataProvider', () => {
     provider.setSearchQuery('NP');
     provider.setFilter('category', 'Correctness');
 
+    const nextFinding = makeFinding({ patternId: 'SQL' });
     provider.showWorkspaceResults([
       {
         projectUri: 'file:///workspace/project-a',
-        findings: [makeFinding({ patternId: 'SQL' })],
+        findings: [nextFinding],
+        spotbugsVersion: '4.9.8',
+        reportSummary: { analyzedClassCount: 1 },
       },
     ]);
 
@@ -304,6 +311,9 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(provider.getSearchQuery(), '');
     assert.deepStrictEqual(provider.getActiveFilters(), {});
     assert.strictEqual(provider.getCachedFindings().length, 1);
+    const runs = provider.getReportRuns();
+    assert.strictEqual(runs[0].findings[0], nextFinding);
+    assert.strictEqual(runs[0].spotbugsVersion, '4.9.8');
   });
 
   it('clears transient search and filters during loading, failure, and workspace progress without resetting group or sort', async () => {

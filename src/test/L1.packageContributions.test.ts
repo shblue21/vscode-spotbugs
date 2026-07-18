@@ -65,6 +65,7 @@ describe('package contributions', () => {
       'spotbugs.openFindingDetails',
       'spotbugs.filterResults',
       'spotbugs.exportSarif',
+      'spotbugs.exportHtml',
       'spotbugs.resetResults',
       'spotbugs.searchResults',
       'spotbugs.clearSearch',
@@ -116,14 +117,16 @@ describe('package contributions', () => {
   it('keeps category, pattern, and generic group scoped export', () => {
     const itemMenus = manifest.contributes.menus['view/item/context'];
 
-    assert.ok(
-      itemMenus.some(
-        (entry) =>
-          entry.command === 'spotbugs.exportSarif' &&
-          entry.when ===
-            'view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)'
-      )
-    );
+    for (const command of ['spotbugs.exportSarif', 'spotbugs.exportHtml']) {
+      assert.ok(
+        itemMenus.some(
+          (entry) =>
+            entry.command === command &&
+            entry.when ===
+              'view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)'
+        )
+      );
+    }
   });
 
   it('keeps result exploration actions on results and source navigation on inspector titles', () => {
@@ -136,6 +139,7 @@ describe('package contributions', () => {
       'spotbugs.exportSarif',
       'spotbugs.filterResults',
       'spotbugs.resetResults',
+      'spotbugs.exportHtml',
       'spotbugs.groupResultsBy',
       'spotbugs.sortResultsBy',
       'spotbugs.clearSearch',

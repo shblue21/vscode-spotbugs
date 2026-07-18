@@ -379,6 +379,7 @@ describe('analysisExecution', () => {
               target: '/workspace/build/classes',
               durationMs: 12,
             },
+            reportSummary: { analyzedClassCount: 3 },
             schemaVersion: 2,
           },
         }),
@@ -402,6 +403,7 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_WARNING');
     assert.strictEqual(outcome.failure, undefined);
     assert.strictEqual(outcome.stats?.durationMs, 12);
+    assert.strictEqual(outcome.reportSummary?.analyzedClassCount, 3);
     assert.strictEqual(outcome.schemaVersion, 2);
   });
 

@@ -18,7 +18,7 @@ import { Config } from './core/config';
 import { Logger } from './core/logger';
 import { defaultNotifier } from './core/notifier';
 import { selectFindingFilter } from './commands/filter';
-import { exportSarifReport } from './commands/export';
+import { exportHtmlReport, exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
 import { openSettings } from './commands/settings';
 import {
@@ -259,6 +259,13 @@ async function doActivate(
         SpotBugsCommands.EXPORT_SARIF,
         async (element?: unknown) => {
           await exportSarifReport(spotbugsTreeDataProvider, element);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.EXPORT_HTML,
+        async (element?: unknown) => {
+          await exportHtmlReport(spotbugsTreeDataProvider, element);
         }
       ),
 

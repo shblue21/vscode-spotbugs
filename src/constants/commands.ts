@@ -20,6 +20,7 @@ export namespace SpotBugsCommands {
   export const OPEN_FINDING_DETAILS: string = 'spotbugs.openFindingDetails';
   export const FILTER_RESULTS: string = 'spotbugs.filterResults';
   export const EXPORT_SARIF: string = 'spotbugs.exportSarif';
+  export const EXPORT_HTML: string = 'spotbugs.exportHtml';
   export const RESET_RESULTS: string = 'spotbugs.resetResults';
   export const SEARCH_RESULTS: string = 'spotbugs.searchResults';
   export const CLEAR_SEARCH: string = 'spotbugs.clearSearch';

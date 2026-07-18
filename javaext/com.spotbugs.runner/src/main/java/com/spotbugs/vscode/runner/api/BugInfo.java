@@ -1,11 +1,18 @@
 package com.spotbugs.vscode.runner.api;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import com.spotbugs.vscode.runner.internal.SourcePathPolicy;
 
+import edu.umd.cs.findbugs.BugAnnotation;
 import edu.umd.cs.findbugs.BugInstance;
 import edu.umd.cs.findbugs.ClassAnnotation;
 import edu.umd.cs.findbugs.FieldAnnotation;
+import edu.umd.cs.findbugs.I18N;
 import edu.umd.cs.findbugs.MethodAnnotation;
+import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.SourceLineAnnotation;
 
 public class BugInfo {
@@ -15,6 +22,9 @@ public class BugInfo {
     private final String category;
     private final String abbrev;
     private final String message;
+    private final String longMessage;
+    private final String categoryDescription;
+    private final List<String> annotationMessages;
     private final String sourceFile;
     private final int startLine;
     private final int endLine;
@@ -35,10 +45,13 @@ public class BugInfo {
     public BugInfo(BugInstance bugInstance) {
         this.type = safeString(bugInstance.getType());
         this.rank = bugInstance.getBugRank();
-        this.priority = safeString(bugInstance.getPriorityString());
+        this.priority = stablePriority(bugInstance.getPriority());
         this.category = safeString(bugInstance.getBugPattern() != null ? bugInstance.getBugPattern().getCategory() : null);
         this.abbrev = safeString(bugInstance.getAbbrev());
         this.message = safeString(bugInstance.getMessage());
+        this.longMessage = optionalString(bugInstance.getMessageWithoutPrefix());
+        this.categoryDescription = optionalString(I18N.instance().getBugCategoryDescription(this.category));
+        this.annotationMessages = collectAnnotationMessages(bugInstance);
         this.shortDescription = optionalString(
                 bugInstance.getBugPattern() != null ? bugInstance.getBugPattern().getShortDescription() : null
         );
@@ -116,6 +129,18 @@ public class BugInfo {
 
     public String getMessage() {
         return message;
+    }
+
+    public String getLongMessage() {
+        return longMessage;
+    }
+
+    public String getCategoryDescription() {
+        return categoryDescription;
+    }
+
+    public List<String> getAnnotationMessages() {
+        return annotationMessages;
     }
 
     public String getSourceFile() {
@@ -198,5 +223,38 @@ public class BugInfo {
 
     private static Integer optionalInteger(int value) {
         return value > 0 ? Integer.valueOf(value) : null;
+    }
+
+    private static String stablePriority(int priority) {
+        switch (priority) {
+            case Priorities.HIGH_PRIORITY:
+                return "High";
+            case Priorities.NORMAL_PRIORITY:
+                return "Medium";
+            case Priorities.LOW_PRIORITY:
+                return "Low";
+            case Priorities.EXP_PRIORITY:
+                return "Experimental";
+            case Priorities.IGNORE_PRIORITY:
+                return "Ignore";
+            default:
+                return "Unknown";
+        }
+    }
+
+    private static List<String> collectAnnotationMessages(BugInstance bugInstance) {
+        List<String> messages = new ArrayList<>();
+        for (BugAnnotation annotation : bugInstance.getAnnotations()) {
+            String message;
+            try {
+                message = optionalString(annotation != null ? annotation.toString() : null);
+            } catch (RuntimeException ignored) {
+                continue;
+            }
+            if (message != null) {
+                messages.add(message);
+            }
+        }
+        return Collections.unmodifiableList(messages);
     }
 }

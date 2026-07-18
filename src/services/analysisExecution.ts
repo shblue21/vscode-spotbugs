@@ -221,8 +221,15 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     context: AnalysisExecutionTarget
   ): Promise<AnalysisOutcome> {
     const targetPath = context.targetPath;
-    const { bugs, errors, warnings, ignoredMalformedWarnings, stats, schemaVersion } =
-      parsed;
+    const {
+      bugs,
+      errors,
+      warnings,
+      ignoredMalformedWarnings,
+      stats,
+      reportSummary,
+      schemaVersion,
+    } = parsed;
     const hasErrors = Array.isArray(errors) && errors.length > 0;
     const hasTerminalErrors = hasErrors && bugs.length === 0;
     const reportableWarnings =
@@ -277,6 +284,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     const outcome: AnalysisOutcome = {
       findings: withFullPaths,
       stats,
+      reportSummary,
       targetPath,
       schemaVersion,
     };

@@ -4,6 +4,7 @@ import {
   AnalysisWarning,
 } from '../model/analysisProtocol';
 import { Bug } from '../model/bug';
+import type { AnalysisReportSummary } from '../model/analysisReport';
 
 export type ParseErrorKind = 'invalid-json' | 'analysis-error';
 
@@ -19,6 +20,7 @@ export interface ParsedAnalysis {
   warnings?: AnalysisWarning[];
   ignoredMalformedWarnings?: boolean;
   stats?: AnalysisStats;
+  reportSummary?: AnalysisReportSummary;
   schemaVersion?: number;
 }
 
@@ -85,6 +87,7 @@ export function parseAnalysisResponse(raw: string): ParseResult {
       hasWarnings && !Array.isArray(envelope.warnings) ? true : undefined;
     const bugs = hasResults ? (envelope.results as Bug[]) : [];
     const stats = normalizeAnalysisStats(envelope.stats);
+    const reportSummary = normalizeAnalysisReportSummary(envelope.reportSummary);
     const schemaVersion =
       typeof envelope.schemaVersion === 'number' ? envelope.schemaVersion : undefined;
     return {
@@ -95,12 +98,27 @@ export function parseAnalysisResponse(raw: string): ParseResult {
         warnings,
         ignoredMalformedWarnings,
         stats,
+        reportSummary,
         schemaVersion,
       },
     };
   }
 
   return invalidResponse();
+}
+
+function normalizeAnalysisReportSummary(
+  value: unknown
+): AnalysisReportSummary | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const summary: AnalysisReportSummary = {};
+  copyNonNegativeInteger(value, summary, 'analyzedCodeSize');
+  copyNonNegativeInteger(value, summary, 'analyzedClassCount');
+  copyNonNegativeInteger(value, summary, 'analyzedPackageCount');
+  return Object.keys(summary).length > 0 ? summary : undefined;
 }
 
 function invalidResponse(): ParseResult {
@@ -185,6 +203,17 @@ function copyNumberField<T extends keyof AnalysisStats>(
 ): void {
   if (typeof source[key] === 'number') {
     target[key] = source[key] as AnalysisStats[T];
+  }
+}
+
+function copyNonNegativeInteger<T extends keyof AnalysisReportSummary>(
+  source: Record<string, unknown>,
+  target: AnalysisReportSummary,
+  key: T
+): void {
+  const value = source[key];
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {
+    target[key] = value as AnalysisReportSummary[T];
   }
 }
 

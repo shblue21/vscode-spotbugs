@@ -4,6 +4,10 @@ import { buildSarifLog } from '../services/sarifExporter';
 import { Logger } from '../core/logger';
 import * as path from 'path';
 import { resolveSpotBugsSelection } from '../ui/selection';
+import {
+  buildSpotBugsHtmlReport,
+  scopeAnalysisReportRuns,
+} from '../services/htmlExporter';
 
 export async function exportSarifReport(
   provider: SpotBugsTreeDataProvider,
@@ -17,7 +21,7 @@ export async function exportSarifReport(
     return;
   }
 
-  const fileName = buildDefaultReportFileName();
+  const fileName = buildDefaultReportFileName('sarif');
   const defaultUri = createDefaultSaveUri(fileName);
   const saveUri = await window.showSaveDialog({
     defaultUri,
@@ -60,14 +64,81 @@ export async function exportSarifReport(
   }
 }
 
-function buildDefaultReportFileName(): string {
+export async function exportHtmlReport(
+  provider: SpotBugsTreeDataProvider,
+  element: unknown
+): Promise<void> {
+  const findings = resolveSpotBugsSelection(provider, element);
+  const cachedFindings = provider.getCachedFindings();
+  const reportRuns = provider.getReportRuns();
+  let selectedRuns = scopeAnalysisReportRuns(
+    reportRuns,
+    findings,
+    element === undefined
+  );
+
+  if (findings.length === 0) {
+    if (
+      cachedFindings.length > 0 ||
+      !reportRuns.some((run) => !run.analysisStatus)
+    ) {
+      await window.showInformationMessage(
+        l10n.t('No SpotBugs findings available to export.')
+      );
+      return;
+    }
+    selectedRuns = reportRuns;
+  } else if (selectedRuns.length === 0) {
+    selectedRuns = [
+      {
+        projectUri: workspace.workspaceFolders?.[0]?.uri.toString() ?? 'workspace',
+        findings,
+      },
+    ];
+  }
+
+  const fileName = buildDefaultReportFileName('html');
+  const saveUri = await window.showSaveDialog({
+    defaultUri: createDefaultSaveUri(fileName),
+    filters: { html: ['html', 'htm'] },
+    saveLabel: l10n.t('Export HTML'),
+  });
+  if (!saveUri) {
+    return;
+  }
+
+  try {
+    const html = buildSpotBugsHtmlReport(selectedRuns);
+    await workspace.fs.writeFile(saveUri, Buffer.from(html, 'utf8'));
+    Logger.log(
+      `SpotBugs HTML export completed (${findings.length} findings) -> ${saveUri.fsPath}`
+    );
+    await window.showInformationMessage(
+      findings.length === 1
+        ? l10n.t('SpotBugs exported {0} finding to {1}', findings.length, saveUri.fsPath)
+        : l10n.t(
+            'SpotBugs exported {0} findings to {1}',
+            findings.length,
+            saveUri.fsPath
+          )
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    Logger.error('Failed to export HTML report', error);
+    await window.showErrorMessage(
+      l10n.t('Failed to export SpotBugs HTML: {0}', message)
+    );
+  }
+}
+
+function buildDefaultReportFileName(extension: 'sarif' | 'html'): string {
   const workspaceName = getWorkspaceName();
   const timestamp = new Date()
     .toISOString()
     .replace(/[:]/g, '-')
     .replace('T', '_')
     .split('.')[0];
-  return `spotbugs-report-${workspaceName}-${timestamp}.sarif`;
+  return `spotbugs-report-${workspaceName}-${timestamp}.${extension}`;
 }
 
 function createDefaultSaveUri(fileName: string): Uri | undefined {

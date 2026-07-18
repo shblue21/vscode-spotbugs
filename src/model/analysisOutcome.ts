@@ -1,5 +1,6 @@
 import { Finding } from './finding';
 import { AnalysisError, AnalysisStats, AnalysisWarning } from './analysisProtocol';
+import type { AnalysisReportSummary } from './analysisReport';
 
 export type AnalysisNoticeLevel = 'info' | 'warn' | 'error';
 
@@ -23,6 +24,7 @@ export interface AnalysisOutcome {
   errors?: AnalysisError[];
   warnings?: AnalysisWarning[];
   stats?: AnalysisStats;
+  reportSummary?: AnalysisReportSummary;
   targetPath?: string;
   schemaVersion?: number;
   failure?: AnalysisFailure;
