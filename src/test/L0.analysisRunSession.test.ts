@@ -295,7 +295,7 @@ describe('analysisRunSession file analysis', () => {
 
     assert.deepStrictEqual(calls, ['loading', 'results:0', 'diagnostics:0']);
     assert.deepStrictEqual(warnings, [
-      'SpotBugs analysis completed with cleanup warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar',
+      'SpotBugs analysis completed with warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar',
     ]);
     assert.deepStrictEqual(errors, []);
   });
@@ -666,7 +666,7 @@ describe('analysisRunSession workspace analysis', () => {
     ]);
     assert.deepStrictEqual(harness.workspaceResults, [[projectResult]]);
     assert.deepStrictEqual(harness.warnings, [
-      'SpotBugs: Workspace analysis completed - No issues found. Cleanup warnings occurred in 1 project; see the SpotBugs output for details.',
+      'SpotBugs: Workspace analysis completed - No issues found. 1 project reported warnings; see the SpotBugs output for details.',
     ]);
     assert.deepStrictEqual(harness.errors, []);
   });

@@ -131,7 +131,7 @@ describe('workspaceSummary', () => {
     ]);
   });
 
-  it('returns a warning completion notice when cleanup warnings are the only non-success condition', () => {
+  it('does not report a clean workspace when analysis is incomplete', () => {
     const notices = buildWorkspaceCompletionNotices(
       [makeProjectResult()],
       0,
@@ -140,8 +140,8 @@ describe('workspaceSummary', () => {
         {
           projectUri: 'file:///workspace/project-a',
           warning: {
-            code: 'PLUGIN_CLEANUP_FAILED',
-            message: 'Could not delete plugin jar',
+            code: 'ANALYSIS_INCOMPLETE',
+            message: 'Some checks may have been skipped.',
           },
         },
       ]
@@ -151,7 +151,7 @@ describe('workspaceSummary', () => {
       {
         level: 'warn',
         message:
-          'SpotBugs: Workspace analysis completed - No issues found. Cleanup warnings occurred in 1 project; see the SpotBugs output for details.',
+          'SpotBugs: Workspace analysis completed - No findings reported. 1 project reported warnings; see the SpotBugs output for details.',
       },
     ]);
   });
