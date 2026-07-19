@@ -50,7 +50,7 @@ describe('buildNativeSarifLog', () => {
     assert.deepStrictEqual(log.runs[0].taxonomies, [{ name: 'CWE' }]);
   });
 
-  it('combines successful workspace runs and retains an originally empty run', () => {
+  it('combines successful workspace runs and retains usable empty runs', () => {
     const selected = finding('NP_NULL');
     const runs: AnalysisReportRun[] = [
       {
@@ -67,6 +67,10 @@ describe('buildNativeSarifLog', () => {
         projectUri: 'file:///workspace/c',
         findings: [],
         analysisStatus: 'failed',
+      },
+      {
+        projectUri: 'file:///workspace/d',
+        findings: [],
       },
     ];
 

@@ -37,6 +37,9 @@ export function buildNativeSarifLog(
     if (selectedIndices.length === 0 && !includeEmptyRun) {
       continue;
     }
+    if (includeEmptyRun && !reportRun.nativeSarif) {
+      continue;
+    }
 
     const parsed = parseNativeSarif(reportRun.nativeSarif);
     validateAlignment(reportRun, parsed.runs[0]);
