@@ -137,6 +137,7 @@ export async function runFileAnalysisSession(
         findings,
         spotbugsVersion: outcome.stats?.spotbugsVersion,
         summary: outcome.reportSummary,
+        nativeSarif: outcome.nativeSarif,
       });
       args.diagnostics.replaceForScope(
         result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },

@@ -1,6 +1,6 @@
 import { l10n, window, workspace, Uri } from 'vscode';
 import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
-import { buildSarifLog } from '../services/sarifExporter';
+import { buildNativeSarifLog } from '../services/nativeSarifExporter';
 import { Logger } from '../core/logger';
 import * as path from 'path';
 import { resolveSpotBugsSelection } from '../ui/selection';
@@ -14,9 +14,33 @@ export async function exportSarifReport(
   element: unknown
 ): Promise<void> {
   const findings = resolveSpotBugsSelection(provider, element);
+  const reportRuns = provider.getReportRuns();
   if (findings.length === 0) {
-    await window.showInformationMessage(
-      l10n.t('No SpotBugs findings available to export.')
+    if (
+      element !== undefined ||
+      provider.getCachedFindings().length > 0 ||
+      !reportRuns.some((run) => !run.analysisStatus)
+    ) {
+      await window.showInformationMessage(
+        l10n.t('No SpotBugs findings available to export.')
+      );
+      return;
+    }
+  }
+
+  let sarifLog;
+  try {
+    sarifLog = buildNativeSarifLog(
+      reportRuns,
+      findings,
+      element === undefined
+    );
+  } catch (error) {
+    Logger.error('Native SpotBugs SARIF is unavailable', error);
+    await window.showErrorMessage(
+      l10n.t(
+        'Native SpotBugs SARIF is unavailable. Reload the Java language server and run the analysis again.'
+      )
     );
     return;
   }
@@ -33,14 +57,6 @@ export async function exportSarifReport(
   }
 
   try {
-    const workspaceRootPaths = workspace.workspaceFolders?.map(
-      (folder) => folder.uri.fsPath
-    );
-    const sarifLog = buildSarifLog(findings, {
-      runName: getWorkspaceName(),
-      workspaceRootPath: workspaceRootPaths?.[0],
-      workspaceRootPaths,
-    });
     const sarifJson = JSON.stringify(sarifLog, null, 2);
     await workspace.fs.writeFile(saveUri, Buffer.from(sarifJson, 'utf8'));
     Logger.log(

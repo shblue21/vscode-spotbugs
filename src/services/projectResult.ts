@@ -10,6 +10,7 @@ export interface ProjectResult {
   errorCode?: string;
   spotbugsVersion?: string;
   reportSummary?: AnalysisReportSummary;
+  nativeSarif?: string;
 }
 
 export function projectResultFromOutcome(
@@ -45,6 +46,9 @@ export function projectResultFromOutcome(
   }
   if (outcome.reportSummary) {
     result.reportSummary = outcome.reportSummary;
+  }
+  if (outcome.nativeSarif) {
+    result.nativeSarif = outcome.nativeSarif;
   }
   return result;
 }

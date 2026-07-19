@@ -51,4 +51,5 @@ export interface AnalysisResponse<TBug = Bug> {
   warnings?: AnalysisWarning[];
   stats?: AnalysisStats;
   reportSummary?: AnalysisReportSummary;
+  nativeSarif?: string;
 }

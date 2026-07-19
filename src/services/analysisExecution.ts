@@ -228,6 +228,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       ignoredMalformedWarnings,
       stats,
       reportSummary,
+      nativeSarif,
       schemaVersion,
     } = parsed;
     const hasErrors = Array.isArray(errors) && errors.length > 0;
@@ -285,6 +286,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       findings: withFullPaths,
       stats,
       reportSummary,
+      nativeSarif,
       targetPath,
       schemaVersion,
     };

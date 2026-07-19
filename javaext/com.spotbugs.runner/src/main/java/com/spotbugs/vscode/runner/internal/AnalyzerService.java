@@ -84,7 +84,12 @@ public class AnalyzerService {
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, filePaths);
-        return new SpotBugsAnalysisResult(bugs, result.getWarnings(), result.getReportSummary());
+        return new SpotBugsAnalysisResult(
+                bugs,
+                result.getWarnings(),
+                result.getReportSummary(),
+                result.getNativeSarif()
+        );
     }
 
     public String analyzeToNativeSarif(String... filePaths) {
@@ -125,6 +130,7 @@ public class AnalyzerService {
         List<String> sourcepaths = this.config != null
                 ? this.config.getSourcepaths()
                 : java.util.Collections.emptyList();
+        project.addSourceDirs(sourcepaths);
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         TargetResolver resolver = new TargetResolver();
         List<String> targets = resolver.resolveTargets(filePaths, targetResolutionRootDirs, sourcepaths, monitor);

@@ -24,7 +24,7 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 - Analyze a single file or an entire workspace (Maven/Gradle projects)
 - Group findings by category and pattern with severity icons
 - Navigate to bug locations in source files with matching diagnostics/squiggles
-- Export filtered findings to SARIF for code scanning tools
+- Export filtered findings in SpotBugs' native SARIF format for code scanning tools
 
 ## Requirements
 
@@ -33,7 +33,7 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 ## Privacy / Local Analysis
 
-SpotBugs analysis runs locally in your VS Code workspace. This extension does not send source files, compiled classes, filter files, SARIF output, or SpotBugs findings to a hosted analysis service.
+SpotBugs analysis runs locally in your VS Code workspace. This extension does not send source files, compiled classes, filter files, SARIF output, or SpotBugs findings to a hosted analysis service. Native SARIF reports can contain local source-root URIs, so review them before sharing.
 
 Rule documentation actions may open external SpotBugs documentation links. Basic extension operation telemetry follows VS Code telemetry settings.
 
@@ -49,7 +49,7 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 
 - `SpotBugs: Analyze File/Folder` — Analyze selected file or folder
 - `SpotBugs: Analyze this workspace` — Build then analyze all projects in the workspace
-- `SpotBugs: Export SpotBugs Findings (SARIF)` — Save current findings to a SARIF report
+- `SpotBugs: Export SpotBugs Findings (SARIF)` — Save current findings in SpotBugs' native SARIF format
 - `SpotBugs: Reset SpotBugs Results` — Clear the SpotBugs view and diagnostics
 
 ## Settings

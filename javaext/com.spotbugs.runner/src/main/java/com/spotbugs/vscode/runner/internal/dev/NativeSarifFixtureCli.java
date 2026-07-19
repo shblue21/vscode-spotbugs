@@ -10,6 +10,7 @@ import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.ConfigError;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.ConfigParseResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
@@ -36,13 +37,11 @@ public final class NativeSarifFixtureCli {
                 : "{}";
         AnalysisConfig config = parseAndValidateConfig(configJson);
 
-        AnalyzerService bugAnalyzer = new AnalyzerService();
-        bugAnalyzer.setConfiguration(config);
-        List<BugInfo> bugs = bugAnalyzer.analyzeToBugs(targetPath);
-
-        AnalyzerService sarifAnalyzer = new AnalyzerService();
-        sarifAnalyzer.setConfiguration(config);
-        String nativeSarif = sarifAnalyzer.analyzeToNativeSarif(targetPath);
+        AnalyzerService analyzer = new AnalyzerService();
+        analyzer.setConfiguration(config);
+        SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(null, targetPath);
+        List<BugInfo> bugs = result.getBugs();
+        String nativeSarif = result.getNativeSarif();
         if (nativeSarif == null || nativeSarif.trim().isEmpty()) {
             throw new IllegalStateException("SpotBugs native SARIF generation returned no output.");
         }

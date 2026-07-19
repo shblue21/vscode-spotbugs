@@ -131,6 +131,7 @@ describe('analysisRunSession file analysis', () => {
     let receivedConfig: unknown;
     let receivedUri: unknown;
     let receivedToken: unknown;
+    let reportNativeSarif: string | undefined;
     const token = { isCancellationRequested: false } as CancellationToken;
     const lease = createCurrentLease(token);
     const deps = createBaseDependencies(vscode);
@@ -141,6 +142,7 @@ describe('analysisRunSession file analysis', () => {
       return {
         outcome: {
           findings: [finding],
+          nativeSarif: '{"version":"2.1.0","runs":[]}',
           targetPath: uri.fsPath,
         },
         context: {
@@ -158,7 +160,10 @@ describe('analysisRunSession file analysis', () => {
       config,
       tree: {
         showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
+        showResults: (findings: Finding[], reportRun) => {
+          calls.push(`results:${findings.length}`);
+          reportNativeSarif = reportRun?.nativeSarif;
+        },
         showAnalysisFailure: (message: string, code?: string) =>
           calls.push(`failure:${code ?? ''}:${message}`),
       },
@@ -181,6 +186,7 @@ describe('analysisRunSession file analysis', () => {
     assert.strictEqual(receivedConfig, config);
     assert.strictEqual(receivedUri, uri);
     assert.strictEqual(receivedToken, token);
+    assert.strictEqual(reportNativeSarif, '{"version":"2.1.0","runs":[]}');
     assert.deepStrictEqual(calls, [
       'loading',
       'results:1',
