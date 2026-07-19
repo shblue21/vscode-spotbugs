@@ -33,6 +33,7 @@ import edu.umd.cs.findbugs.PluginLoader;
 import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.ProjectStats;
+import edu.umd.cs.findbugs.SortedBugCollection;
 import edu.umd.cs.findbugs.config.UserPreferences;
 import edu.umd.cs.findbugs.sarif.SarifBugReporter;
 
@@ -93,6 +94,7 @@ public class SpotBugsExecutor {
             AnalysisReportSummary reportSummary;
             String nativeSarif = null;
             CommandWarning sarifWarning = null;
+            boolean analysisIncomplete;
             try {
                 execute(defaultBugReporter, monitor);
                 try {
@@ -105,6 +107,9 @@ public class SpotBugsExecutor {
                 }
                 bugs = collectBugs(defaultBugReporter);
                 reportSummary = collectReportSummary(defaultBugReporter);
+                analysisIncomplete = !defaultBugReporter.getQueuedErrors().isEmpty()
+                        || ((SortedBugCollection) defaultBugReporter.getBugCollection())
+                                .missingClassIterator().hasNext();
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
                 loadedPlugins.closeAfterFailure(failure);
                 throw failure;
@@ -112,6 +117,12 @@ public class SpotBugsExecutor {
             List<CommandWarning> warnings = loadedPlugins.closeAfterSuccess();
             if (sarifWarning != null) {
                 warnings.add(sarifWarning);
+            }
+            if (analysisIncomplete) {
+                warnings.add(new CommandWarning(
+                        "ANALYSIS_INCOMPLETE",
+                        "SpotBugs analysis may be incomplete because classes were missing or recoverable errors occurred."
+                ));
             }
             return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif);
         }

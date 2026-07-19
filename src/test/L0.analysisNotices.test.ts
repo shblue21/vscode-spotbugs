@@ -336,7 +336,7 @@ describe('analysisNotices', () => {
         (notice) =>
           notice.level === 'warn' &&
           notice.message ===
-            'SpotBugs analysis completed with cleanup warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar'
+            'SpotBugs analysis completed with warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar'
       )
     );
     assert.ok(

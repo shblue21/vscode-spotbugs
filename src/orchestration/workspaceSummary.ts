@@ -22,6 +22,9 @@ export function buildWorkspaceCompletionNotices(
     (projectResults.length > 0 && skippedCount === projectResults.length) ||
     (failedCount > 0 && succeededCount === 0);
   const cleanupWarningSentence = buildCleanupWarningSentence(cleanupWarnings);
+  const hasIncompleteAnalysisWarnings = cleanupWarnings.some(
+    ({ warning }) => warning.code === 'ANALYSIS_INCOMPLETE'
+  );
   const notices: AnalysisNotice[] = [];
 
   if (projectResults.length > 0 && skippedCount === projectResults.length) {
@@ -78,7 +81,9 @@ export function buildWorkspaceCompletionNotices(
       level: cleanupWarningSentence.length > 0 && skippedCount === 0 ? 'warn' : 'info',
       message:
         (findingCount === 0
-          ? 'SpotBugs: Workspace analysis completed - No issues found.'
+          ? hasIncompleteAnalysisWarnings
+            ? 'SpotBugs: Workspace analysis completed - No findings reported.'
+            : 'SpotBugs: Workspace analysis completed - No issues found.'
           : `SpotBugs: Workspace analysis completed - ${formatIssueCount(findingCount)} found.`) +
         (skippedCount === 0 ? cleanupWarningSentence : ''),
     });
@@ -109,7 +114,7 @@ function buildCleanupWarningSentence(
   if (uniqueProjectCount === 0) {
     return '';
   }
-  return ` Cleanup warnings occurred in ${formatProjectCount(uniqueProjectCount)}; see the SpotBugs output for details.`;
+  return ` ${formatProjectCount(uniqueProjectCount)} reported warnings; see the SpotBugs output for details.`;
 }
 
 function dedupeNotices(notices: AnalysisNotice[]): AnalysisNotice[] {

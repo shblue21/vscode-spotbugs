@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.Project;
+import edu.umd.cs.findbugs.classfile.ClassDescriptor;
 
 public class SpotBugsExecutorPluginLoadingTest {
 
@@ -154,6 +155,26 @@ public class SpotBugsExecutorPluginLoadingTest {
         assertTrue(warnings.get(0).getMessage().contains("close failed"));
         assertNull("Plugin should not remain globally registered after close warning", Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID));
 
+    }
+
+    @Test
+    public void missingClassesReturnIncompleteWarning() throws Exception {
+        SpotBugsAnalysisResult result = new SpotBugsExecutor(
+                new FindBugs2() {
+                    @Override
+                    public void execute() {
+                        getBugReporter().reportMissingClass(
+                                ClassDescriptor.createClassDescriptor("com/example/MissingDependency")
+                        );
+                    }
+                },
+                new Project(),
+                3,
+                Collections.emptyList()
+        ).executeBugsWithWarnings();
+
+        assertEquals(1, result.getWarnings().size());
+        assertEquals("ANALYSIS_INCOMPLETE", result.getWarnings().get(0).getCode());
     }
 
     @Test

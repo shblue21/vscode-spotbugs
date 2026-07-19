@@ -50,7 +50,7 @@ export function buildAnalysisNotices(
   ) {
     notices.push({
       level: 'warn',
-      message: `SpotBugs analysis completed with cleanup warnings: ${formatAnalysisErrors(
+      message: `SpotBugs analysis completed with warnings: ${formatAnalysisErrors(
         outcome.warnings
       )}`,
     });
