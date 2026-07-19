@@ -380,6 +380,7 @@ describe('analysisExecution', () => {
               durationMs: 12,
             },
             reportSummary: { analyzedClassCount: 3 },
+            nativeSarif: '{"version":"2.1.0","runs":[]}',
             schemaVersion: 2,
           },
         }),
@@ -404,6 +405,7 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.failure, undefined);
     assert.strictEqual(outcome.stats?.durationMs, 12);
     assert.strictEqual(outcome.reportSummary?.analyzedClassCount, 3);
+    assert.strictEqual(outcome.nativeSarif, '{"version":"2.1.0","runs":[]}');
     assert.strictEqual(outcome.schemaVersion, 2);
   });
 

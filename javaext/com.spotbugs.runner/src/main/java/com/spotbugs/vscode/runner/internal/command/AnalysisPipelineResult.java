@@ -70,6 +70,10 @@ final class AnalysisPipelineResult {
         return result.getReportSummary();
     }
 
+    String getNativeSarif() {
+        return result.getNativeSarif();
+    }
+
     int getFindingCount() {
         return getResults().size();
     }

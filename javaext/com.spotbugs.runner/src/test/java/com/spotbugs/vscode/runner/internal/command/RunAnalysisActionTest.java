@@ -59,7 +59,12 @@ public class RunAnalysisActionTest {
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
-                return result(Collections.nCopies(2, (BugInfo) null));
+                return new SpotBugsAnalysisResult(
+                        Collections.nCopies(2, (BugInfo) null),
+                        Collections.emptyList(),
+                        null,
+                        "{\"version\":\"2.1.0\",\"runs\":[]}"
+                );
             }
         });
 
@@ -69,6 +74,8 @@ public class RunAnalysisActionTest {
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(2, response.getAsJsonArray("results").size());
         assertEquals(2, response.getAsJsonObject("stats").get("findingCount").getAsInt());
+        assertEquals("2.1.0", JsonParser.parseString(response.get("nativeSarif").getAsString())
+                .getAsJsonObject().get("version").getAsString());
     }
 
     @Test

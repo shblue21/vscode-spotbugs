@@ -80,24 +80,38 @@ public class AnalyzerServiceRankThresholdTest {
 
     private void assertNativeSarifPresence(Integer threshold, boolean expected) throws Exception {
         AnalyzerService analyzer = configuredAnalyzer(threshold);
-        String sarif = analyzer.analyzeToNativeSarif((IProgressMonitor) null, fixtureClassPath());
+        SpotBugsAnalysisResult analysis = analyzer.analyzeToBugsWithWarnings(null, fixtureClassPath());
+        String sarif = analysis.getNativeSarif();
         assertNotNull(message("native SARIF", threshold), sarif);
         assertFalse(message("native SARIF", threshold), sarif.trim().isEmpty());
 
-        JsonArray results = JsonParser.parseString(sarif)
+        JsonObject run = JsonParser.parseString(sarif)
                 .getAsJsonObject()
                 .getAsJsonArray("runs")
                 .get(0)
-                .getAsJsonObject()
-                .getAsJsonArray("results");
+                .getAsJsonObject();
+        JsonArray results = run.getAsJsonArray("results");
+        assertEquals(analysis.getBugs().size(), results.size());
         int count = 0;
-        for (JsonElement element : results) {
+        for (int index = 0; index < results.size(); index++) {
+            JsonElement element = results.get(index);
             JsonObject result = element.getAsJsonObject();
+            assertEquals(analysis.getBugs().get(index).getType(), result.get("ruleId").getAsString());
             if (BUG_TYPE.equals(result.get("ruleId").getAsString())) {
                 count++;
             }
         }
         assertEquals(message("native SARIF", threshold), expected ? 1 : 0, count);
+        if (expected) {
+            JsonObject artifact = results.get(0).getAsJsonObject()
+                    .getAsJsonArray("locations").get(0).getAsJsonObject()
+                    .getAsJsonObject("physicalLocation")
+                    .getAsJsonObject("artifactLocation");
+            String baseId = artifact.get("uriBaseId").getAsString();
+            String baseUri = run.getAsJsonObject("originalUriBaseIds")
+                    .getAsJsonObject(baseId).get("uri").getAsString();
+            assertEquals(fixtureSourceRoot().toURI().toString(), baseUri);
+        }
     }
 
     private List<BugInfo> analyzeBugs(Integer threshold) throws Exception {
@@ -111,13 +125,23 @@ public class AnalyzerServiceRankThresholdTest {
     }
 
     private AnalysisConfig config(Integer threshold) {
-        String json = threshold == null ? "{}" : "{\"priorityThreshold\":" + threshold + "}";
-        ConfigParseResult parsed = new ConfigParser().parse(json);
+        JsonObject json = new JsonObject();
+        if (threshold != null) {
+            json.addProperty("priorityThreshold", threshold);
+        }
+        JsonArray sourcepaths = new JsonArray();
+        sourcepaths.add(fixtureSourceRoot().getAbsolutePath());
+        json.add("sourcepaths", sourcepaths);
+        ConfigParseResult parsed = new ConfigParser().parse(json.toString());
         assertFalse(parsed.hasError());
 
         ConfigValidationResult validated = new ConfigValidator().validate(parsed.getSchema());
         assertFalse(validated.hasError());
         return validated.getConfig();
+    }
+
+    private File fixtureSourceRoot() {
+        return new File(System.getProperty("basedir"), "src/test/java").getAbsoluteFile();
     }
 
     private BugInfo onlyFixtureBug(List<BugInfo> bugs) {

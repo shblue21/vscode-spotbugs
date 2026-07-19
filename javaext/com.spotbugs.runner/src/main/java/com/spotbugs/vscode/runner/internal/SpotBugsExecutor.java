@@ -42,7 +42,7 @@ public class SpotBugsExecutor {
 
     private final FindBugs2 findBugs;
     private final Project project;
-    private final BugCollectionBugReporter defaultBugReporter;
+    private final DeferredSarifBugReporter defaultBugReporter;
     private final int effectivePriorityThreshold;
     private final int effectiveRankThreshold;
     private final List<String> pluginJars; // optional
@@ -61,7 +61,7 @@ public class SpotBugsExecutor {
     ) {
         this.findBugs = findBugs;
         this.project = project;
-        this.defaultBugReporter = new BugCollectionBugReporter(project);
+        this.defaultBugReporter = new DeferredSarifBugReporter(project);
         this.effectivePriorityThreshold = rankThreshold == null
                 ? Priorities.HIGH_PRIORITY
                 : Priorities.LOW_PRIORITY;
@@ -91,8 +91,18 @@ public class SpotBugsExecutor {
             LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
             List<BugInfo> bugs;
             AnalysisReportSummary reportSummary;
+            String nativeSarif = null;
+            CommandWarning sarifWarning = null;
             try {
                 execute(defaultBugReporter, monitor);
+                try {
+                    nativeSarif = defaultBugReporter.writeSarif();
+                } catch (RuntimeException | LinkageError e) {
+                    sarifWarning = new CommandWarning(
+                            "SARIF_REPORT_UNAVAILABLE",
+                            "Failed to generate the native SpotBugs SARIF report: " + failureMessage(e)
+                    );
+                }
                 bugs = collectBugs(defaultBugReporter);
                 reportSummary = collectReportSummary(defaultBugReporter);
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
@@ -100,7 +110,10 @@ public class SpotBugsExecutor {
                 throw failure;
             }
             List<CommandWarning> warnings = loadedPlugins.closeAfterSuccess();
-            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary);
+            if (sarifWarning != null) {
+                warnings.add(sarifWarning);
+            }
+            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif);
         }
     }
 
@@ -223,6 +236,13 @@ public class SpotBugsExecutor {
                 stats.getNumClasses(),
                 stats.getPackageStats().size()
         );
+    }
+
+    private static String failureMessage(Throwable failure) {
+        String message = failure.getMessage();
+        return message != null && !message.trim().isEmpty()
+                ? message.trim()
+                : failure.getClass().getSimpleName();
     }
 
     private static final class LoadedPlugins {

@@ -105,6 +105,7 @@
   "{0} finding": "{0} finding",
   "{0} findings": "{0} findings",
   "No SpotBugs findings available to export.": "No SpotBugs findings available to export.",
+  "Native SpotBugs SARIF is unavailable. Reload the Java language server and run the analysis again.": "Native SpotBugs SARIF is unavailable. Reload the Java language server and run the analysis again.",
   "Export SARIF": "Export SARIF",
   "Export HTML": "Export HTML",
   "SpotBugs exported {0} finding to {1}": "SpotBugs exported {0} finding to {1}",

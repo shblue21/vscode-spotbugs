@@ -303,6 +303,7 @@ describe('spotbugsTreeDataProvider', () => {
         findings: [nextFinding],
         spotbugsVersion: '4.9.8',
         reportSummary: { analyzedClassCount: 1 },
+        nativeSarif: '{"version":"2.1.0","runs":[]}',
       },
     ]);
 
@@ -314,6 +315,7 @@ describe('spotbugsTreeDataProvider', () => {
     const runs = provider.getReportRuns();
     assert.strictEqual(runs[0].findings[0], nextFinding);
     assert.strictEqual(runs[0].spotbugsVersion, '4.9.8');
+    assert.strictEqual(runs[0].nativeSarif, '{"version":"2.1.0","runs":[]}');
   });
 
   it('clears transient search and filters during loading, failure, and workspace progress without resetting group or sort', async () => {

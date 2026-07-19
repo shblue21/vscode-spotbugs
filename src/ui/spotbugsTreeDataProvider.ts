@@ -173,6 +173,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
         : undefined,
       spotbugsVersion: result.spotbugsVersion,
       summary: result.reportSummary,
+      nativeSarif: result.nativeSarif,
     }));
     this.refreshResultsView();
     this._onDidChangeTreeData.fire(undefined);

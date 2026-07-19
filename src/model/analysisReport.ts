@@ -12,4 +12,5 @@ export interface AnalysisReportRun {
   analysisStatus?: 'failed' | 'skipped';
   spotbugsVersion?: string;
   summary?: AnalysisReportSummary;
+  nativeSarif?: string;
 }

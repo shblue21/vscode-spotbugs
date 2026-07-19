@@ -36,6 +36,7 @@
   "No local SpotBugs description is available for this finding.": "이 발견 항목에 사용할 수 있는 로컬 SpotBugs 설명이 없습니다.",
   "No SpotBugs finding is currently selected.": "현재 선택된 SpotBugs 발견 항목이 없습니다.",
   "No SpotBugs findings available to export.": "내보낼 SpotBugs 발견 항목이 없습니다.",
+  "Native SpotBugs SARIF is unavailable. Reload the Java language server and run the analysis again.": "SpotBugs native SARIF를 사용할 수 없습니다. Java 언어 서버를 다시 로드한 후 분석을 다시 실행하세요.",
   "No SpotBugs rule documentation is available.": "사용 가능한 SpotBugs 규칙 문서가 없습니다.",
   "No cached SpotBugs findings available to clear search.": "검색을 지울 캐시된 SpotBugs 발견 항목이 없습니다.",
   "No cached SpotBugs findings available to filter.": "필터링할 캐시된 SpotBugs 발견 항목이 없습니다.",

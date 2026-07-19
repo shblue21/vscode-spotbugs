@@ -72,6 +72,7 @@ describe('projectResult', () => {
         ],
         stats: { spotbugsVersion: '4.9.8' },
         reportSummary: { analyzedCodeSize: 100 },
+        nativeSarif: '{"version":"2.1.0","runs":[]}',
       })
     );
 
@@ -86,6 +87,7 @@ describe('projectResult', () => {
       ],
       spotbugsVersion: '4.9.8',
       reportSummary: { analyzedCodeSize: 100 },
+      nativeSarif: '{"version":"2.1.0","runs":[]}',
     });
   });
 });

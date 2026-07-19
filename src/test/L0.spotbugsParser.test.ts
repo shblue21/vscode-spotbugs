@@ -74,6 +74,7 @@ describe('spotbugsParser', () => {
         results: [{ type: 'UR' }],
         errors: [{ code: 'X', message: 'warn' }],
         stats: { target: '/tmp/Foo', durationMs: 12 },
+        nativeSarif: '{"version":"2.1.0","runs":[]}',
       })
     );
     assert.strictEqual(result.ok, true);
@@ -84,6 +85,10 @@ describe('spotbugsParser', () => {
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');
       assert.strictEqual(result.value.errors?.[0]?.message, 'warn');
       assert.strictEqual(result.value.stats?.target, '/tmp/Foo');
+      assert.strictEqual(
+        result.value.nativeSarif,
+        '{"version":"2.1.0","runs":[]}'
+      );
     }
   });
 

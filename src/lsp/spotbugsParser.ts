@@ -21,6 +21,7 @@ export interface ParsedAnalysis {
   ignoredMalformedWarnings?: boolean;
   stats?: AnalysisStats;
   reportSummary?: AnalysisReportSummary;
+  nativeSarif?: string;
   schemaVersion?: number;
 }
 
@@ -88,6 +89,10 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     const bugs = hasResults ? (envelope.results as Bug[]) : [];
     const stats = normalizeAnalysisStats(envelope.stats);
     const reportSummary = normalizeAnalysisReportSummary(envelope.reportSummary);
+    const nativeSarif =
+      typeof envelope.nativeSarif === 'string' && envelope.nativeSarif.trim().length > 0
+        ? envelope.nativeSarif
+        : undefined;
     const schemaVersion =
       typeof envelope.schemaVersion === 'number' ? envelope.schemaVersion : undefined;
     return {
@@ -99,6 +104,7 @@ export function parseAnalysisResponse(raw: string): ParseResult {
         ignoredMalformedWarnings,
         stats,
         reportSummary,
+        nativeSarif,
         schemaVersion,
       },
     };
