@@ -22,7 +22,10 @@ import { exportHtmlReport, exportSarifReport } from './commands/export';
 import { resetResults } from './commands/reset';
 import { openSettings } from './commands/settings';
 import {
+  addPluginJars,
   invalidatePluginInventoryRefresh,
+  type PluginJarCommandTarget,
+  removePluginJar,
   refreshPluginInventory,
 } from './commands/pluginInventory';
 import {
@@ -130,7 +133,7 @@ async function doActivate(
             e.affectsConfiguration(`${SETTINGS_SECTION}.${settingKeys.pluginsPaths}`)
           ) {
             invalidatePluginInventoryRefresh();
-            pluginInventoryTreeDataProvider.showInitialMessage();
+            void refreshPluginInventory(config, pluginInventoryTreeDataProvider);
           }
         }
       }),
@@ -252,6 +255,20 @@ async function doActivate(
         SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
         async (uri: Uri | undefined) => {
           await refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.ADD_PLUGIN_JARS,
+        async () => {
+          await addPluginJars();
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.REMOVE_PLUGIN_JAR,
+        async (item: PluginJarCommandTarget | undefined) => {
+          await removePluginJar(item);
         }
       ),
 

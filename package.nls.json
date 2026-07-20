@@ -34,5 +34,7 @@
   "contributes.commands.spotbugs.sortResultsBy.title": "SpotBugs: Sort Results By...",
   "contributes.commands.spotbugs.openSettings.title": "SpotBugs: Open Settings",
   "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: Refresh Plugins",
+  "contributes.commands.spotbugs.addPluginJars.title": "SpotBugs: Add Plugin JARs...",
+  "contributes.commands.spotbugs.removePluginJar.title": "SpotBugs: Remove Plugin JAR",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }

@@ -111,5 +111,16 @@
   "Provider: {0}": "제공자: {0}",
   "Version: {0}": "버전: {0}",
   "Declared: {0}": "선언됨: {0}",
-  "Runtime loading was not checked.": "런타임 로딩은 확인하지 않았습니다."
+  "Runtime loading was not checked.": "런타임 로딩은 확인하지 않았습니다.",
+  "Select trusted SpotBugs plugin JARs": "신뢰할 수 있는 SpotBugs 플러그인 JAR 선택",
+  "Add Plugins": "플러그인 추가",
+  "JAR files": "JAR 파일",
+  "Could not add SpotBugs plugin JARs: {0}": "SpotBugs 플러그인 JAR을 추가하지 못했습니다: {0}",
+  "The selected SpotBugs plugin JARs are already configured.": "선택한 SpotBugs 플러그인 JAR이 이미 설정되어 있습니다.",
+  "Added {0} SpotBugs plugin JAR(s) to {1} settings.": "SpotBugs 플러그인 JAR {0}개를 {1} 설정에 추가했습니다.",
+  "Workspace": "워크스페이스",
+  "User": "사용자",
+  "Select a plugin in the Plugins view to remove it.": "플러그인 보기에서 제거할 플러그인을 선택하세요.",
+  "The plugin configuration changed. Refresh the Plugins view and try again.": "플러그인 설정이 변경되었습니다. 플러그인 보기를 새로 고친 후 다시 시도하세요.",
+  "Removed SpotBugs plugin JAR: {0}": "SpotBugs 플러그인 JAR을 제거했습니다: {0}"
 }

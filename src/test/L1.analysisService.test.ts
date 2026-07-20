@@ -200,6 +200,51 @@ describe('analysisService', () => {
     ]);
   });
 
+  it('snapshots analysis settings for every project before a workspace run', async () => {
+    const vscode = installVscodeMock();
+    const resolverModule =
+      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const spotbugsClient =
+      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const receivedEfforts: string[] = [];
+    const settingsResources: string[] = [];
+    let configuredEffort = 'min';
+
+    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
+      resolution: {
+        status: 'ok',
+        target: {
+          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/classes`,
+          preferredProject: projectUri,
+        },
+      },
+      issues: [],
+    })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
+    spotbugsClient.runSpotBugsAnalysis = (async (request) => {
+      receivedEfforts.push(request.payload.effort);
+      configuredEffort = 'max';
+      return JSON.stringify({ schemaVersion: 2, results: [] });
+    }) as typeof spotbugsClient.runSpotBugsAnalysis;
+
+    await service.analyzeWorkspaceFromProjectsDetailed(
+      {
+        getAnalysisSettings: (resource?: { toString(): string }) => {
+          settingsResources.push(resource?.toString() ?? '');
+          return { effort: configuredEffort };
+        },
+      } as any,
+      vscode.Uri.file('/workspace') as any,
+      ['file:///workspace/project-a', 'file:///workspace/project-b']
+    );
+
+    assert.deepStrictEqual(settingsResources, [
+      'file:///workspace/project-a',
+      'file:///workspace/project-b',
+    ]);
+    assert.deepStrictEqual(receivedEfforts, ['min', 'min']);
+  });
+
   it('preserves file resolution issues when analysis execution throws after target resolution', async () => {
     const vscode = installVscodeMock();
     const resolverModule =

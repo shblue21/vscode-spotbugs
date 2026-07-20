@@ -15,6 +15,12 @@ import type {
   PluginInventoryStatus,
 } from '../services/pluginInventoryService';
 
+class PluginInventoryTreeItem extends TreeItem {
+  constructor(label: string, public readonly pluginPath?: string) {
+    super(label);
+  }
+}
+
 export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeItem> {
   private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
     new EventEmitter<TreeItem | undefined | null>();
@@ -62,7 +68,7 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
 
   private createPluginItem(item: PluginInventoryItem): TreeItem {
     const itemPath = item.path || item.canonicalPath || l10n.t('Plugin {0}', item.index + 1);
-    const treeItem = new TreeItem(path.basename(itemPath));
+    const treeItem = new PluginInventoryTreeItem(path.basename(itemPath), item.path);
     const statusLabel = statusDescription(item.status);
     const statusAndId = item.pluginId
       ? `${statusLabel}: ${item.pluginId}`
@@ -79,7 +85,7 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
   }
 
   private createMessageItem(label: string): TreeItem {
-    const item = new TreeItem(label);
+    const item = new PluginInventoryTreeItem(label);
     item.contextValue = 'spotbugs.plugin.message';
     return item;
   }

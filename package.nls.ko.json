@@ -34,5 +34,7 @@
   "contributes.commands.spotbugs.sortResultsBy.title": "SpotBugs: 결과 정렬 기준...",
   "contributes.commands.spotbugs.openSettings.title": "SpotBugs: 설정 열기",
   "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: 플러그인 새로 고침",
+  "contributes.commands.spotbugs.addPluginJars.title": "SpotBugs: 플러그인 JAR 추가...",
+  "contributes.commands.spotbugs.removePluginJar.title": "SpotBugs: 플러그인 JAR 제거",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }

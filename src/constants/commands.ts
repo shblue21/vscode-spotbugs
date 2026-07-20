@@ -28,6 +28,8 @@ export namespace SpotBugsCommands {
   export const SORT_RESULTS_BY: string = 'spotbugs.sortResultsBy';
   export const OPEN_SETTINGS: string = 'spotbugs.openSettings';
   export const REFRESH_PLUGIN_INVENTORY: string = 'spotbugs.refreshPluginInventory';
+  export const ADD_PLUGIN_JARS: string = 'spotbugs.addPluginJars';
+  export const REMOVE_PLUGIN_JAR: string = 'spotbugs.removePluginJar';
 }
 
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)
