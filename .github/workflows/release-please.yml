@@ -5,11 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      tag:
-        description: GitHub release tag to publish
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -17,7 +12,6 @@ permissions:
 
 jobs:
   release-please:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Run release-please
@@ -113,34 +107,3 @@ jobs:
             exit 1
           fi
           npx --yes ovsx@1.0.2 publish "${{ steps.pkg.outputs.vsix }}" -p "${OVSX_PAT}"
-
-  publish-existing-release:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '24'
-
-      - name: Publish existing release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.tag }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        shell: bash
-        run: |
-          mkdir release
-          gh release download "${TAG}" --pattern '*.vsix' --dir release
-          VSIX="$(find release -type f -name '*.vsix' -print -quit)"
-          if [[ -z "${VSIX}" ]]; then
-            echo "No VSIX found for ${TAG}" >&2
-            exit 1
-          fi
-          STATUS=0
-          npx --yes @vscode/vsce publish --packagePath "${VSIX}" -p "${VSCE_PAT}" || STATUS=1
-          npx --yes ovsx@1.0.2 publish "${VSIX}" -p "${OVSX_PAT}" || STATUS=1
-          exit "${STATUS}"
