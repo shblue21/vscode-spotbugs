@@ -1,4 +1,24 @@
 # Changelog
+## [0.8.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.7.2...v0.8.0) (2026-07-20)
+
+
+### Features
+
+* add native-style HTML export ([#92](https://github.com/shblue21/vscode-spotbugs/issues/92)) ([2ce7bee](https://github.com/shblue21/vscode-spotbugs/commit/2ce7beea39d6acf04d28c324f69819cd6a00c695))
+* export native SpotBugs SARIF reports ([#94](https://github.com/shblue21/vscode-spotbugs/issues/94)) ([d456765](https://github.com/shblue21/vscode-spotbugs/commit/d45676507c854c7887190b3f72eca23cd59e5df7))
+* manage SpotBugs plugin jars from the Plugins view ([#95](https://github.com/shblue21/vscode-spotbugs/issues/95)) ([1b2cd17](https://github.com/shblue21/vscode-spotbugs/commit/1b2cd17dbb3d1b784bb75c76775e6ff0d25323c8))
+
+
+### Bug Fixes
+
+* roll back plugins after linkage errors ([9607c2f](https://github.com/shblue21/vscode-spotbugs/commit/9607c2f9a963973d021b433d82ba4bd098c819ab))
+* surface incomplete SpotBugs analysis ([#93](https://github.com/shblue21/vscode-spotbugs/issues/93)) ([9e31f1b](https://github.com/shblue21/vscode-spotbugs/commit/9e31f1b5914bbd5933da382f94a7ba116c5dccdc))
+
+
+### Performance Improvements
+
+* skip missing output fallback directories ([#91](https://github.com/shblue21/vscode-spotbugs/issues/91)) ([71da103](https://github.com/shblue21/vscode-spotbugs/commit/71da1036172738a45eba208b50f9ce4fd46d0b8d))
+
 ## [0.7.2](https://github.com/shblue21/vscode-spotbugs/compare/v0.7.1...v0.7.2) (2026-07-17)
 
 

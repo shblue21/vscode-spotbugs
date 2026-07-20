@@ -3,7 +3,7 @@
     <groupId>com.spotbugs</groupId>
     <artifactId>parent</artifactId>
     <name>${base.name} :: Parent</name>
-    <version>0.7.2</version>
+    <version>0.8.0</version>
     <packaging>pom</packaging>
     <properties>
         <base.name>Java Spotbugs Runner</base.name>
