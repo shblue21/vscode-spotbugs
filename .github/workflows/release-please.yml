@@ -95,3 +95,15 @@ jobs:
             exit 0
           fi
           vsce publish --packagePath "${{ steps.pkg.outputs.vsix }}" -p "${VSCE_PAT}"
+
+      - name: Publish to Open VSX
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        shell: bash
+        run: |
+          if [[ -z "${OVSX_PAT}" ]]; then
+            echo "OVSX_PAT is not configured" >&2
+            exit 1
+          fi
+          npx --yes ovsx@1.0.2 publish "${{ steps.pkg.outputs.vsix }}" -p "${OVSX_PAT}"
