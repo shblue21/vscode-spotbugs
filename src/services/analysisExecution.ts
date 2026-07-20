@@ -1,6 +1,6 @@
 import type { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
-import type { AnalysisSettings, Config } from '../core/config';
+import type { AnalysisSettings } from '../core/config';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import {
@@ -343,7 +343,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 }
 
 export function runAnalysisTarget(
-  config: Config,
+  config: AnalysisConfigProvider,
   context: AnalysisExecutionTarget,
   token?: CancellationToken
 ): Promise<AnalysisOutcome> {

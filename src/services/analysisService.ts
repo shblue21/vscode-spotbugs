@@ -9,6 +9,7 @@ import { ProjectRef } from '../workspace/classpathService';
 import type { ProjectResult } from './projectResult';
 import { projectResultFromOutcome } from './projectResult';
 import {
+  type AnalysisConfigProvider,
   AnalysisExecutionTarget,
   createAnalysisFailureOutcome,
   runAnalysisTarget,
@@ -143,6 +144,9 @@ export async function analyzeWorkspaceFromProjectsDetailed(
 ): Promise<WorkspaceExecutionResult> {
   const results: ProjectResult[] = [];
   const context = createExecutionContext();
+  const projectSettings = projectUris.map((uriString) =>
+    config.getAnalysisSettings(Uri.parse(uriString))
+  );
   let cancelled = false;
 
   for (let index = 0; index < projectUris.length; index++) {
@@ -155,8 +159,11 @@ export async function analyzeWorkspaceFromProjectsDetailed(
 
     notify?.onStart?.(uriString, index + 1, projectUris.length);
 
+    const analysisConfig: AnalysisConfigProvider = {
+      getAnalysisSettings: () => projectSettings[index],
+    };
     const result = await analyzeProjectDetailed(
-      config,
+      analysisConfig,
       Uri.parse(uriString),
       workspaceFolder,
       token
@@ -222,7 +229,7 @@ async function analyzeProject(
 }
 
 async function analyzeProjectDetailed(
-  config: Config,
+  config: AnalysisConfigProvider,
   project: ProjectRef,
   workspaceFolder: Uri,
   token?: CancellationToken
@@ -282,7 +289,7 @@ async function analyzeProjectDetailed(
 }
 
 async function runAnalysis(
-  config: Config,
+  config: AnalysisConfigProvider,
   context: AnalysisExecutionTarget,
   token?: CancellationToken
 ): Promise<AnalysisOutcome> {

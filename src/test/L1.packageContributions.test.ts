@@ -73,6 +73,8 @@ describe('package contributions', () => {
       'spotbugs.sortResultsBy',
       'spotbugs.openSettings',
       'spotbugs.refreshPluginInventory',
+      'spotbugs.addPluginJars',
+      'spotbugs.removePluginJar',
     ]) {
       assert.ok(commands.includes(command), `${command} missing from contributes.commands`);
     }
@@ -148,8 +150,23 @@ describe('package contributions', () => {
       'spotbugs.revealFindingSource',
     ]);
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-plugins-view'), [
+      'spotbugs.addPluginJars',
       'spotbugs.refreshPluginInventory',
     ]);
+
+    const removePluginMenu = manifest.contributes.menus['view/item/context'].find(
+      (entry) => entry.command === 'spotbugs.removePluginJar'
+    );
+    assert.strictEqual(
+      removePluginMenu?.when,
+      'view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/'
+    );
+    assert.ok(
+      manifest.contributes.menus.commandPalette.some(
+        (entry) =>
+          entry.command === 'spotbugs.removePluginJar' && entry.when === 'false'
+      )
+    );
 
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
     assert.strictEqual(resultMenus[0].group, 'navigation@1');

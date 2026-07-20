@@ -59,7 +59,7 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 - `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `default`, `max`). Default: `default`.
 - `spotbugs.analysis.priorityThreshold`: Report High, Medium, and Low confidence bugs with rank less than or equal to this value (1 = most severe, 20 = least). Experimental findings remain excluded. Default: `9`.
 - `spotbugs.analysis.extraAuxClasspaths`: Additional SpotBugs aux classpath entries appended after Java LS runtime classpath entries. Supports absolute and workspace-relative jar/directory paths.
-- `spotbugs.plugins.paths`: SpotBugs plugin jar paths loaded before analysis. Supports absolute and workspace-relative `.jar` paths.
+- `spotbugs.plugins.paths`: SpotBugs plugin jar paths loaded before analysis. Add or remove jars from the **Plugins** view, or configure absolute and workspace-relative `.jar` paths manually.
 
 Source target resolution stays separate from aux classpath configuration. SpotBugs uses Java LS runtime classpaths plus any `extraAuxClasspaths` entries for aux analysis, and falls back to the runner's system classpath only when neither source provides any entries.
 

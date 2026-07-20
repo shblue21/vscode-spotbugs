@@ -259,6 +259,16 @@
         "command": "spotbugs.refreshPluginInventory",
         "title": "%contributes.commands.spotbugs.refreshPluginInventory.title%",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "spotbugs.addPluginJars",
+        "title": "%contributes.commands.spotbugs.addPluginJars.title%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "spotbugs.removePluginJar",
+        "title": "%contributes.commands.spotbugs.removePluginJar.title%",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -319,9 +329,20 @@
           "group": "navigation@1"
         },
         {
-          "command": "spotbugs.refreshPluginInventory",
+          "command": "spotbugs.addPluginJars",
           "when": "view == spotbugs-plugins-view",
           "group": "navigation@1"
+        },
+        {
+          "command": "spotbugs.refreshPluginInventory",
+          "when": "view == spotbugs-plugins-view",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "spotbugs.removePluginJar",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -350,6 +371,11 @@
           "command": "spotbugs.exportHtml",
           "when": "view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)",
           "group": "navigation@4"
+        },
+        {
+          "command": "spotbugs.removePluginJar",
+          "when": "view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/",
+          "group": "1_manage@1"
         }
       ],
       "spotbugs.context": [

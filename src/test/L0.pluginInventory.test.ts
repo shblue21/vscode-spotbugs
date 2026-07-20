@@ -1,6 +1,10 @@
 import * as assert from 'assert';
 import type { Uri } from 'vscode';
 import type { AnalysisSettings } from '../core/config';
+import type {
+  PluginConfigurationDeps,
+  PluginPathConfiguration,
+} from '../commands/pluginInventory';
 import type { PluginInventoryResult } from '../services/pluginInventoryService';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
@@ -80,7 +84,85 @@ describe('pluginInventoryCommands', () => {
 
     assert.strictEqual(observedResource, undefined);
   });
+
+  it('adds picker selections with single-root relative and multi-root absolute paths', async () => {
+    const vscode = resetVscodeMock();
+    const { addPluginJars } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
+    const writes: Array<{ paths: string[]; target: string }> = [];
+    const selected = (filePath: string) =>
+      vscode.Uri.file(filePath) as unknown as Uri;
+
+    await addPluginJars(
+      pluginConfigurationDeps(
+        {
+          target: 'workspace',
+          paths: ['plugins/existing.jar'],
+          workspaceRoots: ['/workspace'],
+        },
+        [
+          selected('/workspace/plugins/existing.jar'),
+          selected('/workspace/plugins/new.jar'),
+        ],
+        writes
+      )
+    );
+    await addPluginJars(
+      pluginConfigurationDeps(
+        {
+          target: 'workspace',
+          paths: [],
+          workspaceRoots: ['/workspace-a', '/workspace-b'],
+        },
+        [selected('/workspace-a/plugins/multi-root.jar')],
+        writes
+      )
+    );
+
+    assert.deepStrictEqual(writes, [
+      {
+        paths: ['plugins/existing.jar', 'plugins/new.jar'],
+        target: 'workspace',
+      },
+      {
+        paths: ['/workspace-a/plugins/multi-root.jar'],
+        target: 'workspace',
+      },
+    ]);
+  });
+
+  it('removes only the matching configured path and ignores stale rows', async () => {
+    const { removePluginJar } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
+    const writes: Array<{ paths: string[]; target: string }> = [];
+    const state: PluginPathConfiguration = {
+      target: 'workspace',
+      paths: ['plugins/a.jar', '/outside/b.jar'],
+      workspaceRoots: ['/workspace'],
+    };
+    const deps = pluginConfigurationDeps(state, [], writes);
+
+    await removePluginJar({ pluginPath: '/workspace/plugins/a.jar' }, deps);
+    await removePluginJar({ pluginPath: '/workspace/plugins/missing.jar' }, deps);
+
+    assert.deepStrictEqual(writes, [
+      { paths: ['/outside/b.jar'], target: 'workspace' },
+    ]);
+  });
 });
+
+function pluginConfigurationDeps(
+  state: PluginPathConfiguration,
+  selected: readonly Uri[],
+  writes: Array<{ paths: string[]; target: string }>
+): PluginConfigurationDeps {
+  return {
+    selectPluginJars: async () => selected,
+    readConfiguration: () => state,
+    writeConfiguration: async (paths, target) => {
+      writes.push({ paths, target });
+    },
+    validatePluginJars: async () => undefined,
+  };
+}
 
 describe('pluginInventoryTreeDataProvider', () => {
   beforeEach(() => {
@@ -153,6 +235,8 @@ describe('pluginInventoryTreeDataProvider', () => {
         'Runtime loading was not checked.',
       ].join('\n')
     );
+    const pluginItem = children[0] as { pluginPath?: string };
+    assert.strictEqual(pluginItem.pluginPath, '/workspace/plugin-a.jar');
   });
 });
 
