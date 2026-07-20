@@ -1,145 +1,66 @@
-name: Release
+name: Publish Release
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version tag (e.g., v0.1.0)'
+      tag:
+        description: GitHub release tag to publish
         required: true
-      notes:
-        description: 'Release notes (optional)'
-        required: false
+        type: string
+      target:
+        description: Marketplace target
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - marketplace
+          - openvsx
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
-    outputs:
-      tag_name: ${{ steps.release_tag.outputs.value }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '24'
-          cache: npm
 
-      - name: Setup Java (build JDK for Tycho)
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'maven'
-
-      - name: Resolve release tag
-        id: release_tag
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
-            TAG="${{ github.event.inputs.version }}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-          fi
-          if [[ -z "${TAG}" ]]; then
-            PKG_VERSION="$(jq -r '.version' package.json)"
-            TAG="v${PKG_VERSION}"
-          fi
-          echo "value=${TAG}" >> "$GITHUB_OUTPUT"
-
-      - name: Validate release tag format
-        shell: bash
+      - name: Download release VSIX
+        id: asset
         env:
-          RELEASE_TAG: ${{ steps.release_tag.outputs.value }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
         run: |
-          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release tag must match vX.Y.Z. Got: ${RELEASE_TAG}" >&2
+          VSIX="dist/vscode-spotbugs-${TAG}.vsix"
+          mkdir dist
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" --pattern "$(basename "${VSIX}")" --dir dist
+          if [[ ! -f "${VSIX}" ]]; then
+            echo "Release asset not found: ${VSIX}" >&2
             exit 1
           fi
+          echo "path=${VSIX}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate package version matches tag
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ steps.release_tag.outputs.value }}
-        run: |
-          PKG_VERSION="$(jq -r '.version' package.json)"
-          EXPECTED_TAG="v${PKG_VERSION}"
-          if [[ "${RELEASE_TAG}" != "${EXPECTED_TAG}" ]]; then
-            echo "package.json version (${PKG_VERSION}) does not match release tag (${RELEASE_TAG})" >&2
-            exit 1
-          fi
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Java backend
-        run: npm run build-server
-
-      - name: Clean
-        run: npm run clean
-
-      - name: Build TypeScript
-        run: npm run compile
-
-      - name: Lint
-        run: npm run lint
-
-
-      - name: Install vsce
-        run: npm i -g @vscode/vsce
-
-      - name: Package VSIX (release)
-        id: pkg
-        shell: bash
-        run: |
-          TAG="${{ steps.release_tag.outputs.value }}"
-          NAME="$(jq -r '.name' package.json)"
-          VSIX="${NAME}-${TAG}.vsix"
-          vsce package --out "${VSIX}"
-          echo "vsix=${VSIX}" >> "$GITHUB_OUTPUT"
-
-      - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsix
-          path: ${{ steps.pkg.outputs.vsix }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download VSIX artifact
-        uses: actions/download-artifact@v5
-        with:
-          name: vsix
-          path: dist
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.vsix
-          name: ${{ needs.build.outputs.tag_name }}
-          tag_name: ${{ needs.build.outputs.tag_name }}
-          prerelease: false
-          draft: false
-          body: ${{ github.event.inputs.notes || 'Release build' }}
-
-      - name: Publish to VS Code Marketplace (optional)
-        shell: bash
+      - name: Publish to VS Code Marketplace
+        id: marketplace
+        if: ${{ inputs.target == 'both' || inputs.target == 'marketplace' }}
+        continue-on-error: true
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        if: ${{ env.VSCE_PAT != '' }}
-        run: |
-          npm i -g @vscode/vsce
-          VSIX_PATH=$(ls dist/*.vsix | head -n1)
-          if [[ -z "$VSIX_PATH" ]]; then
-            echo "No VSIX found to publish" >&2
-            exit 1
-          fi
-          if [[ -z "$VSCE_PAT" ]]; then
-            echo "VSCE_PAT not set; skipping publish" >&2
-            exit 0
-          fi
-          vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
+        run: npx --yes @vscode/vsce publish --packagePath "${{ steps.asset.outputs.path }}" -p "${VSCE_PAT}"
+
+      - name: Publish to Open VSX
+        id: openvsx
+        if: ${{ always() && steps.asset.outcome == 'success' && (inputs.target == 'both' || inputs.target == 'openvsx') }}
+        continue-on-error: true
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx --yes ovsx@1.0.2 publish "${{ steps.asset.outputs.path }}" -p "${OVSX_PAT}"
+
+      - name: Check publish results
+        if: ${{ always() && (steps.marketplace.outcome == 'failure' || steps.openvsx.outcome == 'failure') }}
+        run: exit 1
