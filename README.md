@@ -1,11 +1,12 @@
-> ⚠️ This extension is under active development. Frequent changes and updates are expected.
-  
 <p align="center">
-  <img src="https://vsmarketplacebadges.dev/version-short/shblue21.vscode-spotbugs.svg" alt="VS Marketplace Version" />
-  <img src="https://img.shields.io/github/last-commit/shblue21/vscode-spotbugs?logo=github" alt="last-commit" />  
-  <img src="https://vsmarketplacebadges.dev/downloads-short/shblue21.vscode-spotbugs.svg" alt="VS Marketplace Downloads"/>
-  <a href="https://github.com/shblue21/vscode-spotbugs/issues/new?template=feature.yml">
-    <img src="https://img.shields.io/badge/feature%20requests-welcome-2ea44f?logo=github&logoColor=white" alt="Feature requests welcome" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=shblue21.vscode-spotbugs">
+    <img src="https://img.shields.io/visual-studio-marketplace/v/shblue21.vscode-spotbugs?label=version" alt="VS Marketplace Version" />
+  </a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=shblue21.vscode-spotbugs">
+    <img src="https://img.shields.io/visual-studio-marketplace/d/shblue21.vscode-spotbugs?label=VS%20Marketplace%20downloads" alt="VS Marketplace Downloads" />
+  </a>
+  <a href="https://open-vsx.org/extension/shblue21/vscode-spotbugs">
+    <img src="https://img.shields.io/open-vsx/dt/shblue21/vscode-spotbugs?label=Open%20VSX%20downloads" alt="Open VSX Downloads" />
   </a>
 </p>
 
@@ -19,17 +20,21 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 </div>
 
+> ⚠️ This extension is under active development. Frequent changes and updates are expected.
+
 ## Features
 
 - Analyze a single file or an entire workspace (Maven/Gradle projects)
-- Group findings by category and pattern with severity icons
+- Search, filter, group, and sort findings with severity indicators
 - Navigate to bug locations in source files with matching diagnostics/squiggles
-- Export filtered findings in SpotBugs' native SARIF format for code scanning tools
+- Export findings as SARIF or HTML
 
 ## Requirements
 
+- VS Code 1.85 or later
 - Java 11 or later (JDK)
-- VS Code extension: “Language Support for Java by Red Hat” (redhat.java)
+- A trusted VS Code workspace
+- “Language Support for Java by Red Hat” (`redhat.java`), installed automatically as a dependency
 
 ## Privacy / Local Analysis
 
@@ -39,18 +44,16 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 
 ## Getting Started
 
-1) Open a Java project folder in VS Code
-2) Run a command:
-   - “SpotBugs: Analyze this workspace” (`spotbugs.runWorkspace`)
-   - “SpotBugs: Analyze File/Folder” (context menu, `spotbugs.run`)
-3) Review results in the “SpotBugs” view (Activity Bar)
+1) Open a Java project in VS Code
+2) Run `Analyze SpotBugs Workspace`
+3) Review findings in the “SpotBugs” view (Activity Bar)
 
 ## Commands
 
-- `SpotBugs: Analyze File/Folder` — Analyze selected file or folder
-- `SpotBugs: Analyze this workspace` — Build then analyze all projects in the workspace
-- `SpotBugs: Export SpotBugs Findings (SARIF)` — Save current findings in SpotBugs' native SARIF format
-- `SpotBugs: Reset SpotBugs Results` — Clear the SpotBugs view and diagnostics
+- `Analyze File/Folder` — Analyze a selected file or folder
+- `Analyze SpotBugs Workspace` — Build and analyze all projects in the workspace
+- `Export SpotBugs Results (SARIF)`, `Export SpotBugs Results (HTML)` — Save current findings
+- `Reset SpotBugs Results` — Clear the SpotBugs view and diagnostics
 
 ## Settings
 
@@ -61,9 +64,7 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 - `spotbugs.analysis.extraAuxClasspaths`: Additional SpotBugs aux classpath entries appended after Java LS runtime classpath entries. Supports absolute and workspace-relative jar/directory paths.
 - `spotbugs.plugins.paths`: SpotBugs plugin jar paths loaded before analysis. Add or remove jars from the **Plugins** view, or configure absolute and workspace-relative `.jar` paths manually.
 
-Source target resolution stays separate from aux classpath configuration. SpotBugs uses Java LS runtime classpaths plus any `extraAuxClasspaths` entries for aux analysis, and falls back to the runner's system classpath only when neither source provides any entries.
-
-### Filters
+### SpotBugs Filter Files
 
 - `spotbugs.filters.includePaths`: SpotBugs XML include filter paths (`-include`). Supports absolute and workspace-relative paths.
 - `spotbugs.filters.excludePaths`: SpotBugs XML exclude filter paths (`-exclude`). Supports absolute and workspace-relative paths.
