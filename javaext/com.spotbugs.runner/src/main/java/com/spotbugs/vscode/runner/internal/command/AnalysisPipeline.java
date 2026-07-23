@@ -34,7 +34,7 @@ final class AnalysisPipeline {
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             return AnalysisPipelineResult.cancelled(analyzer, startMillis);
-        } catch (Exception analysisFailure) {
+        } catch (Exception | LinkageError analysisFailure) {
             if (monitor != null && monitor.isCanceled()) {
                 return AnalysisPipelineResult.cancelled(analyzer, startMillis);
             }

@@ -54,6 +54,26 @@ public class RunAnalysisActionTest {
     }
 
     @Test
+    public void executeWrapsLinkageErrorsAsAnalysisFailedEnvelope() {
+        RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
+            @Override
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+                throw new NoClassDefFoundError("missing detector dependency");
+            }
+        });
+
+        JsonObject response = executeDefault(action);
+        JsonObject stats = response.getAsJsonObject("stats");
+
+        assertEquals(2, response.get("schemaVersion").getAsInt());
+        assertEquals("ANALYSIS_FAILED", firstError(response).get("code").getAsString());
+        assertEquals("missing detector dependency", firstError(response).get("message").getAsString());
+        assertEquals("/workspace/build/classes", stats.get("target").getAsString());
+        assertTrue(stats.get("durationMs").getAsLong() >= 0L);
+        assertEquals(0, stats.get("findingCount").getAsInt());
+    }
+
+    @Test
     public void executeReportsNonzeroFindingCountFromResults() {
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
