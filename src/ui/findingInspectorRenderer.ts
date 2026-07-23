@@ -190,10 +190,10 @@ function formatLocation(finding: Finding, vscode: LocalizationApi): string {
   const start = finding.location.startLine;
   const end = finding.location.endLine;
 
-  if (typeof start !== 'number') {
+  if (typeof start !== 'number' || !Number.isInteger(start) || start <= 0) {
     return file;
   }
-  if (typeof end === 'number' && end !== start) {
+  if (typeof end === 'number' && Number.isInteger(end) && end > start) {
     return `${file}:${start}-${end}`;
   }
   return `${file}:${start}`;
