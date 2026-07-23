@@ -157,7 +157,7 @@ describe('findingFacets', () => {
     assert.strictEqual(defaultPackage.packageLabel, '<default package>');
   });
 
-  it('uses full SpotBugs type for rule identity while preserving patternId filters', () => {
+  it('uses full SpotBugs type for rule identity and filters', () => {
     const facets = toFindingFacets(
       makeFinding({
         patternId: 'SQL',
@@ -168,7 +168,7 @@ describe('findingFacets', () => {
     );
 
     assert.strictEqual(facets.ruleKey, 'SQL_INJECTION');
-    assert.strictEqual(facets.filterValues.rule, 'SQL');
+    assert.strictEqual(facets.filterValues.rule, 'SQL_INJECTION');
     assert.strictEqual(groupKeyFor('rule', facets), 'SQL_INJECTION');
     assert.ok(facets.searchableValues.includes('SQL_INJECTION'));
     assert.ok(facets.searchableValues.includes('SQL'));
