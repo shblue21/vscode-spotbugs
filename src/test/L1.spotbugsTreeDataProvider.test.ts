@@ -10,8 +10,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('renders analysis failure as a distinct tree state', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showAnalysisFailure(
       'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
@@ -32,8 +31,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('keeps workspace project failures visible when all projects fail', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showWorkspaceResults([
       {
@@ -69,8 +67,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('renders workspace project failures before successful finding groups', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showWorkspaceResults([
       {
@@ -125,8 +122,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('preserves existing initial state wording before results exist', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     const children = await provider.getChildren();
 
@@ -135,8 +131,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('applies search before grouping and exposes visible findings', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
     const visible = makeFinding({
       patternId: 'SQL_INJECTION',
       message: 'SQL: CWE-89 risk',
@@ -158,9 +153,8 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('applies filters before search and exposes the same visible set to export selection', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const selection = await import('../ui/selection');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
     const filterOnly = makeFinding({
       patternId: 'NP_ALWAYS_NULL',
       type: 'NP_ALWAYS_NULL',
@@ -189,8 +183,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('preserves the default category pattern tree and scoped findings', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
     const first = makeFinding({
       patternId: 'NP',
       type: 'NP_NULL_ON_SOME_PATH',
@@ -226,9 +219,8 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('renders generic package groups and preserves scoped findings', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const findingTreeItem = await import('../ui/findingTreeItem');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
     const first = makeFinding({ className: 'com.acme.First' });
     const second = makeFinding({ className: undefined, location: {} });
 
@@ -245,9 +237,8 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('resolves generic group findings for scoped export', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const selection = await import('../ui/selection');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
     const selected = makeFinding({ className: 'com.acme.Example' });
     const other = makeFinding({ className: 'org.example.Other' });
 
@@ -262,8 +253,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('preserves group and sort on new results and resets them on reset', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showResults([makeFinding()]);
     provider.setGroupBy('path');
@@ -285,8 +275,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('preserves group and sort on new workspace results while clearing transient state', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showWorkspaceResults([
       { projectUri: 'file:///workspace/project-a', findings: [makeFinding()] },
@@ -319,8 +308,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('clears transient search and filters during loading, failure, and workspace progress without resetting group or sort', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     for (const transition of [
       () => provider.showLoading(),
@@ -345,8 +333,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('keeps no cached results distinct from search and filter empty states', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showResults([]);
     provider.setSearchQuery('NP');
@@ -362,8 +349,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('keeps workspace status items visible when search hides all findings', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showWorkspaceResults([
       {
@@ -393,8 +379,7 @@ describe('spotbugsTreeDataProvider', () => {
   });
 
   it('renders workspace cancellation without clearing group and sort', async () => {
-    const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const provider = new treeProviderModule.SpotBugsTreeDataProvider();
+    const provider = await createProvider();
 
     provider.showResults([makeFinding()]);
     provider.setGroupBy('package');
@@ -416,6 +401,11 @@ describe('spotbugsTreeDataProvider', () => {
     assert.deepStrictEqual(provider.getActiveFilters(), {});
   });
 });
+
+async function createProvider() {
+  const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
+  return new treeProviderModule.SpotBugsTreeDataProvider();
+}
 
 function makeFinding(overrides: Partial<Finding> = {}): Finding {
   return {

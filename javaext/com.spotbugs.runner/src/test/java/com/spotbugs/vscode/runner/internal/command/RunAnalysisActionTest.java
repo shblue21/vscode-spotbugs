@@ -6,7 +6,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -266,10 +265,6 @@ public class RunAnalysisActionTest {
                 return SpotBugsAnalysisResult.empty();
             }
         };
-    }
-
-    private static SpotBugsAnalysisResult result(List<BugInfo> bugs) {
-        return new SpotBugsAnalysisResult(bugs, Collections.emptyList());
     }
 
     private static final class CountingAnalyzerService extends AnalyzerService {

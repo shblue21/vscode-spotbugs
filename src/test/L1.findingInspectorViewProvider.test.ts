@@ -10,11 +10,7 @@ describe('findingInspectorViewProvider', () => {
   });
 
   it('renders current state when resolved and updates on state changes', async () => {
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
-    const state = new findingInspectorState.FindingInspectorState();
-    const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
-    const webview = createWebview();
+    const { state, provider, webview } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
 
@@ -37,11 +33,7 @@ describe('findingInspectorViewProvider', () => {
         },
       },
     } as never);
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
-    const state = new findingInspectorState.FindingInspectorState();
-    const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
-    const webview = createWebview();
+    const { state, provider, webview } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(makeFinding({ patternId: 'NP_ALWAYS_NULL' }));
@@ -61,12 +53,8 @@ describe('findingInspectorViewProvider', () => {
       },
     } as never);
     const spotbugsCommands = await import('../constants/commands');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
     const finding = makeFinding({ patternId: 'NP_ALWAYS_NULL' });
-    const state = new findingInspectorState.FindingInspectorState();
-    const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
-    const webview = createWebview();
+    const { state, provider, webview } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(finding);
@@ -94,11 +82,7 @@ describe('findingInspectorViewProvider', () => {
         },
       },
     } as never);
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
-    const state = new findingInspectorState.FindingInspectorState();
-    const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
-    const webview = createWebview();
+    const { state, provider, webview } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(
@@ -134,11 +118,7 @@ describe('findingInspectorViewProvider', () => {
         },
       },
     } as never);
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
-    const state = new findingInspectorState.FindingInspectorState();
-    const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
-    const webview = createWebview();
+    const { state, provider, webview } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(
@@ -156,6 +136,14 @@ describe('findingInspectorViewProvider', () => {
     );
   });
 });
+
+async function createInspectorHarness() {
+  const findingInspectorState = await import('../ui/findingInspectorState');
+  const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
+  const state = new findingInspectorState.FindingInspectorState();
+  const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
+  return { state, provider, webview: createWebview() };
+}
 
 function createWebview(): {
   html: string;

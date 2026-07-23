@@ -9,31 +9,20 @@ import { mapBugToFinding } from '../lsp/spotbugsMapper';
 
 describe('findingFacets', () => {
   it('normalizes priority and keeps severity separate', () => {
-    assert.strictEqual(
-      toFindingFacets(makeFinding({ priority: 'H', rank: 9 })).priorityLabel,
-      'High'
-    );
-    assert.strictEqual(
-      toFindingFacets(makeFinding({ priority: '2', rank: 2 })).priorityLabel,
-      'Medium'
-    );
-    assert.strictEqual(
-      toFindingFacets(makeFinding({ priority: 'unknown', rank: 14 })).priorityLabel,
-      'Low'
-    );
-    assert.strictEqual(
-      toFindingFacets(makeFinding({ priority: undefined, rank: 0 })).priorityLabel,
-      'Unknown priority'
-    );
-    assert.strictEqual(
-      toFindingFacets(makeFinding({ priority: undefined, rank: 21 })).priorityLabel,
-      'Unknown priority'
-    );
-    assert.strictEqual(
-      toFindingFacets(makeFinding({ priority: undefined, rank: undefined }))
-        .priorityLabel,
-      'Unknown priority'
-    );
+    for (const { priority, rank, expected } of [
+      { priority: 'H', rank: 9, expected: 'High' },
+      { priority: '2', rank: 2, expected: 'Medium' },
+      { priority: 'unknown', rank: 14, expected: 'Low' },
+      { priority: undefined, rank: 0, expected: 'Unknown priority' },
+      { priority: undefined, rank: 21, expected: 'Unknown priority' },
+      { priority: undefined, rank: undefined, expected: 'Unknown priority' },
+    ] as const) {
+      assert.strictEqual(
+        toFindingFacets(makeFinding({ priority, rank })).priorityLabel,
+        expected,
+        `priority=${priority}, rank=${rank}`
+      );
+    }
     assert.strictEqual(
       toFindingFacets(makeFinding({ priority: 'H', rank: 9 })).severityLabel,
       'Warning'

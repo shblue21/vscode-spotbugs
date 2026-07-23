@@ -285,18 +285,7 @@ describe('analysisTargetResolver', () => {
     const resolver = createResolver(vscode, {
       outputPath: '/workspace/project-a/target/classes',
       targetResolutionRoots: ['/workspace/project-b/target/classes'],
-      deriveOutputFolder: async (
-        roots: string[],
-        _classpathsRoot: string,
-        hasTargets?: (targetPath: string) => Promise<boolean>
-      ) => {
-        for (const candidate of roots) {
-          if (!hasTargets || (await hasTargets(candidate))) {
-            return candidate;
-          }
-        }
-        return undefined;
-      },
+      deriveOutputFolder: firstRootWithTargets,
       findOutputFolderFromProject: async () => {
         throw new Error('project fallback should not be used');
       },
@@ -327,12 +316,7 @@ describe('analysisTargetResolver', () => {
     ) => {
       assert.strictEqual(classpathsRoot, '/workspace/project-a');
       assert.deepStrictEqual(roots, [projectAOutput]);
-      for (const candidate of roots) {
-        if (!hasTargets || (await hasTargets(candidate))) {
-          return candidate;
-        }
-      }
-      return undefined;
+      return firstRootWithTargets(roots, classpathsRoot, hasTargets);
     };
 
     for (const testCase of [
@@ -431,18 +415,7 @@ describe('analysisTargetResolver', () => {
     const vscode = installVscodeMock();
     const projectAOutput = '/workspace/project-a/target/classes';
     const projectBOutput = '/workspace/project-b/target/classes';
-    const firstMatchingRoot = async (
-      roots: string[],
-      _classpathsRoot: string,
-      hasTargets?: (targetPath: string) => Promise<boolean>
-    ) => {
-      for (const candidate of roots) {
-        if (!hasTargets || (await hasTargets(candidate))) {
-          return candidate;
-        }
-      }
-      return undefined;
-    };
+    const firstMatchingRoot = firstRootWithTargets;
 
     for (const testCase of [
       {
@@ -510,18 +483,7 @@ describe('analysisTargetResolver', () => {
     const resolver = createResolver(vscode, {
       outputPath: archiveOutput,
       targetResolutionRoots: [archiveOutput, looseOutput],
-      deriveOutputFolder: async (
-        roots: string[],
-        _classpathsRoot: string,
-        hasTargets?: (targetPath: string) => Promise<boolean>
-      ) => {
-        for (const candidate of roots) {
-          if (!hasTargets || (await hasTargets(candidate))) {
-            return candidate;
-          }
-        }
-        return undefined;
-      },
+      deriveOutputFolder: firstRootWithTargets,
       findOutputFolderFromProject: async () => {
         throw new Error('project fallback should not be used');
       },
@@ -713,18 +675,7 @@ describe('analysisTargetResolver', () => {
     const resolver = createResolver(vscode, {
       targetResolutionRoots: [outputRoot],
       sourcepaths: ['/workspace/project/generated-sources'],
-      deriveOutputFolder: async (
-        roots: string[],
-        _classpathsRoot: string,
-        hasTargets?: (targetPath: string) => Promise<boolean>
-      ) => {
-        for (const candidate of roots) {
-          if (!hasTargets || (await hasTargets(candidate))) {
-            return candidate;
-          }
-        }
-        return undefined;
-      },
+      deriveOutputFolder: firstRootWithTargets,
       findOutputFolderFromProject: async () => undefined,
       hasClassTargets: async (targetPath: string) =>
         targetPath === `${outputRoot}/other/Repro.class`,
@@ -906,18 +857,7 @@ describe('analysisTargetResolver', () => {
       const resolver = createResolver(vscode, {
         outputPath: archiveOutput,
         targetResolutionRoots: [archiveOutput, looseOutput],
-        deriveOutputFolder: async (
-          roots: string[],
-          _classpathsRoot: string,
-          hasTargets?: (targetPath: string) => Promise<boolean>
-        ) => {
-          for (const candidate of roots) {
-            if (!hasTargets || (await hasTargets(candidate))) {
-              return candidate;
-            }
-          }
-          return undefined;
-        },
+        deriveOutputFolder: firstRootWithTargets,
         findOutputFolderFromProject: async () => undefined,
         hasClassTargets: async (targetPath: string) =>
           targetPath === path.join(looseOutput, 'demo', 'Repro.class'),
@@ -958,18 +898,7 @@ describe('analysisTargetResolver', () => {
         outputPath: projectBOutput,
         targetResolutionRoots: [projectBOutput, projectAOutput],
         sourcepaths: [sourceRoot],
-        deriveOutputFolder: async (
-          roots: string[],
-          _classpathsRoot: string,
-          hasTargets?: (targetPath: string) => Promise<boolean>
-        ) => {
-          for (const candidate of roots) {
-            if (!hasTargets || (await hasTargets(candidate))) {
-              return candidate;
-            }
-          }
-          return undefined;
-        },
+        deriveOutputFolder: firstRootWithTargets,
         findOutputFolderFromProject: async () => undefined,
         hasClassTargets: async (targetPath: string) =>
           targetPath === path.join(projectBOutput, 'demo', 'Repro.class'),
@@ -1048,12 +977,7 @@ describe('analysisTargetResolver', () => {
         ) => {
           assert.strictEqual(classpathsRoot, '/workspace/project', testCase.sourcepath);
           assert.deepStrictEqual(roots, [outputRoot], testCase.sourcepath);
-          for (const candidate of roots) {
-            if (!hasTargets || (await hasTargets(candidate))) {
-              return candidate;
-            }
-          }
-          return undefined;
+          return firstRootWithTargets(roots, classpathsRoot, hasTargets);
         },
         findOutputFolderFromProject: async () => {
           throw new Error('project fallback should not be used');
@@ -1144,6 +1068,20 @@ async function assertResolvedDiagnosticScope(
       : undefined,
     { kind: expectedKind, uri: uri.fsPath }
   );
+}
+
+async function firstRootWithTargets(
+  roots: string[],
+  _workspacePath: string,
+  hasTargets?: (targetPath: string) => Promise<boolean>,
+  _options?: OutputFolderSelectionOptions
+): Promise<string | undefined> {
+  for (const candidate of roots) {
+    if (!hasTargets || (await hasTargets(candidate))) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 function createResolverDeps(
