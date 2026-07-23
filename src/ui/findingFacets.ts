@@ -221,6 +221,10 @@ function concreteRuleKey(finding: Finding): string | undefined {
 }
 
 function concreteRuleFilterValue(finding: Finding): string | undefined {
+  const type = valueOrUndefined(finding.type);
+  if (type) {
+    return type;
+  }
   const patternId = valueOrUndefined(finding.patternId);
   if (!patternId) {
     return undefined;

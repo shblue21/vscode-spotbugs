@@ -166,35 +166,55 @@ describe('findingFilters', () => {
     );
   });
 
-  it('keeps abbrev-derived rule filters while hiding mapper-synthetic UNKNOWN rules', () => {
-    const mapperRealisticRule = makeFinding({
-      patternId: 'SQL',
-      type: 'SQL_INJECTION',
-      abbrev: 'SQL',
-      message: 'SQL: SQL injection risk',
+  it('uses full rule types while preserving legacy rule filters', () => {
+    const alwaysNull = makeFinding({
+      patternId: 'NP',
+      type: 'NP_ALWAYS_NULL',
+      abbrev: 'NP',
+      message: 'NP: Value is always null',
+    });
+    const nullOnSomePath = makeFinding({
+      patternId: 'NP',
+      type: 'NP_NULL_ON_SOME_PATH',
+      abbrev: 'NP',
+      message: 'NP: Value is null on some path',
+    });
+    const legacyRule = makeFinding({
+      patternId: 'LEGACY_RULE',
+      type: undefined,
+      abbrev: undefined,
+      message: 'Legacy rule',
     });
     const mapperSyntheticUnknown = mapBugToFinding({});
+    const findings = [alwaysNull, nullOnSomePath, legacyRule];
 
     assert.deepStrictEqual(
-      getFindingFilterOptions([mapperRealisticRule], {}, 'rule').map((option) => ({
-        value: option.value,
-        label: option.label,
-        detail: option.detail,
-      })),
+      getFindingFilterOptions(findings, {}, 'rule')
+        .map((option) => ({
+          value: option.value,
+          count: option.count,
+        }))
+        .sort((left, right) => left.value.localeCompare(right.value)),
       [
-        {
-          value: 'SQL',
-          label: '[SQL] SQL injection risk',
-          detail: 'SQL',
-        },
+        { value: 'LEGACY_RULE', count: 1 },
+        { value: 'NP_ALWAYS_NULL', count: 1 },
+        { value: 'NP_NULL_ON_SOME_PATH', count: 1 },
       ]
     );
     assert.deepStrictEqual(
-      applyFindingFilters([mapperRealisticRule], { rule: 'SQL' }),
-      [mapperRealisticRule]
+      applyFindingFilters(findings, { rule: 'NP_ALWAYS_NULL' }),
+      [alwaysNull]
     );
     assert.deepStrictEqual(
-      applyFindingFilters([mapperRealisticRule], { rule: 'SQL_INJECTION' }),
+      applyFindingFilters(findings, { rule: 'NP_NULL_ON_SOME_PATH' }),
+      [nullOnSomePath]
+    );
+    assert.deepStrictEqual(
+      applyFindingFilters(findings, { rule: 'LEGACY_RULE' }),
+      [legacyRule]
+    );
+    assert.deepStrictEqual(
+      applyFindingFilters(findings, { rule: 'NP' }),
       []
     );
     assert.deepStrictEqual(
