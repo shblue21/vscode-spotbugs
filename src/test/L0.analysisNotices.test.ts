@@ -3,6 +3,14 @@ import {
   buildAnalysisNotices,
   buildResolutionIssueNotices,
 } from '../orchestration/analysisNotices';
+import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
+
+const OUTPUT_FALLBACK_NOTICE = {
+  level: 'info',
+  code: 'OUTPUT_FALLBACK_USED',
+  message:
+    'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
+} as const;
 
 describe('analysisNotices', () => {
   it('maps JAVA_LS_EMPTY_RUNTIME_CLASSPATH to a warning notice', () => {
@@ -70,13 +78,7 @@ describe('analysisNotices', () => {
         phase: 'get-classpaths',
         message: 'Java LS classpath lookup returned no usable result.',
       },
-      {
-        code: 'OUTPUT_FALLBACK_USED',
-        level: 'info',
-        source: 'target-resolution',
-        phase: 'output-fallback',
-        message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
-      },
+      outputFallbackIssue(),
     ]);
 
     assert.deepStrictEqual(notices, [
@@ -86,12 +88,7 @@ describe('analysisNotices', () => {
         message:
           'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.',
       },
-      {
-        level: 'info',
-        code: 'OUTPUT_FALLBACK_USED',
-        message:
-          'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
-      },
+      OUTPUT_FALLBACK_NOTICE,
     ]);
   });
 
@@ -103,24 +100,13 @@ describe('analysisNotices', () => {
       },
       {
         resolutionIssues: [
-          {
-            code: 'OUTPUT_FALLBACK_USED',
-            level: 'info',
-            source: 'target-resolution',
-            phase: 'output-fallback',
-            message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
-          },
+          outputFallbackIssue(),
         ],
       }
     );
 
     assert.deepStrictEqual(notices, [
-      {
-        level: 'info',
-        code: 'OUTPUT_FALLBACK_USED',
-        message:
-          'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
-      },
+      OUTPUT_FALLBACK_NOTICE,
     ]);
   });
 
@@ -138,14 +124,7 @@ describe('analysisNotices', () => {
       },
       {
         resolutionIssues: [
-          {
-            code: 'OUTPUT_FALLBACK_USED',
-            level: 'info',
-            source: 'target-resolution',
-            phase: 'output-fallback',
-            message:
-              'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
-          },
+          outputFallbackIssue(),
         ],
       }
     );
@@ -156,12 +135,7 @@ describe('analysisNotices', () => {
         code: 'NO_CLASS_TARGETS',
         message: 'No compiled classes found.',
       },
-      {
-        level: 'info',
-        code: 'OUTPUT_FALLBACK_USED',
-        message:
-          'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
-      },
+      OUTPUT_FALLBACK_NOTICE,
     ]);
   });
 
@@ -404,14 +378,7 @@ describe('analysisNotices', () => {
             phase: 'get-classpaths',
             message: 'Java LS classpath lookup returned no usable result.',
           },
-          {
-            code: 'OUTPUT_FALLBACK_USED',
-            level: 'info',
-            source: 'target-resolution',
-            phase: 'output-fallback',
-            message:
-              'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
-          },
+          outputFallbackIssue(),
         ],
       }
     );
@@ -422,12 +389,7 @@ describe('analysisNotices', () => {
         code: 'NO_CLASS_TARGETS',
         message: 'No compiled classes found.',
       },
-      {
-        level: 'info',
-        code: 'OUTPUT_FALLBACK_USED',
-        message:
-          'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
-      },
+      OUTPUT_FALLBACK_NOTICE,
     ]);
     assert.ok(
       notices.every(
@@ -453,14 +415,7 @@ describe('analysisNotices', () => {
             phase: 'get-classpaths',
             message: 'Java LS classpath lookup returned no usable result.',
           },
-          {
-            code: 'OUTPUT_FALLBACK_USED',
-            level: 'info',
-            source: 'target-resolution',
-            phase: 'output-fallback',
-            message:
-              'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
-          },
+          outputFallbackIssue(),
         ],
       }
     );
@@ -472,12 +427,7 @@ describe('analysisNotices', () => {
         message:
           'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.',
       },
-      {
-        level: 'info',
-        code: 'OUTPUT_FALLBACK_USED',
-        message:
-          'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
-      },
+      OUTPUT_FALLBACK_NOTICE,
     ]);
   });
 
@@ -501,3 +451,14 @@ describe('analysisNotices', () => {
     ]);
   });
 });
+
+function outputFallbackIssue(): AnalysisResolutionIssue {
+  return {
+    code: 'OUTPUT_FALLBACK_USED',
+    level: 'info',
+    source: 'target-resolution',
+    phase: 'output-fallback',
+    message:
+      'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
+  };
+}

@@ -3,12 +3,10 @@ import * as path from 'path';
 
 const FIXTURE_ROOT_SEGMENTS = ['test-fixtures', 'analysis-protocol'];
 
-export function readAnalysisProtocolFixture(name: string): string {
-  return fs.readFileSync(path.join(findFixtureRoot(), name), 'utf8');
-}
-
 export function readAnalysisProtocolFixtureJson<T>(name: string): T {
-  return JSON.parse(readAnalysisProtocolFixture(name)) as T;
+  return JSON.parse(
+    fs.readFileSync(path.join(findFixtureRoot(), name), 'utf8')
+  ) as T;
 }
 
 function findFixtureRoot(): string {
