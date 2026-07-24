@@ -49,6 +49,28 @@ describe('findingInspectorRenderer', () => {
     assert.ok(html.includes('Last inspected finding'));
   });
 
+  it('renders only valid 1-based source lines', () => {
+    const cases = [
+      { startLine: 0, endLine: 0, expected: '/tmp/Example.java' },
+      { startLine: -1, endLine: -1, expected: '/tmp/Example.java' },
+      { startLine: 12, endLine: 0, expected: '/tmp/Example.java:12' },
+      { startLine: 12, endLine: 12, expected: '/tmp/Example.java:12' },
+      { startLine: 12, endLine: 14, expected: '/tmp/Example.java:12-14' },
+    ];
+
+    for (const { startLine, endLine, expected } of cases) {
+      const finding = makeFinding({
+        location: { fullPath: '/tmp/Example.java', startLine, endLine },
+      });
+      const html = renderFindingInspectorHtml({ status: 'selected', finding }, 'nonce-1');
+
+      assert.ok(
+        html.includes(`<dd class="path" title="${expected}">${expected}</dd>`),
+        `expected location ${expected} for lines ${startLine}-${endLine}`
+      );
+    }
+  });
+
   it('omits docs action when no docs target exists', () => {
     const snapshot: FindingInspectorSnapshot = {
       status: 'selected',
