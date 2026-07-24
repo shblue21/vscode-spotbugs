@@ -1,4 +1,13 @@
 # Changelog
+## [0.8.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.8.0...v0.8.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* filter findings by full SpotBugs rule type ([#96](https://github.com/shblue21/vscode-spotbugs/issues/96)) ([e61911a](https://github.com/shblue21/vscode-spotbugs/commit/e61911a7066bb4c44601fe77f1c0afe41cd26a56))
+* **java:** return envelopes for linkage errors ([#99](https://github.com/shblue21/vscode-spotbugs/issues/99)) ([9904fe7](https://github.com/shblue21/vscode-spotbugs/commit/9904fe7049b52f6813da217f348fc14b1b6c1a98))
+* **ui:** hide invalid inspector line numbers ([#101](https://github.com/shblue21/vscode-spotbugs/issues/101)) ([bdb69ed](https://github.com/shblue21/vscode-spotbugs/commit/bdb69edb8e9d13cedd60773567ce7eb7294e25ca))
+
 ## [0.8.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.7.2...v0.8.0) (2026-07-20)
 
 
