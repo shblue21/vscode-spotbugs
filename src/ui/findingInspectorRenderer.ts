@@ -148,7 +148,7 @@ function renderFinding(
     </dl>
     <h3>${escapeHtml(vscode.l10n.t('Rule'))}</h3>
     <dl>
-      <dt>${escapeHtml(vscode.l10n.t('Pattern'))}</dt><dd>${escapeHtml(finding.patternId)}</dd>
+      <dt>${escapeHtml(vscode.l10n.t('Pattern'))}</dt><dd>${escapeHtml(finding.type || finding.patternId)}</dd>
       ${finding.category ? `<dt>${escapeHtml(vscode.l10n.t('Category'))}</dt><dd>${escapeHtml(finding.category)}</dd>` : ''}
       ${finding.priority ? `<dt>${escapeHtml(vscode.l10n.t('Priority'))}</dt><dd>${escapeHtml(finding.priority)}</dd>` : ''}
       ${typeof finding.rank === 'number' ? `<dt>${escapeHtml(vscode.l10n.t('Rank'))}</dt><dd>${String(finding.rank)}</dd>` : ''}

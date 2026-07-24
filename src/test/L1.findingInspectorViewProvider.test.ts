@@ -22,7 +22,7 @@ describe('findingInspectorViewProvider', () => {
     assert.ok(webview.html.includes('NP_ALWAYS_NULL'));
   });
 
-  it('copies finding.patternId for Copy rule id messages', async () => {
+  it('copies the full rule type', async () => {
     const clipboardWrites: string[] = [];
     resetVscodeMock({
       env: {
@@ -36,7 +36,7 @@ describe('findingInspectorViewProvider', () => {
     const { state, provider, webview } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
-    state.select(makeFinding({ patternId: 'NP_ALWAYS_NULL' }));
+    state.select(makeFinding({ patternId: 'NP' }));
     await webview.dispatch({ type: 'copyRuleId' });
 
     assert.deepStrictEqual(clipboardWrites, ['NP_ALWAYS_NULL']);

@@ -74,9 +74,10 @@ export class FindingInspectorViewProvider
     }
 
     if (message.type === 'copyRuleId') {
-      await env.clipboard.writeText(finding.patternId);
+      const ruleId = finding.type || finding.patternId;
+      await env.clipboard.writeText(ruleId);
       await window.showInformationMessage(
-        l10n.t('Copied SpotBugs rule id: {0}', finding.patternId)
+        l10n.t('Copied SpotBugs rule id: {0}', ruleId)
       );
       return;
     }
