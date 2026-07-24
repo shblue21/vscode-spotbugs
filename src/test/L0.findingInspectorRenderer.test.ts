@@ -23,7 +23,7 @@ describe('findingInspectorRenderer', () => {
       )
     );
     assert.ok(html.includes('Rule'));
-    assert.ok(html.includes('NP_ALWAYS_NULL'));
+    assert.ok(html.includes('<dt>Pattern</dt><dd>NP_ALWAYS_NULL</dd>'));
     assert.ok(html.includes('CORRECTNESS'));
     assert.ok(html.includes('High'));
     assert.ok(html.includes('<dt>Rank</dt><dd>3</dd>'));
@@ -103,7 +103,7 @@ function makeSnapshot(status: 'selected' | 'retained'): FindingInspectorSnapshot
 
 function makeFinding(overrides: Partial<Finding>): Finding {
   return {
-    patternId: 'NP_ALWAYS_NULL',
+    patternId: 'NP',
     type: 'NP_ALWAYS_NULL',
     abbrev: 'NP',
     category: 'CORRECTNESS',
