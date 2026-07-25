@@ -1,9 +1,9 @@
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=shblue21.vscode-spotbugs">
-    <img src="https://img.shields.io/visual-studio-marketplace/v/shblue21.vscode-spotbugs?label=version" alt="VS Marketplace Version" />
+    <img src="https://vsmarketplacebadges.dev/version/shblue21.vscode-spotbugs.svg?label=version" alt="VS Marketplace Version" />
   </a>
   <a href="https://marketplace.visualstudio.com/items?itemName=shblue21.vscode-spotbugs">
-    <img src="https://img.shields.io/visual-studio-marketplace/d/shblue21.vscode-spotbugs?label=VS%20Marketplace%20downloads" alt="VS Marketplace Downloads" />
+    <img src="https://vsmarketplacebadges.dev/downloads-short/shblue21.vscode-spotbugs.svg?label=VS%20Marketplace%20downloads" alt="VS Marketplace Downloads" />
   </a>
   <a href="https://open-vsx.org/extension/shblue21/vscode-spotbugs">
     <img src="https://img.shields.io/open-vsx/dt/shblue21/vscode-spotbugs?label=Open%20VSX%20downloads" alt="Open VSX Downloads" />
