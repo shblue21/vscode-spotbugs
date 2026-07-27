@@ -14,7 +14,7 @@
 
 # SpotBugs for VS Code
 
-Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicated tree view, jump to offending lines, and track issues with VS Code diagnostics.
+Analyze Java code with SpotBugs directly in VS Code and compatible editors. View findings in a dedicated tree view, jump to offending lines, and track issues with editor diagnostics.
 
 ![SpotBugs demo](https://raw.githubusercontent.com/shblue21/vscode-spotbugs/main/images/spotbugs_demo.gif)
 
@@ -31,20 +31,20 @@ Analyze Java code with SpotBugs directly in VS Code. View findings in a dedicate
 
 ## Requirements
 
-- VS Code 1.85 or later
+- VS Code 1.85 or later, or a compatible editor supporting VS Code API 1.85
 - Java 11 or later (JDK)
-- A trusted VS Code workspace
+- A trusted workspace
 - “Language Support for Java by Red Hat” (`redhat.java`), installed automatically as a dependency
 
 ## Privacy / Local Analysis
 
-SpotBugs analysis runs locally in your VS Code workspace. This extension does not send source files, compiled classes, filter files, SARIF output, or SpotBugs findings to a hosted analysis service. Native SARIF reports can contain local source-root URIs, so review them before sharing.
+SpotBugs analysis runs locally in your workspace. This extension does not send source files, compiled classes, filter files, SARIF output, or SpotBugs findings to a hosted analysis service. Native SARIF reports can contain local source-root URIs, so review them before sharing.
 
-Rule documentation actions may open external SpotBugs documentation links. Basic extension operation telemetry follows VS Code telemetry settings.
+Rule documentation actions may open external SpotBugs documentation links. Basic extension operation telemetry follows your editor's telemetry settings.
 
 ## Getting Started
 
-1) Open a Java project in VS Code
+1) Open a Java project in your editor
 2) Run `Analyze SpotBugs Workspace`
 3) Review findings in the “SpotBugs” view (Activity Bar)
 
