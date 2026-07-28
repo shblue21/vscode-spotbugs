@@ -38,7 +38,6 @@ describe('analysisTargetResolver', () => {
       findOutputFolderFromProject: async () => undefined,
       hasClassTargets: async () => true,
       isBytecodeTarget: () => false,
-      primeSourcepathsCache: () => undefined,
       getWorkspaceFolder: () =>
         ({
           name: 'workspace',
@@ -94,7 +93,6 @@ describe('analysisTargetResolver', () => {
       },
       hasClassTargets: async () => true,
       isBytecodeTarget: () => false,
-      primeSourcepathsCache: () => undefined,
       getWorkspaceFolder: () =>
         ({
           name: 'workspace',
@@ -133,7 +131,6 @@ describe('analysisTargetResolver', () => {
       findOutputFolderFromProject: async () => undefined,
       hasClassTargets: async () => false,
       isBytecodeTarget: () => false,
-      primeSourcepathsCache: () => undefined,
       getWorkspaceFolder: () =>
         ({
           name: 'workspace',
@@ -1140,7 +1137,6 @@ function createResolverDeps(
     containsJavaSources: options.containsJavaSources ?? (async () => false),
     isBytecodeTarget: (targetPath: string) =>
       ['.class', '.jar', '.zip'].includes(path.extname(targetPath).toLowerCase()),
-    primeSourcepathsCache: () => undefined,
     getWorkspaceFolder: () =>
       ({
         name: 'workspace',

@@ -361,6 +361,7 @@ describe('analysisExecution', () => {
     const vscode = installVscodeMock();
     const { createAnalysisExecutor } = loadAnalysisExecution();
     let addFullPathsProject: Uri | undefined;
+    let addFullPathsSourcepaths: readonly string[] | null | undefined;
     const mappedFinding = makeFinding();
     const enrichedFinding = makeFinding({
       location: {
@@ -385,9 +386,10 @@ describe('analysisExecution', () => {
           },
         }),
         mapBugsToFindings: () => [mappedFinding],
-        addFullPaths: async (findings, preferredProject) => {
+        addFullPaths: async (findings, preferredProject, sourcepaths) => {
           assert.deepStrictEqual(findings, [mappedFinding]);
           addFullPathsProject = preferredProject;
+          addFullPathsSourcepaths = sourcepaths;
           return [enrichedFinding];
         },
       })
@@ -400,6 +402,7 @@ describe('analysisExecution', () => {
       addFullPathsProject?.toString(),
       target.preferredProject?.toString()
     );
+    assert.deepStrictEqual(addFullPathsSourcepaths, target.sourcepaths);
     assert.deepStrictEqual(outcome.findings, [enrichedFinding]);
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_WARNING');
     assert.strictEqual(outcome.failure, undefined);
@@ -407,6 +410,42 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.reportSummary?.analyzedClassCount, 3);
     assert.strictEqual(outcome.nativeSarif, '{"version":"2.1.0","runs":[]}');
     assert.strictEqual(outcome.schemaVersion, 2);
+  });
+
+  it('keeps the analysis-start sourcepath snapshot through backend execution', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    const target = makeTarget(installVscodeMock());
+    let backendSourcepaths: string[] | null | undefined;
+    let enrichmentSourcepaths: readonly string[] | null | undefined;
+    const executor = createAnalysisExecutor(
+      makeDeps({
+        runSpotBugsAnalysis: async (request) => {
+          backendSourcepaths = request.payload.sourcepaths;
+          target.sourcepaths?.splice(0, target.sourcepaths.length, '/mutated');
+          return JSON.stringify({ schemaVersion: 2, results: [] });
+        },
+        parseAnalysisResponse: () => ({
+          ok: true,
+          value: {
+            bugs: [{ type: 'NP_ALWAYS_NULL' }],
+          },
+        }),
+        mapBugsToFindings: () => [makeFinding()],
+        addFullPaths: async (findings, _preferredProject, sourcepaths) => {
+          enrichmentSourcepaths = sourcepaths;
+          return findings;
+        },
+      })
+    );
+
+    await executor.run(makeConfig(), target);
+
+    assert.deepStrictEqual(backendSourcepaths, [
+      '/workspace/src/main/java',
+    ]);
+    assert.deepStrictEqual(enrichmentSourcepaths, [
+      '/workspace/src/main/java',
+    ]);
   });
 
 });
