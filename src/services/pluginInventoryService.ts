@@ -1,6 +1,7 @@
 import type { Uri } from 'vscode';
 import { SpotBugsLSCommands } from '../constants/commands';
 import type { Config } from '../core/config';
+import { decodeCommandResponseEnvelope } from '../lsp/commandResponseEnvelope';
 import { executeWorkspaceCommand } from '../lsp/javaLsGateway';
 import type { AnalysisError } from '../model/analysisProtocol';
 
@@ -57,23 +58,12 @@ export function parsePluginInventoryResponse(raw: string): PluginInventoryParseR
     return invalidResponse();
   }
 
-  if (!isRecord(parsed)) {
+  const decoded = decodeCommandResponseEnvelope(parsed);
+  if (!decoded) {
     return invalidResponse();
   }
 
-  const hasResults = Object.prototype.hasOwnProperty.call(parsed, 'results');
-  const hasErrors = Object.prototype.hasOwnProperty.call(parsed, 'errors');
-  if (!hasResults && !hasErrors) {
-    return invalidResponse();
-  }
-  if (hasResults && !Array.isArray(parsed.results)) {
-    return invalidResponse();
-  }
-  if (hasErrors && !Array.isArray(parsed.errors)) {
-    return invalidResponse();
-  }
-
-  const resultValues = hasResults ? (parsed.results as unknown[]) : [];
+  const resultValues = decoded.results ?? [];
   if (
     resultValues.some(
       (value) => !isRecord(value) || !Number.isInteger(value.index)
@@ -83,16 +73,12 @@ export function parsePluginInventoryResponse(raw: string): PluginInventoryParseR
   }
 
   const items = normalizeItems(resultValues);
-  const errors = hasErrors ? normalizeErrors(parsed.errors) : undefined;
-  if (!hasResults && Array.isArray(errors) && errors.length === 0) {
-    return invalidResponse();
-  }
 
   return {
     ok: true,
     value: {
       items,
-      errors,
+      errors: decoded.errors,
     },
   };
 }
@@ -153,30 +139,6 @@ function normalizeStatus(value: unknown): PluginInventoryStatus {
     default:
       return 'backend-error';
   }
-}
-
-function normalizeErrors(value: unknown): AnalysisError[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-
-  const errors: AnalysisError[] = [];
-  for (const item of value) {
-    if (!isRecord(item)) {
-      continue;
-    }
-    const error: AnalysisError = {};
-    if (typeof item.code === 'string') {
-      error.code = item.code;
-    }
-    if (typeof item.message === 'string') {
-      error.message = item.message;
-    }
-    if (error.code || error.message) {
-      errors.push(error);
-    }
-  }
-  return errors;
 }
 
 function invalidResponse(): PluginInventoryParseResult {

@@ -14,7 +14,14 @@ describe('spotbugsParser', () => {
   });
 
   it('returns analysis-error when payload contains top-level error', () => {
-    const result = parseAnalysisResponse(JSON.stringify({ error: 'boom' }));
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        error: 'boom',
+        results: [],
+        errors: [],
+      })
+    );
+
     assert.strictEqual(result.ok, false);
     if (!result.ok) {
       assert.strictEqual(result.error.kind, 'analysis-error');
@@ -92,12 +99,35 @@ describe('spotbugsParser', () => {
     }
   });
 
+  it('parses errors-only envelopes without results', () => {
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
+      })
+    );
+
+    assert.strictEqual(result.ok, true);
+    if (result.ok) {
+      assert.deepStrictEqual(result.value.bugs, []);
+      assert.deepStrictEqual(result.value.errors, [
+        { code: 'ANALYSIS_FAILED', message: 'boom' },
+      ]);
+    }
+  });
+
   it('parses empty results with warnings as a successful response', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
         schemaVersion: 2,
         results: [],
-        warnings: [{ code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' }],
+        warnings: [
+          { code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' },
+          { code: 'CODE_ONLY' },
+          { message: 'message only' },
+          { code: '', message: 'non-empty message' },
+          { code: 'NON_EMPTY_CODE', message: '' },
+          { code: '', message: '' },
+        ],
       })
     );
 
@@ -106,7 +136,25 @@ describe('spotbugsParser', () => {
       assert.deepStrictEqual(result.value.bugs, []);
       assert.deepStrictEqual(result.value.warnings, [
         { code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' },
+        { code: '', message: 'non-empty message' },
+        { code: 'NON_EMPTY_CODE', message: '' },
       ]);
+      assert.strictEqual(result.value.ignoredMalformedWarnings, undefined);
+    }
+  });
+
+  it('marks malformed warning fields without rejecting the envelope', () => {
+    const malformed = parseAnalysisResponse(
+      JSON.stringify({
+        results: [],
+        warnings: { code: 'INVALID_SHAPE', message: 'not an array' },
+      })
+    );
+
+    assert.strictEqual(malformed.ok, true);
+    if (malformed.ok) {
+      assert.strictEqual(malformed.value.warnings, undefined);
+      assert.strictEqual(malformed.value.ignoredMalformedWarnings, true);
     }
   });
 

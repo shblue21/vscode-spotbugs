@@ -5,6 +5,10 @@ import {
 } from '../model/analysisProtocol';
 import { Bug } from '../model/bug';
 import type { AnalysisReportSummary } from '../model/analysisReport';
+import {
+  decodeCommandResponseEnvelope,
+  normalizeCommandIssues,
+} from './commandResponseEnvelope';
 
 export type ParseErrorKind = 'invalid-json' | 'analysis-error';
 
@@ -60,57 +64,45 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     return isBugArray(parsed) ? { ok: true, value: { bugs: parsed } } : invalidResponse();
   }
 
-  if (parsed && typeof parsed === 'object') {
-    const envelope = parsed as Record<string, unknown>;
-    const hasResults = Object.prototype.hasOwnProperty.call(envelope, 'results');
-    const hasErrors = Object.prototype.hasOwnProperty.call(envelope, 'errors');
-    const hasWarnings = Object.prototype.hasOwnProperty.call(envelope, 'warnings');
-    if (!hasResults && !hasErrors) {
-      return invalidResponse();
-    }
-    if (hasResults && !isBugArray(envelope.results)) {
-      return invalidResponse();
-    }
-    if (hasErrors && !Array.isArray(envelope.errors)) {
-      return invalidResponse();
-    }
-
-    const errors = hasErrors ? normalizeAnalysisErrors(envelope.errors) : undefined;
-    if (!hasResults && Array.isArray(errors) && errors.length === 0) {
-      return invalidResponse();
-    }
-
-    const warnings =
-      hasWarnings && Array.isArray(envelope.warnings)
-        ? normalizeAnalysisWarnings(envelope.warnings)
-        : undefined;
-    const ignoredMalformedWarnings =
-      hasWarnings && !Array.isArray(envelope.warnings) ? true : undefined;
-    const bugs = hasResults ? (envelope.results as Bug[]) : [];
-    const stats = normalizeAnalysisStats(envelope.stats);
-    const reportSummary = normalizeAnalysisReportSummary(envelope.reportSummary);
-    const nativeSarif =
-      typeof envelope.nativeSarif === 'string' && envelope.nativeSarif.trim().length > 0
-        ? envelope.nativeSarif
-        : undefined;
-    const schemaVersion =
-      typeof envelope.schemaVersion === 'number' ? envelope.schemaVersion : undefined;
-    return {
-      ok: true,
-      value: {
-        bugs,
-        errors,
-        warnings,
-        ignoredMalformedWarnings,
-        stats,
-        reportSummary,
-        nativeSarif,
-        schemaVersion,
-      },
-    };
+  const decoded = decodeCommandResponseEnvelope(parsed);
+  if (!decoded) {
+    return invalidResponse();
   }
 
-  return invalidResponse();
+  const { envelope, errors, results } = decoded;
+  if (results && !isBugArray(results)) {
+    return invalidResponse();
+  }
+
+  const hasWarnings = Object.prototype.hasOwnProperty.call(envelope, 'warnings');
+  const warnings =
+    hasWarnings && Array.isArray(envelope.warnings)
+      ? normalizeAnalysisWarnings(envelope.warnings)
+      : undefined;
+  const ignoredMalformedWarnings =
+    hasWarnings && !Array.isArray(envelope.warnings) ? true : undefined;
+  const bugs = results ? (results as Bug[]) : [];
+  const stats = normalizeAnalysisStats(envelope.stats);
+  const reportSummary = normalizeAnalysisReportSummary(envelope.reportSummary);
+  const nativeSarif =
+    typeof envelope.nativeSarif === 'string' && envelope.nativeSarif.trim().length > 0
+      ? envelope.nativeSarif
+      : undefined;
+  const schemaVersion =
+    typeof envelope.schemaVersion === 'number' ? envelope.schemaVersion : undefined;
+  return {
+    ok: true,
+    value: {
+      bugs,
+      errors,
+      warnings,
+      ignoredMalformedWarnings,
+      stats,
+      reportSummary,
+      nativeSarif,
+      schemaVersion,
+    },
+  };
 }
 
 function normalizeAnalysisReportSummary(
@@ -141,33 +133,8 @@ function isBugArray(value: unknown): value is Bug[] {
   return Array.isArray(value) && value.every(isRecord);
 }
 
-function normalizeAnalysisErrors(value: unknown): AnalysisError[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const errors: AnalysisError[] = [];
-  for (const item of value) {
-    if (!isRecord(item)) {
-      continue;
-    }
-
-    const error: AnalysisError = {};
-    if (typeof item.code === 'string') {
-      error.code = item.code;
-    }
-    if (typeof item.message === 'string') {
-      error.message = item.message;
-    }
-    if (error.code || error.message) {
-      errors.push(error);
-    }
-  }
-  return errors;
-}
-
 function normalizeAnalysisWarnings(value: unknown[]): AnalysisWarning[] {
-  return normalizeAnalysisErrors(value).filter(
+  return normalizeCommandIssues(value).filter(
     (warning) => typeof warning.code === 'string' && typeof warning.message === 'string'
   );
 }
