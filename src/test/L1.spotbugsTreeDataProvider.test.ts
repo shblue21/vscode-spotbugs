@@ -332,6 +332,83 @@ describe('spotbugsTreeDataProvider', () => {
     }
   });
 
+  it('updates the existing progress item and ignores stale updates after progress ends', async () => {
+    const provider = await createProvider();
+    const projectUri = 'file:///workspace/project-a';
+
+    provider.showWorkspaceProgress([projectUri]);
+    const progressItems = await provider.getChildren();
+    const changedItems: unknown[] = [];
+    const disposable = provider.onDidChangeTreeData((item) => changedItems.push(item));
+
+    try {
+      provider.updateProjectStatus(projectUri, 'running');
+
+      const updatedItems = await provider.getChildren();
+      assert.strictEqual(updatedItems[0], progressItems[0]);
+      assert.strictEqual(updatedItems[0].description, 'Analyzing…');
+      assert.deepStrictEqual(changedItems, [progressItems[0]]);
+
+      provider.showWorkspaceCancelled();
+      changedItems.length = 0;
+      provider.updateProjectStatus(projectUri, 'done', { count: 2 });
+
+      assert.deepStrictEqual(changedItems, []);
+      const cancelledItems = await provider.getChildren();
+      assert.strictEqual(cancelledItems[0].label, 'SpotBugs workspace analysis cancelled.');
+    } finally {
+      disposable.dispose();
+    }
+  });
+
+  it('clears result data in every non-result content state', async () => {
+    const provider = await createProvider();
+    const finding = makeFinding();
+    const transitions = [
+      () => provider.showInitialMessage(),
+      () => provider.showLoading(),
+      () => provider.showAnalysisFailure('SpotBugs analysis failed: boom', 'ANALYSIS_FAILED'),
+      () => provider.showWorkspaceProgress(['file:///workspace/project-a']),
+      () => provider.showWorkspaceCancelled(),
+    ];
+
+    for (const transition of transitions) {
+      provider.showResults([finding], {
+        projectUri: 'file:///workspace/project-a',
+        findings: [finding],
+      });
+      transition();
+
+      assert.deepStrictEqual(provider.getCachedFindings(), []);
+      assert.deepStrictEqual(provider.getAllFindings(), []);
+      assert.deepStrictEqual(provider.getReportRuns(), []);
+    }
+  });
+
+  it('keeps result arrays isolated from caller and getter mutations', async () => {
+    const provider = await createProvider();
+    const first = makeFinding();
+    const second = makeFinding({ patternId: 'SQL_INJECTION' });
+    const input = [first];
+
+    provider.showResults(input, {
+      projectUri: 'file:///workspace/project-a',
+      findings: input,
+    });
+    input.push(second);
+
+    const cached = provider.getCachedFindings();
+    const visible = provider.getAllFindings();
+    const reportRuns = provider.getReportRuns();
+    cached.push(second);
+    visible.length = 0;
+    reportRuns[0].findings.push(second);
+
+    assert.deepStrictEqual(provider.getCachedFindings(), [first]);
+    assert.deepStrictEqual(provider.getAllFindings(), [first]);
+    assert.deepStrictEqual(provider.getReportRuns()[0].findings, [first]);
+  });
+
   it('keeps no cached results distinct from search and filter empty states', async () => {
     const provider = await createProvider();
 
