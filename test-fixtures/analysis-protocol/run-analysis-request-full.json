@@ -28,7 +28,6 @@
     "excludeBaselineBugsPaths": [
       "test-fixtures/analysis-protocol/baseline-bugs.xml"
     ],
-    "excludeFilterPath": "test-fixtures/analysis-protocol/legacy-exclude-filter.xml",
     "plugins": [
       "/workspace/plugin-a.jar",
       "/workspace/plugin-b.jar"

@@ -35,7 +35,6 @@ public class RunAnalysisRequestParserTest {
         resolveFixturePathList(parseablePayload, "includeFilterPaths");
         resolveFixturePathList(parseablePayload, "excludeFilterPaths");
         resolveFixturePathList(parseablePayload, "excludeBaselineBugsPaths");
-        resolveFixturePath(parseablePayload, "excludeFilterPath");
 
         RunAnalysisRequest request = parser.parse(context(
                 fixture.get("targetPath").getAsString(),
@@ -70,10 +69,6 @@ public class RunAnalysisRequestParserTest {
         assertEquals(
                 resolvedFixturePathList(payload, "excludeBaselineBugsPaths"),
                 request.getConfig().getExcludeBaselineBugsPaths()
-        );
-        assertEquals(
-                AnalysisProtocolFixture.resolveRepositoryPath(payload.get("excludeFilterPath").getAsString()),
-                request.getConfig().getExcludeFilterPath()
         );
         assertEquals(
                 Arrays.asList("/workspace/plugin-a.jar", "/workspace/plugin-b.jar"),
@@ -161,13 +156,6 @@ public class RunAnalysisRequestParserTest {
             resolved.add(AnalysisProtocolFixture.resolveRepositoryPath(source.get(index).getAsString()));
         }
         payload.add(fieldName, resolved);
-    }
-
-    private static void resolveFixturePath(JsonObject payload, String fieldName) {
-        payload.addProperty(
-                fieldName,
-                AnalysisProtocolFixture.resolveRepositoryPath(payload.get(fieldName).getAsString())
-        );
     }
 
     private static List<String> resolvedFixturePathList(JsonObject payload, String fieldName) {

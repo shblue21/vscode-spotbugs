@@ -19,7 +19,6 @@ public class AnalysisConfig {
     private final List<String> includeFilterPaths; // optional
     private final List<String> excludeFilterPaths; // optional
     private final List<String> excludeBaselineBugsPaths; // optional
-    private final String excludeFilterPath;  // optional legacy field
     private final List<String> plugins;      // optional
 
     private AnalysisConfig(Builder b) {
@@ -46,7 +45,6 @@ public class AnalysisConfig {
         this.excludeBaselineBugsPaths = b.excludeBaselineBugsPaths == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(b.excludeBaselineBugsPaths));
-        this.excludeFilterPath = b.excludeFilterPath;
         this.plugins = b.plugins == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(b.plugins));
@@ -61,7 +59,6 @@ public class AnalysisConfig {
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
     public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }
     public List<String> getExcludeBaselineBugsPaths() { return excludeBaselineBugsPaths; }
-    public String getExcludeFilterPath() { return excludeFilterPath; }
     public List<String> getPlugins() { return plugins; }
 
     // Package-private to keep creation within the config pipeline
@@ -77,7 +74,6 @@ public class AnalysisConfig {
         private List<String> includeFilterPaths;
         private List<String> excludeFilterPaths;
         private List<String> excludeBaselineBugsPaths;
-        private String excludeFilterPath;
         private List<String> plugins;
 
         Builder effort(Effort e) { this.effort = e; return this; }
@@ -89,7 +85,6 @@ public class AnalysisConfig {
         Builder includeFilterPaths(List<String> p) { this.includeFilterPaths = p; return this; }
         Builder excludeFilterPaths(List<String> p) { this.excludeFilterPaths = p; return this; }
         Builder excludeBaselineBugsPaths(List<String> p) { this.excludeBaselineBugsPaths = p; return this; }
-        Builder excludeFilterPath(String p) { this.excludeFilterPath = p; return this; }
         Builder plugins(List<String> p) { this.plugins = p; return this; }
 
         AnalysisConfig build() { return new AnalysisConfig(this); }

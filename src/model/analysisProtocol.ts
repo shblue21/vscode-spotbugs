@@ -14,8 +14,6 @@ export interface AnalysisRequestPayload {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  // Legacy field kept for backward compatibility with older runner schema.
-  excludeFilterPath?: string;
   plugins?: string[];
 }
 

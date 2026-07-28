@@ -19,7 +19,6 @@ describe('analysisRequestBuilder', () => {
     const includeFilterPaths = ['test-fixtures/analysis-protocol/include-filter.xml'];
     const excludeFilterPaths = ['test-fixtures/analysis-protocol/exclude-filter.xml'];
     const excludeBaselineBugsPaths = ['test-fixtures/analysis-protocol/baseline-bugs.xml'];
-    const excludeFilterPath = 'test-fixtures/analysis-protocol/legacy-exclude-filter.xml';
 
     const payload = buildAnalysisRequestPayload(
       makeSettings({
@@ -28,7 +27,6 @@ describe('analysisRequestBuilder', () => {
         includeFilterPaths,
         excludeFilterPaths,
         excludeBaselineBugsPaths,
-        excludeFilterPath,
         plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
         priorityThreshold: 5,
       }),
@@ -95,19 +93,6 @@ describe('analysisRequestBuilder', () => {
     assert.strictEqual('includeFilterPaths' in payload, false);
     assert.strictEqual('excludeFilterPaths' in payload, false);
     assert.strictEqual('excludeBaselineBugsPaths' in payload, false);
-  });
-
-  it('keeps legacy excludeFilterPath for backward compatibility', () => {
-    const payload = buildAnalysisRequestPayload(
-      makeSettings({
-        excludeFilterPaths: ['/tmp/spotbugs/exclude.xml'],
-        excludeFilterPath: '/tmp/spotbugs/exclude.xml',
-      }),
-      {}
-    );
-
-    assert.deepStrictEqual(payload.excludeFilterPaths, ['/tmp/spotbugs/exclude.xml']);
-    assert.strictEqual(payload.excludeFilterPath, '/tmp/spotbugs/exclude.xml');
   });
 
   it('copies filter arrays to prevent payload mutation from caller arrays', () => {
