@@ -69,17 +69,23 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     context: AnalysisExecutionTarget,
     token?: CancellationToken
   ): Promise<AnalysisOutcome> {
-    const settings = config.getAnalysisSettings(context.preferredProject);
+    const analysisContext: AnalysisExecutionTarget = {
+      ...context,
+      sourcepaths: Array.isArray(context.sourcepaths)
+        ? context.sourcepaths.slice()
+        : context.sourcepaths,
+    };
+    const settings = config.getAnalysisSettings(analysisContext.preferredProject);
     const preflightFailure = await validateAnalysisPreflight(
       settings,
-      context.targetPath
+      analysisContext.targetPath
     );
     if (preflightFailure) {
       return preflightFailure;
     }
 
-    const raw = await executeAnalysisRequest(settings, context, token);
-    return analysisOutcomeFromRawResponse(raw, context);
+    const raw = await executeAnalysisRequest(settings, analysisContext, token);
+    return analysisOutcomeFromRawResponse(raw, analysisContext);
   }
 
   async function validateAnalysisPreflight(
@@ -279,7 +285,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     const findings = deps.mapBugsToFindings(bugs);
     const withFullPaths = await deps.addFullPaths(
       findings,
-      context.preferredProject
+      context.preferredProject,
+      context.sourcepaths
     );
     logSuccessfulAnalysis(withFullPaths.length, stats);
     const outcome: AnalysisOutcome = {

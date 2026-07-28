@@ -9,7 +9,6 @@ import {
   filterAdmissibleTargetResolutionRoots,
   getClasspathsOutcome,
 } from './classpathService';
-import { primeSourcepathsCache } from './pathResolver';
 import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from './analysisTargetCodes';
 import {
   findOutputFolderFromProject,
@@ -55,7 +54,6 @@ export interface TargetResolverDeps {
   hasLooseClassTargets: typeof hasLooseClassTargets;
   isBytecodeTarget: typeof isBytecodeTarget;
   containsJavaSources: typeof containsJavaSources;
-  primeSourcepathsCache: typeof primeSourcepathsCache;
   getWorkspaceFolder: typeof workspace.getWorkspaceFolder;
   dirname: typeof path.dirname;
   logger: typeof Logger;
@@ -69,7 +67,6 @@ const defaultDeps: TargetResolverDeps = {
   hasLooseClassTargets,
   isBytecodeTarget,
   containsJavaSources,
-  primeSourcepathsCache,
   getWorkspaceFolder: workspace.getWorkspaceFolder,
   dirname: path.dirname,
   logger: Logger,
@@ -141,8 +138,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       }
       outputPath = cp?.output;
       if (Array.isArray(cp?.sourcepaths)) {
-        sourcepaths = cp.sourcepaths;
-        deps.primeSourcepathsCache(cp.sourcepaths);
+        sourcepaths = cp.sourcepaths.slice();
       }
     } catch (error) {
       if (options.logFailure) {
