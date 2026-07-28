@@ -43,9 +43,6 @@ export function buildAnalysisRequestPayload(
   ) {
     payload.excludeBaselineBugsPaths = settings.excludeBaselineBugsPaths.slice();
   }
-  if (settings.excludeFilterPath) {
-    payload.excludeFilterPath = settings.excludeFilterPath;
-  }
   if (Array.isArray(settings.plugins) && settings.plugins.length > 0) {
     payload.plugins = settings.plugins.slice();
   }

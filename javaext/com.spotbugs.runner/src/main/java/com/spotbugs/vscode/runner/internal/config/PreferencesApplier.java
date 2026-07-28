@@ -24,7 +24,7 @@ public class PreferencesApplier {
 
         // Filter files are applied by FindBugs2#setUserPreferences via configureFilters.
         prefs.setIncludeFilterFiles(toEnabledPathMap(cfg.getIncludeFilterPaths()));
-        prefs.setExcludeFilterFiles(toEnabledPathMap(resolveExcludeFilterPaths(cfg)));
+        prefs.setExcludeFilterFiles(toEnabledPathMap(cfg.getExcludeFilterPaths()));
         prefs.setExcludeBugsFiles(toEnabledPathMap(cfg.getExcludeBaselineBugsPaths()));
 
         // rank threshold is handled via BugReporter in SpotBugsExecutor
@@ -38,18 +38,6 @@ public class PreferencesApplier {
             case MAX: return "max";
             default: return "default";
         }
-    }
-
-    private static List<String> resolveExcludeFilterPaths(AnalysisConfig cfg) {
-        List<String> configured = cfg.getExcludeFilterPaths();
-        if (configured != null && !configured.isEmpty()) {
-            return configured;
-        }
-        String legacyPath = normalizePath(cfg.getExcludeFilterPath());
-        if (legacyPath == null) {
-            return Collections.emptyList();
-        }
-        return Collections.singletonList(legacyPath);
     }
 
     private static Map<String, Boolean> toEnabledPathMap(List<String> paths) {

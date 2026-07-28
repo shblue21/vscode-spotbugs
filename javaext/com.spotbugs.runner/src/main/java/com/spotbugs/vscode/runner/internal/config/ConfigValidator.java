@@ -29,11 +29,6 @@ public class ConfigValidator {
         List<String> includeFilterPaths = normalizeList(schema.getIncludeFilterPaths());
         List<String> excludeFilterPaths = normalizeList(schema.getExcludeFilterPaths());
         List<String> excludeBaselineBugsPaths = normalizeList(schema.getExcludeBaselineBugsPaths());
-        String excludeFilterPath = normalizeString(schema.getExcludeFilterPath());
-        if (excludeFilterPaths.isEmpty() && excludeFilterPath != null) {
-            excludeFilterPaths = new ArrayList<>();
-            excludeFilterPaths.add(excludeFilterPath);
-        }
         List<String> plugins = normalizeList(schema.getPlugins());
 
         ConfigError includeFilterError = FilterFileValidator.validateIncludeFilters(includeFilterPaths);
@@ -64,17 +59,10 @@ public class ConfigValidator {
             .includeFilterPaths(includeFilterPaths)
             .excludeFilterPaths(excludeFilterPaths)
             .excludeBaselineBugsPaths(excludeBaselineBugsPaths)
-            .excludeFilterPath(excludeFilterPath)
             .plugins(plugins)
             .build();
 
         return ConfigValidationResult.ok(cfg);
-    }
-
-    private static String normalizeString(String s) {
-        if (s == null) return null;
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
     }
 
     private static List<String> normalizeList(List<String> in) {

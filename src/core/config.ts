@@ -10,8 +10,6 @@ export interface AnalysisSettings {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  // Legacy payload field kept for compatibility with older Java runner schema.
-  excludeFilterPath?: string;
   plugins?: string[];
 }
 
@@ -25,8 +23,6 @@ export class Config {
   public includeFilterPaths?: string[];
   public excludeFilterPaths?: string[];
   public excludeBaselineBugsPaths?: string[];
-  // Legacy payload field kept for compatibility with older Java runner schema.
-  public excludeFilterPath?: string;
   public plugins?: string[];
   public revealSourceOnSelection!: boolean;
 
@@ -171,8 +167,6 @@ export class Config {
     const excludeFilterPaths = this.resolvePathsToAbsolute(this.excludeFilterPaths, resource);
     if (excludeFilterPaths) {
       settings.excludeFilterPaths = excludeFilterPaths;
-      // Backward compatibility for older Java runner payload schema.
-      settings.excludeFilterPath = excludeFilterPaths[0];
     }
     const excludeBaselineBugsPaths = this.resolvePathsToAbsolute(
       this.excludeBaselineBugsPaths,
