@@ -92,12 +92,12 @@ describe('buildSarifLog', () => {
     });
   });
 
-  it('prefers workspace-relative fullPath over package-relative realSourcePath', () => {
+  it('prefers and encodes workspace-relative fullPath', () => {
     const finding = makeFinding({
       type: 'NP_NULL_ON_SOME_PATH',
       shortDescription: 'Null pointer dereference',
       location: {
-        fullPath: '/__WORKSPACE_ROOT__/src/main/java/com/acme/Foo.java',
+        fullPath: '/__WORKSPACE_ROOT__/src/a#b?c%20 d/F.java',
         realSourcePath: 'com/acme/Foo.java',
         sourceFile: 'Foo.java',
         startLine: 12,
@@ -108,7 +108,7 @@ describe('buildSarifLog', () => {
       workspaceRootPath: placeholderWorkspaceRoot,
     });
 
-    assert.strictEqual(getFirstArtifactUri(actual), 'src/main/java/com/acme/Foo.java');
+    assert.strictEqual(getFirstArtifactUri(actual), 'src/a%23b%3Fc%2520%20d/F.java');
   });
 
   it('keeps workspace-relative fullPath when a child path starts with dots', () => {

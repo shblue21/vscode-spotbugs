@@ -82,5 +82,9 @@ function toPortablePath(value?: string): string | undefined {
   if (!value) {
     return undefined;
   }
-  return value.replace(/\\/g, '/');
+  return value
+    .replace(/\\/g, '/')
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/');
 }
