@@ -26,6 +26,8 @@ describe('Extension activation', () => {
       SpotBugsCommands.SORT_RESULTS_BY,
       SpotBugsCommands.OPEN_SETTINGS,
       SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
+      SpotBugsCommands.ADD_FILTER_FILES,
+      SpotBugsCommands.REMOVE_FILTER_FILE,
     ];
 
     for (const cmd of expected) {

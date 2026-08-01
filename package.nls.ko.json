@@ -5,6 +5,7 @@
   "contributes.viewsContainers.activitybar.spotbugs-container.title": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-view.name": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-inspector-view.name": "검사기",
+  "contributes.views.spotbugs-container.spotbugs-filters-view.name": "필터",
   "contributes.views.spotbugs-container.spotbugs-plugins-view.name": "플러그인",
   "contributes.configuration.analysis.title": "SpotBugs: 분석",
   "contributes.configuration.filters.title": "SpotBugs: 필터",
@@ -36,5 +37,7 @@
   "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: 플러그인 새로 고침",
   "contributes.commands.spotbugs.addPluginJars.title": "SpotBugs: 플러그인 JAR 추가...",
   "contributes.commands.spotbugs.removePluginJar.title": "SpotBugs: 플러그인 JAR 제거",
+  "contributes.commands.spotbugs.addFilterFiles.title": "SpotBugs: 필터 파일 추가...",
+  "contributes.commands.spotbugs.removeFilterFile.title": "SpotBugs: 필터 파일 제거",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }

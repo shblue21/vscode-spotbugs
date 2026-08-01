@@ -10,6 +10,7 @@ import {
 import { SETTINGS_SECTION, settingKeys } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { PluginInventoryTreeDataProvider } from './ui/pluginInventoryTreeDataProvider';
+import { FilterTreeDataProvider } from './ui/filterTreeDataProvider';
 import { SpotBugsCommands } from './constants/commands';
 import { getJavaExtension } from './core/utils';
 import { checkCode, runWorkspaceAnalysis } from './commands/analysis';
@@ -28,6 +29,14 @@ import {
   removePluginJar,
   refreshPluginInventory,
 } from './commands/pluginInventory';
+import {
+  addFilterFiles,
+  removeFilterFile,
+} from './commands/filterFiles';
+import type {
+  FilterFileCommandTarget,
+  FilterPaths,
+} from './model/filterFiles';
 import {
   clearResultsSearch,
   groupResultsBy,
@@ -80,6 +89,7 @@ async function doActivate(
     const config = new Config(context);
 
     const spotbugsTreeDataProvider = new SpotBugsTreeDataProvider();
+    const filterTreeDataProvider = new FilterTreeDataProvider(filterPaths(config));
     const pluginInventoryTreeDataProvider = new PluginInventoryTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
     const analysisRunCoordinator = new AnalysisRunCoordinator(
@@ -96,12 +106,16 @@ async function doActivate(
     const spotbugsTreeView = window.createTreeView('spotbugs-view', {
       treeDataProvider: spotbugsTreeDataProvider,
     });
+    const filterTreeView = window.createTreeView('spotbugs-filters-view', {
+      treeDataProvider: filterTreeDataProvider,
+    });
     const pluginInventoryTreeView = window.createTreeView('spotbugs-plugins-view', {
       treeDataProvider: pluginInventoryTreeDataProvider,
     });
 
     context.subscriptions.push(
       spotbugsTreeView,
+      filterTreeView,
       pluginInventoryTreeView,
       diagnosticsManager,
       analysisRunCoordinator,
@@ -129,6 +143,7 @@ async function doActivate(
         if (e.affectsConfiguration(SETTINGS_SECTION)) {
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
+          filterTreeDataProvider.update(filterPaths(config));
           if (
             e.affectsConfiguration(`${SETTINGS_SECTION}.${settingKeys.pluginsPaths}`)
           ) {
@@ -273,6 +288,20 @@ async function doActivate(
       ),
 
       instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.ADD_FILTER_FILES,
+        async (item: FilterFileCommandTarget | undefined) => {
+          await addFilterFiles(item);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.REMOVE_FILTER_FILE,
+        async (item: FilterFileCommandTarget | undefined) => {
+          await removeFilterFile(item);
+        }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.EXPORT_SARIF,
         async (element?: unknown) => {
           await exportSarifReport(spotbugsTreeDataProvider, element);
@@ -303,4 +332,12 @@ async function doActivate(
     const errorMessage = error instanceof Error ? error.message : String(error);
     defaultNotifier.error(l10n.t('Failed to activate SpotBugs extension: {0}', errorMessage));
   }
+}
+
+function filterPaths(config: Config): FilterPaths {
+  return {
+    include: config.includeFilterPaths ?? [],
+    exclude: config.excludeFilterPaths ?? [],
+    baseline: config.excludeBaselineBugsPaths ?? [],
+  };
 }

@@ -5,6 +5,7 @@
   "contributes.viewsContainers.activitybar.spotbugs-container.title": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-view.name": "SpotBugs",
   "contributes.views.spotbugs-container.spotbugs-inspector-view.name": "Inspector",
+  "contributes.views.spotbugs-container.spotbugs-filters-view.name": "Filters",
   "contributes.views.spotbugs-container.spotbugs-plugins-view.name": "Plugins",
   "contributes.configuration.analysis.title": "SpotBugs: Analysis",
   "contributes.configuration.filters.title": "SpotBugs: Filters",
@@ -36,5 +37,7 @@
   "contributes.commands.spotbugs.refreshPluginInventory.title": "SpotBugs: Refresh Plugins",
   "contributes.commands.spotbugs.addPluginJars.title": "SpotBugs: Add Plugin JARs...",
   "contributes.commands.spotbugs.removePluginJar.title": "SpotBugs: Remove Plugin JAR",
+  "contributes.commands.spotbugs.addFilterFiles.title": "SpotBugs: Add Filter Files...",
+  "contributes.commands.spotbugs.removeFilterFile.title": "SpotBugs: Remove Filter File",
   "contributes.submenus.spotbugs.context.label": "SpotBugs"
 }
