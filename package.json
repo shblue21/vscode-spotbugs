@@ -77,6 +77,11 @@
           "type": "webview"
         },
         {
+          "id": "spotbugs-filters-view",
+          "name": "%contributes.views.spotbugs-container.spotbugs-filters-view.name%",
+          "visibility": "collapsed"
+        },
+        {
           "id": "spotbugs-plugins-view",
           "name": "%contributes.views.spotbugs-container.spotbugs-plugins-view.name%",
           "visibility": "collapsed"
@@ -269,6 +274,16 @@
         "command": "spotbugs.removePluginJar",
         "title": "%contributes.commands.spotbugs.removePluginJar.title%",
         "icon": "$(trash)"
+      },
+      {
+        "command": "spotbugs.addFilterFiles",
+        "title": "%contributes.commands.spotbugs.addFilterFiles.title%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "spotbugs.removeFilterFile",
+        "title": "%contributes.commands.spotbugs.removeFilterFile.title%",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -329,6 +344,11 @@
           "group": "navigation@1"
         },
         {
+          "command": "spotbugs.addFilterFiles",
+          "when": "view == spotbugs-filters-view",
+          "group": "navigation@1"
+        },
+        {
           "command": "spotbugs.addPluginJars",
           "when": "view == spotbugs-plugins-view",
           "group": "navigation@1"
@@ -342,6 +362,10 @@
       "commandPalette": [
         {
           "command": "spotbugs.removePluginJar",
+          "when": "false"
+        },
+        {
+          "command": "spotbugs.removeFilterFile",
           "when": "false"
         }
       ],
@@ -375,6 +399,16 @@
         {
           "command": "spotbugs.removePluginJar",
           "when": "view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/",
+          "group": "1_manage@1"
+        },
+        {
+          "command": "spotbugs.addFilterFiles",
+          "when": "view == spotbugs-filters-view && viewItem == spotbugs.filter.group",
+          "group": "inline@1"
+        },
+        {
+          "command": "spotbugs.removeFilterFile",
+          "when": "view == spotbugs-filters-view && viewItem == spotbugs.filter.file",
           "group": "1_manage@1"
         }
       ],

@@ -23,13 +23,19 @@ type PackageJson = {
 describe('package contributions', () => {
   const manifest = readPackageJson();
 
-  it('contributes the results tree, inspector, and plugin inventory views', () => {
+  it('contributes the results tree, inspector, filters, and plugin inventory views', () => {
     const views = manifest.contributes.views['spotbugs-container'];
     assert.ok(views.some((view) => view.id === 'spotbugs-view'));
     const inspector = views.find((view) => view.id === 'spotbugs-inspector-view');
     assert.ok(inspector);
     assert.ok(hasManifestNlsPlaceholder(inspector.name));
     assert.strictEqual(inspector.type, 'webview');
+    const filtersIndex = views.findIndex((view) => view.id === 'spotbugs-filters-view');
+    const pluginsIndex = views.findIndex((view) => view.id === 'spotbugs-plugins-view');
+    assert.ok(filtersIndex >= 0);
+    assert.ok(pluginsIndex >= 0);
+    assert.ok(filtersIndex < pluginsIndex);
+    assert.ok(hasManifestNlsPlaceholder(views[filtersIndex].name));
     const plugins = views.find((view) => view.id === 'spotbugs-plugins-view');
     assert.ok(plugins);
     assert.ok(hasManifestNlsPlaceholder(plugins.name));
@@ -75,6 +81,8 @@ describe('package contributions', () => {
       'spotbugs.refreshPluginInventory',
       'spotbugs.addPluginJars',
       'spotbugs.removePluginJar',
+      'spotbugs.addFilterFiles',
+      'spotbugs.removeFilterFile',
     ]) {
       assert.ok(commands.includes(command), `${command} missing from contributes.commands`);
     }
@@ -149,6 +157,9 @@ describe('package contributions', () => {
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-inspector-view'), [
       'spotbugs.revealFindingSource',
     ]);
+    assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-filters-view'), [
+      'spotbugs.addFilterFiles',
+    ]);
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-plugins-view'), [
       'spotbugs.addPluginJars',
       'spotbugs.refreshPluginInventory',
@@ -165,6 +176,26 @@ describe('package contributions', () => {
       manifest.contributes.menus.commandPalette.some(
         (entry) =>
           entry.command === 'spotbugs.removePluginJar' && entry.when === 'false'
+      )
+    );
+    const filterItemMenus = manifest.contributes.menus['view/item/context'];
+    for (const [command, viewItem] of [
+      ['spotbugs.addFilterFiles', 'spotbugs.filter.group'],
+      ['spotbugs.removeFilterFile', 'spotbugs.filter.file'],
+    ]) {
+      assert.ok(
+        filterItemMenus.some(
+          (entry) =>
+            entry.command === command &&
+            entry.when ===
+              `view == spotbugs-filters-view && viewItem == ${viewItem}`
+        )
+      );
+    }
+    assert.ok(
+      manifest.contributes.menus.commandPalette.some(
+        (entry) =>
+          entry.command === 'spotbugs.removeFilterFile' && entry.when === 'false'
       )
     );
 

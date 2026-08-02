@@ -122,5 +122,21 @@
   "User": "사용자",
   "Select a plugin in the Plugins view to remove it.": "플러그인 보기에서 제거할 플러그인을 선택하세요.",
   "The plugin configuration changed. Refresh the Plugins view and try again.": "플러그인 설정이 변경되었습니다. 플러그인 보기를 새로 고친 후 다시 시도하세요.",
-  "Removed SpotBugs plugin JAR: {0}": "SpotBugs 플러그인 JAR을 제거했습니다: {0}"
+  "Removed SpotBugs plugin JAR: {0}": "SpotBugs 플러그인 JAR을 제거했습니다: {0}",
+  "Include": "포함",
+  "Exclude": "제외",
+  "Baseline bugs": "기준 버그",
+  "Could not add SpotBugs filter files: {0} is not an XML file.": "SpotBugs 필터 파일을 추가하지 못했습니다: {0}은(는) XML 파일이 아닙니다.",
+  "Could not add SpotBugs filter files: {0}": "SpotBugs 필터 파일을 추가하지 못했습니다: {0}",
+  "The selected SpotBugs filter files are already configured.": "선택한 SpotBugs 필터 파일이 이미 설정되어 있습니다.",
+  "Added {0} SpotBugs filter file(s) to {1} settings.": "SpotBugs 필터 파일 {0}개를 {1} 설정에 추가했습니다.",
+  "Select a filter file in the Filters view to remove it.": "필터 보기에서 제거할 필터 파일을 선택하세요.",
+  "The filter configuration changed. Refresh the Filters view and try again.": "필터 설정이 변경되었습니다. 필터 보기를 새로 고친 후 다시 시도하세요.",
+  "Removed SpotBugs filter file: {0}": "SpotBugs 필터 파일을 제거했습니다: {0}",
+  "XML files": "XML 파일",
+  "Include filter": "포함 필터",
+  "Exclude filter": "제외 필터",
+  "Select the SpotBugs filter type": "SpotBugs 필터 종류 선택",
+  "Select SpotBugs XML filter files": "SpotBugs XML 필터 파일 선택",
+  "Add Filters": "필터 추가"
 }
