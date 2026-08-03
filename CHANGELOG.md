@@ -1,4 +1,16 @@
 # Changelog
+## [0.9.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.8.1...v0.9.0) (2026-08-03)
+
+
+### Features
+
+* add SpotBugs filter view and file picker ([#111](https://github.com/shblue21/vscode-spotbugs/issues/111)) ([d021ffd](https://github.com/shblue21/vscode-spotbugs/commit/d021ffd23c40c782b76cb59762862077a5f12f34))
+
+
+### Bug Fixes
+
+* encode reserved characters in SARIF artifact URIs ([#108](https://github.com/shblue21/vscode-spotbugs/issues/108)) ([3847693](https://github.com/shblue21/vscode-spotbugs/commit/38476938d5af7735f451d8422488db9b144d67d6))
+
 ## [0.8.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.8.0...v0.8.1) (2026-07-24)
 
 
