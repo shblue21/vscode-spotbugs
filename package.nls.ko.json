@@ -25,6 +25,7 @@
   "contributes.commands.spotbugs.runWorkspace.title": "SpotBugs 워크스페이스 분석",
   "contributes.commands.spotbugs.revealFindingSource.title": "SpotBugs: 코드로 이동",
   "contributes.commands.spotbugs.openFindingDetails.title": "SpotBugs: 발견 항목 세부 정보 열기",
+  "contributes.commands.spotbugs.suppressFindings.title": "SpotBugs: 발견 항목 제외...",
   "contributes.commands.spotbugs.filterResults.title": "SpotBugs 결과 필터링",
   "contributes.commands.spotbugs.exportSarif.title": "SpotBugs 결과 내보내기(SARIF)",
   "contributes.commands.spotbugs.exportHtml.title": "SpotBugs 결과 내보내기(HTML)",

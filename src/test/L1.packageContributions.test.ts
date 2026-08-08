@@ -69,6 +69,7 @@ describe('package contributions', () => {
       'spotbugs.runWorkspace',
       'spotbugs.revealFindingSource',
       'spotbugs.openFindingDetails',
+      'spotbugs.suppressFindings',
       'spotbugs.filterResults',
       'spotbugs.exportSarif',
       'spotbugs.exportHtml',
@@ -120,6 +121,24 @@ describe('package contributions', () => {
         (entry) =>
           entry.command === 'spotbugs.openFindingDetails' &&
           entry.when === 'view == spotbugs-view && viewItem == spotbugs.bug'
+      )
+    );
+  });
+
+  it('adds suppression to finding and group result items only', () => {
+    const itemMenus = manifest.contributes.menus['view/item/context'];
+    const suppressionMenu = itemMenus.find(
+      (entry) => entry.command === 'spotbugs.suppressFindings'
+    );
+
+    assert.strictEqual(
+      suppressionMenu?.when,
+      'view == spotbugs-view && (viewItem == spotbugs.bug || viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)'
+    );
+    assert.ok(
+      manifest.contributes.menus.commandPalette.some(
+        (entry) =>
+          entry.command === 'spotbugs.suppressFindings' && entry.when === 'false'
       )
     );
   });

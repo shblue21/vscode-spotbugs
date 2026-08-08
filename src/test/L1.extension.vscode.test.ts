@@ -16,6 +16,7 @@ describe('Extension activation', () => {
       SpotBugsCommands.RUN_WORKSPACE,
       SpotBugsCommands.REVEAL_FINDING_SOURCE,
       SpotBugsCommands.OPEN_FINDING_DETAILS,
+      SpotBugsCommands.SUPPRESS_FINDINGS,
       SpotBugsCommands.FILTER_RESULTS,
       SpotBugsCommands.EXPORT_SARIF,
       SpotBugsCommands.EXPORT_HTML,
