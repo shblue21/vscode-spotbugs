@@ -44,6 +44,7 @@ import {
   sortResultsBy,
 } from './commands/resultsExplorer';
 import { resolveFindingCommandTarget } from './commands/findingCommandTarget';
+import { suppressFindings } from './commands/suppressFindings';
 import {
   clearInspectorBeforeOperation,
   reconcileInspectorAfterOperation,
@@ -207,6 +208,11 @@ async function doActivate(
           }
           findingDescriptionPanel.show(target);
         }
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.SUPPRESS_FINDINGS,
+        (item: unknown) => suppressFindings(spotbugsTreeDataProvider, item)
       ),
 
       instrumentOperationAsVsCodeCommand(

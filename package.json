@@ -216,6 +216,10 @@
         "icon": "$(open-preview)"
       },
       {
+        "command": "spotbugs.suppressFindings",
+        "title": "%contributes.commands.spotbugs.suppressFindings.title%"
+      },
+      {
         "command": "spotbugs.filterResults",
         "title": "%contributes.commands.spotbugs.filterResults.title%",
         "icon": "$(filter)"
@@ -367,6 +371,10 @@
         {
           "command": "spotbugs.removeFilterFile",
           "when": "false"
+        },
+        {
+          "command": "spotbugs.suppressFindings",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -385,6 +393,11 @@
           "command": "spotbugs.openFindingDetails",
           "when": "view == spotbugs-view && viewItem == spotbugs.bug",
           "group": "navigation@2"
+        },
+        {
+          "command": "spotbugs.suppressFindings",
+          "when": "view == spotbugs-view && (viewItem == spotbugs.bug || viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)",
+          "group": "1_manage@1"
         },
         {
           "command": "spotbugs.exportSarif",
