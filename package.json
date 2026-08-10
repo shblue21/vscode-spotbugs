@@ -490,7 +490,7 @@
   },
   "dependencies": {
     "fs-extra": "^11.3.3",
-    "sanitize-html": "^2.17.1",
+    "sanitize-html": "^2.17.5",
     "vscode-extension-telemetry-wrapper": "^0.15.3"
   }
 }
