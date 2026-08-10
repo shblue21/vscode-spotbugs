@@ -148,7 +148,7 @@ public class AnalysisPipelineTest {
     }
 
     private static RunAnalysisRequest request(String targetPath) throws Exception {
-        return new RunAnalysisRequest(targetPath, defaultConfig());
+        return new RunAnalysisRequest(targetPath, defaultConfig(), false);
     }
 
     private static AnalysisConfig defaultConfig() throws Exception {

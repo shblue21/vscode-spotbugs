@@ -26,6 +26,7 @@ export interface ParsedAnalysis {
   stats?: AnalysisStats;
   reportSummary?: AnalysisReportSummary;
   nativeSarif?: string;
+  baselineXml?: string;
   schemaVersion?: number;
 }
 
@@ -100,6 +101,10 @@ export function parseAnalysisResponse(raw: string): ParseResult {
       stats,
       reportSummary,
       nativeSarif,
+      baselineXml:
+        typeof envelope.baselineXml === 'string' && envelope.baselineXml.trim().length > 0
+          ? envelope.baselineXml
+          : undefined,
       schemaVersion,
     },
   };

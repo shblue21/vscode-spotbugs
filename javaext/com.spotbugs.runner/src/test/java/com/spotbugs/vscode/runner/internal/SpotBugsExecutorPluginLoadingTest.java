@@ -171,10 +171,11 @@ public class SpotBugsExecutorPluginLoadingTest {
                 new Project(),
                 3,
                 Collections.emptyList()
-        ).executeBugsWithWarnings();
+        ).executeBugsWithWarnings(null, true);
 
         assertEquals(1, result.getWarnings().size());
         assertEquals("ANALYSIS_INCOMPLETE", result.getWarnings().get(0).getCode());
+        assertNull(result.getBaselineXml());
     }
 
     @Test

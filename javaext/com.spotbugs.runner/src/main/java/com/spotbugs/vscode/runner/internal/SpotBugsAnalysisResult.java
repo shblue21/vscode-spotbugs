@@ -14,9 +14,10 @@ public class SpotBugsAnalysisResult {
     private final List<CommandWarning> warnings;
     private final AnalysisReportSummary reportSummary;
     private final String nativeSarif;
+    private final String baselineXml;
 
     public SpotBugsAnalysisResult(List<BugInfo> bugs, List<CommandWarning> warnings) {
-        this(bugs, warnings, null, null);
+        this(bugs, warnings, null, null, null);
     }
 
     public SpotBugsAnalysisResult(
@@ -24,7 +25,7 @@ public class SpotBugsAnalysisResult {
             List<CommandWarning> warnings,
             AnalysisReportSummary reportSummary
     ) {
-        this(bugs, warnings, reportSummary, null);
+        this(bugs, warnings, reportSummary, null, null);
     }
 
     public SpotBugsAnalysisResult(
@@ -33,10 +34,21 @@ public class SpotBugsAnalysisResult {
             AnalysisReportSummary reportSummary,
             String nativeSarif
     ) {
+        this(bugs, warnings, reportSummary, nativeSarif, null);
+    }
+
+    public SpotBugsAnalysisResult(
+            List<BugInfo> bugs,
+            List<CommandWarning> warnings,
+            AnalysisReportSummary reportSummary,
+            String nativeSarif,
+            String baselineXml
+    ) {
         this.bugs = normalize(bugs);
         this.warnings = normalize(warnings);
         this.reportSummary = reportSummary;
         this.nativeSarif = nativeSarif;
+        this.baselineXml = baselineXml;
     }
 
     public List<BugInfo> getBugs() {
@@ -53,6 +65,10 @@ public class SpotBugsAnalysisResult {
 
     public String getNativeSarif() {
         return nativeSarif;
+    }
+
+    public String getBaselineXml() {
+        return baselineXml;
     }
 
     public static SpotBugsAnalysisResult empty() {

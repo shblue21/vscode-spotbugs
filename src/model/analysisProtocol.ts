@@ -15,6 +15,7 @@ export interface AnalysisRequestPayload {
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
   plugins?: string[];
+  includeBaselineXml?: boolean;
 }
 
 export interface AnalysisRequest {
@@ -50,4 +51,5 @@ export interface AnalysisResponse<TBug = Bug> {
   stats?: AnalysisStats;
   reportSummary?: AnalysisReportSummary;
   nativeSarif?: string;
+  baselineXml?: string;
 }

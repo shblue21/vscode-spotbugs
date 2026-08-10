@@ -11,6 +11,7 @@ export interface ProjectResult {
   spotbugsVersion?: string;
   reportSummary?: AnalysisReportSummary;
   nativeSarif?: string;
+  baselineXml?: string;
 }
 
 export function projectResultFromOutcome(
@@ -40,6 +41,7 @@ export function projectResultFromOutcome(
   const result: ProjectResult = {
     projectUri,
     findings: outcome.findings,
+    ...(outcome.baselineXml ? { baselineXml: outcome.baselineXml } : {}),
   };
   if (outcome.stats?.spotbugsVersion) {
     result.spotbugsVersion = outcome.stats.spotbugsVersion;

@@ -52,6 +52,7 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 
 - `Analyze File/Folder` — Analyze a selected file or folder
 - `Analyze SpotBugs Workspace` — Build and analyze all projects in the workspace
+- `SpotBugs: Create Baseline from Current Workspace Results...` — Save the current complete workspace findings as an additive local baseline
 - `Export SpotBugs Results (SARIF)`, `Export SpotBugs Results (HTML)` — Save current findings
 - `Reset SpotBugs Results` — Clear the SpotBugs view and diagnostics
 

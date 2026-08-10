@@ -74,6 +74,7 @@ public class RunAnalysisRequestParserTest {
                 Arrays.asList("/workspace/plugin-a.jar", "/workspace/plugin-b.jar"),
                 request.getConfig().getPlugins()
         );
+        assertTrue(request.isIncludeBaselineXml());
     }
 
     @Test
@@ -85,6 +86,7 @@ public class RunAnalysisRequestParserTest {
         assertEquals(Effort.DEFAULT, missing.getConfig().getEffort());
         assertEquals(Effort.DEFAULT, blank.getConfig().getEffort());
         assertEquals(Effort.DEFAULT, nonString.getConfig().getEffort());
+        assertTrue(!missing.isIncludeBaselineXml());
     }
 
     @Test

@@ -158,5 +158,14 @@
   "SpotBugs exported {0} finding to {1}": "SpotBugs exported {0} finding to {1}",
   "SpotBugs exported {0} findings to {1}": "SpotBugs exported {0} findings to {1}",
   "Failed to export SpotBugs SARIF: {0}": "Failed to export SpotBugs SARIF: {0}",
-  "Failed to export SpotBugs HTML: {0}": "Failed to export SpotBugs HTML: {0}"
+  "Failed to export SpotBugs HTML: {0}": "Failed to export SpotBugs HTML: {0}",
+  "SpotBugs baseline creation is already in progress.": "SpotBugs baseline creation is already in progress.",
+  "SpotBugs baseline creation requires a single-folder workspace.": "SpotBugs baseline creation requires a single-folder workspace.",
+  "Run a complete SpotBugs workspace analysis with findings before creating a baseline.": "Run a complete SpotBugs workspace analysis with findings before creating a baseline.",
+  "Created a SpotBugs baseline for {0} finding(s) in {1} file(s).": "Created a SpotBugs baseline for {0} finding(s) in {1} file(s).",
+  "Create Baseline": "Create Baseline",
+  "Create a SpotBugs baseline from the current workspace results?": "Create a SpotBugs baseline from the current workspace results?",
+  "Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.": "Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.",
+  "Could not create the SpotBugs baseline: {0}": "Could not create the SpotBugs baseline: {0}",
+  "The baseline file(s) were created but could not be added to the workspace settings: {0}": "The baseline file(s) were created but could not be added to the workspace settings: {0}"
 }

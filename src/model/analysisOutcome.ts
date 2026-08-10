@@ -26,6 +26,7 @@ export interface AnalysisOutcome {
   stats?: AnalysisStats;
   reportSummary?: AnalysisReportSummary;
   nativeSarif?: string;
+  baselineXml?: string;
   targetPath?: string;
   schemaVersion?: number;
   failure?: AnalysisFailure;

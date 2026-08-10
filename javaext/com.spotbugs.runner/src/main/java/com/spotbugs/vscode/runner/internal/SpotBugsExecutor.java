@@ -78,22 +78,26 @@ public class SpotBugsExecutor {
     }
 
     public List<BugInfo> executeBugs() throws IOException, InterruptedException {
-        return executeBugsWithWarnings(null).getBugs();
+        return executeBugsWithWarnings(null, false).getBugs();
     }
 
     public SpotBugsAnalysisResult executeBugsWithWarnings() throws IOException, InterruptedException {
-        return executeBugsWithWarnings(null);
+        return executeBugsWithWarnings(null, false);
     }
 
-    public SpotBugsAnalysisResult executeBugsWithWarnings(IProgressMonitor monitor)
-            throws IOException, InterruptedException {
+    public SpotBugsAnalysisResult executeBugsWithWarnings(
+            IProgressMonitor monitor,
+            boolean includeBaselineXml
+    ) throws IOException, InterruptedException {
         synchronized (SPOTBUGS_GLOBAL_LOCK) {
             checkCanceled(monitor);
             LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
             List<BugInfo> bugs;
             AnalysisReportSummary reportSummary;
             String nativeSarif = null;
+            String baselineXml = null;
             CommandWarning sarifWarning = null;
+            CommandWarning baselineWarning = null;
             boolean analysisIncomplete;
             try {
                 execute(defaultBugReporter, monitor);
@@ -110,6 +114,20 @@ public class SpotBugsExecutor {
                 analysisIncomplete = !defaultBugReporter.getQueuedErrors().isEmpty()
                         || ((SortedBugCollection) defaultBugReporter.getBugCollection())
                                 .missingClassIterator().hasNext();
+                if (includeBaselineXml && !analysisIncomplete) {
+                    try {
+                        checkCanceled(monitor);
+                        baselineXml = writeBaselineXml(defaultBugReporter.getBugCollection().getCollection());
+                        checkCanceled(monitor);
+                    } catch (CancellationException cancellation) {
+                        throw cancellation;
+                    } catch (IOException | RuntimeException | LinkageError e) {
+                        baselineWarning = new CommandWarning(
+                                "BASELINE_REPORT_UNAVAILABLE",
+                                "Failed to generate the native SpotBugs baseline report: " + failureMessage(e)
+                        );
+                    }
+                }
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
                 loadedPlugins.closeAfterFailure(failure);
                 throw failure;
@@ -118,13 +136,16 @@ public class SpotBugsExecutor {
             if (sarifWarning != null) {
                 warnings.add(sarifWarning);
             }
+            if (baselineWarning != null) {
+                warnings.add(baselineWarning);
+            }
             if (analysisIncomplete) {
                 warnings.add(new CommandWarning(
                         "ANALYSIS_INCOMPLETE",
                         "SpotBugs analysis may be incomplete because classes were missing or recoverable errors occurred."
                 ));
             }
-            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif);
+            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif, baselineXml);
         }
     }
 
@@ -146,6 +167,16 @@ public class SpotBugsExecutor {
             loadedPlugins.closeAfterSuccess();
             return sarif;
         }
+    }
+
+    private static String writeBaselineXml(Collection<BugInstance> source) throws IOException {
+        SortedBugCollection baseline = new SortedBugCollection(new Project());
+        baseline.addAll(source, false);
+        baseline.setWithMessages(false);
+        baseline.setMinimalXML(true);
+        StringWriter writer = new StringWriter();
+        baseline.writeXML(writer);
+        return writer.toString();
     }
 
     private void execute(BugCollectionBugReporter reporter, IProgressMonitor monitor)

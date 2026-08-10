@@ -145,7 +145,7 @@
   "Removed SpotBugs plugin JAR: {0}": "SpotBugs 플러그인 JAR을 제거했습니다: {0}",
   "Include": "포함",
   "Exclude": "제외",
-  "Baseline bugs": "기준 버그",
+  "Baseline bugs": "베이스라인",
   "Could not add SpotBugs filter files: {0} is not an XML file.": "SpotBugs 필터 파일을 추가하지 못했습니다: {0}은(는) XML 파일이 아닙니다.",
   "Could not add SpotBugs filter files: {0}": "SpotBugs 필터 파일을 추가하지 못했습니다: {0}",
   "The selected SpotBugs filter files are already configured.": "선택한 SpotBugs 필터 파일이 이미 설정되어 있습니다.",
@@ -158,5 +158,14 @@
   "Exclude filter": "제외 필터",
   "Select the SpotBugs filter type": "SpotBugs 필터 종류 선택",
   "Select SpotBugs XML filter files": "SpotBugs XML 필터 파일 선택",
-  "Add Filters": "필터 추가"
+  "Add Filters": "필터 추가",
+  "SpotBugs baseline creation is already in progress.": "SpotBugs 베이스라인을 이미 생성 중입니다.",
+  "SpotBugs baseline creation requires a single-folder workspace.": "SpotBugs 베이스라인 생성에는 단일 폴더 워크스페이스가 필요합니다.",
+  "Run a complete SpotBugs workspace analysis with findings before creating a baseline.": "베이스라인을 생성하려면 발견 항목이 있는 완전한 SpotBugs 워크스페이스 분석을 실행하세요.",
+  "Created a SpotBugs baseline for {0} finding(s) in {1} file(s).": "발견 항목 {0}개의 SpotBugs 베이스라인을 파일 {1}개에 생성했습니다.",
+  "Create Baseline": "베이스라인 생성",
+  "Create a SpotBugs baseline from the current workspace results?": "현재 워크스페이스 결과로 SpotBugs 베이스라인을 생성할까요?",
+  "Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.": "발견 항목: {0}\n베이스라인 파일: {1}\n기존 베이스라인 파일 설정은 유지됩니다.",
+  "Could not create the SpotBugs baseline: {0}": "SpotBugs 베이스라인을 생성하지 못했습니다: {0}",
+  "The baseline file(s) were created but could not be added to the workspace settings: {0}": "베이스라인 파일을 생성했지만 워크스페이스 설정에 추가하지 못했습니다: {0}"
 }

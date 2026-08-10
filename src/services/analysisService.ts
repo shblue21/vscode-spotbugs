@@ -259,7 +259,11 @@ async function analyzeProjectDetailed(
     }
 
     try {
-      const outcome = await runAnalysis(config, result.resolution.target, token);
+      const outcome = await runAnalysis(
+        config,
+        { ...result.resolution.target, includeBaselineXml: true },
+        token
+      );
       if (Array.isArray(outcome.warnings)) {
         context.cleanupWarnings?.push(
           ...outcome.warnings.map((warning) => ({

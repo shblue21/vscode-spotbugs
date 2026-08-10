@@ -79,8 +79,9 @@ describe('analysisService', () => {
       },
       issues: [],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
-    spotbugsClient.runSpotBugsAnalysis = (async (_request, actualToken) => {
+    spotbugsClient.runSpotBugsAnalysis = (async (request, actualToken) => {
       receivedToken = actualToken;
+      assert.strictEqual(request.payload.includeBaselineXml, undefined);
       return undefined;
     }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
@@ -210,6 +211,7 @@ describe('analysisService', () => {
     const receivedEfforts: string[] = [];
     const settingsResources: string[] = [];
     let configuredEffort = 'min';
+    const baselineXml = '<BugCollection/>';
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
@@ -223,11 +225,12 @@ describe('analysisService', () => {
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async (request) => {
       receivedEfforts.push(request.payload.effort);
+      assert.strictEqual(request.payload.includeBaselineXml, true);
       configuredEffort = 'max';
-      return JSON.stringify({ schemaVersion: 2, results: [] });
+      return JSON.stringify({ schemaVersion: 2, results: [], baselineXml });
     }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
-    await service.analyzeWorkspaceFromProjectsDetailed(
+    const result = await service.analyzeWorkspaceFromProjectsDetailed(
       {
         getAnalysisSettings: (resource?: { toString(): string }) => {
           settingsResources.push(resource?.toString() ?? '');
@@ -243,6 +246,7 @@ describe('analysisService', () => {
       'file:///workspace/project-b',
     ]);
     assert.deepStrictEqual(receivedEfforts, ['min', 'min']);
+    assert.ok(result.results.every((project) => project.baselineXml === baselineXml));
   });
 
   it('preserves file resolution issues when analysis execution throws after target resolution', async () => {

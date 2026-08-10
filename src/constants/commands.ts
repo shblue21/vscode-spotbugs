@@ -19,6 +19,7 @@ export namespace SpotBugsCommands {
   export const REVEAL_FINDING_SOURCE: string = 'spotbugs.revealFindingSource';
   export const OPEN_FINDING_DETAILS: string = 'spotbugs.openFindingDetails';
   export const SUPPRESS_FINDINGS: string = 'spotbugs.suppressFindings';
+  export const CREATE_BASELINE: string = 'spotbugs.createBaseline';
   export const FILTER_RESULTS: string = 'spotbugs.filterResults';
   export const EXPORT_SARIF: string = 'spotbugs.exportSarif';
   export const EXPORT_HTML: string = 'spotbugs.exportHtml';

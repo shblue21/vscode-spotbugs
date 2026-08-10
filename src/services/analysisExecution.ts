@@ -23,6 +23,7 @@ export interface AnalysisExecutionTarget {
   targetResolutionRoots?: string[] | null;
   runtimeClasspaths?: string[] | null;
   sourcepaths?: string[] | null;
+  includeBaselineXml?: boolean;
 }
 
 export interface AnalysisConfigProvider {
@@ -159,6 +160,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       runtimeClasspaths: context.runtimeClasspaths ?? null,
       extraAuxClasspaths: settings.extraAuxClasspaths ?? null,
       sourcepaths: context.sourcepaths ?? null,
+      ...(context.includeBaselineXml ? { includeBaselineXml: true } : {}),
     });
     return deps.runSpotBugsAnalysis(
       {
@@ -294,6 +296,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       stats,
       reportSummary,
       nativeSarif,
+      baselineXml: parsed.baselineXml,
       targetPath,
       schemaVersion,
     };

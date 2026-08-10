@@ -53,6 +53,7 @@ type TreeContent =
       findings: Finding[];
       reportRuns: AnalysisReportRun[];
       workspaceStatusItems: ProjectStatusItem[];
+      workspaceUri?: string;
     };
 
 interface RenderedTreeContent {
@@ -142,7 +143,10 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showWorkspaceResults(projectResults: ProjectResult[]): void {
+  public showWorkspaceResults(
+    projectResults: ProjectResult[],
+    workspaceUri?: string
+  ): void {
     const findings = projectResults.flatMap((result) => result.findings);
     const reportRuns: AnalysisReportRun[] = projectResults.map((result) => ({
       projectUri: result.projectUri,
@@ -155,12 +159,14 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       spotbugsVersion: result.spotbugsVersion,
       summary: result.reportSummary,
       nativeSarif: result.nativeSarif,
+      baselineXml: result.baselineXml,
     }));
     this.transitionTo({
       kind: 'results',
       findings,
       reportRuns,
       workspaceStatusItems: this.createFinalProjectStatusItems(projectResults),
+      workspaceUri: workspaceUri ?? '',
     });
   }
 
@@ -195,6 +201,10 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     return this.content.kind === 'results'
       ? this.content.reportRuns.map((run) => ({ ...run, findings: run.findings.slice() }))
       : [];
+  }
+
+  public getWorkspaceResultsUri(): string | undefined {
+    return this.content.kind === 'results' ? this.content.workspaceUri : undefined;
   }
 
   public getActiveFilters(): FindingFilterState {
