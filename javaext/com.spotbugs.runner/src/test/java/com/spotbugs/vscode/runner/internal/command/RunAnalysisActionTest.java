@@ -77,17 +77,20 @@ public class RunAnalysisActionTest {
     public void executeReportsNonzeroFindingCountFromResults() {
         RunAnalysisAction action = new RunAnalysisAction(() -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
+                    boolean includeBaselineXml, String... filePaths) {
+                assertTrue(includeBaselineXml);
                 return new SpotBugsAnalysisResult(
                         Collections.nCopies(2, (BugInfo) null),
                         Collections.emptyList(),
                         null,
-                        "{\"version\":\"2.1.0\",\"runs\":[]}"
+                        "{\"version\":\"2.1.0\",\"runs\":[]}",
+                        "<?xml version=\"1.0\"?><BugCollection/>"
                 );
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes", "{\"includeBaselineXml\":true}");
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals(0, response.getAsJsonArray("errors").size());
@@ -95,6 +98,7 @@ public class RunAnalysisActionTest {
         assertEquals(2, response.getAsJsonObject("stats").get("findingCount").getAsInt());
         assertEquals("2.1.0", JsonParser.parseString(response.get("nativeSarif").getAsString())
                 .getAsJsonObject().get("version").getAsString());
+        assertTrue(response.get("baselineXml").getAsString().contains("BugCollection"));
     }
 
     @Test

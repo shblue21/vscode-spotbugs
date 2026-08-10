@@ -74,6 +74,10 @@ final class AnalysisPipelineResult {
         return result.getNativeSarif();
     }
 
+    String getBaselineXml() {
+        return result.getBaselineXml();
+    }
+
     int getFindingCount() {
         return getResults().size();
     }

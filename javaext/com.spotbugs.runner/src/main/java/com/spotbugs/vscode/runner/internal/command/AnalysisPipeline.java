@@ -24,7 +24,9 @@ final class AnalysisPipeline {
         analyzer.setConfiguration(request.getConfig());
         long startMillis = System.currentTimeMillis();
         try {
-            SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(monitor, request.getTargetPath());
+            SpotBugsAnalysisResult result = request.isIncludeBaselineXml()
+                    ? analyzer.analyzeToBugsWithWarnings(monitor, true, request.getTargetPath())
+                    : analyzer.analyzeToBugsWithWarnings(monitor, request.getTargetPath());
             if (monitor != null && monitor.isCanceled()) {
                 return AnalysisPipelineResult.cancelled(analyzer, startMillis);
             }

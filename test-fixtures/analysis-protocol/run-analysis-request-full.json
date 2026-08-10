@@ -28,6 +28,7 @@
     "excludeBaselineBugsPaths": [
       "test-fixtures/analysis-protocol/baseline-bugs.xml"
     ],
+    "includeBaselineXml": true,
     "plugins": [
       "/workspace/plugin-a.jar",
       "/workspace/plugin-b.jar"

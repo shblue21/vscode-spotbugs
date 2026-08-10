@@ -19,6 +19,7 @@ public class ConfigSchema {
     private List<String> excludeFilterPaths;  // optional
     private List<String> excludeBaselineBugsPaths; // optional
     private List<String> plugins;             // optional
+    private Boolean includeBaselineXml;       // optional command output
 
     public Integer getSchemaVersion() { return schemaVersion; }
     public String getEffort() { return effort; }
@@ -31,4 +32,5 @@ public class ConfigSchema {
     public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }
     public List<String> getExcludeBaselineBugsPaths() { return excludeBaselineBugsPaths; }
     public List<String> getPlugins() { return plugins; }
+    public Boolean getIncludeBaselineXml() { return includeBaselineXml; }
 }

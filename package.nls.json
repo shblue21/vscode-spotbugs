@@ -26,6 +26,7 @@
   "contributes.commands.spotbugs.revealFindingSource.title": "SpotBugs: Go to Code",
   "contributes.commands.spotbugs.openFindingDetails.title": "SpotBugs: Open Finding Details",
   "contributes.commands.spotbugs.suppressFindings.title": "SpotBugs: Suppress Findings...",
+  "contributes.commands.spotbugs.createBaseline.title": "SpotBugs: Create Baseline from Current Workspace Results...",
   "contributes.commands.spotbugs.filterResults.title": "Filter SpotBugs Results",
   "contributes.commands.spotbugs.exportSarif.title": "Export SpotBugs Results (SARIF)",
   "contributes.commands.spotbugs.exportHtml.title": "Export SpotBugs Results (HTML)",

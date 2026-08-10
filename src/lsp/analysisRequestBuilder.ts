@@ -11,6 +11,7 @@ export function buildAnalysisRequestPayload(
     runtimeClasspaths?: string[] | null;
     extraAuxClasspaths?: string[] | null;
     sourcepaths?: string[] | null;
+    includeBaselineXml?: boolean;
   }
 ): AnalysisRequestPayload {
   const payload: AnalysisRequestPayload = {
@@ -26,6 +27,7 @@ export function buildAnalysisRequestPayload(
       ? options.extraAuxClasspaths.slice()
       : null,
     sourcepaths: Array.isArray(options.sourcepaths) ? options.sourcepaths.slice() : null,
+    ...(options.includeBaselineXml === true ? { includeBaselineXml: true } : {}),
   };
 
   if (typeof settings.priorityThreshold === 'number') {
@@ -46,6 +48,5 @@ export function buildAnalysisRequestPayload(
   if (Array.isArray(settings.plugins) && settings.plugins.length > 0) {
     payload.plugins = settings.plugins.slice();
   }
-
   return payload;
 }

@@ -8,7 +8,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.junit.Test;
@@ -25,6 +29,8 @@ import com.spotbugs.vscode.runner.internal.config.ConfigParser;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidationResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
 import com.spotbugs.vscode.runner.internal.fixtures.NegativeShiftFixture;
+
+import edu.umd.cs.findbugs.ExcludingHashesBugReporter;
 
 public class AnalyzerServiceRankThresholdTest {
 
@@ -57,6 +63,7 @@ public class AnalyzerServiceRankThresholdTest {
     public void structuredResultIncludesPlainReportData() throws Exception {
         SpotBugsAnalysisResult result = configuredAnalyzer(20).analyzeToBugsWithWarnings(
                 null,
+                true,
                 fixtureClassPath()
         );
         AnalysisReportSummary summary = result.getReportSummary();
@@ -69,6 +76,22 @@ public class AnalyzerServiceRankThresholdTest {
         assertNotNull(fixtureBug.getLongMessage());
         assertNotNull(fixtureBug.getCategoryDescription());
         assertFalse(fixtureBug.getAnnotationMessages().isEmpty());
+        String baselineXml = result.getBaselineXml();
+        assertNotNull(baselineXml);
+        assertFalse(baselineXml.contains(fixtureClassPath()));
+        assertFalse(baselineXml.contains(fixtureSourceRoot().getAbsolutePath()));
+
+        Path baseline = Files.createTempFile("spotbugs-baseline", ".xml");
+        try {
+            Files.writeString(baseline, baselineXml);
+            Set<String> hashes = new HashSet<>();
+            ExcludingHashesBugReporter.addToExcludedInstanceHashes(hashes, baseline.toString());
+            for (BugInfo bug : result.getBugs()) {
+                assertTrue(hashes.contains(bug.getInstanceHash()));
+            }
+        } finally {
+            Files.deleteIfExists(baseline);
+        }
     }
 
     private void assertStructuredPresence(Integer threshold, boolean expected) throws Exception {
@@ -82,6 +105,7 @@ public class AnalyzerServiceRankThresholdTest {
         AnalyzerService analyzer = configuredAnalyzer(threshold);
         SpotBugsAnalysisResult analysis = analyzer.analyzeToBugsWithWarnings(null, fixtureClassPath());
         String sarif = analysis.getNativeSarif();
+        assertNull(analysis.getBaselineXml());
         assertNotNull(message("native SARIF", threshold), sarif);
         assertFalse(message("native SARIF", threshold), sarif.trim().isEmpty());
 

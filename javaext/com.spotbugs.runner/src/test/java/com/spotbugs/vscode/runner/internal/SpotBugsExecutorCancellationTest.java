@@ -39,7 +39,7 @@ public class SpotBugsExecutorCancellationTest {
         );
 
         try {
-            executor.executeBugsWithWarnings(monitor);
+            executor.executeBugsWithWarnings(monitor, false);
             fail("Expected current SpotBugs execution to be interrupted");
         } catch (InterruptedException expected) {
             assertTrue(interrupted.get());

@@ -461,6 +461,7 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
   const errors: string[] = [];
   const progressMessages: string[] = [];
   const workspaceResults: ProjectResult[][] = [];
+  const workspaceResultUris: string[] = [];
   const token = { isCancellationRequested: false } as any;
   const dependencies = {
     ...createBaseDependencies(vscode),
@@ -482,6 +483,7 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
     errors,
     progressMessages,
     workspaceResults,
+    workspaceResultUris,
     token,
     dependencies,
     args: {
@@ -500,8 +502,9 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
             `status:${uriString}:${status}:${extra?.count ?? ''}:${extra?.error ?? ''}`
           ),
         showWorkspaceCancelled: () => calls.push('cancelled'),
-        showWorkspaceResults: (projectResults: ProjectResult[]) => {
+        showWorkspaceResults: (projectResults: ProjectResult[], workspaceUri: string) => {
           workspaceResults.push(projectResults);
+          workspaceResultUris.push(workspaceUri);
           calls.push(`workspaceResults:${projectResults.length}`);
         },
       },
@@ -590,6 +593,7 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(harness.infos, [
       'SpotBugs: Workspace analysis completed - 1 issue found.',
     ]);
+    assert.deepStrictEqual(harness.workspaceResultUris, ['file:///workspace']);
   });
 
   it('ignores stale workspace callbacks and final state after invalidation', async () => {

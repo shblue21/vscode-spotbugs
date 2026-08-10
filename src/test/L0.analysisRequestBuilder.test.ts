@@ -35,6 +35,7 @@ describe('analysisRequestBuilder', () => {
         runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
         extraAuxClasspaths: ['.'],
         sourcepaths: ['/workspace/src/main/java', '/workspace/generated/sources'],
+        includeBaselineXml: true,
       }
     );
 
@@ -93,6 +94,7 @@ describe('analysisRequestBuilder', () => {
     assert.strictEqual('includeFilterPaths' in payload, false);
     assert.strictEqual('excludeFilterPaths' in payload, false);
     assert.strictEqual('excludeBaselineBugsPaths' in payload, false);
+    assert.strictEqual('includeBaselineXml' in payload, false);
   });
 
   it('copies filter arrays to prevent payload mutation from caller arrays', () => {

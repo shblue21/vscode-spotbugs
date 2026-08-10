@@ -68,6 +68,14 @@ public class AnalyzerService {
 
     public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths)
             throws java.io.IOException, InterruptedException {
+        return analyzeToBugsWithWarnings(monitor, false, filePaths);
+    }
+
+    public SpotBugsAnalysisResult analyzeToBugsWithWarnings(
+            IProgressMonitor monitor,
+            boolean includeBaselineXml,
+            String... filePaths
+    ) throws java.io.IOException, InterruptedException {
         PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
         if (prepared == null) {
             return SpotBugsAnalysisResult.empty();
@@ -79,7 +87,8 @@ public class AnalyzerService {
                 prepared.project,
                 prepared.rankThreshold,
                 prepared.plugins,
-                monitor
+                monitor,
+                includeBaselineXml
         );
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
@@ -88,7 +97,8 @@ public class AnalyzerService {
                 bugs,
                 result.getWarnings(),
                 result.getReportSummary(),
-                result.getNativeSarif()
+                result.getNativeSarif(),
+                result.getBaselineXml()
         );
     }
 

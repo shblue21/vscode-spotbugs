@@ -13,6 +13,7 @@ public class CommandResponse {
     private final RunAnalysisSummary stats;
     private final AnalysisReportSummary reportSummary;
     private final String nativeSarif;
+    private final String baselineXml;
 
     private CommandResponse(
             Object results,
@@ -22,6 +23,18 @@ public class CommandResponse {
             AnalysisReportSummary reportSummary,
             String nativeSarif
     ) {
+        this(results, errors, warnings, stats, reportSummary, nativeSarif, null);
+    }
+
+    private CommandResponse(
+            Object results,
+            List<CommandError> errors,
+            List<CommandWarning> warnings,
+            RunAnalysisSummary stats,
+            AnalysisReportSummary reportSummary,
+            String nativeSarif,
+            String baselineXml
+    ) {
         this.schemaVersion = SCHEMA_VERSION;
         this.results = results != null ? results : Collections.emptyList();
         this.errors = errors != null ? errors : Collections.emptyList();
@@ -29,6 +42,7 @@ public class CommandResponse {
         this.stats = stats;
         this.reportSummary = reportSummary;
         this.nativeSarif = nativeSarif;
+        this.baselineXml = baselineXml;
     }
 
     public static CommandResponse success(Object results, RunAnalysisSummary stats) {
@@ -56,6 +70,18 @@ public class CommandResponse {
             String nativeSarif
     ) {
         return new CommandResponse(results, Collections.emptyList(), warnings, stats, reportSummary, nativeSarif);
+    }
+
+    public static CommandResponse success(
+            Object results,
+            RunAnalysisSummary stats,
+            AnalysisReportSummary reportSummary,
+            List<CommandWarning> warnings,
+            String nativeSarif,
+            String baselineXml
+    ) {
+        return new CommandResponse(results, Collections.emptyList(), warnings, stats, reportSummary,
+                nativeSarif, baselineXml);
     }
 
     public static CommandResponse error(String code, String message) {

@@ -13,4 +13,5 @@ export interface AnalysisReportRun {
   spotbugsVersion?: string;
   summary?: AnalysisReportSummary;
   nativeSarif?: string;
+  baselineXml?: string;
 }

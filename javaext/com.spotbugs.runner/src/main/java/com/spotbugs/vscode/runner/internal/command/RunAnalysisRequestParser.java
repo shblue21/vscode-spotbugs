@@ -2,7 +2,6 @@ package com.spotbugs.vscode.runner.internal.command;
 
 import com.spotbugs.vscode.runner.api.ConfigError;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
-import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.ConfigParseResult;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidationResult;
@@ -30,11 +29,10 @@ final class RunAnalysisRequestParser {
             configJson = "{}";
         }
 
-        AnalysisConfig config = parseAndValidateConfig(configJson);
-        return new RunAnalysisRequest(targetPath, config);
+        return parseAndValidateRequest(targetPath, configJson);
     }
 
-    private AnalysisConfig parseAndValidateConfig(String configJson)
+    private RunAnalysisRequest parseAndValidateRequest(String targetPath, String configJson)
             throws AbstractCommandAction.CommandActionException {
         ConfigParseResult parseResult = configParser.parse(configJson);
         if (parseResult.hasError()) {
@@ -46,7 +44,8 @@ final class RunAnalysisRequestParser {
         if (validationResult.hasError()) {
             throw configFailure(validationResult.getError());
         }
-        return validationResult.getConfig();
+        return new RunAnalysisRequest(targetPath, validationResult.getConfig(),
+                Boolean.TRUE.equals(schema.getIncludeBaselineXml()));
     }
 
     private AbstractCommandAction.CommandActionException configFailure(ConfigError error) {

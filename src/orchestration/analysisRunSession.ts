@@ -51,7 +51,7 @@ export interface WorkspaceAnalysisSessionTree {
     extra?: { count?: number; error?: string }
   ): void;
   showWorkspaceCancelled(): void;
-  showWorkspaceResults(projectResults: ProjectResult[]): void;
+  showWorkspaceResults(projectResults: ProjectResult[], workspaceUri: string): void;
 }
 
 export interface AnalysisSessionDiagnostics {
@@ -180,6 +180,7 @@ export async function runWorkspaceAnalysisSession(
     let projectResults: ProjectResult[] = [];
     let resolutionIssues: AnalysisResolutionIssue[] = [];
     let cleanupWarnings: ProjectCleanupWarning[] = [];
+    let workspaceUri = '';
     let cancelled = false;
 
     await args.runWithProgress(async (progress, token) => {
@@ -211,6 +212,7 @@ export async function runWorkspaceAnalysisSession(
         dependencies.logger.error('No workspace folder found.');
         throw new Error('No workspace folder found.');
       }
+      workspaceUri = wsFolder.uri.toString();
 
       const discovery = await dependencies.getWorkspaceProjectDiscovery(wsFolder.uri);
       if (!args.lease.isCurrent()) {
@@ -269,7 +271,7 @@ export async function runWorkspaceAnalysisSession(
       return;
     }
 
-    args.tree.showWorkspaceResults(projectResults);
+    args.tree.showWorkspaceResults(projectResults, workspaceUri);
     if (projectResults.every((result) => !result.error)) {
       args.diagnostics.replaceAll(aggregated);
     }

@@ -45,6 +45,7 @@ import {
 } from './commands/resultsExplorer';
 import { resolveFindingCommandTarget } from './commands/findingCommandTarget';
 import { suppressFindings } from './commands/suppressFindings';
+import { createBaseline } from './commands/createBaseline';
 import {
   clearInspectorBeforeOperation,
   reconcileInspectorAfterOperation,
@@ -213,6 +214,11 @@ async function doActivate(
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.SUPPRESS_FINDINGS,
         (item: unknown) => suppressFindings(spotbugsTreeDataProvider, item)
+      ),
+
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.CREATE_BASELINE,
+        () => createBaseline(spotbugsTreeDataProvider)
       ),
 
       instrumentOperationAsVsCodeCommand(

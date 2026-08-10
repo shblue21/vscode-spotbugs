@@ -22,7 +22,7 @@ public class SpotBugsRunner {
 
     public List<BugInfo> run(FindBugs2 findBugs, Project project, Integer rankThreshold, java.util.List<String> pluginJars)
             throws IOException, InterruptedException {
-        return runWithWarnings(findBugs, project, rankThreshold, pluginJars, null).getBugs();
+        return runWithWarnings(findBugs, project, rankThreshold, pluginJars, null, false).getBugs();
     }
 
     public SpotBugsAnalysisResult runWithWarnings(
@@ -30,10 +30,11 @@ public class SpotBugsRunner {
             Project project,
             Integer rankThreshold,
             java.util.List<String> pluginJars,
-            IProgressMonitor monitor
+            IProgressMonitor monitor,
+            boolean includeBaselineXml
     ) throws IOException, InterruptedException {
         SpotBugsExecutor executor = new SpotBugsExecutor(findBugs, project, rankThreshold, pluginJars);
-        return executor.executeBugsWithWarnings(monitor);
+        return executor.executeBugsWithWarnings(monitor, includeBaselineXml);
     }
 
     public String runNativeSarif(

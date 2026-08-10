@@ -220,6 +220,10 @@
         "title": "%contributes.commands.spotbugs.suppressFindings.title%"
       },
       {
+        "command": "spotbugs.createBaseline",
+        "title": "%contributes.commands.spotbugs.createBaseline.title%"
+      },
+      {
         "command": "spotbugs.filterResults",
         "title": "%contributes.commands.spotbugs.filterResults.title%",
         "icon": "$(filter)"
@@ -326,6 +330,11 @@
           "command": "spotbugs.exportHtml",
           "when": "view == spotbugs-view",
           "group": "2_spotbugs@4"
+        },
+        {
+          "command": "spotbugs.createBaseline",
+          "when": "view == spotbugs-view",
+          "group": "2_spotbugs@5"
         },
         {
           "command": "spotbugs.groupResultsBy",
