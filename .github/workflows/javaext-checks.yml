@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'main'
-    paths:
+    paths: &java_paths
       - 'javaext/**'
       - 'test-fixtures/**'
       - '.github/workflows/javaext-checks.yml'
@@ -15,10 +15,7 @@ on:
       - opened
       - synchronize
       - reopened
-    paths:
-      - 'javaext/**'
-      - 'test-fixtures/**'
-      - '.github/workflows/javaext-checks.yml'
+    paths: *java_paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,7 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Java (Tycho)
         uses: actions/setup-java@v5
