@@ -288,9 +288,11 @@ function createTelemetryWrapperMock(
 function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
   Object.assign(target.workspace.fs, source.workspace.fs);
   target.workspace.workspaceFolders = source.workspace.workspaceFolders;
+  target.workspace.textDocuments = source.workspace.textDocuments;
   target.workspace.getConfiguration = source.workspace.getConfiguration;
   target.workspace.getWorkspaceFolder = source.workspace.getWorkspaceFolder;
   target.workspace.onDidChangeConfiguration = source.workspace.onDidChangeConfiguration;
+  target.workspace.onDidOpenTextDocument = source.workspace.onDidOpenTextDocument;
   Object.assign(target.window, source.window);
   Object.assign(target.commands, source.commands);
   Object.assign(target.env.clipboard, source.env.clipboard);
