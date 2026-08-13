@@ -156,6 +156,7 @@ describe('SpotBugs scoped diagnostics', () => {
       const { rootUri, fileUri } = await createTempJavaFile(
         'src/main/java/demo/Repro.java'
       );
+      await fs.writeFile(fileUri.fsPath, '    class Example {}\n', 'utf8');
 
       manager.replaceForScope(
         { kind: 'folder', uri: rootUri },
@@ -163,6 +164,8 @@ describe('SpotBugs scoped diagnostics', () => {
       );
 
       assertPublishedFinding(manager, fileUri, 'NP_ALWAYS_NULL');
+      await vscode.workspace.openTextDocument(fileUri);
+      assert.strictEqual(spotbugsDiagnostics(fileUri)[0].range.start.character, 4);
       assert.strictEqual(spotbugsDiagnostics(rootUri).length, 0);
     } finally {
       manager.dispose();

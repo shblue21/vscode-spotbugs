@@ -3,6 +3,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
+  Disposable,
   languages,
   Position,
   Range,
@@ -34,14 +35,22 @@ type FindingBucket = {
 
 export class SpotBugsDiagnosticsManager {
   private readonly collection: DiagnosticCollection;
+  private readonly documentOpenSubscription: Disposable;
   private readonly findingsByFile = new Map<string, FindingRange[]>();
   private readonly filesByReturnedScope = new Map<string, Set<string>>();
 
   constructor() {
     this.collection = languages.createDiagnosticCollection('spotbugs');
+    this.documentOpenSubscription = workspace.onDidOpenTextDocument((document) => {
+      const entries = this.findingsByFile.get(document.uri.toString());
+      if (entries) {
+        this.publishGrouped(this.groupFindings(entries.map(({ finding }) => finding)));
+      }
+    });
   }
 
   dispose(): void {
+    this.documentOpenSubscription.dispose();
     this.collection.dispose();
     this.findingsByFile.clear();
     this.filesByReturnedScope.clear();
