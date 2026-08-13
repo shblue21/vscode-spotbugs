@@ -26,7 +26,7 @@ export async function searchResults(
 ): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
     await window.showInformationMessage(
-      l10n.t('No cached SpotBugs findings available to search.')
+      l10n.t('No SpotBugs results available to search.')
     );
     return;
   }

@@ -180,7 +180,7 @@ describe('resultsExplorerCommands', () => {
     assert.strictEqual(inputCount, 0);
     assert.strictEqual(quickPickCount, 0);
     assert.deepStrictEqual(messages, [
-      'No cached SpotBugs findings available to search.',
+      'No SpotBugs results available to search.',
       'No cached SpotBugs findings available to clear search.',
       'No cached SpotBugs findings available to group.',
       'No cached SpotBugs findings available to sort.',

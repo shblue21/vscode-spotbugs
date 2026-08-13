@@ -110,7 +110,7 @@
   "A SpotBugs suppression is already in progress.": "A SpotBugs suppression is already in progress.",
   "Severity / Rank": "Severity / Rank",
   "Path / Line": "Path / Line",
-  "No cached SpotBugs findings available to search.": "No cached SpotBugs findings available to search.",
+  "No SpotBugs results available to search.": "No SpotBugs results available to search.",
   "SpotBugs Search Results": "SpotBugs Search Results",
   "Search SpotBugs results": "Search SpotBugs results",
   "No cached SpotBugs findings available to clear search.": "No cached SpotBugs findings available to clear search.",
