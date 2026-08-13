@@ -151,7 +151,15 @@ export class SpotBugsDiagnosticsManager {
     if (startLine === undefined || endLine === undefined) {
       return undefined;
     }
-    return new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
+    const uri = this.resolveFileUri(finding);
+    const document = uri
+      ? workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri.toString())
+      : undefined;
+    const startCharacter =
+      document && startLine < document.lineCount
+        ? document.lineAt(startLine).firstNonWhitespaceCharacterIndex
+        : 0;
+    return new Range(startLine, startCharacter, endLine, Number.MAX_SAFE_INTEGER);
   }
 
   private resolveFileUri(finding: Finding): Uri | undefined {
