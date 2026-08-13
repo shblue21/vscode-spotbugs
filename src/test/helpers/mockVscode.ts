@@ -121,6 +121,7 @@ type VscodeMock = {
   Range: typeof MockRange;
   workspace: {
     workspaceFolders: WorkspaceFolder[];
+    textDocuments: unknown[];
     getConfiguration: (section?: string) => {
       get: <T>(key: string) => T | undefined;
     };
@@ -128,6 +129,7 @@ type VscodeMock = {
     onDidChangeConfiguration: (
       listener: (event: { affectsConfiguration: (section: string) => boolean }) => unknown
     ) => { dispose: () => void };
+    onDidOpenTextDocument: (listener: (document: unknown) => unknown) => { dispose: () => void };
     fs: {
       stat: (uri: MockUri) => Promise<unknown>;
     };
@@ -304,6 +306,7 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
   const workspaceFolders = overrides.workspace?.workspaceFolders ?? [];
   const workspace = {
     workspaceFolders,
+    textDocuments: overrides.workspace?.textDocuments ?? [],
     getConfiguration:
       overrides.workspace?.getConfiguration ??
       (() => ({
@@ -315,6 +318,9 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
         workspaceFolders.find((folder) => uri.fsPath.startsWith(folder.uri.fsPath))),
     onDidChangeConfiguration:
       overrides.workspace?.onDidChangeConfiguration ??
+      (() => ({ dispose: () => undefined })),
+    onDidOpenTextDocument:
+      overrides.workspace?.onDidOpenTextDocument ??
       (() => ({ dispose: () => undefined })),
     fs: {
       stat: overrides.workspace?.fs?.stat ?? (async () => ({})),
