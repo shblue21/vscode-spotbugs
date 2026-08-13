@@ -41,7 +41,7 @@
   "No cached SpotBugs findings available to clear search.": "검색을 지울 캐시된 SpotBugs 발견 항목이 없습니다.",
   "No cached SpotBugs findings available to filter.": "필터링할 캐시된 SpotBugs 발견 항목이 없습니다.",
   "No cached SpotBugs findings available to group.": "그룹화할 캐시된 SpotBugs 발견 항목이 없습니다.",
-  "No cached SpotBugs findings available to search.": "검색할 캐시된 SpotBugs 발견 항목이 없습니다.",
+  "No SpotBugs results available to search.": "검색할 SpotBugs 결과가 없습니다.",
   "No cached SpotBugs findings available to sort.": "정렬할 캐시된 SpotBugs 발견 항목이 없습니다.",
   "No cached findings match the current view.": "현재 보기와 일치하는 캐시된 발견 항목이 없습니다.",
   "No issues found.": "문제가 발견되지 않았습니다.",
