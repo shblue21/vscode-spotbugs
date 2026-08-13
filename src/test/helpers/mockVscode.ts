@@ -121,6 +121,7 @@ type VscodeMock = {
   Range: typeof MockRange;
   workspace: {
     workspaceFolders: WorkspaceFolder[];
+    textDocuments: unknown[];
     getConfiguration: (section?: string) => {
       get: <T>(key: string) => T | undefined;
     };
@@ -128,6 +129,7 @@ type VscodeMock = {
     onDidChangeConfiguration: (
       listener: (event: { affectsConfiguration: (section: string) => boolean }) => unknown
     ) => { dispose: () => void };
+    onDidOpenTextDocument: (listener: (document: unknown) => unknown) => { dispose: () => void };
     fs: {
       stat: (uri: MockUri) => Promise<unknown>;
     };
@@ -286,9 +288,11 @@ function createTelemetryWrapperMock(
 function updateVscodeMock(target: VscodeMock, source: VscodeMock): void {
   Object.assign(target.workspace.fs, source.workspace.fs);
   target.workspace.workspaceFolders = source.workspace.workspaceFolders;
+  target.workspace.textDocuments = source.workspace.textDocuments;
   target.workspace.getConfiguration = source.workspace.getConfiguration;
   target.workspace.getWorkspaceFolder = source.workspace.getWorkspaceFolder;
   target.workspace.onDidChangeConfiguration = source.workspace.onDidChangeConfiguration;
+  target.workspace.onDidOpenTextDocument = source.workspace.onDidOpenTextDocument;
   Object.assign(target.window, source.window);
   Object.assign(target.commands, source.commands);
   Object.assign(target.env.clipboard, source.env.clipboard);
@@ -304,6 +308,7 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
   const workspaceFolders = overrides.workspace?.workspaceFolders ?? [];
   const workspace = {
     workspaceFolders,
+    textDocuments: overrides.workspace?.textDocuments ?? [],
     getConfiguration:
       overrides.workspace?.getConfiguration ??
       (() => ({
@@ -315,6 +320,9 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
         workspaceFolders.find((folder) => uri.fsPath.startsWith(folder.uri.fsPath))),
     onDidChangeConfiguration:
       overrides.workspace?.onDidChangeConfiguration ??
+      (() => ({ dispose: () => undefined })),
+    onDidOpenTextDocument:
+      overrides.workspace?.onDidOpenTextDocument ??
       (() => ({ dispose: () => undefined })),
     fs: {
       stat: overrides.workspace?.fs?.stat ?? (async () => ({})),

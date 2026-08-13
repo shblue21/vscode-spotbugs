@@ -27,12 +27,13 @@ describe('SpotBugs diagnostic explanations', () => {
   it('uses a plain diagnostic code when local HTML detail is available', async () => {
     const manager = new SpotBugsDiagnosticsManager();
     try {
-      const document = await openTempJavaDocument();
+      const document = await openTempJavaDocument('    class Example {}\n');
       manager.replaceAll([createFinding(document.uri, { detailHtml, helpUri })]);
 
       const diagnostics = spotbugsDiagnostics(document.uri);
       assert.strictEqual(diagnostics.length, 1);
       assert.strictEqual(diagnostics[0].code, 'NP_ALWAYS_NULL');
+      assert.strictEqual(diagnostics[0].range.start.character, 4);
     } finally {
       manager.dispose();
     }
@@ -155,6 +156,7 @@ describe('SpotBugs scoped diagnostics', () => {
       const { rootUri, fileUri } = await createTempJavaFile(
         'src/main/java/demo/Repro.java'
       );
+      await fs.writeFile(fileUri.fsPath, '    class Example {}\n', 'utf8');
 
       manager.replaceForScope(
         { kind: 'folder', uri: rootUri },
@@ -162,6 +164,8 @@ describe('SpotBugs scoped diagnostics', () => {
       );
 
       assertPublishedFinding(manager, fileUri, 'NP_ALWAYS_NULL');
+      await vscode.workspace.openTextDocument(fileUri);
+      assert.strictEqual(spotbugsDiagnostics(fileUri)[0].range.start.character, 4);
       assert.strictEqual(spotbugsDiagnostics(rootUri).length, 0);
     } finally {
       manager.dispose();
@@ -314,12 +318,14 @@ describe('SpotBugs scoped diagnostics', () => {
   });
 });
 
-async function openTempJavaDocument(): Promise<vscode.TextDocument> {
+async function openTempJavaDocument(
+  contents = 'class Example {}\n'
+): Promise<vscode.TextDocument> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'spotbugs-diagnostic-docs-'));
   cleanupPath(tempDir);
 
   const targetFile = path.join(tempDir, 'Example.java');
-  await fs.writeFile(targetFile, 'class Example {}\n', 'utf8');
+  await fs.writeFile(targetFile, contents, 'utf8');
   return vscode.workspace.openTextDocument(vscode.Uri.file(targetFile));
 }
 

@@ -3,6 +3,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
+  Disposable,
   languages,
   Position,
   Range,
@@ -34,14 +35,22 @@ type FindingBucket = {
 
 export class SpotBugsDiagnosticsManager {
   private readonly collection: DiagnosticCollection;
+  private readonly documentOpenSubscription: Disposable;
   private readonly findingsByFile = new Map<string, FindingRange[]>();
   private readonly filesByReturnedScope = new Map<string, Set<string>>();
 
   constructor() {
     this.collection = languages.createDiagnosticCollection('spotbugs');
+    this.documentOpenSubscription = workspace.onDidOpenTextDocument((document) => {
+      const entries = this.findingsByFile.get(document.uri.toString());
+      if (entries) {
+        this.publishGrouped(this.groupFindings(entries.map(({ finding }) => finding)));
+      }
+    });
   }
 
   dispose(): void {
+    this.documentOpenSubscription.dispose();
     this.collection.dispose();
     this.findingsByFile.clear();
     this.filesByReturnedScope.clear();
@@ -151,7 +160,15 @@ export class SpotBugsDiagnosticsManager {
     if (startLine === undefined || endLine === undefined) {
       return undefined;
     }
-    return new Range(startLine, 0, endLine, Number.MAX_SAFE_INTEGER);
+    const uri = this.resolveFileUri(finding);
+    const document = uri
+      ? workspace.textDocuments.find((candidate) => candidate.uri.toString() === uri.toString())
+      : undefined;
+    const startCharacter =
+      document && startLine < document.lineCount
+        ? document.lineAt(startLine).firstNonWhitespaceCharacterIndex
+        : 0;
+    return new Range(startLine, startCharacter, endLine, Number.MAX_SAFE_INTEGER);
   }
 
   private resolveFileUri(finding: Finding): Uri | undefined {
