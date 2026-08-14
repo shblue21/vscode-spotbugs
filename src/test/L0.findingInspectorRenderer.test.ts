@@ -71,6 +71,18 @@ describe('findingInspectorRenderer', () => {
     }
   });
 
+  it('omits source location when no source is available', () => {
+    const finding = makeFinding({ location: {} });
+    const html = renderFindingInspectorHtml(
+      { status: 'selected', finding },
+      'nonce-1'
+    );
+
+    assert.ok(!html.includes('<dt>Location</dt>'));
+    assert.ok(html.includes('data-command="revealSource"'));
+    assert.ok(html.includes('data-command="openDetails"'));
+  });
+
   it('omits docs action when no docs target exists', () => {
     const snapshot: FindingInspectorSnapshot = {
       status: 'selected',

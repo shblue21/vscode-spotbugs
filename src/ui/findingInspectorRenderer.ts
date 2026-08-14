@@ -130,7 +130,10 @@ function renderFinding(
       : vscode.l10n.t('Selected finding');
   const reportedMessage = formatReportedMessage(finding);
   const severity = formatSeverityLabel(finding, vscode);
-  const location = formatLocation(finding, vscode);
+  const location = formatLocation(finding);
+  const locationRow = location
+    ? `<dt>${escapeHtml(vscode.l10n.t('Location'))}</dt><dd class="path" title="${escapeAttribute(location)}">${escapeHtml(location)}</dd>`
+    : '';
   const docsAction = getAllowedWebDocumentationUrl(finding.helpUri, finding.type)
     ? `<button class="secondary" data-command="openDocs">${escapeHtml(vscode.l10n.t('Open docs'))}</button>`
     : '';
@@ -141,7 +144,7 @@ function renderFinding(
     <h3>${escapeHtml(vscode.l10n.t('Reported here'))}</h3>
     <p class="reported-message" title="${escapeAttribute(reportedMessage)}">${escapeHtml(reportedMessage)}</p>
     <dl>
-      <dt>${escapeHtml(vscode.l10n.t('Location'))}</dt><dd class="path" title="${escapeAttribute(location)}">${escapeHtml(location)}</dd>
+      ${locationRow}
       ${finding.className ? `<dt>${escapeHtml(vscode.l10n.t('Class'))}</dt><dd title="${escapeAttribute(finding.className)}">${escapeHtml(finding.className)}</dd>` : ''}
       ${finding.methodName ? `<dt>${escapeHtml(vscode.l10n.t('Method'))}</dt><dd title="${escapeAttribute(finding.methodName)}">${escapeHtml(finding.methodName)}</dd>` : ''}
       ${finding.fieldName ? `<dt>${escapeHtml(vscode.l10n.t('Field'))}</dt><dd title="${escapeAttribute(finding.fieldName)}">${escapeHtml(finding.fieldName)}</dd>` : ''}
@@ -181,12 +184,17 @@ function formatSeverityLabel(finding: Finding, vscode: LocalizationApi): string 
   return vscode.l10n.t('SpotBugs finding');
 }
 
-function formatLocation(finding: Finding, vscode: LocalizationApi): string {
-  const file =
-    finding.location.realSourcePath ??
-    finding.location.fullPath ??
-    finding.location.sourceFile ??
-    vscode.l10n.t('Unknown source');
+function formatLocation(finding: Finding): string | undefined {
+  const file = [
+    finding.location.realSourcePath,
+    finding.location.fullPath,
+    finding.location.sourceFile,
+  ]
+    .map((candidate) => candidate?.trim())
+    .find((candidate): candidate is string => !!candidate);
+  if (!file) {
+    return undefined;
+  }
   const start = finding.location.startLine;
   const end = finding.location.endLine;
 

@@ -301,20 +301,13 @@ describe('resultViewModel', () => {
     ]);
   });
 
-  it('uses unknown groups for missing concrete values and filters by search before grouping', () => {
+  it('keeps missing path fallbacks out of search while preserving unknown groups', () => {
     const lowMatch = makeFinding({
       patternId: 'LOW_MATCH',
       type: 'LOW_MATCH',
       rank: 12,
       className: undefined,
       location: {},
-    });
-    const hidden = makeFinding({
-      patternId: 'HIDDEN',
-      type: 'HIDDEN',
-      rank: 1,
-      className: 'com.hidden.Foo',
-      location: { fullPath: '/hidden/Foo.java', startLine: 1 },
     });
     const highMatch = makeFinding({
       patternId: 'HIGH_MATCH',
@@ -323,8 +316,10 @@ describe('resultViewModel', () => {
       className: undefined,
       location: {},
     });
-    const visible = buildResultView([lowMatch, hidden, highMatch], {
-      searchQuery: 'unknown source',
+    assert.strictEqual(matchesFindingSearch(lowMatch, 'unknown source'), false);
+
+    const visible = buildResultView([lowMatch, highMatch], {
+      searchQuery: '',
       groupBy: 'path',
       sortBy: 'severityRank',
     });

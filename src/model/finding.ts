@@ -39,4 +39,19 @@ export interface Finding {
   location: FindingLocation;
 }
 
+export function getFindingSourcePath(finding: Pick<Finding, 'location'>): string | undefined {
+  const candidates = [
+    finding.location.fullPath,
+    finding.location.realSourcePath,
+    finding.location.sourceFile,
+  ];
+  for (const candidate of candidates) {
+    const normalized = candidate?.trim();
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return undefined;
+}
+
 export type FindingSummary = Pick<Finding, 'type' | 'abbrev' | 'message'>;
