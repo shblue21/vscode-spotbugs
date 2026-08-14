@@ -119,26 +119,34 @@ describe('findingInspectorController', () => {
     assert.strictEqual(isCurrentRequest?.(), false);
   });
 
-  it('does not preview the finding source when selection reveal is disabled', async () => {
+  it('only previews findings with source locations when selection reveal is enabled', async () => {
     const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
     const findingInspectorState = await import('../ui/findingInspectorState');
     const findingTreeItem = await import('../ui/findingTreeItem');
     const finding = makeFinding();
-    const leaf = new findingTreeItem.FindingItem(finding);
+    const findingWithoutSource = makeFinding({ location: {} });
     const state = new findingInspectorState.FindingInspectorState();
     const tree = createTreeHarness();
+    let revealOnSelection = false;
     let previewCount = 0;
 
     bindFindingInspectorToTree(tree.view, state, {
-      revealSourceOnSelection: () => false,
+      revealSourceOnSelection: () => revealOnSelection,
       revealFindingSource: async () => {
         previewCount += 1;
       },
     });
-    await tree.fireSelection(leaf);
+    await tree.fireSelection(new findingTreeItem.FindingItem(finding));
 
     assert.strictEqual(state.current.status, 'selected');
     assert.strictEqual(state.current.finding, finding);
+    assert.strictEqual(previewCount, 0);
+
+    revealOnSelection = true;
+    await tree.fireSelection(new findingTreeItem.FindingItem(findingWithoutSource));
+
+    assert.strictEqual(state.current.status, 'selected');
+    assert.strictEqual(state.current.finding, findingWithoutSource);
     assert.strictEqual(previewCount, 0);
   });
 

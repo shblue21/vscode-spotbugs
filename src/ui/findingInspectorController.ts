@@ -6,7 +6,7 @@ import {
   PatternGroupItem,
 } from './findingTreeItem';
 import { FindingInspectorState } from './findingInspectorState';
-import { Finding } from '../model/finding';
+import { Finding, getFindingSourcePath } from '../model/finding';
 
 export interface FindingSourcePreviewOptions {
   preserveFocus?: boolean;
@@ -34,7 +34,11 @@ export function bindFindingInspectorToTree(
     const selected = event.selection[0];
     if (selected instanceof FindingItem) {
       inspectorState.select(selected.finding);
-      if (options.revealSourceOnSelection?.() === true && options.revealFindingSource) {
+      if (
+        getFindingSourcePath(selected.finding) !== undefined &&
+        options.revealSourceOnSelection?.() === true &&
+        options.revealFindingSource
+      ) {
         await options.revealFindingSource(selected.finding, {
           preserveFocus: true,
           preview: true,
