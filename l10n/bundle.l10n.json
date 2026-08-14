@@ -122,7 +122,7 @@
   "SpotBugs Sort Results By": "SpotBugs Sort Results By",
   "Choose a sorting mode": "Choose a sorting mode",
   "Cannot open file: Could not resolve path for {0}": "Cannot open file: Could not resolve path for {0}",
-  "unknown file": "unknown file",
+  "This SpotBugs finding has no source location.": "This SpotBugs finding has no source location.",
   "Failed to open file: {0}": "Failed to open file: {0}",
   "SpotBugs: {0} uses the Last inspected finding ({1}).": "SpotBugs: {0} uses the Last inspected finding ({1}).",
   "Could not add SpotBugs filter files: {0} is not an XML file.": "Could not add SpotBugs filter files: {0} is not an XML file.",

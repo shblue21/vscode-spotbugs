@@ -109,7 +109,7 @@
   "Open details": "세부 정보 열기",
   "Open docs": "문서 열기",
   "Open external SpotBugs docs": "외부 SpotBugs 문서 열기",
-  "unknown file": "알 수 없는 파일",
+  "This SpotBugs finding has no source location.": "이 결과의 소스 위치를 확인할 수 없습니다.",
   "{0} available value": "사용 가능한 값 {0}개",
   "{0} available values": "사용 가능한 값 {0}개",
   "{0} finding": "발견 항목 {0}개",
