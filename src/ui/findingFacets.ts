@@ -2,7 +2,7 @@ import {
   formatFindingPatternLabel,
   rankToSeverity,
 } from '../formatters/findingFormatting';
-import { Finding } from '../model/finding';
+import { Finding, getFindingSourcePath } from '../model/finding';
 
 export type FindingFacetFilterKind =
   | 'severity'
@@ -56,11 +56,7 @@ export function toFindingFacets(finding: Finding): FindingFacets {
   const categoryLabel = categoryKey;
   const packageKey = extractPackageName(finding);
   const classKey = valueOrUndefined(finding.className);
-  const pathKey = firstDefined(
-    finding.location.fullPath,
-    finding.location.realSourcePath,
-    finding.location.sourceFile
-  );
+  const pathKey = getFindingSourcePath(finding);
   const priority = normalizePriority(finding.priority, finding.rank);
   const severityKey = rankToSeverity(finding.rank);
   const severityLabel =
@@ -106,7 +102,6 @@ export function toFindingFacets(finding: Finding): FindingFacets {
     finding.methodName,
     finding.fieldName,
     pathKey,
-    pathKey ?? 'Unknown source',
     finding.location.fullPath,
     finding.location.realSourcePath,
     finding.location.sourceFile,
@@ -235,16 +230,6 @@ function concreteRuleFilterValue(finding: Finding): string | undefined {
     return undefined;
   }
   return patternId;
-}
-
-function firstDefined(...values: Array<string | undefined>): string | undefined {
-  for (const value of values) {
-    const normalized = valueOrUndefined(value);
-    if (normalized) {
-      return normalized;
-    }
-  }
-  return undefined;
 }
 
 function valueOrUndefined(value?: string): string | undefined {

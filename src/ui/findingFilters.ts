@@ -193,7 +193,7 @@ function toFindingFilterOption(
     category: facets.categoryLabel,
     package: facets.packageLabel,
     class: facets.classLabel,
-    path: facets.pathLabel,
+    path: value,
   };
   return { value, label: labelByKind[kind] };
 }

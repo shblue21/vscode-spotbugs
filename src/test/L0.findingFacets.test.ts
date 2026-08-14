@@ -100,6 +100,7 @@ describe('findingFacets', () => {
     assert.strictEqual(facets.filterValues.rule, undefined);
     assert.ok(facets.searchableValues.includes('Uncategorized'));
     assert.ok(facets.searchableValues.includes('Unknown rule'));
+    assert.ok(!facets.searchableValues.includes('Unknown source'));
     assert.ok(!facets.searchableValues.includes(MISSING_GROUP_KEYS.category));
   });
 
