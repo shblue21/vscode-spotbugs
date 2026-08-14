@@ -1,5 +1,6 @@
 package com.spotbugs.vscode.runner.internal;
 
+import static com.spotbugs.vscode.runner.api.BugInfo.LocationOrigin.PRIMARY_CLASS;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -9,6 +10,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,7 +18,9 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
+import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
+import com.spotbugs.vscode.runner.internal.fixtures.Struts2EndpointFixture;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +34,7 @@ import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.classfile.ClassDescriptor;
+import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class SpotBugsExecutorPluginLoadingTest {
 
@@ -72,6 +77,26 @@ public class SpotBugsExecutorPluginLoadingTest {
                 "FindSecBugs plugin should not leak after analysis completes",
                 Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID)
         );
+    }
+
+    @Test
+    public void findSecBugsStruts2EndpointKeepsPrimaryClassRange() throws Exception {
+        FindBugs2 findBugs = new FindBugs2();
+        findBugs.setUserPreferences(UserPreferences.createDefaultUserPreferences());
+        Project project = new Project();
+        project.addFile(struts2FixtureClassPath());
+
+        List<BugInfo> bugs = new SpotBugsExecutor(
+                findBugs,
+                project,
+                20,
+                Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())
+        ).executeBugs();
+        BugInfo finding = onlyBugOfType(bugs, "STRUTS2_ENDPOINT");
+
+        assertEquals(PRIMARY_CLASS, finding.getLocationOrigin());
+        assertTrue(finding.getStartLine() > 0);
+        assertTrue(finding.getEndLine() > finding.getStartLine());
     }
 
     @Test
@@ -215,6 +240,24 @@ public class SpotBugsExecutorPluginLoadingTest {
         ));
         assertTrue("FindSecBugs test plugin jar should exist: " + jar.getAbsolutePath(), jar.isFile());
         return jar;
+    }
+
+    private static String struts2FixtureClassPath() throws Exception {
+        URL classFile = Struts2EndpointFixture.class.getResource("Struts2EndpointFixture.class");
+        assertNotNull("Compiled Struts2 endpoint fixture should be available", classFile);
+        return new File(classFile.toURI()).getAbsolutePath();
+    }
+
+    private static BugInfo onlyBugOfType(List<BugInfo> bugs, String type) {
+        BugInfo match = null;
+        for (BugInfo bug : bugs) {
+            if (type.equals(bug.getType())) {
+                assertNull("Fixture should produce exactly one " + type, match);
+                match = bug;
+            }
+        }
+        assertNotNull("Fixture should produce " + type, match);
+        return match;
     }
 
     private static void resetSpotBugsState() {

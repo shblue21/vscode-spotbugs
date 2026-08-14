@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.gson.annotations.SerializedName;
 import com.spotbugs.vscode.runner.internal.SourcePathPolicy;
 
 import edu.umd.cs.findbugs.BugAnnotation;
@@ -40,6 +41,7 @@ public class BugInfo {
     private final String methodName;
     private final String methodSignature;
     private final String fieldName;
+    private final LocationOrigin locationOrigin;
     private String fullPath;
 
     public BugInfo(BugInstance bugInstance) {
@@ -87,6 +89,7 @@ public class BugInfo {
         this.fieldName = optionalString(fieldAnnotation != null ? fieldAnnotation.getFieldName() : null);
 
         SourceLineAnnotation sla = bugInstance.getPrimarySourceLineAnnotation();
+        this.locationOrigin = classifyLocationOrigin(bugInstance, sla);
         if (sla != null) {
             String safeSourceFile = SourcePathPolicy.sourceFileName(sla.getSourceFile());
             String safeSourcePath = safeSourceFile == null
@@ -203,6 +206,10 @@ public class BugInfo {
         return fieldName;
     }
 
+    public LocationOrigin getLocationOrigin() {
+        return locationOrigin;
+    }
+
     public String getFullPath() {
         return fullPath;
     }
@@ -223,6 +230,35 @@ public class BugInfo {
 
     private static Integer optionalInteger(int value) {
         return value > 0 ? Integer.valueOf(value) : null;
+    }
+
+    private static LocationOrigin classifyLocationOrigin(
+            BugInstance bugInstance,
+            SourceLineAnnotation selectedSource
+    ) {
+        if (selectedSource == null) {
+            return LocationOrigin.UNKNOWN;
+        }
+        if (!selectedSource.isUnknown()) {
+            for (BugAnnotation annotation : bugInstance.getAnnotations()) {
+                if (annotation == selectedSource) {
+                    return LocationOrigin.DIRECT_SOURCE_LINE;
+                }
+            }
+        }
+        MethodAnnotation method = bugInstance.getPrimaryMethod();
+        if (method != null && method.getSourceLines() == selectedSource) {
+            return LocationOrigin.PRIMARY_METHOD;
+        }
+        FieldAnnotation field = bugInstance.getPrimaryField();
+        if (field != null && field.getSourceLines() == selectedSource) {
+            return LocationOrigin.PRIMARY_FIELD;
+        }
+        ClassAnnotation clazz = bugInstance.getPrimaryClass();
+        if (clazz != null && clazz.getSourceLines() == selectedSource) {
+            return LocationOrigin.PRIMARY_CLASS;
+        }
+        return LocationOrigin.UNKNOWN;
     }
 
     private static String stablePriority(int priority) {
@@ -256,5 +292,23 @@ public class BugInfo {
             }
         }
         return Collections.unmodifiableList(messages);
+    }
+
+    /** Identifies the SpotBugs branch that supplied the source range, not its precision. */
+    public enum LocationOrigin {
+        @SerializedName("directSourceLine")
+        DIRECT_SOURCE_LINE,
+
+        @SerializedName("primaryMethod")
+        PRIMARY_METHOD,
+
+        @SerializedName("primaryField")
+        PRIMARY_FIELD,
+
+        @SerializedName("primaryClass")
+        PRIMARY_CLASS,
+
+        @SerializedName("unknown")
+        UNKNOWN
     }
 }
