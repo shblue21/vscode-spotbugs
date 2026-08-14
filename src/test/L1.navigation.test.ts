@@ -24,6 +24,8 @@ describe('navigation', () => {
     } as never);
     const { revealFindingSource } = await import('../commands/navigation');
     const finding = makeFinding();
+    finding.location.endLine = 289;
+    finding.location.locationOrigin = 'primaryClass';
 
     await revealFindingSource(finding);
 
@@ -31,6 +33,14 @@ describe('navigation', () => {
     assert.strictEqual(shown[0].uri.fsPath, '/tmp/Example.java');
     assert.strictEqual(shown[0].options.preserveFocus, false);
     assert.strictEqual(shown[0].options.preview, false);
+    const selection = shown[0].options.selection as {
+      start: { line: number; character: number };
+      end: { line: number; character: number };
+    };
+    assert.deepStrictEqual(
+      [selection.start.line, selection.start.character, selection.end.line, selection.end.character],
+      [9, 0, 9, 0]
+    );
   });
 
   it('can preview a selected finding source without stealing focus', async () => {

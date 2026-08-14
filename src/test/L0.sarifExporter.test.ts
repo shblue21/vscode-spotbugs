@@ -42,7 +42,8 @@ describe('buildSarifLog', () => {
       location: {
         fullPath: '/__WORKSPACE_ROOT__/src/main/java/example/Example.java',
         startLine: 12,
-        endLine: 12,
+        endLine: 14,
+        locationOrigin: 'primaryClass',
       },
     });
 
@@ -86,6 +87,7 @@ describe('buildSarifLog', () => {
           message: 'Null pointer dereference',
           uri: 'src/main/java/example/Example.java',
           startLine: 12,
+          endLine: 14,
           instanceHash: 'abc123',
         },
       ],

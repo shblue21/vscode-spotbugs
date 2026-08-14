@@ -1,9 +1,17 @@
+export type SourceLocationOrigin =
+  | 'directSourceLine'
+  | 'primaryMethod'
+  | 'primaryField'
+  | 'primaryClass'
+  | 'unknown';
+
 export interface FindingLocation {
   fullPath?: string;
   realSourcePath?: string;
   sourceFile?: string;
   startLine?: number;
   endLine?: number;
+  locationOrigin?: SourceLocationOrigin;
 }
 
 export interface Finding {

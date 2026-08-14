@@ -28,12 +28,16 @@ describe('SpotBugs diagnostic explanations', () => {
     const manager = new SpotBugsDiagnosticsManager();
     try {
       const document = await openTempJavaDocument('    class Example {}\n');
-      manager.replaceAll([createFinding(document.uri, { detailHtml, helpUri })]);
+      const finding = createFinding(document.uri, { detailHtml, helpUri });
+      finding.location.endLine = 3;
+      finding.location.locationOrigin = 'primaryClass';
+      manager.replaceAll([finding]);
 
       const diagnostics = spotbugsDiagnostics(document.uri);
       assert.strictEqual(diagnostics.length, 1);
       assert.strictEqual(diagnostics[0].code, 'NP_ALWAYS_NULL');
       assert.strictEqual(diagnostics[0].range.start.character, 4);
+      assert.strictEqual(diagnostics[0].range.end.line, 0);
     } finally {
       manager.dispose();
     }

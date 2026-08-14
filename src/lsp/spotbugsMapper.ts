@@ -1,5 +1,5 @@
 import { Bug } from '../model/bug';
-import { Finding, FindingLocation } from '../model/finding';
+import { Finding, FindingLocation, SourceLocationOrigin } from '../model/finding';
 
 export function mapBugsToFindings(bugs: Bug[]): Finding[] {
   return bugs.map(mapBugToFinding);
@@ -12,6 +12,7 @@ export function mapBugToFinding(bug: Bug): Finding {
     sourceFile: bug.sourceFile,
     startLine: bug.startLine,
     endLine: bug.endLine,
+    locationOrigin: normalizeLocationOrigin(bug.locationOrigin),
   };
 
   return {
@@ -38,6 +39,19 @@ export function mapBugToFinding(bug: Bug): Finding {
     fieldName: bug.fieldName,
     location,
   };
+}
+
+function normalizeLocationOrigin(value: unknown): SourceLocationOrigin | undefined {
+  switch (value) {
+    case 'directSourceLine':
+    case 'primaryMethod':
+    case 'primaryField':
+    case 'primaryClass':
+    case 'unknown':
+      return value;
+    default:
+      return undefined;
+  }
 }
 
 function normalizeStringArray(value: unknown): string[] | undefined {
