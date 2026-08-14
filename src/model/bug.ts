@@ -22,6 +22,7 @@ export interface Bug {
   sourceFile?: string;
   startLine?: number;
   endLine?: number;
+  locationOrigin?: unknown;
   realSourcePath?: string;
   fullPath?: string;
 }

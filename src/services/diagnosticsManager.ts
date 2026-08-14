@@ -168,7 +168,11 @@ export class SpotBugsDiagnosticsManager {
       document && startLine < document.lineCount
         ? document.lineAt(startLine).firstNonWhitespaceCharacterIndex
         : 0;
-    return new Range(startLine, startCharacter, endLine, Number.MAX_SAFE_INTEGER);
+    const diagnosticEndLine =
+      finding.location.locationOrigin === 'primaryClass' && endLine > startLine
+        ? startLine
+        : endLine;
+    return new Range(startLine, startCharacter, diagnosticEndLine, Number.MAX_SAFE_INTEGER);
   }
 
   private resolveFileUri(finding: Finding): Uri | undefined {

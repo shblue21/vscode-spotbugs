@@ -15,6 +15,7 @@ describe('spotbugsMapper', () => {
       helpUri: 'https://example.test/rule',
       startLine: 3,
       endLine: 4,
+      locationOrigin: 'primaryClass',
       fullPath: '/tmp/Example.java',
     });
 
@@ -25,6 +26,13 @@ describe('spotbugsMapper', () => {
     assert.strictEqual(finding.longDescription, 'Plain text detail');
     assert.strictEqual(finding.helpUri, 'https://example.test/rule');
     assert.strictEqual(finding.location.fullPath, '/tmp/Example.java');
+    assert.strictEqual(finding.location.locationOrigin, 'primaryClass');
+  });
+
+  it('drops unsupported source location origins', () => {
+    const finding = mapBugToFinding({ locationOrigin: 'futureOrigin' });
+
+    assert.strictEqual(finding.location.locationOrigin, undefined);
   });
 
   it('preserves full SpotBugs type while deriving patternId from abbrev', () => {

@@ -41,7 +41,7 @@ describe('htmlExporter', () => {
     assert.ok(html.includes('<th>Replace</th>'));
     assert.ok(html.includes('<td>new</td>'));
     assert.ok(!html.includes('<script'));
-    assert.ok(html.includes('src/Example.java, line 10'));
+    assert.ok(html.includes('src/Example.java, lines 10 to 12'));
     assert.ok(!html.includes('/workspace/project-a/src/Example.java'));
   });
 
@@ -88,6 +88,8 @@ function finding(overrides: Partial<Finding> = {}): Finding {
       fullPath: '/workspace/project-a/src/Example.java',
       realSourcePath: 'src/Example.java',
       startLine: 10,
+      endLine: 12,
+      locationOrigin: 'primaryClass',
     },
     ...overrides,
   };

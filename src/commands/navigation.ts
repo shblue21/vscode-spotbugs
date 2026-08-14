@@ -50,9 +50,12 @@ export async function revealFindingSource(
       // Calculate zero-based line numbers (VS Code uses zero-based indexing)
       const startLineZeroBased = Math.max(0, startLine - 1);
       const endLineZeroBased = Math.max(0, endLine - 1);
+      const start = new Position(startLineZeroBased, 0);
       range = new Range(
-        new Position(startLineZeroBased, 0),
-        new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER)
+        start,
+        finding.location.locationOrigin === 'primaryClass' && endLine > startLine
+          ? start
+          : new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER)
       );
     }
 
