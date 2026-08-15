@@ -2,7 +2,6 @@ package com.spotbugs.vscode.runner.internal;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.net.URI;
@@ -35,7 +34,6 @@ import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.ProjectStats;
 import edu.umd.cs.findbugs.SortedBugCollection;
 import edu.umd.cs.findbugs.config.UserPreferences;
-import edu.umd.cs.findbugs.sarif.SarifBugReporter;
 
 public class SpotBugsExecutor {
 
@@ -146,26 +144,6 @@ public class SpotBugsExecutor {
                 ));
             }
             return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif, baselineXml);
-        }
-    }
-
-    public String executeNativeSarif() throws IOException, InterruptedException {
-        synchronized (SPOTBUGS_GLOBAL_LOCK) {
-            LoadedPlugins loadedPlugins = LoadedPlugins.load(pluginJars, project, pluginLifecycle);
-            String sarif;
-            try {
-                StringWriter writer = new StringWriter();
-                SarifBugReporter reporter = new SarifBugReporter(project);
-                configureReporter(reporter);
-                reporter.setWriter(new PrintWriter(writer));
-                execute(reporter, null);
-                sarif = writer.toString();
-            } catch (IOException | InterruptedException | RuntimeException | Error failure) {
-                loadedPlugins.closeAfterFailure(failure);
-                throw failure;
-            }
-            loadedPlugins.closeAfterSuccess();
-            return sarif;
         }
     }
 

@@ -80,16 +80,13 @@ public class AnalyzerService {
         if (prepared == null) {
             return SpotBugsAnalysisResult.empty();
         }
-        SpotBugsRunner runner = new SpotBugsRunner();
         checkCanceled(monitor);
-        SpotBugsAnalysisResult result = runner.runWithWarnings(
+        SpotBugsAnalysisResult result = new SpotBugsExecutor(
                 this.findBugs,
                 prepared.project,
                 prepared.rankThreshold,
-                prepared.plugins,
-                monitor,
-                includeBaselineXml
-        );
+                prepared.plugins
+        ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, filePaths);
@@ -100,29 +97,6 @@ public class AnalyzerService {
                 result.getNativeSarif(),
                 result.getBaselineXml()
         );
-    }
-
-    public String analyzeToNativeSarif(String... filePaths) {
-        return analyzeToNativeSarif(null, filePaths);
-    }
-
-    public String analyzeToNativeSarif(IProgressMonitor monitor, String... filePaths) {
-        try {
-            PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
-            if (prepared == null) {
-                return "";
-            }
-            SpotBugsRunner runner = new SpotBugsRunner();
-            checkCanceled(monitor);
-            return runner.runNativeSarif(
-                    this.findBugs,
-                    prepared.project,
-                    prepared.rankThreshold,
-                    prepared.plugins
-            );
-        } catch (Exception e) {
-            return "";
-        }
     }
 
     private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, String... filePaths) throws java.io.IOException {
