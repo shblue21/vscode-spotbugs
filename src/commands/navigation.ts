@@ -1,5 +1,5 @@
 import { l10n, window, Uri, Range, Position, TextDocumentShowOptions } from 'vscode';
-import { Finding } from '../model/finding';
+import { Finding, getFindingSourcePath } from '../model/finding';
 import { Logger } from '../core/logger';
 import { defaultNotifier } from '../core/notifier';
 import { resolveFindingFilePath } from '../workspace/findingLocator';
@@ -22,6 +22,12 @@ export async function revealFindingSource(
     Logger.log(`Revealing finding source: ${finding.message ?? 'SpotBugs finding'}`);
     const notifier = defaultNotifier;
 
+    const sourcePath = getFindingSourcePath(finding);
+    if (!sourcePath) {
+      notifier.info(l10n.t('This SpotBugs finding has no source location.'));
+      return;
+    }
+
     const filePath = await resolveFindingFilePath(finding);
 
     if (revealOptions.isCurrentRequest?.() === false) {
@@ -32,7 +38,7 @@ export async function revealFindingSource(
     if (!filePath) {
       const errorMsg = l10n.t(
         'Cannot open file: Could not resolve path for {0}',
-        finding.location.realSourcePath || l10n.t('unknown file')
+        sourcePath
       );
       Logger.error(errorMsg);
       notifier.error(errorMsg);

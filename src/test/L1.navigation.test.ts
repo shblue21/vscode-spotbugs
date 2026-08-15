@@ -91,6 +91,25 @@ describe('navigation', () => {
 
     assert.deepStrictEqual(shown, []);
   });
+
+  it('reports missing source location without trying to open a file', async () => {
+    const messages: string[] = [];
+    resetVscodeMock({
+      window: {
+        showInformationMessage: async (message: string) => {
+          messages.push(message);
+          return undefined;
+        },
+      },
+    } as never);
+    const { revealFindingSource } = await import('../commands/navigation');
+
+    await revealFindingSource(makeFinding({ location: {} }));
+
+    assert.deepStrictEqual(messages, [
+      'This SpotBugs finding has no source location.',
+    ]);
+  });
 });
 
 function makeFinding(overrides: Partial<Finding> = {}): Finding {
