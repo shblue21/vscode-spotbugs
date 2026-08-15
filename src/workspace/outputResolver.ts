@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { containsMatchingFile } from './fileTraversal';
 
 const DEFAULT_OUTPUT_DIRS = [
   path.join('build', 'classes', 'java', 'main'),
@@ -40,29 +41,11 @@ function isLooseClassTarget(targetPath: string): boolean {
 }
 
 export async function hasClassTargets(targetPath: string): Promise<boolean> {
-  return hasTargets(targetPath, isBytecodeTarget);
+  return containsMatchingFile(targetPath, isBytecodeTarget);
 }
 
 export async function hasLooseClassTargets(targetPath: string): Promise<boolean> {
-  return hasTargets(targetPath, isLooseClassTarget);
-}
-
-async function hasTargets(
-  targetPath: string,
-  isTargetFile: (targetPath: string) => boolean
-): Promise<boolean> {
-  try {
-    const stat = await fs.promises.stat(targetPath);
-    if (stat.isFile()) {
-      return isTargetFile(targetPath);
-    }
-    if (stat.isDirectory()) {
-      return await containsTarget(targetPath, isTargetFile);
-    }
-  } catch {
-    return false;
-  }
-  return false;
+  return containsMatchingFile(targetPath, isLooseClassTarget);
 }
 
 export async function findOutputFolderFromProject(
@@ -106,35 +89,4 @@ export function orderOutputFolderCandidates<T extends OutputFolderCandidate>(
     const bRank = options.rankCandidate?.(b) ?? 0;
     return aRank - bRank || a.index - b.index;
   });
-}
-
-async function containsTarget(
-  root: string,
-  isTargetFile: (targetPath: string) => boolean
-): Promise<boolean> {
-  const queue: string[] = [root];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    if (!current) {
-      continue;
-    }
-    let entries: fs.Dirent[];
-    try {
-      entries = await fs.promises.readdir(current, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      if (entry.isFile()) {
-        if (isTargetFile(entry.name)) {
-          return true;
-        }
-        continue;
-      }
-      if (entry.isDirectory()) {
-        queue.push(path.join(current, entry.name));
-      }
-    }
-  }
-  return false;
 }
