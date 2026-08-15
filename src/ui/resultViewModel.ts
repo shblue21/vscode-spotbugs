@@ -65,10 +65,6 @@ export function buildResultView(
   };
 }
 
-export function applySearch(findings: Finding[], query: string): Finding[] {
-  return findings.filter((finding) => matchesFindingSearch(finding, query));
-}
-
 export function matchesFindingSearch(finding: Finding, query: string): boolean {
   return matchesSearch(toFindingFacets(finding), query);
 }

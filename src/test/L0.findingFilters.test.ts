@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import {
   applyFindingFilters,
-  createFilteredEmptyState,
   getFindingFilterOptions,
 } from '../ui/findingFilters';
 import { Finding } from '../model/finding';
@@ -118,16 +117,6 @@ describe('findingFilters', () => {
 
     assert.strictEqual(filtered.length, 1);
     assert.strictEqual(filtered[0].className, 'com.acme.Bar');
-  });
-
-  it('describes the active filters in the zero-result empty state', () => {
-    const emptyState = createFilteredEmptyState(findings, {
-      severity: 'Error',
-      rule: 'NP',
-    });
-
-    assert.strictEqual(emptyState.label, 'No cached findings match the current filters.');
-    assert.strictEqual(emptyState.description, 'Severity: Error • Rule: [NP] Null pointer');
   });
 
   it('keeps uncategorized filter compatibility without exposing unknown package, class, path, or rule options', () => {

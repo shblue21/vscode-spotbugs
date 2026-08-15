@@ -42,28 +42,6 @@ export function getBestEffortFileUri(
   }
 }
 
-export function getBestEffortArtifactUri(
-  finding: Finding,
-  workspaceRootPath?: string
-): string | undefined {
-  const raw =
-    finding.location.fullPath ||
-    finding.location.realSourcePath ||
-    finding.location.sourceFile;
-  if (!raw) return undefined;
-
-  const root = workspaceRootPath ?? getWorkspaceRootPath();
-  const filePath = path.isAbsolute(raw) ? raw : root ? path.join(root, raw) : raw;
-  if (path.isAbsolute(filePath)) {
-    try {
-      return Uri.file(filePath).toString();
-    } catch {
-      return filePath;
-    }
-  }
-  return filePath.replace(/\\/g, '/');
-}
-
 export async function resolveFindingFilePath(
   finding: Finding,
   preferredProject?: Uri
@@ -90,19 +68,4 @@ export async function resolveFindingFilePath(
   }
 
   return getBestEffortFilePath(finding, root);
-}
-
-export async function resolveFindingFileUri(
-  finding: Finding,
-  preferredProject?: Uri
-): Promise<Uri | undefined> {
-  const filePath = await resolveFindingFilePath(finding, preferredProject);
-  if (!filePath) {
-    return undefined;
-  }
-  try {
-    return Uri.file(filePath);
-  } catch {
-    return undefined;
-  }
 }

@@ -81,40 +81,4 @@ describe('projectDiscovery', () => {
     });
   });
 
-  it('preserves the legacy fallback log when the wrapper falls back after an empty result', async () => {
-    const vscode = installVscodeMock();
-    const discovery =
-      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const client = require('../services/javaLsClient') as typeof import('../services/javaLsClient');
-    const logger = require('../core/logger') as typeof import('../core/logger');
-
-    const logs: string[] = [];
-    client.JavaLsClient.getAllProjectsOutcome = (async () => ({
-      status: 'empty',
-      projectUris: [],
-      issues: [
-        {
-          code: 'JAVA_LS_EMPTY_PROJECT_LIST',
-          level: 'info',
-          source: 'project-discovery',
-          phase: 'get-all-projects',
-          message: 'Java LS reported no Java projects.',
-        },
-      ],
-    })) as typeof client.JavaLsClient.getAllProjectsOutcome;
-    logger.Logger.log = ((message: string) => {
-      logs.push(message);
-    }) as typeof logger.Logger.log;
-
-    const projectUris = await discovery.getWorkspaceProjectUris(
-      vscode.Uri.file('/workspace') as any
-    );
-
-    assert.deepStrictEqual(projectUris, ['file:///workspace']);
-    assert.ok(
-      logs.some((message) =>
-        message.includes('No Java projects from LS; falling back to workspace folder analysis.')
-      )
-    );
-  });
 });

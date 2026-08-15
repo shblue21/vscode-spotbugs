@@ -1,8 +1,6 @@
 import { Disposable, Event, EventEmitter } from 'vscode';
 import { Finding } from '../model/finding';
 
-export type FindingInspectorStatus = 'empty' | 'selected' | 'retained';
-
 export type FindingInspectorSnapshot =
   | { status: 'empty'; finding?: undefined }
   | { status: 'selected'; finding: Finding }

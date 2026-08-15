@@ -88,41 +88,12 @@ export function getFindingFilterOptions(
   return sortFindingFilterOptions(kind, counts);
 }
 
-export function describeFindingFilters(
-  findings: Finding[],
-  filters: FindingFilterState
-): string | undefined {
-  const parts = FILTER_KIND_ORDER.flatMap((kind) => {
-    const value = filters[kind];
-    if (!value) {
-      return [];
-    }
-    return [`${getFindingFilterKindLabel(kind)}: ${getFindingFilterLabel(findings, kind, value)}`];
-  });
-
-  if (parts.length === 0) {
-    return undefined;
-  }
-
-  return parts.join(' • ');
-}
-
 export function getFindingFilterDisplayLabel(
   findings: Finding[],
   kind: FindingFilterKind,
   value: string
 ): string {
   return getFindingFilterLabel(findings, kind, value);
-}
-
-export function createFilteredEmptyState(
-  findings: Finding[],
-  filters: FindingFilterState
-): { label: string; description?: string } {
-  return {
-    label: 'No cached findings match the current filters.',
-    description: describeFindingFilters(findings, filters),
-  };
 }
 
 function getFindingFilterValue(

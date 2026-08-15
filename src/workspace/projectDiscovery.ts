@@ -46,11 +46,6 @@ export async function getWorkspaceProjectDiscovery(
   };
 }
 
-export async function getWorkspaceProjectUris(workspaceFolder: Uri): Promise<string[]> {
-  const discovery = await getWorkspaceProjectDiscovery(workspaceFolder);
-  return discovery.projectUris;
-}
-
 export async function getProjectRootPaths(): Promise<string[]> {
   const rootCandidates: string[] = [];
 
