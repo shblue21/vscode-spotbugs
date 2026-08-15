@@ -16,7 +16,7 @@ describe('analysisService', () => {
     clearModule('../lsp/spotbugsClient');
   });
 
-  it('returns resolution issues through analyzeFileDetailed while preserving the public analyzeFile contract', async () => {
+  it('returns resolution issues through analyzeFileDetailed', async () => {
     const vscode = installVscodeMock();
     const resolverModule =
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
@@ -43,16 +43,10 @@ describe('analysisService', () => {
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       vscode.Uri.file('/workspace/src/Foo.java') as any
     );
-    const publicOutcome = await service.analyzeFile(
-      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace/src/Foo.java') as any
-    );
-
     assert.deepStrictEqual(detailed.context.resolutionIssues.map((issue) => issue.code), [
       'OUTPUT_FALLBACK_USED',
     ]);
     assert.strictEqual(detailed.outcome.failure?.code, 'NO_CLASS_TARGETS');
-    assert.strictEqual(publicOutcome.failure?.code, 'NO_CLASS_TARGETS');
   });
 
   it('carries file-analysis diagnostic scope into detailed analysis context', async () => {
@@ -126,19 +120,11 @@ describe('analysisService', () => {
       installVscodeMock().Uri.file('/workspace') as any,
       ['file:///workspace/project-a', 'file:///workspace/project-b']
     );
-    const legacy = await service.analyzeWorkspaceFromProjects(
-      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      installVscodeMock().Uri.file('/workspace') as any,
-      ['file:///workspace/project-a', 'file:///workspace/project-b']
-    );
-
     assert.deepStrictEqual(
       detailed.context.resolutionIssues.map((issue) => issue.code),
       ['JAVA_LS_REQUEST_FAILED', 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH']
     );
     assert.strictEqual(detailed.results.length, 2);
-    assert.strictEqual('context' in (legacy as any), false);
-    assert.strictEqual(legacy.results.length, 2);
   });
 
   it('aggregates backend cleanup warnings in workspace context without adding project result state', async () => {

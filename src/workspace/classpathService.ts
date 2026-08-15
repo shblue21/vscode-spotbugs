@@ -3,10 +3,7 @@ import * as path from 'path';
 import { Uri } from 'vscode';
 import type { ClasspathLookupOutcome } from '../lsp/javaLsOutcome';
 import { collectClasspathAttempts } from './classpathAttemptSelector';
-import {
-  runClasspathAttempts,
-  runClasspathAttemptsOutcome,
-} from './classpathCommandRunner';
+import { runClasspathAttemptsOutcome } from './classpathCommandRunner';
 import type { ClasspathResult } from './classpathTypes';
 import {
   orderOutputFolderCandidates,

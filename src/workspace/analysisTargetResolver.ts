@@ -464,23 +464,8 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     };
   }
 
-  async function resolveFileAnalysisTarget(uri: Uri): Promise<TargetResolution> {
-    const result = await resolveFileAnalysisTargetDetailed(uri);
-    return result.resolution;
-  }
-
-  async function resolveProjectAnalysisTarget(
-    projectUri: Uri,
-    workspaceFolder: Uri
-  ): Promise<TargetResolution> {
-    const result = await resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
-    return result.resolution;
-  }
-
   return {
-    resolveFileAnalysisTarget,
     resolveFileAnalysisTargetDetailed,
-    resolveProjectAnalysisTarget,
     resolveProjectAnalysisTargetDetailed,
   };
 }
@@ -493,22 +478,11 @@ export async function resolveFileAnalysisTargetDetailed(
   return defaultResolver.resolveFileAnalysisTargetDetailed(uri);
 }
 
-export async function resolveFileAnalysisTarget(uri: Uri): Promise<TargetResolution> {
-  return defaultResolver.resolveFileAnalysisTarget(uri);
-}
-
 export async function resolveProjectAnalysisTargetDetailed(
   projectUri: Uri,
   workspaceFolder: Uri
 ): Promise<TargetResolutionResult> {
   return defaultResolver.resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
-}
-
-export async function resolveProjectAnalysisTarget(
-  projectUri: Uri,
-  workspaceFolder: Uri
-): Promise<TargetResolution> {
-  return defaultResolver.resolveProjectAnalysisTarget(projectUri, workspaceFolder);
 }
 
 const OUTPUT_PROJECT_ROOT_SUFFIXES = [
