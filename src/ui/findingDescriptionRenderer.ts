@@ -1,4 +1,3 @@
-import type * as vscode from 'vscode';
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
 import {
@@ -6,6 +5,12 @@ import {
   rewriteLegacySpotBugsHelpUrl,
 } from '../services/spotbugsDocumentationLinks';
 import * as sanitizeHtml from 'sanitize-html';
+import {
+  escapeAttribute,
+  escapeHtml,
+  fallbackLocalizationApi,
+  type LocalizationApi,
+} from './rendererSupport';
 
 const PANEL_TITLE = 'SpotBugs Details';
 const DETAIL_HTML_ALLOWED_TAGS = [
@@ -36,21 +41,9 @@ const DETAIL_HTML_ALLOWED_TAGS = [
 const DETAIL_HTML_ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 const DETAIL_HTML_ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 
-type Localize = (message: string, ...args: Array<string | number | boolean>) => string;
-type LocalizationApi = {
-  l10n: { t: Localize };
-  readonly vscodeL10nType?: typeof vscode.l10n;
-};
-
-const fallbackVscode: LocalizationApi = {
-  l10n: {
-    t: formatFallback,
-  },
-};
-
 export function renderFindingDescriptionHtml(
   finding: Finding,
-  vscode: LocalizationApi = fallbackVscode
+  vscode: LocalizationApi = fallbackLocalizationApi
 ): string {
   const title = getFindingDescriptionTitle(finding);
   const summary = formatFindingSummary(finding);
@@ -214,19 +207,6 @@ export function getFindingDescriptionTitle(finding: Finding): string {
   return finding.shortDescription?.trim() || formatFindingSummary(finding) || PANEL_TITLE;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeAttribute(value: string): string {
-  return escapeHtml(value);
-}
-
 function getFindingDetailSanitizeOptions(
   currentBugType?: string
 ): sanitizeHtml.IOptions {
@@ -291,14 +271,4 @@ function getAllowedAbsoluteUrl(
   }
 
   return undefined;
-}
-
-function formatFallback(
-  message: string,
-  ...args: Array<string | number | boolean>
-): string {
-  return message.replace(/\{(\d+)\}/g, (placeholder, indexValue: string) => {
-    const index = Number(indexValue);
-    return index < args.length ? String(args[index]) : placeholder;
-  });
 }

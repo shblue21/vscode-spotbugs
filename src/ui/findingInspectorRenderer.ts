@@ -1,26 +1,19 @@
-import type * as vscode from 'vscode';
 import { formatFindingSummary } from '../formatters/findingFormatting';
 import { Finding } from '../model/finding';
 import { getAllowedWebDocumentationUrl } from '../services/spotbugsDocumentationLinks';
 import { getFindingDescriptionTitle } from './findingDescriptionRenderer';
 import { FindingInspectorSnapshot } from './findingInspectorState';
-
-type Localize = (message: string, ...args: Array<string | number | boolean>) => string;
-type LocalizationApi = {
-  l10n: { t: Localize };
-  readonly vscodeL10nType?: typeof vscode.l10n;
-};
-
-const fallbackVscode: LocalizationApi = {
-  l10n: {
-    t: formatFallback,
-  },
-};
+import {
+  escapeAttribute,
+  escapeHtml,
+  fallbackLocalizationApi,
+  type LocalizationApi,
+} from './rendererSupport';
 
 export function renderFindingInspectorHtml(
   snapshot: FindingInspectorSnapshot,
   nonce: string,
-  vscode: LocalizationApi = fallbackVscode
+  vscode: LocalizationApi = fallbackLocalizationApi
 ): string {
   const body =
     snapshot.status === 'empty'
@@ -205,27 +198,4 @@ function formatLocation(finding: Finding): string | undefined {
     return `${file}:${start}-${end}`;
   }
   return `${file}:${start}`;
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeAttribute(value: string): string {
-  return escapeHtml(value);
-}
-
-function formatFallback(
-  message: string,
-  ...args: Array<string | number | boolean>
-): string {
-  return message.replace(/\{(\d+)\}/g, (placeholder, indexValue: string) => {
-    const index = Number(indexValue);
-    return index < args.length ? String(args[index]) : placeholder;
-  });
 }
