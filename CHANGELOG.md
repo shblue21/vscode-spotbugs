@@ -1,4 +1,22 @@
 # Changelog
+## [0.10.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.9.0...v0.10.0) (2026-08-15)
+
+
+### Features
+
+* add finding suppression manager ([#113](https://github.com/shblue21/vscode-spotbugs/issues/113)) ([3495114](https://github.com/shblue21/vscode-spotbugs/commit/349511457de7829e005dcb6efd5d9d78f961816e))
+* add local SpotBugs baseline generation ([#116](https://github.com/shblue21/vscode-spotbugs/issues/116)) ([b94cf36](https://github.com/shblue21/vscode-spotbugs/commit/b94cf360c8eabb0a9b330dc2495f51ea5db27ef5))
+
+
+### Bug Fixes
+
+* improve Korean localization ([95d4efa](https://github.com/shblue21/vscode-spotbugs/commit/95d4efac1402f5fda780b436151ade5031f4b56a))
+* **ui:** align diagnostic underlines with non-whitespace code ([60dc743](https://github.com/shblue21/vscode-spotbugs/commit/60dc743cf7bd55f67817de471738db294ebab8b5))
+* **ui:** clarify empty SpotBugs search message ([b1a4143](https://github.com/shblue21/vscode-spotbugs/commit/b1a4143f92d7e2248572cc693ce8f6d2b61e99e1))
+* **ui:** handle findings without source locations ([35e8234](https://github.com/shblue21/vscode-spotbugs/commit/35e823433cea8440e475d1712e0a75f03dd911be))
+* **ui:** improve source ranges for class-derived findings ([2da8446](https://github.com/shblue21/vscode-spotbugs/commit/2da84461d9427c830e2a20945ec871a1bd572b68))
+* **ui:** omit missing source details from SpotBugs findings ([e302f3a](https://github.com/shblue21/vscode-spotbugs/commit/e302f3a6cde8f17fbc8bc1622ab3bfdb03496a7e))
+
 ## [0.9.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.8.1...v0.9.0) (2026-08-03)
 
 
