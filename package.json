@@ -474,8 +474,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "l10n:export": "vscode-l10n-dev export -o ./l10n ./src",
-    "build-server": "node scripts/buildJdtlsExt.js",
-    "generate:sarif-fixture": "node scripts/generateSarifFixture.js"
+    "build-server": "node scripts/buildJdtlsExt.js"
   },
   "extensionDependencies": [
     "redhat.java"
