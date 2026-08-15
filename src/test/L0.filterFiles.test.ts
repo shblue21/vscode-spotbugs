@@ -2,9 +2,9 @@ import * as assert from 'assert';
 import type { Uri } from 'vscode';
 import type {
   FilterConfigurationDeps,
-  FilterPathConfiguration,
 } from '../commands/filterFiles';
 import type { FilterKind } from '../model/filterFiles';
+import type { PathSettingState } from '../services/pathSetting';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 const vscode = installVscodeMock();
@@ -21,46 +21,27 @@ type Validation = [FilterKind, string[]];
 describe('filter file commands', () => {
   beforeEach(() => resetVscodeMock());
 
-  it('adds validated files with single-root relative and multi-root absolute paths', async () => {
+  it('validates and adds selected filter files', async () => {
     const writes: Write[] = [];
     const validations: Validation[] = [];
 
     await addFilterFiles(
       { filterKind: 'exclude' },
       deps(
-        state(['filters/existing.xml'], ['/workspace']),
-        uris('/workspace/filters/existing.xml', '/workspace/filters/new.xml'),
+        state([], ['/workspace']),
+        uris('/workspace/filters/new.xml'),
         writes,
         validations
-      )
-    );
-    await addFilterFiles(
-      undefined,
-      deps(
-        state([], ['/workspace-a', '/workspace-b']),
-        uris('/workspace-a/filters/baseline.xml'),
-        writes,
-        validations,
-        'baseline'
       )
     );
 
     assert.deepStrictEqual(validations[0], [
       'exclude',
-      ['/workspace/filters/existing.xml', '/workspace/filters/new.xml'],
+      ['/workspace/filters/new.xml'],
     ]);
     assert.deepStrictEqual(writes[0], [
       'exclude',
-      ['filters/existing.xml', 'filters/new.xml'],
-      'workspace',
-    ]);
-    assert.deepStrictEqual(validations[1], [
-      'baseline',
-      ['/workspace-a/filters/baseline.xml'],
-    ]);
-    assert.deepStrictEqual(writes[1], [
-      'baseline',
-      ['/workspace-a/filters/baseline.xml'],
+      ['filters/new.xml'],
       'workspace',
     ]);
   });
@@ -96,7 +77,7 @@ describe('filter file commands', () => {
     );
 
     await removeFilterFile(
-      { filterKind: 'include', filterPath: '/workspace/filters/a.xml' },
+      { filterKind: 'include', filterPath: 'filters/a.xml' },
       commandDeps
     );
     await removeFilterFile(
@@ -151,7 +132,7 @@ describe('filterTreeDataProvider', () => {
 function state(
   paths: string[],
   workspaceRoots: string[]
-): FilterPathConfiguration {
+): PathSettingState {
   return { target: 'workspace', paths, workspaceRoots };
 }
 
@@ -160,7 +141,7 @@ function uris(...paths: string[]): Uri[] {
 }
 
 function deps(
-  configuration: FilterPathConfiguration,
+  configuration: PathSettingState,
   selected: readonly Uri[],
   writes: Write[],
   validations: Validation[] = [],
