@@ -14,8 +14,6 @@ export interface AnalysisSettings {
 }
 
 export class Config {
-  private _ctx: ExtensionContext;
-
   public effort!: string;
   // Future-ready fields (optional; only sent when defined)
   public priorityThreshold?: number;
@@ -26,8 +24,7 @@ export class Config {
   public plugins?: string[];
   public revealSourceOnSelection!: boolean;
 
-  public constructor(ctx: ExtensionContext) {
-    this._ctx = ctx;
+  public constructor(_ctx: ExtensionContext) {
     this.init();
   }
 

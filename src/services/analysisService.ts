@@ -5,7 +5,6 @@ import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisOutcome } from '../model/analysisOutcome';
 import type { AnalysisWarning } from '../model/analysisProtocol';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
-import { ProjectRef } from '../workspace/classpathService';
 import type { ProjectResult } from './projectResult';
 import { projectResultFromOutcome } from './projectResult';
 import {
@@ -15,23 +14,15 @@ import {
   runAnalysisTarget,
 } from './analysisExecution';
 import {
-  resolveFileAnalysisTarget,
   resolveFileAnalysisTargetDetailed,
-  resolveProjectAnalysisTarget,
   resolveProjectAnalysisTargetDetailed,
 } from '../workspace/analysisTargetResolver';
-import { getWorkspaceProjectUris } from '../workspace/projectDiscovery';
 
 const ERROR_ANALYSIS_FAILED = 'ANALYSIS_FAILED';
 const ERROR_ANALYSIS_CANCELLED = 'ANALYSIS_CANCELLED';
 
 export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 export type { ProjectResult } from './projectResult';
-
-export interface WorkspaceResult {
-  results: ProjectResult[];
-  cancelled?: boolean;
-}
 
 export interface ProjectCleanupWarning {
   projectUri: string;
@@ -112,25 +103,6 @@ export async function analyzeFileDetailed(
   }
 }
 
-export async function analyzeFile(config: Config, uri: Uri): Promise<AnalysisOutcome> {
-  const result = await analyzeFileDetailed(config, uri);
-  return result.outcome;
-}
-
-export async function analyzeWorkspace(
-  config: Config,
-  workspaceFolder: Uri,
-  notify?: {
-    onStart?: (uriString: string, index: number, total: number) => void;
-    onDone?: (uriString: string, count: number) => void;
-    onFail?: (uriString: string, message: string) => void;
-  },
-  token?: CancellationToken
-): Promise<WorkspaceResult> {
-  const projectUris = await getWorkspaceProjects(workspaceFolder);
-  return analyzeWorkspaceFromProjects(config, workspaceFolder, projectUris, notify, token);
-}
-
 export async function analyzeWorkspaceFromProjectsDetailed(
   config: Config,
   workspaceFolder: Uri,
@@ -191,50 +163,12 @@ export async function analyzeWorkspaceFromProjectsDetailed(
   return { results, cancelled, context };
 }
 
-export async function analyzeWorkspaceFromProjects(
-  config: Config,
-  workspaceFolder: Uri,
-  projectUris: string[],
-  notify?: {
-    onStart?: (uriString: string, index: number, total: number) => void;
-    onDone?: (uriString: string, count: number) => void;
-    onFail?: (uriString: string, message: string) => void;
-  },
-  token?: CancellationToken
-): Promise<WorkspaceResult> {
-  const result = await analyzeWorkspaceFromProjectsDetailed(
-    config,
-    workspaceFolder,
-    projectUris,
-    notify,
-    token
-  );
-  return {
-    results: result.results,
-    cancelled: result.cancelled,
-  };
-}
-
-export async function getWorkspaceProjects(workspaceFolder: Uri): Promise<string[]> {
-  return getWorkspaceProjectUris(workspaceFolder);
-}
-
-async function analyzeProject(
-  config: Config,
-  project: ProjectRef,
-  workspaceFolder: Uri
-): Promise<ProjectResult> {
-  const result = await analyzeProjectDetailed(config, project, workspaceFolder);
-  return result.projectResult;
-}
-
 async function analyzeProjectDetailed(
   config: AnalysisConfigProvider,
-  project: ProjectRef,
+  projectUri: Uri,
   workspaceFolder: Uri,
   token?: CancellationToken
 ): Promise<{ projectResult: ProjectResult; context: AnalysisExecutionContext }> {
-  const projectUri = normalizeProjectRef(project);
   const projectUriString = projectUri.toString();
   const context = createExecutionContext();
 
@@ -318,22 +252,6 @@ function cancelledProjectResult(projectUri: string): ProjectResult {
     findings: [],
     errorCode: ERROR_ANALYSIS_CANCELLED,
   };
-}
-
-function normalizeProjectRef(project: ProjectRef): Uri {
-  if (!project) {
-    throw new Error('Project reference is required');
-  }
-
-  if (project instanceof Uri) {
-    return project;
-  }
-
-  if (typeof project === 'string') {
-    return Uri.parse(project);
-  }
-
-  throw new Error('Unsupported project reference');
 }
 
 function createExecutionContext(): AnalysisExecutionContext {

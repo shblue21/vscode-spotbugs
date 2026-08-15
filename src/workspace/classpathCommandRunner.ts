@@ -24,14 +24,6 @@ type CommandResult = AttemptSummary & {
   response?: JavaLsClasspathResponse;
 };
 
-export async function runClasspathAttempts(
-  attempts: ClasspathAttempt[],
-  opts?: ClasspathLookupOptions
-): Promise<ClasspathResult | undefined> {
-  const outcome = await runClasspathAttemptsOutcome(attempts, opts);
-  return outcome.status === 'resolved' ? outcome.classpath : undefined;
-}
-
 export async function runClasspathAttemptsOutcome(
   attempts: ClasspathAttempt[],
   opts?: ClasspathLookupOptions
