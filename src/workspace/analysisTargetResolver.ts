@@ -18,6 +18,7 @@ import {
   orderOutputFolderCandidates,
   type OutputFolderSelectionOptions,
 } from './outputResolver';
+import { containsMatchingFile } from './fileTraversal';
 
 export interface AnalysisTarget {
   targetPath: string;
@@ -802,44 +803,7 @@ function isJavaSourceFile(targetPath: string): boolean {
 }
 
 async function containsJavaSources(targetPath: string): Promise<boolean> {
-  try {
-    const stat = await fs.promises.stat(targetPath);
-    if (stat.isFile()) {
-      return isJavaSourceFile(targetPath);
-    }
-    if (!stat.isDirectory()) {
-      return false;
-    }
-  } catch {
-    return false;
-  }
-
-  const queue: string[] = [targetPath];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    if (!current) {
-      continue;
-    }
-    let entries: fs.Dirent[];
-    try {
-      entries = await fs.promises.readdir(current, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isFile()) {
-        if (isJavaSourceFile(entryPath)) {
-          return true;
-        }
-        continue;
-      }
-      if (entry.isDirectory()) {
-        queue.push(entryPath);
-      }
-    }
-  }
-  return false;
+  return containsMatchingFile(targetPath, isJavaSourceFile);
 }
 
 async function isJavaSourceDirectoryPath(
