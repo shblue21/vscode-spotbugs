@@ -21,17 +21,6 @@ public class CommandResponse {
             List<CommandWarning> warnings,
             RunAnalysisSummary stats,
             AnalysisReportSummary reportSummary,
-            String nativeSarif
-    ) {
-        this(results, errors, warnings, stats, reportSummary, nativeSarif, null);
-    }
-
-    private CommandResponse(
-            Object results,
-            List<CommandError> errors,
-            List<CommandWarning> warnings,
-            RunAnalysisSummary stats,
-            AnalysisReportSummary reportSummary,
             String nativeSarif,
             String baselineXml
     ) {
@@ -46,30 +35,7 @@ public class CommandResponse {
     }
 
     public static CommandResponse success(Object results, RunAnalysisSummary stats) {
-        return new CommandResponse(results, Collections.emptyList(), null, stats, null, null);
-    }
-
-    public static CommandResponse success(Object results, RunAnalysisSummary stats, List<CommandWarning> warnings) {
-        return new CommandResponse(results, Collections.emptyList(), warnings, stats, null, null);
-    }
-
-    public static CommandResponse success(
-            Object results,
-            RunAnalysisSummary stats,
-            AnalysisReportSummary reportSummary,
-            List<CommandWarning> warnings
-    ) {
-        return new CommandResponse(results, Collections.emptyList(), warnings, stats, reportSummary, null);
-    }
-
-    public static CommandResponse success(
-            Object results,
-            RunAnalysisSummary stats,
-            AnalysisReportSummary reportSummary,
-            List<CommandWarning> warnings,
-            String nativeSarif
-    ) {
-        return new CommandResponse(results, Collections.emptyList(), warnings, stats, reportSummary, nativeSarif);
+        return new CommandResponse(results, Collections.emptyList(), null, stats, null, null, null);
     }
 
     public static CommandResponse success(
@@ -90,7 +56,8 @@ public class CommandResponse {
 
     public static CommandResponse error(String code, String message, RunAnalysisSummary stats) {
         CommandError error = new CommandError(code, message);
-        return new CommandResponse(Collections.emptyList(), Collections.singletonList(error), null, stats, null, null);
+        return new CommandResponse(
+                Collections.emptyList(), Collections.singletonList(error), null, stats, null, null, null);
     }
 
     public int getSchemaVersion() {

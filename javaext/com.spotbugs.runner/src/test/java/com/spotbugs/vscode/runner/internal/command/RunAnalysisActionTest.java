@@ -188,6 +188,22 @@ public class RunAnalysisActionTest {
     }
 
     @Test
+    public void executeDoesNotCreateAnalyzerWhenMonitorIsAlreadyCancelled() {
+        NullProgressMonitor monitor = new NullProgressMonitor();
+        monitor.setCanceled(true);
+        AtomicInteger analyzerCreations = new AtomicInteger(0);
+        RunAnalysisAction action = new RunAnalysisAction(() -> {
+            analyzerCreations.incrementAndGet();
+            return emptyAnalyzer();
+        });
+
+        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes", "{}");
+
+        assertEquals("ANALYSIS_CANCELLED", firstError(response).get("code").getAsString());
+        assertEquals(0, analyzerCreations.get());
+    }
+
+    @Test
     public void executeReportsAllCurrentStatsKeysAndCounts() {
         CountingAnalyzerService analyzer = new CountingAnalyzerService();
         RunAnalysisAction action = new RunAnalysisAction(() -> analyzer);
@@ -234,7 +250,9 @@ public class RunAnalysisActionTest {
                 Collections.emptyList(),
                 summary,
                 reportSummary,
-                Collections.emptyList()
+                Collections.emptyList(),
+                null,
+                null
         );
         JsonObject json = JsonParser.parseString(new Gson().toJson(response)).getAsJsonObject();
         JsonObject stats = json.getAsJsonObject("stats");
@@ -264,13 +282,7 @@ public class RunAnalysisActionTest {
     }
 
     private static JsonObject executeWithMonitor(RunAnalysisAction action, IProgressMonitor monitor, Object... args) {
-        String json = action.execute(new ActionInvocation(
-                "java.spotbugs.run",
-                args,
-                monitor,
-                Thread.currentThread(),
-                System.nanoTime()
-        ));
+        String json = action.execute(args, monitor);
         return JsonParser.parseString(json).getAsJsonObject();
     }
 

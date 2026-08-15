@@ -158,13 +158,7 @@ public class AnalysisPipelineTest {
     }
 
     private static AbstractCommandAction.ActionContext context(Object... args) {
-        return new AbstractCommandAction.ActionContext(new ActionInvocation(
-                "java.spotbugs.run",
-                args,
-                new NullProgressMonitor(),
-                Thread.currentThread(),
-                System.nanoTime()
-        ));
+        return new AbstractCommandAction.ActionContext(args, new NullProgressMonitor());
     }
 
     private static final class CapturingAnalyzerService extends AnalyzerService {

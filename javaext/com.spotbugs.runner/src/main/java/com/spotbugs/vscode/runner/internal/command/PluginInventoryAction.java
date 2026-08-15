@@ -31,8 +31,8 @@ public final class PluginInventoryAction extends AbstractCommandAction {
     }
 
     @Override
-    protected CommandResult run(ActionContext context) throws Exception {
-        return success(CommandResponse.success(service.inspect(parsePluginPaths(context)), null));
+    protected CommandResponse run(ActionContext context) throws Exception {
+        return CommandResponse.success(service.inspect(parsePluginPaths(context)), null);
     }
 
     private List<String> parsePluginPaths(ActionContext context) throws CommandActionException {

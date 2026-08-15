@@ -79,13 +79,7 @@ public class PluginInventoryActionTest {
     }
 
     private static JsonObject execute(PluginInventoryAction action, Object... args) {
-        String raw = action.execute(new ActionInvocation(
-                "java.spotbugs.plugins.inventory",
-                args,
-                new NullProgressMonitor(),
-                Thread.currentThread(),
-                System.nanoTime()
-        ));
+        String raw = action.execute(args, new NullProgressMonitor());
         return JsonParser.parseString(raw).getAsJsonObject();
     }
 }

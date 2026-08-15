@@ -54,7 +54,7 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     }
 
     @Override
-    protected CommandResult run(ActionContext context) throws Exception {
+    protected CommandResponse run(ActionContext context) throws Exception {
         RunAnalysisRequest request = requestParser.parse(context);
         String targetPath = request.getTargetPath();
         AnalysisConfig config = request.getConfig();
@@ -69,29 +69,29 @@ public final class RunAnalysisAction extends AbstractCommandAction {
         );
 
         if (pipelineResult.getStatus() == AnalysisPipelineResult.Status.CANCELLED) {
-            return success(CommandResponse.error(
+            return CommandResponse.error(
                     ERROR_ANALYSIS_CANCELLED,
                     "Command cancelled",
                     stats
-            ));
+            );
         }
 
         if (pipelineResult.getStatus() == AnalysisPipelineResult.Status.FAILED) {
-            return success(CommandResponse.error(
+            return CommandResponse.error(
                     ERROR_ANALYSIS_FAILED,
                     rootCauseMessage(pipelineResult.getFailure()),
                     stats
-            ));
+            );
         }
 
-        return success(CommandResponse.success(
+        return CommandResponse.success(
                 pipelineResult.getResults(),
                 stats,
                 pipelineResult.getReportSummary(),
                 pipelineResult.getWarnings(),
                 pipelineResult.getNativeSarif(),
                 pipelineResult.getBaselineXml()
-        ));
+        );
     }
 
     private String rootCauseMessage(Throwable throwable) {
