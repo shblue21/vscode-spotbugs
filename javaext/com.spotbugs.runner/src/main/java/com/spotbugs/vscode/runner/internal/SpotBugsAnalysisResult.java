@@ -23,23 +23,6 @@ public class SpotBugsAnalysisResult {
     public SpotBugsAnalysisResult(
             List<BugInfo> bugs,
             List<CommandWarning> warnings,
-            AnalysisReportSummary reportSummary
-    ) {
-        this(bugs, warnings, reportSummary, null, null);
-    }
-
-    public SpotBugsAnalysisResult(
-            List<BugInfo> bugs,
-            List<CommandWarning> warnings,
-            AnalysisReportSummary reportSummary,
-            String nativeSarif
-    ) {
-        this(bugs, warnings, reportSummary, nativeSarif, null);
-    }
-
-    public SpotBugsAnalysisResult(
-            List<BugInfo> bugs,
-            List<CommandWarning> warnings,
             AnalysisReportSummary reportSummary,
             String nativeSarif,
             String baselineXml

@@ -128,13 +128,7 @@ public class RunAnalysisRequestParserTest {
     }
 
     private static AbstractCommandAction.ActionContext context(Object... args) {
-        return new AbstractCommandAction.ActionContext(new ActionInvocation(
-                "java.spotbugs.run",
-                args,
-                new NullProgressMonitor(),
-                Thread.currentThread(),
-                System.nanoTime()
-        ));
+        return new AbstractCommandAction.ActionContext(args, new NullProgressMonitor());
     }
 
     private static AbstractCommandAction.CommandActionException expectFailure(ThrowingRunnable runnable) {

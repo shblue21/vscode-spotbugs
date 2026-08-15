@@ -2,6 +2,8 @@ package com.spotbugs.vscode.runner.internal.command;
 
 import java.util.Collections;
 
+import org.eclipse.core.runtime.IProgressMonitor;
+
 import com.google.gson.Gson;
 import com.spotbugs.vscode.runner.api.CommandResponse;
 
@@ -10,25 +12,24 @@ import com.spotbugs.vscode.runner.api.CommandResponse;
  * need to focus on their domain logic by implementing {@link #run(ActionContext)} while
  * this class takes care of consistent JSON serialisation and error envelopes.
  */
-public abstract class AbstractCommandAction implements CommandAction {
+public abstract class AbstractCommandAction {
 
     private static final String DEFAULT_ERROR_CODE = "COMMAND_FAILED";
 
     private final Gson gson = new Gson();
 
-    @Override
-    public final String execute(ActionInvocation invocation) {
-        ActionContext context = new ActionContext(invocation);
+    public final String execute(Object[] args, IProgressMonitor monitor) {
+        ActionContext context = new ActionContext(args, monitor);
         try {
             context.checkCanceled(cancellationErrorCode());
-            CommandResult result = run(context);
+            CommandResponse response = run(context);
             if (shouldCheckCanceledAfterRun()) {
                 context.checkCanceled(cancellationErrorCode());
             }
-            if (result == null) {
+            if (response == null) {
                 return gson.toJson(Collections.emptyMap());
             }
-            return result.toJson(gson);
+            return gson.toJson(response);
         } catch (CommandActionException cae) {
             return gson.toJson(errorEnvelope(cae.getCode(), cae.getMessage()));
         } catch (Exception exception) {
@@ -40,29 +41,17 @@ public abstract class AbstractCommandAction implements CommandAction {
         }
     }
 
+    public abstract String id();
+
     /**
      * Execute the action using the provided context.
      *
      * @param context wrapper that exposes helper accessors for the raw argument array.
-     * @return a {@link CommandResult} describing the payload to return to the VS Code client.
+     * @return response payload to return to the VS Code client.
      * @throws Exception allows implementations to bubble up domain-specific failures that will be
      *                   transformed into the default error envelope.
      */
-    protected abstract CommandResult run(ActionContext context) throws Exception;
-
-    /**
-     * Helper for returning a structured payload that will be serialised with Gson.
-     */
-    protected final CommandResult success(Object payload) {
-        return CommandResult.object(payload);
-    }
-
-    /**
-     * Helper for returning a raw JSON string that should be forwarded as-is.
-     */
-    protected final CommandResult successRaw(String rawJson) {
-        return CommandResult.raw(rawJson);
-    }
+    protected abstract CommandResponse run(ActionContext context) throws Exception;
 
     /**
      * Error code to use when wrapper-level cancellation is detected.
@@ -80,13 +69,6 @@ public abstract class AbstractCommandAction implements CommandAction {
     }
 
     /**
-     * Helper to surface a validation failure that should flow back as an error envelope.
-     */
-    protected final CommandActionException invalidArgument(String message) {
-        return new CommandActionException("INVALID_ARGUMENT", message);
-    }
-
-    /**
      * Builds the standard error envelope understood by the VS Code client.
      */
     protected CommandResponse errorEnvelope(String code, String message) {
@@ -100,15 +82,11 @@ public abstract class AbstractCommandAction implements CommandAction {
      */
     protected static final class ActionContext {
         private final Object[] args;
-        private final ActionInvocation invocation;
+        private final IProgressMonitor monitor;
 
-        ActionContext(ActionInvocation invocation) {
-            this.invocation = invocation;
-            this.args = invocation != null ? invocation.getArgs() : new Object[0];
-        }
-
-        public int size() {
-            return args.length;
+        ActionContext(Object[] args, IProgressMonitor monitor) {
+            this.args = args != null ? args : new Object[0];
+            this.monitor = monitor;
         }
 
         public Object get(int index) throws CommandActionException {
@@ -140,67 +118,14 @@ public abstract class AbstractCommandAction implements CommandAction {
             return value instanceof String ? (String) value : null;
         }
 
-        public Object[] raw() {
-            return args.clone();
-        }
-
-        public boolean isCanceled() {
-            org.eclipse.core.runtime.IProgressMonitor monitor = monitor();
-            return monitor != null && monitor.isCanceled();
-        }
-
-        public void checkCanceled() throws CommandActionException {
-            checkCanceled(DEFAULT_ERROR_CODE);
-        }
-
         public void checkCanceled(String code) throws CommandActionException {
-            if (isCanceled()) {
+            if (monitor != null && monitor.isCanceled()) {
                 throw new CommandActionException(code, "Command cancelled");
             }
         }
 
-        public String commandId() {
-            return invocation != null ? invocation.getCommandId() : null;
-        }
-
-        public org.eclipse.core.runtime.IProgressMonitor monitor() {
-            return invocation != null ? invocation.getMonitor() : null;
-        }
-
-        public Thread thread() {
-            return invocation != null ? invocation.getThread() : null;
-        }
-
-        public long startNanos() {
-            return invocation != null ? invocation.getStartNanos() : 0L;
-        }
-    }
-
-    /**
-     * Represents the successful outcome of an action execution.
-     */
-    protected static final class CommandResult {
-        private final boolean rawJson;
-        private final Object payload;
-
-        private CommandResult(Object payload, boolean rawJson) {
-            this.payload = payload;
-            this.rawJson = rawJson;
-        }
-
-        static CommandResult object(Object payload) {
-            return new CommandResult(payload, false);
-        }
-
-        static CommandResult raw(String json) {
-            return new CommandResult(json != null ? json : "{}", true);
-        }
-
-        String toJson(Gson gson) {
-            if (rawJson) {
-                return payload != null ? payload.toString() : "{}";
-            }
-            return gson.toJson(payload);
+        public IProgressMonitor monitor() {
+            return monitor;
         }
     }
 
