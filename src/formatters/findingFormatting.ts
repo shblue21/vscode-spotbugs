@@ -2,25 +2,19 @@ import { FindingSummary } from '../model/finding';
 import { Severity } from '../model/severity';
 
 export function formatFindingSummary(finding: FindingSummary): string {
-  const pattern = finding.abbrev || finding.type || 'Bug';
-  const raw = finding.message || '';
-  let msg = raw.trim();
-  const prefix = `${pattern}:`;
-  if (msg.toUpperCase().startsWith(prefix.toUpperCase())) {
-    msg = msg.substring(prefix.length).trim();
-  }
-  const inIdx = msg.indexOf(' in ');
-  if (inIdx > 0) {
-    msg = msg.substring(0, inIdx).trim();
-  }
-  if (!msg) {
-    msg = finding.type || 'SpotBugs finding';
-  }
-  return `[${pattern}] ${msg}`;
+  return formatFinding(finding, 'Bug', 'SpotBugs finding');
 }
 
 export function formatFindingPatternLabel(finding: FindingSummary): string {
-  const pattern = finding.abbrev || finding.type || 'Pattern';
+  return formatFinding(finding, 'Pattern', 'SpotBugs Pattern');
+}
+
+function formatFinding(
+  finding: FindingSummary,
+  patternFallback: string,
+  messageFallback: string
+): string {
+  const pattern = finding.abbrev || finding.type || patternFallback;
   const raw = finding.message || '';
   let msg = raw.trim();
   const prefix = `${pattern}:`;
@@ -32,7 +26,7 @@ export function formatFindingPatternLabel(finding: FindingSummary): string {
     msg = msg.substring(0, inIdx).trim();
   }
   if (!msg) {
-    msg = finding.type || 'SpotBugs Pattern';
+    msg = finding.type || messageFallback;
   }
   return `[${pattern}] ${msg}`;
 }
