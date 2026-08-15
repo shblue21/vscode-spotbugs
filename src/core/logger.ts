@@ -39,13 +39,4 @@ export class Logger {
     const errorMessage = error instanceof Error ? error.message : String(error);
     this.log(`[ERROR] ${message}${error ? `: ${errorMessage}` : ''}`);
   }
-
-  /**
-   * Reveals the output channel in the UI.
-   */
-  public static show() {
-    if (this.outputChannel) {
-      this.outputChannel.show();
-    }
-  }
 }

@@ -1,7 +1,6 @@
 import { Uri } from 'vscode';
 import type { JavaProjectsOutcome } from '../lsp/javaLsOutcome';
 import { requestAllJavaProjects } from '../lsp/javaLsGateway';
-import { buildWorkspace, BuildMode } from './workspaceBuildService';
 
 export class JavaLsClient {
   static async getAllProjectsOutcome(): Promise<JavaProjectsOutcome> {
@@ -74,9 +73,5 @@ export class JavaLsClient {
   static async getAllProjects(): Promise<string[]> {
     const outcome = await JavaLsClient.getAllProjectsOutcome();
     return outcome.projectUris;
-  }
-
-  static async buildWorkspace(mode: BuildMode = 'auto'): Promise<number | undefined> {
-    return buildWorkspace({ mode, ensureCommands: false });
   }
 }

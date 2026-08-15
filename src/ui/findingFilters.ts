@@ -15,15 +15,6 @@ export interface FindingFilterOption {
   detail?: string;
 }
 
-const FILTER_KIND_LABELS: Record<FindingFilterKind, string> = {
-  severity: 'Severity',
-  category: 'Category',
-  package: 'Package',
-  class: 'Class',
-  path: 'Path',
-  rule: 'Rule',
-};
-
 const FILTER_KIND_ORDER: FindingFilterKind[] = [
   'severity',
   'category',
@@ -37,10 +28,6 @@ const SEVERITY_ORDER = ['Error', 'Warning', 'Info'];
 
 export function getFindingFilterKinds(): FindingFilterKind[] {
   return FILTER_KIND_ORDER.slice();
-}
-
-export function getFindingFilterKindLabel(kind: FindingFilterKind): string {
-  return FILTER_KIND_LABELS[kind];
 }
 
 export function applyFindingFilters(

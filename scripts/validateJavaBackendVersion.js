@@ -115,6 +115,4 @@ if (require.main === module) {
 
 module.exports = {
   assertJavaBackendVersions,
-  readJavaBackendVersions,
-  validateJavaBackendVersions,
 };
