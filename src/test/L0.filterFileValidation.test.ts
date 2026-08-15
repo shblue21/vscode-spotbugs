@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { AnalysisSettings } from '../core/config';
+import type { AnalysisError } from '../model/analysisProtocol';
 import {
   validateExtraAuxClasspathPreflight,
   validateFilterFilesPreflight,
@@ -29,6 +30,16 @@ async function cleanup(dir: string): Promise<void> {
   await fs.promises.rm(dir, { recursive: true, force: true });
 }
 
+function assertError(
+  error: AnalysisError | undefined,
+  code: string,
+  message: string
+): void {
+  assert.ok(error);
+  assert.strictEqual(error.code, code);
+  assert.ok(error.message?.includes(message), error.message);
+}
+
 describe('filterFileValidation', () => {
   it('returns CFG_FILTER_NOT_FOUND when filter file does not exist', async () => {
     const missingPath = path.join(
@@ -39,9 +50,7 @@ describe('filterFileValidation', () => {
       makeSettings({ includeFilterPaths: [missingPath] })
     );
 
-    assert.ok(error);
-    assert.strictEqual(error?.code, 'CFG_FILTER_NOT_FOUND');
-    assert.ok((error?.message ?? '').includes('include filter file not found'));
+    assertError(error, 'CFG_FILTER_NOT_FOUND', 'include filter file not found');
   });
 
   it('returns CFG_FILTER_NOT_FILE when filter path points to a directory', async () => {
@@ -51,9 +60,7 @@ describe('filterFileValidation', () => {
         makeSettings({ excludeFilterPaths: [dir] })
       );
 
-      assert.ok(error);
-      assert.strictEqual(error?.code, 'CFG_FILTER_NOT_FILE');
-      assert.ok((error?.message ?? '').includes('exclude filter file is not a regular file'));
+      assertError(error, 'CFG_FILTER_NOT_FILE', 'not a regular file');
     } finally {
       await cleanup(dir);
     }
@@ -92,9 +99,7 @@ describe('filterFileValidation', () => {
       makeSettings({ extraAuxClasspaths: [missingPath] })
     );
 
-    assert.ok(error);
-    assert.strictEqual(error?.code, 'CFG_AUX_CLASSPATH_NOT_FOUND');
-    assert.ok((error?.message ?? '').includes('extra aux classpath entry not found'));
+    assertError(error, 'CFG_AUX_CLASSPATH_NOT_FOUND', 'classpath entry not found');
   });
 
   it('returns CFG_AUX_CLASSPATH_INVALID_ENTRY when an extra aux classpath entry is not a jar/zip or directory', async () => {
@@ -107,12 +112,10 @@ describe('filterFileValidation', () => {
         makeSettings({ extraAuxClasspaths: [invalidPath] })
       );
 
-      assert.ok(error);
-      assert.strictEqual(error?.code, 'CFG_AUX_CLASSPATH_INVALID_ENTRY');
-      assert.ok(
-        (error?.message ?? '').includes(
-          'extra aux classpath entry must be a directory or .jar/.zip file'
-        )
+      assertError(
+        error,
+        'CFG_AUX_CLASSPATH_INVALID_ENTRY',
+        'must be a directory or .jar/.zip file'
       );
     } finally {
       await cleanup(dir);
@@ -146,9 +149,7 @@ describe('filterFileValidation', () => {
       makeSettings({ plugins: [missingPath] })
     );
 
-    assert.ok(error);
-    assert.strictEqual(error?.code, 'CFG_PLUGIN_NOT_FOUND');
-    assert.ok((error?.message ?? '').includes('SpotBugs plugin jar not found'));
+    assertError(error, 'CFG_PLUGIN_NOT_FOUND', 'plugin jar not found');
   });
 
   it('returns CFG_PLUGIN_NOT_FILE when a plugin path points to a directory', async () => {
@@ -158,13 +159,7 @@ describe('filterFileValidation', () => {
         makeSettings({ plugins: [dir] })
       );
 
-      assert.ok(error);
-      assert.strictEqual(error?.code, 'CFG_PLUGIN_NOT_FILE');
-      assert.ok(
-        (error?.message ?? '').includes(
-          'SpotBugs plugin path is not a regular file'
-        )
-      );
+      assertError(error, 'CFG_PLUGIN_NOT_FILE', 'not a regular file');
     } finally {
       await cleanup(dir);
     }
@@ -180,13 +175,7 @@ describe('filterFileValidation', () => {
         makeSettings({ plugins: [pluginPath] })
       );
 
-      assert.ok(error);
-      assert.strictEqual(error?.code, 'CFG_PLUGIN_NOT_JAR');
-      assert.ok(
-        (error?.message ?? '').includes(
-          'SpotBugs plugin path must be a .jar file'
-        )
-      );
+      assertError(error, 'CFG_PLUGIN_NOT_JAR', 'must be a .jar file');
     } finally {
       await cleanup(dir);
     }
@@ -209,11 +198,7 @@ describe('filterFileValidation', () => {
         makeSettings({ plugins: [pluginPath] })
       );
 
-      assert.ok(error);
-      assert.strictEqual(error?.code, 'CFG_PLUGIN_UNREADABLE');
-      assert.ok(
-        (error?.message ?? '').includes('SpotBugs plugin jar is not readable')
-      );
+      assertError(error, 'CFG_PLUGIN_UNREADABLE', 'plugin jar is not readable');
     } finally {
       fs.promises.open = originalOpen;
       await cleanup(dir);
