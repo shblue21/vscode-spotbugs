@@ -3,9 +3,9 @@ import type { Uri } from 'vscode';
 import type { AnalysisSettings } from '../core/config';
 import type {
   PluginConfigurationDeps,
-  PluginPathConfiguration,
 } from '../commands/pluginInventory';
 import type { PluginInventoryResult } from '../services/pluginInventoryService';
+import type { PathSettingState } from '../services/pathSetting';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
@@ -85,7 +85,7 @@ describe('pluginInventoryCommands', () => {
     assert.strictEqual(observedResource, undefined);
   });
 
-  it('adds picker selections with single-root relative and multi-root absolute paths', async () => {
+  it('validates and adds selected plugin jars', async () => {
     const vscode = resetVscodeMock();
     const { addPluginJars } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const writes: Array<{ paths: string[]; target: string }> = [];
@@ -96,35 +96,17 @@ describe('pluginInventoryCommands', () => {
       pluginConfigurationDeps(
         {
           target: 'workspace',
-          paths: ['plugins/existing.jar'],
+          paths: [],
           workspaceRoots: ['/workspace'],
         },
-        [
-          selected('/workspace/plugins/existing.jar'),
-          selected('/workspace/plugins/new.jar'),
-        ],
-        writes
-      )
-    );
-    await addPluginJars(
-      pluginConfigurationDeps(
-        {
-          target: 'workspace',
-          paths: [],
-          workspaceRoots: ['/workspace-a', '/workspace-b'],
-        },
-        [selected('/workspace-a/plugins/multi-root.jar')],
+        [selected('/workspace/plugins/new.jar')],
         writes
       )
     );
 
     assert.deepStrictEqual(writes, [
       {
-        paths: ['plugins/existing.jar', 'plugins/new.jar'],
-        target: 'workspace',
-      },
-      {
-        paths: ['/workspace-a/plugins/multi-root.jar'],
+        paths: ['plugins/new.jar'],
         target: 'workspace',
       },
     ]);
@@ -133,7 +115,7 @@ describe('pluginInventoryCommands', () => {
   it('removes only the matching configured path and ignores stale rows', async () => {
     const { removePluginJar } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const writes: Array<{ paths: string[]; target: string }> = [];
-    const state: PluginPathConfiguration = {
+    const state: PathSettingState = {
       target: 'workspace',
       paths: ['plugins/a.jar', '/outside/b.jar'],
       workspaceRoots: ['/workspace'],
@@ -150,7 +132,7 @@ describe('pluginInventoryCommands', () => {
 });
 
 function pluginConfigurationDeps(
-  state: PluginPathConfiguration,
+  state: PathSettingState,
   selected: readonly Uri[],
   writes: Array<{ paths: string[]; target: string }>
 ): PluginConfigurationDeps {

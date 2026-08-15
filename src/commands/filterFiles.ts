@@ -8,21 +8,21 @@ import type {
   FilterKind,
 } from '../model/filterFiles';
 import { validateFilterFilesPreflight } from '../services/filterFileValidation';
-
-export interface FilterPathConfiguration {
-  target: 'global' | 'workspace';
-  paths: string[];
-  workspaceRoots: string[];
-}
+import {
+  type PathSettingState,
+  planPathAdditions,
+  planPathRemoval,
+  readPathSetting,
+} from '../services/pathSetting';
 
 export interface FilterConfigurationDeps {
   selectFilterKind(): Thenable<FilterKind | undefined>;
   selectFilterFiles(kind: FilterKind): Thenable<readonly Uri[] | undefined>;
-  readConfiguration(kind: FilterKind): FilterPathConfiguration;
+  readConfiguration(kind: FilterKind): PathSettingState;
   writeConfiguration(
     kind: FilterKind,
     paths: string[],
-    target: FilterPathConfiguration['target']
+    target: PathSettingState['target']
   ): Promise<void>;
   validateFilterFiles(
     kind: FilterKind,
@@ -85,31 +85,20 @@ export async function addFilterFiles(
   }
 
   const state = deps.readConfiguration(kind);
-  const configuredKeys = new Set(
-    state.paths.map((configuredPath) => configuredPathKey(configuredPath, state))
-  );
-  const additions: string[] = [];
-  for (const selectedPath of selectedPaths) {
-    const key = absolutePathKey(selectedPath);
-    if (configuredKeys.has(key)) {
-      continue;
-    }
-    configuredKeys.add(key);
-    additions.push(pathForStorage(selectedPath, state));
-  }
+  const plan = planPathAdditions(state, selectedPaths);
 
-  if (additions.length === 0) {
+  if (plan.additions.length === 0) {
     await window.showInformationMessage(
       l10n.t('The selected SpotBugs filter files are already configured.')
     );
     return;
   }
 
-  await deps.writeConfiguration(kind, [...state.paths, ...additions], state.target);
+  await deps.writeConfiguration(kind, plan.paths, state.target);
   await window.showInformationMessage(
     l10n.t(
       'Added {0} SpotBugs filter file(s) to {1} settings.',
-      additions.length,
+      plan.additions.length,
       state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User')
     )
   );
@@ -127,11 +116,8 @@ export async function removeFilterFile(
   }
 
   const state = deps.readConfiguration(target.filterKind);
-  const selectedKey = configuredPathKey(target.filterPath, state);
-  const remainingPaths = state.paths.filter(
-    (configuredPath) => configuredPathKey(configuredPath, state) !== selectedKey
-  );
-  if (remainingPaths.length === state.paths.length) {
+  const remainingPaths = planPathRemoval(state, target.filterPath);
+  if (!remainingPaths) {
     await window.showInformationMessage(
       l10n.t('The filter configuration changed. Refresh the Filters view and try again.')
     );
@@ -171,7 +157,7 @@ function defaultFilterConfigurationDeps(): FilterConfigurationDeps {
         canSelectMany: true,
         filters: { [xmlFilesLabel]: ['xml'] },
       }),
-    readConfiguration: readFilterPathConfiguration,
+    readConfiguration: (kind) => readPathSetting(FILTER_CONFIGURATION[kind][0]),
     writeConfiguration: async (kind, paths, target) => {
       await workspace
         .getConfiguration(SETTINGS_SECTION)
@@ -185,75 +171,4 @@ function defaultFilterConfigurationDeps(): FilterConfigurationDeps {
       });
     },
   };
-}
-
-function readFilterPathConfiguration(kind: FilterKind): FilterPathConfiguration {
-  const configuration = workspace.getConfiguration(SETTINGS_SECTION);
-  const inspected = configuration.inspect<unknown>(
-    FILTER_CONFIGURATION[kind][0]
-  );
-  const workspaceDefined = inspected?.workspaceValue !== undefined;
-  const globalDefined = inspected?.globalValue !== undefined;
-  const workspaceRoots = workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
-  const target =
-    workspaceDefined || (!globalDefined && workspaceRoots.length > 0)
-      ? 'workspace'
-      : 'global';
-  const value =
-    target === 'workspace' ? inspected?.workspaceValue : inspected?.globalValue;
-
-  return {
-    target,
-    paths: normalizedStringArray(value),
-    workspaceRoots,
-  };
-}
-
-function normalizedStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return Array.from(
-    new Set(
-      value
-        .filter((entry): entry is string => typeof entry === 'string')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    )
-  );
-}
-
-function pathForStorage(
-  absolutePath: string,
-  state: FilterPathConfiguration
-): string {
-  if (state.target !== 'workspace' || state.workspaceRoots.length !== 1) {
-    return absolutePath;
-  }
-
-  const relativePath = path.relative(state.workspaceRoots[0], absolutePath);
-  if (
-    relativePath === '' ||
-    path.isAbsolute(relativePath) ||
-    relativePath === '..' ||
-    relativePath.startsWith(`..${path.sep}`)
-  ) {
-    return absolutePath;
-  }
-  return relativePath.split(path.sep).join('/');
-}
-
-function configuredPathKey(
-  configuredPath: string,
-  state: FilterPathConfiguration
-): string {
-  const absolutePath = path.isAbsolute(configuredPath)
-    ? configuredPath
-    : path.resolve(state.workspaceRoots[0] ?? process.cwd(), configuredPath);
-  return absolutePathKey(absolutePath);
-}
-
-function absolutePathKey(value: string): string {
-  const normalized = path.normalize(path.resolve(value));
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
 }

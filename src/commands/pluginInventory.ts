@@ -6,6 +6,12 @@ import { formatAnalysisErrors } from '../model/analysisErrors';
 import type { AnalysisError } from '../model/analysisProtocol';
 import { validatePluginJarsPreflight } from '../services/filterFileValidation';
 import {
+  type PathSettingState,
+  planPathAdditions,
+  planPathRemoval,
+  readPathSetting,
+} from '../services/pathSetting';
+import {
   getPluginInventory,
   type PluginInventoryResult,
   type PluginInventoryServiceDeps,
@@ -16,18 +22,12 @@ export interface PluginInventoryView {
   showInventory(result: PluginInventoryResult): void;
 }
 
-export interface PluginPathConfiguration {
-  target: 'global' | 'workspace';
-  paths: string[];
-  workspaceRoots: string[];
-}
-
 export interface PluginConfigurationDeps {
   selectPluginJars(): Thenable<readonly Uri[] | undefined>;
-  readConfiguration(): PluginPathConfiguration;
+  readConfiguration(): PathSettingState;
   writeConfiguration(
     paths: string[],
-    target: PluginPathConfiguration['target']
+    target: PathSettingState['target']
   ): Promise<void>;
   validatePluginJars(paths: string[]): Promise<AnalysisError | undefined>;
 }
@@ -78,31 +78,20 @@ export async function addPluginJars(
   }
 
   const state = deps.readConfiguration();
-  const configuredKeys = new Set(
-    state.paths.map((configuredPath) => configuredPathKey(configuredPath, state))
-  );
-  const additions: string[] = [];
-  for (const selectedPath of selectedPaths) {
-    const key = absolutePathKey(selectedPath);
-    if (configuredKeys.has(key)) {
-      continue;
-    }
-    configuredKeys.add(key);
-    additions.push(pathForStorage(selectedPath, state));
-  }
+  const plan = planPathAdditions(state, selectedPaths);
 
-  if (additions.length === 0) {
+  if (plan.additions.length === 0) {
     await window.showInformationMessage(
       l10n.t('The selected SpotBugs plugin JARs are already configured.')
     );
     return;
   }
 
-  await deps.writeConfiguration([...state.paths, ...additions], state.target);
+  await deps.writeConfiguration(plan.paths, state.target);
   await window.showInformationMessage(
     l10n.t(
       'Added {0} SpotBugs plugin JAR(s) to {1} settings.',
-      additions.length,
+      plan.additions.length,
       state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User')
     )
   );
@@ -120,11 +109,8 @@ export async function removePluginJar(
   }
 
   const state = deps.readConfiguration();
-  const selectedKey = absolutePathKey(target.pluginPath);
-  const remainingPaths = state.paths.filter(
-    (configuredPath) => configuredPathKey(configuredPath, state) !== selectedKey
-  );
-  if (remainingPaths.length === state.paths.length) {
+  const remainingPaths = planPathRemoval(state, target.pluginPath);
+  if (!remainingPaths) {
     await window.showInformationMessage(
       l10n.t('The plugin configuration changed. Refresh the Plugins view and try again.')
     );
@@ -149,7 +135,7 @@ function defaultPluginConfigurationDeps(): PluginConfigurationDeps {
         canSelectMany: true,
         filters: { [jarFilesLabel]: ['jar'] },
       }),
-    readConfiguration: readPluginPathConfiguration,
+    readConfiguration: () => readPathSetting(settingKeys.pluginsPaths),
     writeConfiguration: async (paths, target) => {
       await workspace
         .getConfiguration(SETTINGS_SECTION)
@@ -158,73 +144,4 @@ function defaultPluginConfigurationDeps(): PluginConfigurationDeps {
     validatePluginJars: (paths) =>
       validatePluginJarsPreflight({ effort: 'default', plugins: paths }),
   };
-}
-
-function readPluginPathConfiguration(): PluginPathConfiguration {
-  const configuration = workspace.getConfiguration(SETTINGS_SECTION);
-  const inspected = configuration.inspect<unknown>(settingKeys.pluginsPaths);
-  const workspaceDefined = inspected?.workspaceValue !== undefined;
-  const globalDefined = inspected?.globalValue !== undefined;
-  const workspaceRoots = workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
-  const target =
-    workspaceDefined || (!globalDefined && workspaceRoots.length > 0)
-      ? 'workspace'
-      : 'global';
-  const value =
-    target === 'workspace' ? inspected?.workspaceValue : inspected?.globalValue;
-
-  return {
-    target,
-    paths: normalizedStringArray(value),
-    workspaceRoots,
-  };
-}
-
-function normalizedStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return Array.from(
-    new Set(
-      value
-        .filter((entry): entry is string => typeof entry === 'string')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    )
-  );
-}
-
-function pathForStorage(
-  absolutePath: string,
-  state: PluginPathConfiguration
-): string {
-  if (state.target !== 'workspace' || state.workspaceRoots.length !== 1) {
-    return absolutePath;
-  }
-
-  const relativePath = path.relative(state.workspaceRoots[0], absolutePath);
-  if (
-    relativePath === '' ||
-    path.isAbsolute(relativePath) ||
-    relativePath === '..' ||
-    relativePath.startsWith(`..${path.sep}`)
-  ) {
-    return absolutePath;
-  }
-  return relativePath.split(path.sep).join('/');
-}
-
-function configuredPathKey(
-  configuredPath: string,
-  state: PluginPathConfiguration
-): string {
-  const absolutePath = path.isAbsolute(configuredPath)
-    ? configuredPath
-    : path.resolve(state.workspaceRoots[0] ?? process.cwd(), configuredPath);
-  return absolutePathKey(absolutePath);
-}
-
-function absolutePathKey(value: string): string {
-  const normalized = path.normalize(path.resolve(value));
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
 }
