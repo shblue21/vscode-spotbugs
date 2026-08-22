@@ -16,6 +16,20 @@ import * as spotbugsMapper from '../lsp/spotbugsMapper';
 import * as filterFileValidation from './filterFileValidation';
 
 const ERROR_ANALYSIS_NO_RESPONSE = 'ANALYSIS_NO_RESPONSE';
+const LOGGED_STATS_FIELDS = [
+  ['durationMs', 'number'],
+  ['target', 'string'],
+  ['spotbugsVersion', 'string'],
+  ['targetResolutionRootCount', 'number'],
+  ['runtimeClasspathCount', 'number'],
+  ['extraAuxClasspathCount', 'number'],
+  ['auxClasspathCount', 'number'],
+  ['targetCount', 'number'],
+  ['pluginCount', 'number'],
+] as const satisfies readonly (readonly [
+  keyof AnalysisStats,
+  'number' | 'string',
+])[];
 
 export interface AnalysisExecutionTarget {
   targetPath: string;
@@ -93,55 +107,30 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     settings: AnalysisSettings,
     targetPath: string
   ): Promise<AnalysisOutcome | undefined> {
-    const preflightFilterError = await deps.validateFilterFilesPreflight(settings);
-    if (preflightFilterError) {
-      const combined = formatAnalysisErrors([preflightFilterError]);
-      deps.logger.error(`SpotBugs filter configuration error: ${combined}`);
-      return {
-        findings: [],
-        errors: [preflightFilterError],
-        targetPath,
-        failure: {
-          kind: 'analysis-error',
-          level: 'error',
-          code: preflightFilterError.code,
-          message: `SpotBugs analysis failed: ${combined}`,
-        },
-      };
-    }
+    const checks = [
+      ['filter', () => deps.validateFilterFilesPreflight(settings)],
+      [
+        'extra aux classpath',
+        () => deps.validateExtraAuxClasspathPreflight(settings),
+      ],
+      ['plugin', () => deps.validatePluginJarsPreflight(settings)],
+    ] as const;
 
-    const preflightAuxClasspathError =
-      await deps.validateExtraAuxClasspathPreflight(settings);
-    if (preflightAuxClasspathError) {
-      const combined = formatAnalysisErrors([preflightAuxClasspathError]);
-      deps.logger.error(
-        `SpotBugs extra aux classpath configuration error: ${combined}`
-      );
+    for (const [label, validate] of checks) {
+      const error = await validate();
+      if (!error) {
+        continue;
+      }
+      const combined = formatAnalysisErrors([error]);
+      deps.logger.error(`SpotBugs ${label} configuration error: ${combined}`);
       return {
         findings: [],
-        errors: [preflightAuxClasspathError],
+        errors: [error],
         targetPath,
         failure: {
           kind: 'analysis-error',
           level: 'error',
-          code: preflightAuxClasspathError.code,
-          message: `SpotBugs analysis failed: ${combined}`,
-        },
-      };
-    }
-
-    const preflightPluginError = await deps.validatePluginJarsPreflight(settings);
-    if (preflightPluginError) {
-      const combined = formatAnalysisErrors([preflightPluginError]);
-      deps.logger.error(`SpotBugs plugin configuration error: ${combined}`);
-      return {
-        findings: [],
-        errors: [preflightPluginError],
-        targetPath,
-        failure: {
-          kind: 'analysis-error',
-          level: 'error',
-          code: preflightPluginError.code,
+          code: error.code,
           message: `SpotBugs analysis failed: ${combined}`,
         },
       };
@@ -313,34 +302,12 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     findingCount: number,
     stats: AnalysisStats | undefined
   ): void {
-    const logParts: string[] = [];
-    logParts.push(`findings=${findingCount}`);
-    if (typeof stats?.durationMs === 'number') {
-      logParts.push(`durationMs=${stats.durationMs}`);
-    }
-    if (typeof stats?.target === 'string') {
-      logParts.push(`target=${stats.target}`);
-    }
-    if (typeof stats?.spotbugsVersion === 'string') {
-      logParts.push(`spotbugsVersion=${stats.spotbugsVersion}`);
-    }
-    if (typeof stats?.targetResolutionRootCount === 'number') {
-      logParts.push(`targetResolutionRootCount=${stats.targetResolutionRootCount}`);
-    }
-    if (typeof stats?.runtimeClasspathCount === 'number') {
-      logParts.push(`runtimeClasspathCount=${stats.runtimeClasspathCount}`);
-    }
-    if (typeof stats?.extraAuxClasspathCount === 'number') {
-      logParts.push(`extraAuxClasspathCount=${stats.extraAuxClasspathCount}`);
-    }
-    if (typeof stats?.auxClasspathCount === 'number') {
-      logParts.push(`auxClasspathCount=${stats.auxClasspathCount}`);
-    }
-    if (typeof stats?.targetCount === 'number') {
-      logParts.push(`targetCount=${stats.targetCount}`);
-    }
-    if (typeof stats?.pluginCount === 'number') {
-      logParts.push(`pluginCount=${stats.pluginCount}`);
+    const logParts = [`findings=${findingCount}`];
+    for (const [field, expectedType] of LOGGED_STATS_FIELDS) {
+      const value = stats?.[field];
+      if (typeof value === expectedType) {
+        logParts.push(`${field}=${value}`);
+      }
     }
     deps.logger.log(
       `Successfully parsed and added full paths (${logParts.join(', ')}).`

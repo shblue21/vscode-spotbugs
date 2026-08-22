@@ -1,5 +1,4 @@
 import { Uri, workspace } from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from '../core/logger';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
@@ -762,40 +761,17 @@ async function hasMappedJavaSourceTreeClassTarget(
   sourcepaths: readonly string[] | undefined,
   hasLooseClassTarget: (targetPath: string) => Promise<boolean>
 ): Promise<boolean> {
-  const queue: string[] = [sourceDir];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    if (!current) {
-      continue;
-    }
-    let entries: fs.Dirent[];
-    try {
-      entries = await fs.promises.readdir(current, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isFile()) {
-        if (
-          isJavaSourceFile(entryPath) &&
-          (await hasJavaSourceClassTarget(
-            entryPath,
-            outputRoot,
-            sourcepaths,
-            hasLooseClassTarget
-          ))
-        ) {
-          return true;
-        }
-        continue;
-      }
-      if (entry.isDirectory()) {
-        queue.push(entryPath);
-      }
-    }
-  }
-  return false;
+  return containsMatchingFile(
+    sourceDir,
+    (sourcePath) =>
+      isJavaSourceFile(sourcePath) &&
+      hasJavaSourceClassTarget(
+        sourcePath,
+        outputRoot,
+        sourcepaths,
+        hasLooseClassTarget
+      )
+  );
 }
 
 function isJavaSourceFile(targetPath: string): boolean {
