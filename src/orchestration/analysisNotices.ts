@@ -223,7 +223,7 @@ function translateJavaLsLookupFallbackNotice(
   };
 }
 
-function dedupeNotices(
+export function dedupeNotices(
   notices: AnalysisNotice[],
   keyBuilder: (notice: AnalysisNotice) => string = exactNoticeKey
 ): AnalysisNotice[] {

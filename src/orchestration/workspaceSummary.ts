@@ -1,6 +1,6 @@
 import type { AnalysisNotice } from '../model/analysisOutcome';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
-import { buildResolutionIssueNotices } from './analysisNotices';
+import { buildResolutionIssueNotices, dedupeNotices } from './analysisNotices';
 import type { ProjectResult } from '../services/projectResult';
 import type { ProjectCleanupWarning } from '../services/analysisService';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
@@ -115,20 +115,4 @@ function buildCleanupWarningSentence(
     return '';
   }
   return ` ${formatProjectCount(uniqueProjectCount)} reported warnings; see the SpotBugs output for details.`;
-}
-
-function dedupeNotices(notices: AnalysisNotice[]): AnalysisNotice[] {
-  const deduped: AnalysisNotice[] = [];
-  const seen = new Set<string>();
-
-  for (const notice of notices) {
-    const key = `${notice.level}|${notice.code ?? ''}|${notice.message}`;
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    deduped.push(notice);
-  }
-
-  return deduped;
 }

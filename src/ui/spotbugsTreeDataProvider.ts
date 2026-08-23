@@ -217,8 +217,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public setSearchQuery(query: string): void {
     this.searchQuery = query.trim();
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public clearSearchQuery(): void {
@@ -227,8 +226,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
 
     this.searchQuery = '';
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public getGroupBy(): FindingGroupKind {
@@ -237,8 +235,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public setGroupBy(groupBy: FindingGroupKind): void {
     this.groupBy = groupBy;
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public getSortBy(): FindingSortKind {
@@ -247,8 +244,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public setSortBy(sortBy: FindingSortKind): void {
     this.sortBy = sortBy;
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public getFilterOptions(kind: FindingFilterKind): FindingFilterOption[] {
@@ -260,8 +256,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       ...this.activeFilters,
       [kind]: value,
     };
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public clearFilter(kind: FindingFilterKind): void {
@@ -272,8 +267,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     const nextFilters = { ...this.activeFilters };
     delete nextFilters[kind];
     this.activeFilters = nextFilters;
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public clearFilters(): void {
@@ -282,8 +276,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
 
     this.activeFilters = {};
-    this.refreshResultsView();
-    this._onDidChangeTreeData.fire(undefined);
+    this.refreshResultsViewAndNotify();
   }
 
   public getFindingsForNode(element: TreeItem): Finding[] {
@@ -329,8 +322,9 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     this.sortBy = 'severityRank';
   }
 
-  private refreshResultsView(): void {
+  private refreshResultsViewAndNotify(): void {
     this.materializeContent();
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   private transitionTo(content: TreeContent): void {
