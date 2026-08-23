@@ -37,6 +37,10 @@ export async function validateExtraAuxClasspathPreflight(
   if (!Array.isArray(paths) || paths.length === 0) {
     return undefined;
   }
+  const unreadableError = (absolutePath: string, error: unknown): AnalysisError => ({
+    code: CODE_AUX_CLASSPATH_UNREADABLE,
+    message: `extra aux classpath entry is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
+  });
 
   for (const rawPath of paths) {
     const absolutePath = toAbsolutePath(rawPath);
@@ -44,10 +48,7 @@ export async function validateExtraAuxClasspathPreflight(
     try {
       stat = await safeStat(absolutePath);
     } catch (error) {
-      return {
-        code: CODE_AUX_CLASSPATH_UNREADABLE,
-        message: `extra aux classpath entry is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-      };
+      return unreadableError(absolutePath, error);
     }
     if (!stat) {
       return {
@@ -64,10 +65,7 @@ export async function validateExtraAuxClasspathPreflight(
     try {
       await fs.promises.access(absolutePath, fs.constants.R_OK);
     } catch (error) {
-      return {
-        code: CODE_AUX_CLASSPATH_UNREADABLE,
-        message: `extra aux classpath entry is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-      };
+      return unreadableError(absolutePath, error);
     }
   }
 
@@ -81,6 +79,10 @@ export async function validatePluginJarsPreflight(
   if (!Array.isArray(paths) || paths.length === 0) {
     return undefined;
   }
+  const unreadableError = (absolutePath: string, error: unknown): AnalysisError => ({
+    code: CODE_PLUGIN_UNREADABLE,
+    message: `SpotBugs plugin jar is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
+  });
 
   for (const rawPath of paths) {
     const absolutePath = toAbsolutePath(rawPath);
@@ -88,10 +90,7 @@ export async function validatePluginJarsPreflight(
     try {
       stat = await safeStat(absolutePath);
     } catch (error) {
-      return {
-        code: CODE_PLUGIN_UNREADABLE,
-        message: `SpotBugs plugin jar is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-      };
+      return unreadableError(absolutePath, error);
     }
     if (!stat) {
       return {
@@ -114,10 +113,7 @@ export async function validatePluginJarsPreflight(
     try {
       await assertReadableFile(absolutePath);
     } catch (error) {
-      return {
-        code: CODE_PLUGIN_UNREADABLE,
-        message: `SpotBugs plugin jar is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-      };
+      return unreadableError(absolutePath, error);
     }
   }
 
@@ -131,16 +127,18 @@ async function validateFilterGroup(
   if (!Array.isArray(paths) || paths.length === 0) {
     return undefined;
   }
+  const unreadableError = (absolutePath: string, error: unknown): AnalysisError => ({
+    code: CODE_FILTER_UNREADABLE,
+    message: `${kind} filter file is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
+  });
+
   for (const rawPath of paths) {
     const absolutePath = toAbsolutePath(rawPath);
     let stat: fs.Stats | undefined;
     try {
       stat = await safeStat(absolutePath);
     } catch (error) {
-      return {
-        code: CODE_FILTER_UNREADABLE,
-        message: `${kind} filter file is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-      };
+      return unreadableError(absolutePath, error);
     }
     if (!stat) {
       return {
@@ -157,10 +155,7 @@ async function validateFilterGroup(
     try {
       await fs.promises.access(absolutePath, fs.constants.R_OK);
     } catch (error) {
-      return {
-        code: CODE_FILTER_UNREADABLE,
-        message: `${kind} filter file is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-      };
+      return unreadableError(absolutePath, error);
     }
   }
   return undefined;

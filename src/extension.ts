@@ -104,6 +104,12 @@ async function doActivate(
     );
     const diagnosticCodeActionProvider =
       new SpotBugsDiagnosticCodeActionProvider(diagnosticsManager);
+    const reconcileInspector = (operation: () => Promise<void>) =>
+      reconcileInspectorAfterOperation(
+        findingInspectorState,
+        operation,
+        () => spotbugsTreeDataProvider.getAllFindings()
+      );
 
     const spotbugsTreeView = window.createTreeView('spotbugs-view', {
       treeDataProvider: spotbugsTreeDataProvider,
@@ -157,8 +163,8 @@ async function doActivate(
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.RUN_ANALYSIS,
-        async (uri: Uri | undefined) => {
-          await clearInspectorBeforeOperation(findingInspectorState, () =>
+        (uri: Uri | undefined) =>
+          clearInspectorBeforeOperation(findingInspectorState, () =>
             checkCode(
               config,
               spotbugsTreeDataProvider,
@@ -166,20 +172,19 @@ async function doActivate(
               uri,
               analysisRunCoordinator
             )
-          );
-        }
+          )
       ),
 
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, async () => {
-        await clearInspectorBeforeOperation(findingInspectorState, () =>
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, () =>
+        clearInspectorBeforeOperation(findingInspectorState, () =>
           runWorkspaceAnalysis(
             config,
             spotbugsTreeDataProvider,
             diagnosticsManager,
             analysisRunCoordinator
           )
-        );
-      }),
+        )
+      ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REVEAL_FINDING_SOURCE,
@@ -223,121 +228,77 @@ async function doActivate(
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.FILTER_RESULTS,
-        async () => {
-          await reconcileInspectorAfterOperation(
-            findingInspectorState,
-            () => selectFindingFilter(spotbugsTreeDataProvider),
-            () => spotbugsTreeDataProvider.getAllFindings()
-          );
-        }
+        () => reconcileInspector(() => selectFindingFilter(spotbugsTreeDataProvider))
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.SEARCH_RESULTS,
-        async () => {
-          await reconcileInspectorAfterOperation(
-            findingInspectorState,
-            () => searchResults(spotbugsTreeDataProvider),
-            () => spotbugsTreeDataProvider.getAllFindings()
-          );
-        }
+        () => reconcileInspector(() => searchResults(spotbugsTreeDataProvider))
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.CLEAR_SEARCH,
-        async () => {
-          await reconcileInspectorAfterOperation(
-            findingInspectorState,
-            () => clearResultsSearch(spotbugsTreeDataProvider),
-            () => spotbugsTreeDataProvider.getAllFindings()
-          );
-        }
+        () => reconcileInspector(() => clearResultsSearch(spotbugsTreeDataProvider))
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.GROUP_RESULTS_BY,
-        async () => {
-          await reconcileInspectorAfterOperation(
-            findingInspectorState,
-            () => groupResultsBy(spotbugsTreeDataProvider),
-            () => spotbugsTreeDataProvider.getAllFindings()
-          );
-        }
+        () => reconcileInspector(() => groupResultsBy(spotbugsTreeDataProvider))
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.SORT_RESULTS_BY,
-        async () => {
-          await reconcileInspectorAfterOperation(
-            findingInspectorState,
-            () => sortResultsBy(spotbugsTreeDataProvider),
-            () => spotbugsTreeDataProvider.getAllFindings()
-          );
-        }
+        () => reconcileInspector(() => sortResultsBy(spotbugsTreeDataProvider))
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_SETTINGS, openSettings),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
-        async (uri: Uri | undefined) => {
-          await refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri);
-        }
+        (uri: Uri | undefined) =>
+          refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri)
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.ADD_PLUGIN_JARS,
-        async () => {
-          await addPluginJars();
-        }
+        () => addPluginJars()
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REMOVE_PLUGIN_JAR,
-        async (item: PluginJarCommandTarget | undefined) => {
-          await removePluginJar(item);
-        }
+        (item: PluginJarCommandTarget | undefined) => removePluginJar(item)
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.ADD_FILTER_FILES,
-        async (item: FilterFileCommandTarget | undefined) => {
-          await addFilterFiles(item);
-        }
+        (item: FilterFileCommandTarget | undefined) => addFilterFiles(item)
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REMOVE_FILTER_FILE,
-        async (item: FilterFileCommandTarget | undefined) => {
-          await removeFilterFile(item);
-        }
+        (item: FilterFileCommandTarget | undefined) => removeFilterFile(item)
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.EXPORT_SARIF,
-        async (element?: unknown) => {
-          await exportSarifReport(spotbugsTreeDataProvider, element);
-        }
+        (element?: unknown) => exportSarifReport(spotbugsTreeDataProvider, element)
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.EXPORT_HTML,
-        async (element?: unknown) => {
-          await exportHtmlReport(spotbugsTreeDataProvider, element);
-        }
+        (element?: unknown) => exportHtmlReport(spotbugsTreeDataProvider, element)
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.RESET_RESULTS,
-        async () => {
-          await clearInspectorBeforeOperation(findingInspectorState, () =>
+        () =>
+          clearInspectorBeforeOperation(findingInspectorState, () =>
             resetResults(
               spotbugsTreeDataProvider,
               diagnosticsManager,
               analysisRunCoordinator
             )
-          );
-        }
+          )
       )
     );
   } catch (error) {

@@ -2,14 +2,13 @@ import { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
-import { AnalysisOutcome } from '../model/analysisOutcome';
+import type { AnalysisOutcome } from '../model/analysisOutcome';
 import type { AnalysisWarning } from '../model/analysisProtocol';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { ProjectResult } from './projectResult';
 import { projectResultFromOutcome } from './projectResult';
 import {
   type AnalysisConfigProvider,
-  AnalysisExecutionTarget,
   createAnalysisFailureOutcome,
   runAnalysisTarget,
 } from './analysisExecution';
@@ -76,7 +75,7 @@ export async function analyzeFileDetailed(
 
     try {
       return {
-        outcome: await runAnalysis(config, result.resolution.target, token),
+        outcome: await runAnalysisTarget(config, result.resolution.target, token),
         context,
       };
     } catch (error) {
@@ -192,31 +191,23 @@ async function analyzeProjectDetailed(
       };
     }
 
-    try {
-      const outcome = await runAnalysis(
-        config,
-        { ...result.resolution.target, includeBaselineXml: true },
-        token
+    const outcome = await runAnalysisTarget(
+      config,
+      { ...result.resolution.target, includeBaselineXml: true },
+      token
+    );
+    if (Array.isArray(outcome.warnings)) {
+      context.cleanupWarnings?.push(
+        ...outcome.warnings.map((warning) => ({
+          projectUri: projectUriString,
+          warning,
+        }))
       );
-      if (Array.isArray(outcome.warnings)) {
-        context.cleanupWarnings?.push(
-          ...outcome.warnings.map((warning) => ({
-            projectUri: projectUriString,
-            warning,
-          }))
-        );
-      }
-      return {
-        projectResult: projectResultFromOutcome(projectUriString, outcome),
-        context,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return {
-        projectResult: { projectUri: projectUriString, findings: [], error: message },
-        context,
-      };
     }
+    return {
+      projectResult: projectResultFromOutcome(projectUriString, outcome),
+      context,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {
@@ -224,14 +215,6 @@ async function analyzeProjectDetailed(
       context,
     };
   }
-}
-
-async function runAnalysis(
-  config: AnalysisConfigProvider,
-  context: AnalysisExecutionTarget,
-  token?: CancellationToken
-): Promise<AnalysisOutcome> {
-  return runAnalysisTarget(config, context, token);
 }
 
 function messageFromUnknown(error: unknown): string {
