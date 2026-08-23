@@ -23,6 +23,25 @@ function createNoopDiagnostics() {
   } as any;
 }
 
+function captureFileAnalysisSessions(): {
+  delegated: unknown[];
+  restore: () => void;
+} {
+  const session =
+    require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
+  const original = session.runFileAnalysisSession;
+  const delegated: unknown[] = [];
+  session.runFileAnalysisSession = (async (args: unknown) => {
+    delegated.push(args);
+  }) as typeof session.runFileAnalysisSession;
+  return {
+    delegated,
+    restore: () => {
+      session.runFileAnalysisSession = original;
+    },
+  };
+}
+
 describe('analysisRunner', () => {
   beforeEach(() => {
     resetVscodeMock();
@@ -38,8 +57,6 @@ describe('analysisRunner', () => {
         },
       } as any,
     });
-    const session =
-      require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
     const analysisService =
       require('../services/analysisService') as typeof import('../services/analysisService');
     const workspaceBuildService =
@@ -50,12 +67,7 @@ describe('analysisRunner', () => {
       require('../workspace/workspaceRoots') as typeof import('../workspace/workspaceRoots');
     const loggerModule =
       require('../core/logger') as typeof import('../core/logger');
-    const originalRunFileAnalysisSession = session.runFileAnalysisSession;
-    const delegated: unknown[] = [];
-
-    session.runFileAnalysisSession = (async (args: unknown) => {
-      delegated.push(args);
-    }) as typeof session.runFileAnalysisSession;
+    const { delegated, restore } = captureFileAnalysisSessions();
     Date.now = () => 1234;
 
     try {
@@ -138,22 +150,15 @@ describe('analysisRunner', () => {
       assert.strictEqual(args.dependencies.now(), 1234);
     } finally {
       Date.now = originalDateNow;
-      session.runFileAnalysisSession = originalRunFileAnalysisSession;
+      restore();
     }
   });
 
   it('uses the default notifier for delegated file analysis when omitted', async () => {
     const vscode = installVscodeMock();
-    const session =
-      require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
     const notifierModule =
       require('../core/notifier') as typeof import('../core/notifier');
-    const originalRunFileAnalysisSession = session.runFileAnalysisSession;
-    const delegated: unknown[] = [];
-
-    session.runFileAnalysisSession = (async (args: unknown) => {
-      delegated.push(args);
-    }) as typeof session.runFileAnalysisSession;
+    const { delegated, restore } = captureFileAnalysisSessions();
 
     try {
       const runner =
@@ -173,7 +178,7 @@ describe('analysisRunner', () => {
         notifierModule.defaultNotifier
       );
     } finally {
-      session.runFileAnalysisSession = originalRunFileAnalysisSession;
+      restore();
     }
   });
 
@@ -189,14 +194,7 @@ describe('analysisRunner', () => {
         },
       } as any,
     });
-    const session =
-      require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
-    const originalRunFileAnalysisSession = session.runFileAnalysisSession;
-    const delegated: unknown[] = [];
-
-    session.runFileAnalysisSession = (async (args: unknown) => {
-      delegated.push(args);
-    }) as typeof session.runFileAnalysisSession;
+    const { delegated, restore } = captureFileAnalysisSessions();
 
     try {
       const runner =
@@ -217,7 +215,7 @@ describe('analysisRunner', () => {
       assert.strictEqual(delegated.length, 1);
       assert.strictEqual((delegated[0] as { uri: unknown }).uri, activeUri);
     } finally {
-      session.runFileAnalysisSession = originalRunFileAnalysisSession;
+      restore();
     }
   });
 
@@ -237,14 +235,7 @@ describe('analysisRunner', () => {
         },
       } as any,
     });
-    const session =
-      require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
-    const originalRunFileAnalysisSession = session.runFileAnalysisSession;
-    const delegated: unknown[] = [];
-
-    session.runFileAnalysisSession = (async (args: unknown) => {
-      delegated.push(args);
-    }) as typeof session.runFileAnalysisSession;
+    const { delegated, restore } = captureFileAnalysisSessions();
 
     try {
       const runner =
@@ -261,7 +252,7 @@ describe('analysisRunner', () => {
       assert.deepStrictEqual(errors, ['No Java file selected for SpotBugs analysis.']);
       assert.deepStrictEqual(delegated, []);
     } finally {
-      session.runFileAnalysisSession = originalRunFileAnalysisSession;
+      restore();
     }
   });
 

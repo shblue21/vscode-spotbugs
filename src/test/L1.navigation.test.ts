@@ -4,24 +4,18 @@ import { Finding } from '../model/finding';
 
 installVscodeMock();
 
+type ShownDocument = {
+  uri: { fsPath: string };
+  options: Record<string, unknown>;
+};
+
 describe('navigation', () => {
   beforeEach(() => {
     resetVscodeMock();
   });
 
   it('opens explicit go-to-code navigation in a focused permanent editor', async () => {
-    const shown: Array<{ uri: { fsPath: string }; options: Record<string, unknown> }> = [];
-    resetVscodeMock({
-      window: {
-        showTextDocument: async (
-          uri: { fsPath: string },
-          options: Record<string, unknown>
-        ) => {
-          shown.push({ uri, options });
-          return undefined;
-        },
-      },
-    } as never);
+    const shown = installDocumentCapture();
     const { revealFindingSource } = await import('../commands/navigation');
     const finding = makeFinding();
     finding.location.endLine = 289;
@@ -44,18 +38,7 @@ describe('navigation', () => {
   });
 
   it('can preview a selected finding source without stealing focus', async () => {
-    const shown: Array<{ uri: { fsPath: string }; options: Record<string, unknown> }> = [];
-    resetVscodeMock({
-      window: {
-        showTextDocument: async (
-          uri: { fsPath: string },
-          options: Record<string, unknown>
-        ) => {
-          shown.push({ uri, options });
-          return undefined;
-        },
-      },
-    } as never);
+    const shown = installDocumentCapture();
     const { revealFindingSource } = await import('../commands/navigation');
     const finding = makeFinding();
 
@@ -68,18 +51,7 @@ describe('navigation', () => {
   });
 
   it('does not open source when a preview request becomes stale', async () => {
-    const shown: Array<{ uri: { fsPath: string }; options: Record<string, unknown> }> = [];
-    resetVscodeMock({
-      window: {
-        showTextDocument: async (
-          uri: { fsPath: string },
-          options: Record<string, unknown>
-        ) => {
-          shown.push({ uri, options });
-          return undefined;
-        },
-      },
-    } as never);
+    const shown = installDocumentCapture();
     const { revealFindingSource } = await import('../commands/navigation');
     const finding = makeFinding();
 
@@ -111,6 +83,22 @@ describe('navigation', () => {
     ]);
   });
 });
+
+function installDocumentCapture(): ShownDocument[] {
+  const shown: ShownDocument[] = [];
+  resetVscodeMock({
+    window: {
+      showTextDocument: async (
+        uri: { fsPath: string },
+        options: Record<string, unknown>
+      ) => {
+        shown.push({ uri, options });
+        return undefined;
+      },
+    },
+  } as never);
+  return shown;
+}
 
 function makeFinding(overrides: Partial<Finding> = {}): Finding {
   return {

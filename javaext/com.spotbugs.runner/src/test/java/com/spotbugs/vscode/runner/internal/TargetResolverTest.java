@@ -49,12 +49,7 @@ public class TargetResolverTest {
         touch(outputPackage, "ReproOther.class");
         touch(outputPackage, "Other.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceFile.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(sourceRoot.getAbsolutePath()),
-                null
-        );
+        List<String> actual = resolve(sourceFile, outputRoot, sourceRoot);
 
         assertEquals(sortedPaths(classFile, anonymousClassFile, innerClassFile), sorted(actual));
     }
@@ -69,11 +64,10 @@ public class TargetResolverTest {
         File broadClassFile = touch(mkdirs(outputRoot, "demo"), "Repro.class");
         File narrowClassFile = touch(outputRoot, "Repro.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceFile.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                listOf(broadSourceRoot.getAbsolutePath(), narrowSourceRoot.getAbsolutePath()),
-                null
+        List<String> actual = resolve(
+                sourceFile,
+                outputRoot,
+                listOf(broadSourceRoot.getAbsolutePath(), narrowSourceRoot.getAbsolutePath())
         );
 
         assertEquals(Collections.singletonList(narrowClassFile.getAbsolutePath()), actual);
@@ -89,11 +83,10 @@ public class TargetResolverTest {
         File sourceFile = touch(narrowSourceRoot, "Repro.java");
         touch(mkdirs(outputRoot, "demo"), "Repro.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceFile.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                listOf(broadSourceRoot.getAbsolutePath(), narrowSourceRoot.getAbsolutePath()),
-                null
+        List<String> actual = resolve(
+                sourceFile,
+                outputRoot,
+                listOf(broadSourceRoot.getAbsolutePath(), narrowSourceRoot.getAbsolutePath())
         );
 
         assertEquals(Collections.emptyList(), actual);
@@ -107,11 +100,10 @@ public class TargetResolverTest {
         File sourceFile = touch(mkdirs(sourceRoot, "demo"), "Repro.java");
         File classFile = touch(mkdirs(outputRoot, "demo"), "Repro.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceFile.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(new File(project, "other-source").getAbsolutePath()),
-                null
+        List<String> actual = resolve(
+                sourceFile,
+                outputRoot,
+                Collections.singletonList(new File(project, "other-source").getAbsolutePath())
         );
 
         assertEquals(Collections.singletonList(classFile.getAbsolutePath()), actual);
@@ -125,12 +117,7 @@ public class TargetResolverTest {
         File sourceFile = touch(mkdirs(sourceRoot, "demo"), "Repro.java");
         touch(mkdirs(outputRoot, "other"), "Repro.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceFile.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(sourceRoot.getAbsolutePath()),
-                null
-        );
+        List<String> actual = resolve(sourceFile, outputRoot, sourceRoot);
 
         assertEquals(Collections.emptyList(), actual);
     }
@@ -144,12 +131,7 @@ public class TargetResolverTest {
         touch(sourceDir, "Repro.java");
         File classFile = touch(mkdirs(outputRoot, "demo"), "Repro.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceDir.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(sourceRoot.getAbsolutePath()),
-                null
-        );
+        List<String> actual = resolve(sourceDir, outputRoot, sourceRoot);
 
         assertEquals(Collections.singletonList(classFile.getAbsolutePath()), actual);
     }
@@ -165,12 +147,7 @@ public class TargetResolverTest {
         File zipFile = touch(selectedDir, "archive.zip");
         touch(mkdirs(outputRoot, "other"), "Other.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { selectedDir.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(sourceRoot.getAbsolutePath()),
-                null
-        );
+        List<String> actual = resolve(selectedDir, outputRoot, sourceRoot);
 
         assertEquals(sortedPaths(classFile, jarFile, zipFile), sorted(actual));
     }
@@ -187,12 +164,7 @@ public class TargetResolverTest {
         touch(outputPackage, "library.jar");
         touch(outputPackage, "archive.zip");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceDir.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(sourceRoot.getAbsolutePath()),
-                null
-        );
+        List<String> actual = resolve(sourceDir, outputRoot, sourceRoot);
 
         assertEquals(Collections.singletonList(classFile.getAbsolutePath()), actual);
     }
@@ -214,12 +186,7 @@ public class TargetResolverTest {
             File zipFile = touch(selectedDir, "archive.zip");
             touch(mkdirs(outputRoot, "other"), "Other.class");
 
-            List<String> actual = new TargetResolver().resolveTargets(
-                    new String[] { selectedDir.getAbsolutePath() },
-                    Collections.singletonList(outputRoot),
-                    Collections.emptyList(),
-                    null
-            );
+            List<String> actual = resolve(selectedDir, outputRoot, Collections.emptyList());
 
             assertEquals(sortedPaths(classFile, jarFile, zipFile), sorted(actual));
         }
@@ -243,12 +210,7 @@ public class TargetResolverTest {
         touch(sourcePackage, "library.jar");
         touch(otherOutput, "Missing.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceRoot.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.singletonList(sourceRoot.getAbsolutePath()),
-                null
-        );
+        List<String> actual = resolve(sourceRoot, outputRoot, sourceRoot);
 
         assertEquals(sortedPaths(classFile, anonymousClassFile, innerClassFile), sorted(actual));
     }
@@ -263,12 +225,7 @@ public class TargetResolverTest {
         touch(sourcePackage, "library.jar");
         File classFile = touch(mkdirs(outputRoot, "demo"), "Repro.class");
 
-        List<String> actual = new TargetResolver().resolveTargets(
-                new String[] { sourceRoot.getAbsolutePath() },
-                Collections.singletonList(outputRoot),
-                Collections.emptyList(),
-                null
-        );
+        List<String> actual = resolve(sourceRoot, outputRoot, Collections.emptyList());
 
         assertEquals(Collections.singletonList(classFile.getAbsolutePath()), sorted(actual));
     }
@@ -289,12 +246,7 @@ public class TargetResolverTest {
                 sourceRoot.getAbsolutePath() + File.separator,
                 sourceRoot.getAbsolutePath() + File.separator + "."
         )) {
-            List<String> actual = new TargetResolver().resolveTargets(
-                    new String[] { sourceRootPath },
-                    Collections.singletonList(outputRoot),
-                    Collections.emptyList(),
-                    null
-            );
+            List<String> actual = resolve(sourceRootPath, outputRoot, Collections.emptyList());
 
             assertEquals(Collections.singletonList(classFile.getAbsolutePath()), sorted(actual));
         }
@@ -304,6 +256,27 @@ public class TargetResolverTest {
         File file = new File(parent, name);
         assertTrue(file.createNewFile());
         return file;
+    }
+
+    private List<String> resolve(File input, File outputRoot, File sourceRoot) throws Exception {
+        return resolve(
+                input,
+                outputRoot,
+                Collections.singletonList(sourceRoot.getAbsolutePath())
+        );
+    }
+
+    private List<String> resolve(File input, File outputRoot, List<String> sourcepaths) throws Exception {
+        return resolve(input.getAbsolutePath(), outputRoot, sourcepaths);
+    }
+
+    private List<String> resolve(String inputPath, File outputRoot, List<String> sourcepaths) throws Exception {
+        return new TargetResolver().resolveTargets(
+                new String[] { inputPath },
+                Collections.singletonList(outputRoot),
+                sourcepaths,
+                null
+        );
     }
 
     private File mkdirs(File parent, String relativePath) {
