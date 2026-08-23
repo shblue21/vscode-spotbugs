@@ -595,10 +595,9 @@ function inferProjectRootFromSourcepaths(
   targetPath: string,
   sourcepaths: readonly string[] | undefined
 ): string | undefined {
-  const sourcepathCandidates = sortSourcepathCandidates(
-    normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
-      isPathInsideOrEqual(candidate.root, targetPath)
-    )
+  const sourcepathCandidates = findContainingSourcepathCandidates(
+    targetPath,
+    sourcepaths
   );
   const sourcepathRoot = sourcepathCandidates[0]?.root;
   if (sourcepathRoot) {
@@ -627,6 +626,17 @@ function sortSourcepathCandidates<T extends { root: string; index: number }>(
     (a, b) =>
       path.resolve(b.root).length - path.resolve(a.root).length ||
       a.index - b.index
+  );
+}
+
+function findContainingSourcepathCandidates(
+  targetPath: string,
+  sourcepaths: readonly string[] | undefined
+): Array<{ root: string; index: number }> {
+  return sortSourcepathCandidates(
+    normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
+      isPathInsideOrEqual(candidate.root, targetPath)
+    )
   );
 }
 
@@ -834,10 +844,9 @@ function inferJavaSourceSet(
   sourcePath: string,
   sourcepaths: readonly string[] | undefined
 ): JavaSourceSet {
-  const sourcepathCandidates = sortSourcepathCandidates(
-    normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
-      isPathInsideOrEqual(candidate.root, sourcePath)
-    )
+  const sourcepathCandidates = findContainingSourcepathCandidates(
+    sourcePath,
+    sourcepaths
   );
 
   for (const candidate of sourcepathCandidates) {
@@ -942,49 +951,42 @@ function deriveRelativeJavaSourcePaths(
   sourcePath: string,
   sourcepaths: readonly string[] | undefined
 ): string[] {
-  const candidates: string[] = [];
-  const sourcepathCandidates = sortSourcepathCandidates(
-    normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
-      isPathInsideOrEqual(candidate.root, sourcePath)
-    )
+  const sourcepathCandidates = findContainingSourcepathCandidates(
+    sourcePath,
+    sourcepaths
   );
 
   for (const candidate of sourcepathCandidates) {
     const relative = path.relative(path.resolve(candidate.root), path.resolve(sourcePath));
     if (relative && path.extname(relative).toLowerCase() === '.java') {
-      return uniqueRelativeJavaSourcePaths([relative]);
+      return [relative];
     }
     return [];
   }
 
   const markerCandidate = deriveMarkerRelativeJavaSourcePath(sourcePath);
-  if (markerCandidate) {
-    candidates.push(markerCandidate);
-  }
-
-  return uniqueRelativeJavaSourcePaths(candidates);
+  return markerCandidate && path.extname(markerCandidate).toLowerCase() === '.java'
+    ? [markerCandidate]
+    : [];
 }
 
 function deriveRelativeJavaSourceDirectoryPaths(
   sourceDir: string,
   sourcepaths: readonly string[] | undefined
 ): string[] {
-  const sourcepathCandidates = sortSourcepathCandidates(
-    normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
-      isPathInsideOrEqual(candidate.root, sourceDir)
-    )
+  const sourcepathCandidates = findContainingSourcepathCandidates(
+    sourceDir,
+    sourcepaths
   );
 
   for (const candidate of sourcepathCandidates) {
-    return uniqueRelativeJavaSourceDirectoryPaths([
+    return [
       path.relative(path.resolve(candidate.root), path.resolve(sourceDir)),
-    ]);
+    ];
   }
 
   const markerCandidate = deriveMarkerRelativeJavaSourceDirectoryPath(sourceDir);
-  return markerCandidate === undefined
-    ? []
-    : uniqueRelativeJavaSourceDirectoryPaths([markerCandidate]);
+  return markerCandidate === undefined ? [] : [markerCandidate];
 }
 
 function normalizeSourcepathCandidates(
@@ -1003,37 +1005,6 @@ function normalizeSourcepathCandidates(
     }
     seen.add(root);
     result.push({ root, index });
-  }
-  return result;
-}
-
-function uniqueRelativeJavaSourceDirectoryPaths(candidates: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const candidate of candidates) {
-    const key = normalizeForSourceSet(candidate);
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    result.push(candidate);
-  }
-  return result;
-}
-
-function uniqueRelativeJavaSourcePaths(candidates: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const candidate of candidates) {
-    if (path.extname(candidate).toLowerCase() !== '.java') {
-      continue;
-    }
-    const key = candidate.replace(/\\/g, '/');
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    result.push(candidate);
   }
   return result;
 }
