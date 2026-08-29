@@ -59,6 +59,10 @@ public class PluginInventoryServiceTest {
         assertEquals("DUPLICATE_PLUGIN_ID", entries.get(1).getStatus());
         assertEquals(Integer.valueOf(2), entries.get(1).getDetectorCount());
         assertEquals(Integer.valueOf(3), entries.get(1).getBugPatternCount());
+        assertEquals(
+                Arrays.asList("EXAMPLE_ONE", "EXAMPLE_TWO", "EXAMPLE_THREE"),
+                entries.get(1).getBugPatternTypes()
+        );
     }
 
     @Test
@@ -136,6 +140,7 @@ public class PluginInventoryServiceTest {
         assertNull(entry.getVersion());
         assertNull(entry.getDetectorCount());
         assertNull(entry.getBugPatternCount());
+        assertNull(entry.getBugPatternTypes());
     }
 
     private File createPluginJar(String pluginId, String fileName) throws Exception {
@@ -168,6 +173,7 @@ public class PluginInventoryServiceTest {
                 + "<BugPattern type=\"EXAMPLE_ONE\"/>"
                 + "<BugPattern type=\"EXAMPLE_TWO\"/>"
                 + "<BugPattern type=\"EXAMPLE_THREE\"/>"
+                + "<BugPattern type=\" \"/>"
                 + "</FindbugsPlugin>";
     }
 

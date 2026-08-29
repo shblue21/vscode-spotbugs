@@ -56,6 +56,7 @@ public class PluginInventoryActionTest {
                 "1.2.3",
                 2,
                 3,
+                Arrays.asList("EXAMPLE_ONE", "EXAMPLE_TWO", "EXAMPLE_THREE"),
                 null
         );
         PluginInventoryAction action = new PluginInventoryAction(new PluginInventoryService() {
@@ -75,6 +76,10 @@ public class PluginInventoryActionTest {
         assertEquals("1.2.3", serialized.get("version").getAsString());
         assertEquals(2, serialized.get("detectorCount").getAsInt());
         assertEquals(3, serialized.get("bugPatternCount").getAsInt());
+        assertEquals(
+                "[\"EXAMPLE_ONE\",\"EXAMPLE_TWO\",\"EXAMPLE_THREE\"]",
+                serialized.getAsJsonArray("bugPatternTypes").toString()
+        );
         assertFalse(serialized.has("errorMessage"));
     }
 

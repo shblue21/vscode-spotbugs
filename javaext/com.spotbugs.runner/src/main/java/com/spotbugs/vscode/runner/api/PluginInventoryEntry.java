@@ -1,5 +1,7 @@
 package com.spotbugs.vscode.runner.api;
 
+import java.util.List;
+
 public final class PluginInventoryEntry {
 
     private final int index;
@@ -13,6 +15,7 @@ public final class PluginInventoryEntry {
     private final String version;
     private final Integer detectorCount;
     private final Integer bugPatternCount;
+    private final List<String> bugPatternTypes;
     private final String errorMessage;
 
     public PluginInventoryEntry(
@@ -27,6 +30,7 @@ public final class PluginInventoryEntry {
             String version,
             Integer detectorCount,
             Integer bugPatternCount,
+            List<String> bugPatternTypes,
             String errorMessage
     ) {
         this.index = index;
@@ -40,6 +44,7 @@ public final class PluginInventoryEntry {
         this.version = version;
         this.detectorCount = detectorCount;
         this.bugPatternCount = bugPatternCount;
+        this.bugPatternTypes = bugPatternTypes;
         this.errorMessage = errorMessage;
     }
 
@@ -85,6 +90,10 @@ public final class PluginInventoryEntry {
 
     public Integer getBugPatternCount() {
         return bugPatternCount;
+    }
+
+    public List<String> getBugPatternTypes() {
+        return bugPatternTypes;
     }
 
     public String getErrorMessage() {

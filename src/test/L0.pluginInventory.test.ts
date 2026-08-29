@@ -177,6 +177,7 @@ describe('pluginInventoryTreeDataProvider', () => {
           version: '1.2.3',
           detectorCount: 2,
           bugPatternCount: 3,
+          bugPatternTypes: ['EXAMPLE_ONE', 'EXAMPLE_TWO', 'EXAMPLE_THREE'],
         },
         {
           index: 1,
@@ -219,6 +220,12 @@ describe('pluginInventoryTreeDataProvider', () => {
     );
     const pluginItem = children[0] as { pluginPath?: string };
     assert.strictEqual(pluginItem.pluginPath, '/workspace/plugin-a.jar');
+    assert.strictEqual(children[0].collapsibleState, 1);
+    assert.deepStrictEqual(
+      (await provider.getChildren(children[0])).map((child) => child.label),
+      ['EXAMPLE_ONE', 'EXAMPLE_TWO', 'EXAMPLE_THREE']
+    );
+    assert.strictEqual(children[1].collapsibleState, 0);
   });
 });
 
@@ -238,6 +245,7 @@ describe('pluginInventoryParser', () => {
             version: '1.2.3',
             detectorCount: 2,
             bugPatternCount: 3,
+            bugPatternTypes: [' EXAMPLE_ONE ', 'EXAMPLE_TWO'],
           },
           {
             index: 1,
@@ -247,6 +255,7 @@ describe('pluginInventoryParser', () => {
             errorMessage: 'Duplicate plugin id',
             provider: 42,
             detectorCount: -1,
+            bugPatternTypes: ['VALID', 42],
           },
           {
             index: 2,
@@ -255,6 +264,7 @@ describe('pluginInventoryParser', () => {
             errorMessage: 'bad',
             shortDescription: '   ',
             bugPatternCount: 0,
+            bugPatternTypes: [],
           },
         ],
       })
@@ -279,12 +289,15 @@ describe('pluginInventoryParser', () => {
       version: '1.2.3',
       detectorCount: 2,
       bugPatternCount: 3,
+      bugPatternTypes: ['EXAMPLE_ONE', 'EXAMPLE_TWO'],
       errorMessage: undefined,
     });
     assert.strictEqual(result.value.items[1].provider, undefined);
     assert.strictEqual(result.value.items[1].detectorCount, undefined);
+    assert.strictEqual(result.value.items[1].bugPatternTypes, undefined);
     assert.strictEqual(result.value.items[2].shortDescription, undefined);
     assert.strictEqual(result.value.items[2].bugPatternCount, 0);
+    assert.deepStrictEqual(result.value.items[2].bugPatternTypes, []);
     assert.strictEqual(result.value.items[2].errorMessage, 'bad');
   });
 

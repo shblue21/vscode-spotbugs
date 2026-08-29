@@ -27,6 +27,7 @@ export interface PluginInventoryItem {
   version?: string;
   detectorCount?: number;
   bugPatternCount?: number;
+  bugPatternTypes?: readonly string[];
   errorMessage?: string;
 }
 
@@ -107,6 +108,7 @@ function normalizeItems(values: unknown[]): PluginInventoryItem[] {
       version: optionalNonBlankString(value.version),
       detectorCount: optionalCount(value.detectorCount),
       bugPatternCount: optionalCount(value.bugPatternCount),
+      bugPatternTypes: optionalNonBlankStrings(value.bugPatternTypes),
       errorMessage:
         typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
     });
@@ -125,6 +127,16 @@ function optionalNonBlankString(value: unknown): string | undefined {
 function optionalCount(value: unknown): number | undefined {
   return Number.isInteger(value) && (value as number) >= 0
     ? (value as number)
+    : undefined;
+}
+
+function optionalNonBlankStrings(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const values = value.map(optionalNonBlankString);
+  return values.every((item): item is string => item !== undefined)
+    ? values
     : undefined;
 }
 
