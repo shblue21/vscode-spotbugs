@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.apache.bcel.classfile.ClassParser;
 import org.eclipse.core.runtime.IProgressMonitor;
 
 /**
@@ -117,8 +118,8 @@ public class TargetResolver {
             Set<String> seen,
             IProgressMonitor monitor
     ) throws IOException {
-        List<SourceDirectoryMatch> sourceDirectoryMatches = deriveRelativeDirectoryMatchesFromSource(sourceDir, sourceRoots, monitor);
-        if (sourceDirectoryMatches.isEmpty()) {
+        String relativeDir = deriveRelativeDirectoryPathFromSource(sourceDir, sourceRoots, monitor);
+        if (relativeDir == null) {
             return SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
         }
 
@@ -127,50 +128,53 @@ public class TargetResolver {
             return SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
         }
 
-        boolean sourceDirectoryMatched = false;
-        for (SourceDirectoryMatch match : sourceDirectoryMatches) {
-            sourceDirectoryMatched = true;
-            if (targetResolutionRootDirs == null || targetResolutionRootDirs.isEmpty()) {
-                continue;
-            }
+        if (targetResolutionRootDirs == null || targetResolutionRootDirs.isEmpty()) {
+            return SourceDirectoryResolution.SOURCE_DIRECTORY_NO_OUTPUTS;
+        }
 
-            boolean addedForRelative = false;
-            String relDir = normalizePath(match.relativePath);
-            if (relDir.isEmpty()) {
-                int before = out.size();
-                collectMappedClassesForSourceTree(
-                        sourceDirFile,
-                        targetResolutionRootDirs,
-                        sourceRoots,
-                        out,
-                        seen,
-                        monitor
-                );
-                if (out.size() > before) {
-                    addedForRelative = true;
+        int before = out.size();
+        if (relativeDir.isEmpty()) {
+            collectMappedClassesForSourceTree(
+                    sourceDirFile,
+                    targetResolutionRootDirs,
+                    sourceRoots,
+                    out,
+                    seen,
+                    monitor
+            );
+        } else {
+            for (File outputRoot : targetResolutionRootDirs) {
+                checkCanceled(monitor);
+                if (outputRoot == null) continue;
+                File outputDir = new File(outputRoot, normalizePath(relativeDir));
+                if (outputDir.isDirectory()) {
+                    collectClassesForSelectedSources(sourceDirFile, outputDir, out, seen, monitor);
                 }
-            }
-            else {
-                for (File dir : targetResolutionRootDirs) {
-                    checkCanceled(monitor);
-                    if (dir == null) continue;
-                    File candidate = new File(dir, relDir);
-                    if (candidate.exists() && candidate.isDirectory()) {
-                        int before = out.size();
-                        collectClassFilesRecursively(candidate, out, seen, monitor);
-                        if (out.size() > before) {
-                            addedForRelative = true;
-                        }
-                    }
-                }
-            }
-            if (addedForRelative) {
-                return SourceDirectoryResolution.SOURCE_DIRECTORY_WITH_OUTPUTS;
             }
         }
-        return sourceDirectoryMatched
-                ? SourceDirectoryResolution.SOURCE_DIRECTORY_NO_OUTPUTS
-                : SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
+        return out.size() > before
+                ? SourceDirectoryResolution.SOURCE_DIRECTORY_WITH_OUTPUTS
+                : SourceDirectoryResolution.SOURCE_DIRECTORY_NO_OUTPUTS;
+    }
+
+    private void collectMappedClassesForSourceTree(
+            File sourceDir,
+            List<File> targetResolutionRootDirs,
+            List<SourceRoot> sourceRoots,
+            List<String> out,
+            Set<String> seen,
+            IProgressMonitor monitor
+    ) throws IOException {
+        File[] children = sourceDir.listFiles();
+        if (children == null) return;
+        for (File c : children) {
+            checkCanceled(monitor);
+            if (c.isDirectory()) {
+                collectMappedClassesForSourceTree(c, targetResolutionRootDirs, sourceRoots, out, seen, monitor);
+            } else if (c.isFile() && isJavaSourceFile(c.getName())) {
+                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, sourceRoots, out, seen, monitor);
+            }
+        }
     }
 
     private boolean containsJavaSourceRecursively(File dir, IProgressMonitor monitor) {
@@ -191,45 +195,46 @@ public class TargetResolver {
         return false;
     }
 
-    private void collectMappedClassesForSourceTree(
+    private void collectClassesForSelectedSources(
             File sourceDir,
-            List<File> targetResolutionRootDirs,
-            List<SourceRoot> sourceRoots,
-            List<String> out,
-            Set<String> seen,
-            IProgressMonitor monitor
-    ) throws IOException {
-        File[] children = sourceDir.listFiles();
-        if (children == null) return;
-        for (File c : children) {
-            checkCanceled(monitor);
-            if (c.isDirectory()) {
-                collectMappedClassesForSourceTree(c, targetResolutionRootDirs, sourceRoots, out, seen, monitor);
-                continue;
-            }
-            if (c.isFile() && isJavaSourceFile(c.getName())) {
-                addTargetsForJavaFile(c.getAbsolutePath(), targetResolutionRootDirs, sourceRoots, out, seen, monitor);
-            }
-        }
-    }
-
-    private void collectClassFilesRecursively(
-            File dir,
+            File outputDir,
             List<String> out,
             Set<String> seen,
             IProgressMonitor monitor
     ) {
-        File[] children = dir.listFiles();
+        File[] children = outputDir.listFiles();
         if (children == null) return;
         for (File c : children) {
             checkCanceled(monitor);
             if (c.isDirectory()) {
-                collectClassFilesRecursively(c, out, seen, monitor);
+                collectClassesForSelectedSources(
+                        new File(sourceDir, c.getName()),
+                        c,
+                        out,
+                        seen,
+                        monitor
+                );
                 continue;
             }
             if (c.isFile() && isClassFile(c.getName())) {
-                addIfNew(c.getAbsolutePath(), out, seen);
+                if (hasSelectedSource(c, sourceDir)) {
+                    addIfNew(c.getAbsolutePath(), out, seen);
+                }
             }
+        }
+    }
+
+    private boolean hasSelectedSource(File classFile, File sourceDir) {
+        try {
+            String sourceFileName = new ClassParser(classFile.getAbsolutePath())
+                    .parse()
+                    .getSourceFileName();
+            sourceFileName = SourcePathPolicy.sourceFileName(sourceFileName);
+            return sourceFileName == null
+                    || !isJavaSourceFile(sourceFileName)
+                    || new File(sourceDir, sourceFileName).isFile();
+        } catch (IOException | RuntimeException ignored) {
+            return true;
         }
     }
 
@@ -337,35 +342,21 @@ public class TargetResolver {
         return new ArrayList<>(candidates);
     }
 
-    private List<SourceDirectoryMatch> deriveRelativeDirectoryMatchesFromSource(
+    private String deriveRelativeDirectoryPathFromSource(
             String sourceDir,
             List<SourceRoot> sourceRoots,
             IProgressMonitor monitor
     ) {
-        List<SourceDirectoryMatch> candidates = new ArrayList<>();
         Path source = toNormalizedPath(sourceDir);
         if (source != null && sourceRoots != null) {
             for (SourceRoot root : sourceRoots) {
                 checkCanceled(monitor);
-                if (!source.startsWith(root.path)) {
-                    continue;
+                if (source.startsWith(root.path)) {
+                    return normalizeRelativePath(root.path.relativize(source).toString());
                 }
-                Path relative = root.path.relativize(source);
-                candidates.add(new SourceDirectoryMatch(
-                        normalizeRelativePath(relative.toString())
-                ));
-                return candidates;
             }
         }
-
-        String markerCandidate = deriveRelativeDirectoryPathFromSource(sourceDir);
-        if (markerCandidate == null) {
-            return candidates;
-        }
-        candidates.add(new SourceDirectoryMatch(
-                normalizeRelativePath(markerCandidate)
-        ));
-        return candidates;
+        return deriveRelativeDirectoryPathFromSource(sourceDir);
     }
 
     private String deriveRelativePathFromSource(String sourcePath) {
@@ -389,8 +380,7 @@ public class TargetResolver {
             if (markerWithChildIndex >= 0) {
                 return norm.substring(markerWithChildIndex + markerWithChild.length());
             }
-            int exactMarkerIndex = norm.indexOf(marker);
-            if (exactMarkerIndex >= 0 && exactMarkerIndex + marker.length() == norm.length()) {
+            if (norm.endsWith(marker)) {
                 return "";
             }
         }
@@ -398,10 +388,7 @@ public class TargetResolver {
         if (javaRootIndex >= 0 && javaRootIndex + 6 < norm.length()) {
             return norm.substring(javaRootIndex + 6);
         }
-        if (norm.endsWith("/java")) {
-            return "";
-        }
-        return null;
+        return norm.endsWith("/java") ? "" : null;
     }
 
     private String normalizeSourceDirectoryPath(String sourceDir) {
@@ -521,14 +508,6 @@ public class TargetResolver {
         private SourceRoot(Path path, int index) {
             this.path = path;
             this.index = index;
-        }
-    }
-
-    private static final class SourceDirectoryMatch {
-        private final String relativePath;
-
-        private SourceDirectoryMatch(String relativePath) {
-            this.relativePath = relativePath;
         }
     }
 
