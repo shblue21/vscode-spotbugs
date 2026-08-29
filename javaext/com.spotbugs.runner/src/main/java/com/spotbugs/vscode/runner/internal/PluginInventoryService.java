@@ -106,6 +106,7 @@ public class PluginInventoryService {
                         descriptor.version,
                         descriptor.detectorCount,
                         descriptor.bugPatternCount,
+                        descriptor.bugPatternTypes,
                         "Duplicate plugin id: " + pluginId
                 );
             }
@@ -124,6 +125,7 @@ public class PluginInventoryService {
                 descriptor.version,
                 descriptor.detectorCount,
                 descriptor.bugPatternCount,
+                descriptor.bugPatternTypes,
                 null
         );
     }
@@ -139,6 +141,7 @@ public class PluginInventoryService {
                 path,
                 canonicalPath,
                 STATUS_VALIDATION_FAILED,
+                null,
                 null,
                 null,
                 null,
@@ -175,7 +178,7 @@ public class PluginInventoryService {
                 }
 
                 int detectorCount = 0;
-                int bugPatternCount = 0;
+                List<String> bugPatternTypes = new ArrayList<>();
                 for (Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
                     if (child.getNodeType() != Node.ELEMENT_NODE) {
                         continue;
@@ -183,10 +186,18 @@ public class PluginInventoryService {
                     if ("Detector".equals(child.getNodeName())) {
                         detectorCount++;
                     } else if ("BugPattern".equals(child.getNodeName())) {
-                        bugPatternCount++;
+                        String type = trimToNull(((Element) child).getAttribute("type"));
+                        if (type != null) {
+                            bugPatternTypes.add(type);
+                        }
                     }
                 }
-                return new DescriptorInfo(trimToNull(root.getAttribute("version")), detectorCount, bugPatternCount);
+                return new DescriptorInfo(
+                        trimToNull(root.getAttribute("version")),
+                        detectorCount,
+                        bugPatternTypes.size(),
+                        bugPatternTypes
+                );
             }
         }
     }
@@ -208,16 +219,23 @@ public class PluginInventoryService {
     }
 
     private static final class DescriptorInfo {
-        private static final DescriptorInfo EMPTY = new DescriptorInfo(null, null, null);
+        private static final DescriptorInfo EMPTY = new DescriptorInfo(null, null, null, null);
 
         private final String version;
         private final Integer detectorCount;
         private final Integer bugPatternCount;
+        private final List<String> bugPatternTypes;
 
-        private DescriptorInfo(String version, Integer detectorCount, Integer bugPatternCount) {
+        private DescriptorInfo(
+                String version,
+                Integer detectorCount,
+                Integer bugPatternCount,
+                List<String> bugPatternTypes
+        ) {
             this.version = version;
             this.detectorCount = detectorCount;
             this.bugPatternCount = bugPatternCount;
+            this.bugPatternTypes = bugPatternTypes;
         }
     }
 }

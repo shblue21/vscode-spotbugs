@@ -6,6 +6,7 @@ import {
   ThemeIcon,
   TreeDataProvider,
   TreeItem,
+  TreeItemCollapsibleState,
   l10n,
 } from 'vscode';
 import * as path from 'path';
@@ -16,8 +17,17 @@ import type {
 } from '../services/pluginInventoryService';
 
 class PluginInventoryTreeItem extends TreeItem {
-  constructor(label: string, public readonly pluginPath?: string) {
-    super(label);
+  constructor(
+    label: string,
+    public readonly pluginPath?: string,
+    public readonly rules: readonly string[] = []
+  ) {
+    super(
+      label,
+      rules.length > 0
+        ? TreeItemCollapsibleState.Collapsed
+        : TreeItemCollapsibleState.None
+    );
   }
 }
 
@@ -38,7 +48,11 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
   }
 
   getChildren(element?: TreeItem): Thenable<TreeItem[]> {
-    return Promise.resolve(element ? [] : this.viewItems);
+    return Promise.resolve(
+      element instanceof PluginInventoryTreeItem
+        ? element.rules.map((rule) => new PluginInventoryTreeItem(rule))
+        : this.viewItems
+    );
   }
 
   public showInitialMessage(): void {
@@ -68,7 +82,11 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
 
   private createPluginItem(item: PluginInventoryItem): TreeItem {
     const itemPath = item.path || item.canonicalPath || l10n.t('Plugin {0}', item.index + 1);
-    const treeItem = new PluginInventoryTreeItem(path.basename(itemPath), item.path);
+    const treeItem = new PluginInventoryTreeItem(
+      path.basename(itemPath),
+      item.path,
+      item.bugPatternTypes
+    );
     const statusLabel = statusDescription(item.status);
     const statusAndId = item.pluginId
       ? `${statusLabel}: ${item.pluginId}`
