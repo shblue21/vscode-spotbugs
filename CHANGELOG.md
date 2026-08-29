@@ -1,4 +1,16 @@
 # Changelog
+## [0.11.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.10.0...v0.11.0) (2026-08-29)
+
+
+### Features
+
+* show declared plugin rules ([#136](https://github.com/shblue21/vscode-spotbugs/issues/136)) ([812f80d](https://github.com/shblue21/vscode-spotbugs/commit/812f80d691d0ba95aff92db9f36fdf775ec41875))
+
+
+### Bug Fixes
+
+* scope source folder analysis to matching classes ([#134](https://github.com/shblue21/vscode-spotbugs/issues/134)) ([c7db567](https://github.com/shblue21/vscode-spotbugs/commit/c7db5679237efd0b0e90d01b0e899980246d7135))
+
 ## [0.10.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.9.0...v0.10.0) (2026-08-15)
 
 
