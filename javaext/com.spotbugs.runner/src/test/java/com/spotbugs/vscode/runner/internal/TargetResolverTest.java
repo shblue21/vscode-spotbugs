@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.bcel.Const;
+import org.apache.bcel.generic.ClassGen;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -123,17 +125,20 @@ public class TargetResolverTest {
     }
 
     @Test
-    public void resolvesSourceDirectoryUsingConfiguredSourcepath() throws Exception {
+    public void sourcePackageDirectoryOnlyCollectsMappedClasses() throws Exception {
         File project = temporaryFolder.newFolder("project");
         File sourceRoot = mkdirs(project, "generated-sources");
         File sourceDir = mkdirs(sourceRoot, "demo");
         File outputRoot = mkdirs(project, "target/classes");
         touch(sourceDir, "Repro.java");
-        File classFile = touch(mkdirs(outputRoot, "demo"), "Repro.class");
+        File outputPackage = mkdirs(outputRoot, "demo");
+        File classFile = writeClass(outputPackage, "demo.Repro", "Repro.java");
+        File secondaryClassFile = writeClass(outputPackage, "demo.Helper", "Repro.java");
+        writeClass(outputPackage, "demo.Old", "Old.java");
 
         List<String> actual = resolve(sourceDir, outputRoot, sourceRoot);
 
-        assertEquals(Collections.singletonList(classFile.getAbsolutePath()), actual);
+        assertEquals(sortedPaths(classFile, secondaryClassFile), sorted(actual));
     }
 
     @Test
@@ -255,6 +260,18 @@ public class TargetResolverTest {
     private File touch(File parent, String name) throws Exception {
         File file = new File(parent, name);
         assertTrue(file.createNewFile());
+        return file;
+    }
+
+    private File writeClass(File parent, String className, String sourceFileName) throws Exception {
+        File file = new File(parent, className.substring(className.lastIndexOf('.') + 1) + ".class");
+        new ClassGen(
+                className,
+                "java.lang.Object",
+                sourceFileName,
+                Const.ACC_PUBLIC | Const.ACC_SUPER,
+                null
+        ).getJavaClass().dump(file);
         return file;
     }
 
