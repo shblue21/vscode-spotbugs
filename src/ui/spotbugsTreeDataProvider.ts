@@ -21,6 +21,7 @@ import {
 import * as path from 'path';
 import type { ProjectResult } from '../services/projectResult';
 import type { AnalysisReportRun } from '../model/analysisReport';
+import type { AnalysisResultScope } from '../model/analysisResultScope';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 import {
   applyFindingFilters,
@@ -53,7 +54,7 @@ type TreeContent =
       findings: Finding[];
       reportRuns: AnalysisReportRun[];
       workspaceStatusItems: ProjectStatusItem[];
-      workspaceUri?: string;
+      scope: AnalysisResultScope;
     };
 
 interface RenderedTreeContent {
@@ -145,7 +146,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public showWorkspaceResults(
     projectResults: ProjectResult[],
-    workspaceUri?: string
+    workspaceFolder: Uri
   ): void {
     const findings = projectResults.flatMap((result) => result.findings);
     const reportRuns: AnalysisReportRun[] = projectResults.map((result) => ({
@@ -166,7 +167,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       findings,
       reportRuns,
       workspaceStatusItems: this.createFinalProjectStatusItems(projectResults),
-      workspaceUri: workspaceUri ?? '',
+      scope: { kind: 'workspace', workspaceFolder },
     });
   }
 
@@ -179,13 +180,18 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showResults(findings: Finding[], reportRun?: AnalysisReportRun): void {
+  public showResults(
+    findings: Finding[],
+    resource: Uri,
+    reportRun?: AnalysisReportRun
+  ): void {
     const cachedFindings = findings ? findings.slice() : [];
     this.transitionTo({
       kind: 'results',
       findings: cachedFindings,
       reportRuns: reportRun ? [{ ...reportRun, findings: cachedFindings }] : [],
       workspaceStatusItems: [],
+      scope: { kind: 'resource', resource },
     });
   }
 
@@ -203,8 +209,8 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       : [];
   }
 
-  public getWorkspaceResultsUri(): string | undefined {
-    return this.content.kind === 'results' ? this.content.workspaceUri : undefined;
+  public getResultScope(): AnalysisResultScope | undefined {
+    return this.content.kind === 'results' ? this.content.scope : undefined;
   }
 
   public getActiveFilters(): FindingFilterState {

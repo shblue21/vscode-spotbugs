@@ -2,7 +2,9 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import type { Uri } from 'vscode';
 import type { AnalysisReportRun } from '../model/analysisReport';
+import type { AnalysisResultScope } from '../model/analysisResultScope';
 import type { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
@@ -93,11 +95,44 @@ describe('create baseline command', () => {
     );
   });
 
+  it('does not treat resource results at the workspace root as workspace results', async () => {
+    let confirmationCount = 0;
+    vscode.window.showWarningMessage = async () => {
+      confirmationCount += 1;
+      return 'Create Baseline';
+    };
+
+    await createBaseline(
+      readyProvider({
+        scope: {
+          kind: 'resource',
+          resource: vscode.Uri.file(workspaceRoot) as unknown as Uri,
+        },
+      })
+    );
+
+    assert.strictEqual(confirmationCount, 0);
+    await assert.rejects(
+      fs.promises.access(path.join(workspaceRoot, 'spotbugs-baseline.xml'))
+    );
+  });
+
   it('does not create a file when cancelled or results are unavailable', async () => {
     vscode.window.showWarningMessage = async () => undefined;
     await createBaseline(readyProvider());
     for (const provider of [
-      readyProvider({ workspaceUri: 'file:///other-workspace' }),
+      readyProvider({
+        scope: {
+          kind: 'workspace',
+          workspaceFolder: vscode.Uri.file('/other-workspace') as unknown as Uri,
+        },
+      }),
+      readyProvider({
+        scope: {
+          kind: 'resource',
+          resource: vscode.Uri.file(workspaceRoot) as unknown as Uri,
+        },
+      }),
       readyProvider({ findings: [] }),
       readyProvider({ runs: [] }),
       readyProvider({ runs: [{ ...baseRun, analysisStatus: 'failed' }] }),
@@ -113,15 +148,18 @@ describe('create baseline command', () => {
 
 function readyProvider(
   overrides: {
-    workspaceUri?: string;
+    scope?: AnalysisResultScope;
     findings?: AnalysisReportRun['findings'];
     runs?: AnalysisReportRun[];
   } = {}
 ): SpotBugsTreeDataProvider {
   const findings = overrides.findings ?? baseRun.findings;
   return {
-    getWorkspaceResultsUri: () =>
-      overrides.workspaceUri ?? vscode.Uri.file(workspaceRoot).toString(),
+    getResultScope: () =>
+      overrides.scope ?? {
+        kind: 'workspace',
+        workspaceFolder: vscode.Uri.file(workspaceRoot) as unknown as Uri,
+      },
     getReportRuns: () => overrides.runs ?? [{ ...baseRun, findings }],
   } as SpotBugsTreeDataProvider;
 }

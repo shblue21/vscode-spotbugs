@@ -131,6 +131,7 @@ describe('analysisRunSession file analysis', () => {
     let receivedConfig: unknown;
     let receivedUri: unknown;
     let receivedToken: unknown;
+    let resultResource: unknown;
     let reportNativeSarif: string | undefined;
     const token = { isCancellationRequested: false } as CancellationToken;
     const lease = createCurrentLease(token);
@@ -160,8 +161,9 @@ describe('analysisRunSession file analysis', () => {
       config,
       tree: {
         showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[], reportRun) => {
+        showResults: (findings: Finding[], resource, reportRun) => {
           calls.push(`results:${findings.length}`);
+          resultResource = resource;
           reportNativeSarif = reportRun?.nativeSarif;
         },
         showAnalysisFailure: (message: string, code?: string) =>
@@ -186,6 +188,7 @@ describe('analysisRunSession file analysis', () => {
     assert.strictEqual(receivedConfig, config);
     assert.strictEqual(receivedUri, uri);
     assert.strictEqual(receivedToken, token);
+    assert.strictEqual(resultResource, uri);
     assert.strictEqual(reportNativeSarif, '{"version":"2.1.0","runs":[]}');
     assert.deepStrictEqual(calls, [
       'loading',
@@ -502,9 +505,9 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
             `status:${uriString}:${status}:${extra?.count ?? ''}:${extra?.error ?? ''}`
           ),
         showWorkspaceCancelled: () => calls.push('cancelled'),
-        showWorkspaceResults: (projectResults: ProjectResult[], workspaceUri: string) => {
+        showWorkspaceResults: (projectResults: ProjectResult[], workspaceFolder: Uri) => {
           workspaceResults.push(projectResults);
-          workspaceResultUris.push(workspaceUri);
+          workspaceResultUris.push(workspaceFolder.toString());
           calls.push(`workspaceResults:${projectResults.length}`);
         },
       },
