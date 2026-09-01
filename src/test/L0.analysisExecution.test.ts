@@ -1,10 +1,8 @@
 import * as assert from 'assert';
 import type { Uri } from 'vscode';
 import type { AnalysisSettings } from '../core/config';
-import type {
-  AnalysisExecutionTarget,
-  AnalysisExecutorDeps,
-} from '../services/analysisExecution';
+import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
+import type { AnalysisExecutorDeps } from '../services/analysisExecution';
 import type { Finding } from '../model/finding';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
@@ -23,13 +21,25 @@ function makeConfig(settings: AnalysisSettings = { effort: 'default' }) {
 
 function makeTarget(
   vscode: ReturnType<typeof installVscodeMock>
-): AnalysisExecutionTarget {
+): AnalysisExecutionUnit {
+  const settingsResource = vscode.Uri.file('/workspace/settings') as unknown as Uri;
+  const preferredResource = vscode.Uri.file('/workspace/sources') as unknown as Uri;
   return {
-    targetPath: '/workspace/build/classes',
-    preferredProject: vscode.Uri.file('/workspace') as unknown as Uri,
-    targetResolutionRoots: ['/workspace/build/classes'],
-    runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
-    sourcepaths: ['/workspace/src/main/java'],
+    input: {
+      path: '/workspace/build/classes',
+      resolutionRoots: ['/workspace/build/classes'],
+    },
+    environment: {
+      runtimeClasspaths: [
+        '/workspace/build/classes',
+        '/workspace/lib/dependency.jar',
+      ],
+    },
+    settingsResource,
+    sourceLookup: {
+      preferredResource,
+      roots: ['/workspace/src/main/java'],
+    },
   };
 }
 
@@ -272,16 +282,16 @@ describe('analysisExecution', () => {
       target
     );
 
-    assert.strictEqual(settingsResource, target.preferredProject);
+    assert.strictEqual(settingsResource, target.settingsResource);
     assert.strictEqual(builderSettings, settings);
     assert.deepStrictEqual(builderOptions, {
-      targetResolutionRoots: target.targetResolutionRoots,
-      runtimeClasspaths: target.runtimeClasspaths,
+      targetResolutionRoots: target.input.resolutionRoots,
+      runtimeClasspaths: target.environment.runtimeClasspaths,
       extraAuxClasspaths: settings.extraAuxClasspaths,
-      sourcepaths: target.sourcepaths,
+      sourcepaths: target.sourceLookup.roots,
     });
     assert.deepStrictEqual(backendRequest, {
-      targetPath: target.targetPath,
+      targetPath: target.input.path,
       payload,
     });
     assert.strictEqual(backendRequest?.payload, payload);
@@ -400,9 +410,9 @@ describe('analysisExecution', () => {
 
     assert.strictEqual(
       addFullPathsProject?.toString(),
-      target.preferredProject?.toString()
+      target.sourceLookup.preferredResource?.toString()
     );
-    assert.deepStrictEqual(addFullPathsSourcepaths, target.sourcepaths);
+    assert.deepStrictEqual(addFullPathsSourcepaths, target.sourceLookup.roots);
     assert.deepStrictEqual(outcome.findings, [enrichedFinding]);
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_WARNING');
     assert.strictEqual(outcome.failure, undefined);
@@ -421,7 +431,8 @@ describe('analysisExecution', () => {
       makeDeps({
         runSpotBugsAnalysis: async (request) => {
           backendSourcepaths = request.payload.sourcepaths;
-          target.sourcepaths?.splice(0, target.sourcepaths.length, '/mutated');
+          const roots = target.sourceLookup.roots as string[];
+          roots.splice(0, roots.length, '/mutated');
           return JSON.stringify({ schemaVersion: 2, results: [] });
         },
         parseAnalysisResponse: () => ({

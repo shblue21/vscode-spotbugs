@@ -3,6 +3,7 @@ import { Logger } from '../core/logger';
 import { Config, type AnalysisSettings } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
+import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisWarning } from '../model/analysisProtocol';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { ProjectResult } from './projectResult';
@@ -87,14 +88,14 @@ export async function analyzeFileDetailed(
 
     try {
       return {
-        outcome: await runAnalysisTarget(config, result.resolution.target, token),
+        outcome: await runAnalysisTarget(config, result.resolution.target.unit, token),
         context,
       };
     } catch (error) {
       Logger.error('Analyzer: analyzeFile failed', error);
       return {
         outcome: createAnalysisFailureOutcome(
-          result.resolution.target.targetPath,
+          result.resolution.target.unit.input.path,
           ERROR_ANALYSIS_FAILED,
           messageFromUnknown(error)
         ),
@@ -244,7 +245,7 @@ async function executeProjectAnalysis(
   };
   const outcome = await runAnalysisTarget(
     config,
-    { ...resolved.targetResult.resolution.target, includeBaselineXml: true },
+    includeBaselineXml(resolved.targetResult.resolution.target.unit),
     token
   );
   return {
@@ -252,6 +253,16 @@ async function executeProjectAnalysis(
     cleanupWarnings: Array.isArray(outcome.warnings)
       ? outcome.warnings.map((warning) => ({ projectUri, warning }))
       : [],
+  };
+}
+
+function includeBaselineXml(unit: AnalysisExecutionUnit): AnalysisExecutionUnit {
+  return {
+    ...unit,
+    options: {
+      ...unit.options,
+      includeBaselineXml: true,
+    },
   };
 }
 

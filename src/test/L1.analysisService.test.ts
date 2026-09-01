@@ -5,6 +5,33 @@ function clearModule(moduleId: string): void {
   delete require.cache[require.resolve(moduleId)];
 }
 
+function analysisTarget(
+  path: string,
+  resource: any,
+  options: {
+    resolutionRoots?: string[];
+    runtimeClasspaths?: string[];
+    sourcepaths?: string[];
+    diagnosticScope?: any;
+  } = {}
+) {
+  return {
+    unit: {
+      input: {
+        path,
+        resolutionRoots: options.resolutionRoots,
+      },
+      environment: { runtimeClasspaths: options.runtimeClasspaths },
+      settingsResource: resource,
+      sourceLookup: {
+        preferredResource: resource,
+        roots: options.sourcepaths,
+      },
+    },
+    diagnosticScope: options.diagnosticScope,
+  };
+}
+
 describe('analysisService', () => {
   beforeEach(() => {
     installVscodeMock();
@@ -62,14 +89,12 @@ describe('analysisService', () => {
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: folderUri,
-          targetResolutionRoots: ['/workspace/build/classes'],
+        target: analysisTarget('/workspace/build/classes', folderUri, {
+          resolutionRoots: ['/workspace/build/classes'],
           runtimeClasspaths: ['/workspace/build/classes'],
           sourcepaths: ['/workspace/src'],
           diagnosticScope: { kind: 'folder', uri: folderUri },
-        },
+        }),
       },
       issues: [],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
@@ -138,13 +163,15 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/project/target/classes'],
-          runtimeClasspaths: ['/workspace/project/target/classes'],
-          sourcepaths: ['/workspace/project/src/main/java'],
-        },
+        target: analysisTarget(
+          `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          projectUri,
+          {
+            resolutionRoots: ['/workspace/project/target/classes'],
+            runtimeClasspaths: ['/workspace/project/target/classes'],
+            sourcepaths: ['/workspace/project/src/main/java'],
+          }
+        ),
       },
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
@@ -206,10 +233,7 @@ describe('analysisService', () => {
       return {
         resolution: {
           status: 'ok',
-          target: {
-            targetPath: `/workspace/${project}/classes`,
-            preferredProject: projectUri,
-          },
+          target: analysisTarget(`/workspace/${project}/classes`, projectUri),
         },
         issues: [],
       };
@@ -272,13 +296,15 @@ describe('analysisService', () => {
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: vscode.Uri.file('/workspace/src/Foo.java') as any,
-          targetResolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src/main/java'],
-        },
+        target: analysisTarget(
+          '/workspace/build/classes',
+          vscode.Uri.file('/workspace/src/Foo.java') as any,
+          {
+            resolutionRoots: ['/workspace/build/classes'],
+            runtimeClasspaths: ['/workspace/build/classes'],
+            sourcepaths: ['/workspace/src/main/java'],
+          }
+        ),
       },
       issues: [
         {
@@ -324,13 +350,15 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/out/${projectUri.toString().split('/').pop()}`,
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/out'],
-          runtimeClasspaths: ['/workspace/out'],
-          sourcepaths: ['/workspace/src'],
-        },
+        target: analysisTarget(
+          `/workspace/out/${projectUri.toString().split('/').pop()}`,
+          projectUri,
+          {
+            resolutionRoots: ['/workspace/out'],
+            runtimeClasspaths: ['/workspace/out'],
+            sourcepaths: ['/workspace/src'],
+          }
+        ),
       },
       issues: [
         {
@@ -380,13 +408,15 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/project/target/classes'],
-          runtimeClasspaths: ['/workspace/project/target/classes'],
-          sourcepaths: ['/workspace/project/src/main/java'],
-        },
+        target: analysisTarget(
+          `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          projectUri,
+          {
+            resolutionRoots: ['/workspace/project/target/classes'],
+            runtimeClasspaths: ['/workspace/project/target/classes'],
+            sourcepaths: ['/workspace/project/src/main/java'],
+          }
+        ),
       },
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
@@ -436,10 +466,10 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          preferredProject: projectUri,
-        },
+        target: analysisTarget(
+          `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          projectUri
+        ),
       },
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
@@ -480,10 +510,7 @@ describe('analysisService', () => {
       return {
         resolution: {
           status: 'ok',
-          target: {
-            targetPath: '/workspace/project-a/classes',
-            preferredProject: projectUri,
-          },
+          target: analysisTarget('/workspace/project-a/classes', projectUri),
         },
         issues: [],
       };

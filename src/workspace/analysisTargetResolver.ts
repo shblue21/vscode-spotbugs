@@ -2,6 +2,7 @@ import { Uri, workspace } from 'vscode';
 import * as path from 'path';
 import { Logger } from '../core/logger';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
+import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import {
   deriveOutputFolder,
@@ -20,11 +21,7 @@ import {
 import { containsMatchingFile } from './fileTraversal';
 
 export interface AnalysisTarget {
-  targetPath: string;
-  preferredProject?: Uri;
-  targetResolutionRoots?: string[];
-  runtimeClasspaths?: string[];
-  sourcepaths?: string[];
+  unit: AnalysisExecutionUnit;
   diagnosticScope?: DiagnosticUpdateScope;
 }
 
@@ -101,6 +98,31 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       status: 'no-class-targets',
       errorCode: NO_CLASS_TARGETS_CODE,
       message: NO_CLASS_TARGETS_MESSAGE,
+    };
+  }
+
+  function createAnalysisTarget(
+    targetPath: string,
+    preferredResource: Uri,
+    targetResolutionRoots: string[] | undefined,
+    runtimeClasspaths: string[] | undefined,
+    sourcepaths: string[] | undefined,
+    diagnosticScope?: DiagnosticUpdateScope
+  ): AnalysisTarget {
+    return {
+      unit: {
+        input: {
+          path: targetPath,
+          resolutionRoots: targetResolutionRoots,
+        },
+        environment: { runtimeClasspaths },
+        settingsResource: preferredResource,
+        sourceLookup: {
+          preferredResource,
+          roots: sourcepaths,
+        },
+      },
+      diagnosticScope,
     };
   }
 
@@ -375,15 +397,14 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     return {
       resolution: {
         status: 'ok',
-        target: {
+        target: createAnalysisTarget(
           targetPath,
-          preferredProject: uri,
-          targetResolutionRoots:
-            classTargetRoots.length > 0 ? classTargetRoots : targetResolutionRoots,
+          uri,
+          classTargetRoots.length > 0 ? classTargetRoots : targetResolutionRoots,
           runtimeClasspaths,
           sourcepaths,
-          diagnosticScope: createDiagnosticScope(uri, targetPath, classTargetRoots),
-        },
+          createDiagnosticScope(uri, targetPath, classTargetRoots)
+        ),
       },
       issues: resolutionIssues,
     };
@@ -452,13 +473,13 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     return {
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: outputResolution.outputPath,
-          preferredProject: projectUri,
-          targetResolutionRoots: classTargetRoots,
+        target: createAnalysisTarget(
+          outputResolution.outputPath,
+          projectUri,
+          classTargetRoots,
           runtimeClasspaths,
-          sourcepaths,
-        },
+          sourcepaths
+        ),
       },
       issues: resolutionIssues,
     };
