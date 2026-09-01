@@ -1,6 +1,7 @@
 import type { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import type { AnalysisSettings } from '../core/config';
+import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import {
@@ -30,15 +31,6 @@ const LOGGED_STATS_FIELDS = [
   keyof AnalysisStats,
   'number' | 'string',
 ])[];
-
-export interface AnalysisExecutionTarget {
-  targetPath: string;
-  preferredProject?: Uri;
-  targetResolutionRoots?: string[] | null;
-  runtimeClasspaths?: string[] | null;
-  sourcepaths?: string[] | null;
-  includeBaselineXml?: boolean;
-}
 
 export interface AnalysisConfigProvider {
   getAnalysisSettings(resource?: Uri): AnalysisSettings;
@@ -81,19 +73,22 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function run(
     config: AnalysisConfigProvider,
-    context: AnalysisExecutionTarget,
+    context: AnalysisExecutionUnit,
     token?: CancellationToken
   ): Promise<AnalysisOutcome> {
-    const analysisContext: AnalysisExecutionTarget = {
+    const analysisContext: AnalysisExecutionUnit = {
       ...context,
-      sourcepaths: Array.isArray(context.sourcepaths)
-        ? context.sourcepaths.slice()
-        : context.sourcepaths,
+      sourceLookup: {
+        ...context.sourceLookup,
+        roots: Array.isArray(context.sourceLookup.roots)
+          ? context.sourceLookup.roots.slice()
+          : context.sourceLookup.roots,
+      },
     };
-    const settings = config.getAnalysisSettings(analysisContext.preferredProject);
+    const settings = config.getAnalysisSettings(analysisContext.settingsResource);
     const preflightFailure = await validateAnalysisPreflight(
       settings,
-      analysisContext.targetPath
+      analysisContext.input.path
     );
     if (preflightFailure) {
       return preflightFailure;
@@ -141,19 +136,25 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function executeAnalysisRequest(
     settings: AnalysisSettings,
-    context: AnalysisExecutionTarget,
+    context: AnalysisExecutionUnit,
     token?: CancellationToken
   ): Promise<string | undefined> {
     const payload = deps.buildAnalysisRequestPayload(settings, {
-      targetResolutionRoots: context.targetResolutionRoots ?? null,
-      runtimeClasspaths: context.runtimeClasspaths ?? null,
+      targetResolutionRoots: context.input.resolutionRoots
+        ? [...context.input.resolutionRoots]
+        : null,
+      runtimeClasspaths: context.environment.runtimeClasspaths
+        ? [...context.environment.runtimeClasspaths]
+        : null,
       extraAuxClasspaths: settings.extraAuxClasspaths ?? null,
-      sourcepaths: context.sourcepaths ?? null,
-      ...(context.includeBaselineXml ? { includeBaselineXml: true } : {}),
+      sourcepaths: context.sourceLookup.roots
+        ? [...context.sourceLookup.roots]
+        : null,
+      ...(context.options?.includeBaselineXml ? { includeBaselineXml: true } : {}),
     });
     return deps.runSpotBugsAnalysis(
       {
-        targetPath: context.targetPath,
+        targetPath: context.input.path,
         payload,
       },
       token
@@ -162,9 +163,9 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function analysisOutcomeFromRawResponse(
     raw: string | undefined,
-    context: AnalysisExecutionTarget
+    context: AnalysisExecutionUnit
   ): Promise<AnalysisOutcome> {
-    const targetPath = context.targetPath;
+    const targetPath = context.input.path;
     if (!raw) {
       return createAnalysisFailureOutcome(
         targetPath,
@@ -215,9 +216,9 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function analysisOutcomeFromParsedResponse(
     parsed: ParsedAnalysis,
-    context: AnalysisExecutionTarget
+    context: AnalysisExecutionUnit
   ): Promise<AnalysisOutcome> {
-    const targetPath = context.targetPath;
+    const targetPath = context.input.path;
     const {
       bugs,
       errors,
@@ -276,8 +277,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     const findings = deps.mapBugsToFindings(bugs);
     const withFullPaths = await deps.addFullPaths(
       findings,
-      context.preferredProject,
-      context.sourcepaths
+      context.sourceLookup.preferredResource,
+      context.sourceLookup.roots
     );
     logSuccessfulAnalysis(withFullPaths.length, stats);
     const outcome: AnalysisOutcome = {
@@ -321,7 +322,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
 export function runAnalysisTarget(
   config: AnalysisConfigProvider,
-  context: AnalysisExecutionTarget,
+  context: AnalysisExecutionUnit,
   token?: CancellationToken
 ): Promise<AnalysisOutcome> {
   return createAnalysisExecutor().run(config, context, token);

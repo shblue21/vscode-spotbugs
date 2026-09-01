@@ -38,7 +38,11 @@ export type AnalysisProgressRunner = (
 
 export interface FileAnalysisSessionTree {
   showLoading(): void;
-  showResults(findings: Finding[], reportRun?: AnalysisReportRun): void;
+  showResults(
+    findings: Finding[],
+    resource: Uri,
+    reportRun?: AnalysisReportRun
+  ): void;
   showAnalysisFailure(message: string, code?: string): void;
 }
 
@@ -51,7 +55,7 @@ export interface WorkspaceAnalysisSessionTree {
     extra?: { count?: number; error?: string }
   ): void;
   showWorkspaceCancelled(): void;
-  showWorkspaceResults(projectResults: ProjectResult[], workspaceUri: string): void;
+  showWorkspaceResults(projectResults: ProjectResult[], workspaceFolder: Uri): void;
 }
 
 export interface AnalysisSessionDiagnostics {
@@ -132,13 +136,17 @@ export async function runFileAnalysisSession(
     if (outcome.failure) {
       args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
     } else {
-      args.tree.showResults(findings, {
-        projectUri: args.uri.toString(),
+      args.tree.showResults(
         findings,
-        spotbugsVersion: outcome.stats?.spotbugsVersion,
-        summary: outcome.reportSummary,
-        nativeSarif: outcome.nativeSarif,
-      });
+        args.uri,
+        {
+          projectUri: args.uri.toString(),
+          findings,
+          spotbugsVersion: outcome.stats?.spotbugsVersion,
+          summary: outcome.reportSummary,
+          nativeSarif: outcome.nativeSarif,
+        }
+      );
       args.diagnostics.replaceForScope(
         result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },
         findings
@@ -180,7 +188,7 @@ export async function runWorkspaceAnalysisSession(
     let projectResults: ProjectResult[] = [];
     let resolutionIssues: AnalysisResolutionIssue[] = [];
     let cleanupWarnings: ProjectCleanupWarning[] = [];
-    let workspaceUri = '';
+    let workspaceFolderUri: Uri | undefined;
     let cancelled = false;
 
     await args.runWithProgress(async (progress, token) => {
@@ -212,7 +220,7 @@ export async function runWorkspaceAnalysisSession(
         dependencies.logger.error('No workspace folder found.');
         throw new Error('No workspace folder found.');
       }
-      workspaceUri = wsFolder.uri.toString();
+      workspaceFolderUri = wsFolder.uri;
 
       const discovery = await dependencies.getWorkspaceProjectDiscovery(wsFolder.uri);
       if (!args.lease.isCurrent()) {
@@ -270,8 +278,11 @@ export async function runWorkspaceAnalysisSession(
       args.tree.showWorkspaceCancelled();
       return;
     }
+    if (!workspaceFolderUri) {
+      throw new Error('No workspace folder found.');
+    }
 
-    args.tree.showWorkspaceResults(projectResults, workspaceUri);
+    args.tree.showWorkspaceResults(projectResults, workspaceFolderUri);
     if (projectResults.every((result) => !result.error)) {
       args.diagnostics.replaceAll(aggregated);
     }

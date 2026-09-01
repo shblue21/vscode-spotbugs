@@ -55,12 +55,12 @@ describe('analysisTargetResolver', () => {
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok' ? result.resolution.target.targetPath : '',
+      result.resolution.status === 'ok' ? result.resolution.target.unit.input.path : '',
       '/workspace/project/target/classes'
     );
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       ['/workspace/project/target/classes']
     );
@@ -272,7 +272,7 @@ describe('analysisTargetResolver', () => {
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok' ? result.resolution.target.targetPath : '',
+      result.resolution.status === 'ok' ? result.resolution.target.unit.input.path : '',
       '/workspace/project/target/classes'
     );
   });
@@ -354,7 +354,7 @@ describe('analysisTargetResolver', () => {
       assert.strictEqual(result.resolution.status, 'ok', testCase.name);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.targetResolutionRoots
+          ? result.resolution.target.unit.input.resolutionRoots
           : undefined,
         [projectAOutput],
         testCase.name
@@ -380,7 +380,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetPath
+        ? result.resolution.target.unit.input.path
         : undefined,
       workspaceOutput
     );
@@ -402,7 +402,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       ['/workspace/project/build/classes/java/main']
     );
@@ -467,7 +467,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       ['/workspace/build/classes/java/main']
     );
@@ -495,7 +495,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       [looseOutput]
     );
@@ -553,7 +553,7 @@ describe('analysisTargetResolver', () => {
       assert.strictEqual(result.resolution.status, 'ok', testCase.sourcePath);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.targetResolutionRoots
+          ? result.resolution.target.unit.input.resolutionRoots
           : undefined,
         testCase.expectedRoots,
         testCase.sourcePath
@@ -586,7 +586,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       [testOutput, mainOutput]
     );
@@ -715,7 +715,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       ['/workspace/project/target/classes']
     );
@@ -756,7 +756,7 @@ describe('analysisTargetResolver', () => {
       assert.strictEqual(result.resolution.status, 'ok', selectedFolder);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.targetResolutionRoots
+          ? result.resolution.target.unit.input.resolutionRoots
           : undefined,
         [looseOutput],
         selectedFolder
@@ -786,7 +786,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetPath
+        ? result.resolution.target.unit.input.path
         : undefined,
       selectedFolder
     );
@@ -811,7 +811,7 @@ describe('analysisTargetResolver', () => {
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetPath
+        ? result.resolution.target.unit.input.path
         : undefined,
       selectedFolder
     );
@@ -867,7 +867,7 @@ describe('analysisTargetResolver', () => {
       assert.strictEqual(result.resolution.status, 'ok');
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.targetResolutionRoots
+          ? result.resolution.target.unit.input.resolutionRoots
           : undefined,
         [looseOutput]
       );
@@ -990,7 +990,7 @@ describe('analysisTargetResolver', () => {
       assert.strictEqual(result.resolution.status, 'ok', testCase.sourcepath);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.targetResolutionRoots
+          ? result.resolution.target.unit.input.resolutionRoots
           : undefined,
         [outputRoot],
         testCase.sourcepath
@@ -1027,7 +1027,7 @@ describe('analysisTargetResolver', () => {
 
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.targetResolutionRoots
+        ? result.resolution.target.unit.input.resolutionRoots
         : undefined,
       [testOutput]
     );

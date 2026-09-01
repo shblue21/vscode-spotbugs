@@ -1,8 +1,9 @@
 import { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
-import { Config } from '../core/config';
+import { Config, type AnalysisSettings } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
+import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisWarning } from '../model/analysisProtocol';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { ProjectResult } from './projectResult';
@@ -15,6 +16,7 @@ import {
 import {
   resolveFileAnalysisTargetDetailed,
   resolveProjectAnalysisTargetDetailed,
+  type TargetResolutionResult,
 } from '../workspace/analysisTargetResolver';
 
 const ERROR_ANALYSIS_FAILED = 'ANALYSIS_FAILED';
@@ -43,6 +45,17 @@ export interface WorkspaceExecutionResult {
   results: ProjectResult[];
   cancelled?: boolean;
   context: AnalysisExecutionContext;
+}
+
+interface ResolvedProjectAnalysis {
+  projectUri: Uri;
+  settings: AnalysisSettings;
+  targetResult: TargetResolutionResult;
+}
+
+interface ProjectAnalysisExecutionResult {
+  projectResult: ProjectResult;
+  cleanupWarnings: ProjectCleanupWarning[];
 }
 
 export async function analyzeFileDetailed(
@@ -75,14 +88,14 @@ export async function analyzeFileDetailed(
 
     try {
       return {
-        outcome: await runAnalysisTarget(config, result.resolution.target, token),
+        outcome: await runAnalysisTarget(config, result.resolution.target.unit, token),
         context,
       };
     } catch (error) {
       Logger.error('Analyzer: analyzeFile failed', error);
       return {
         outcome: createAnalysisFailureOutcome(
-          result.resolution.target.targetPath,
+          result.resolution.target.unit.input.path,
           ERROR_ANALYSIS_FAILED,
           messageFromUnknown(error)
         ),
@@ -130,13 +143,10 @@ export async function analyzeWorkspaceFromProjectsDetailed(
 
     notify?.onStart?.(uriString, index + 1, projectUris.length);
 
-    const analysisConfig: AnalysisConfigProvider = {
-      getAnalysisSettings: () => projectSettings[index],
-    };
     const result = await analyzeProjectDetailed(
-      analysisConfig,
       Uri.parse(uriString),
       workspaceFolder,
+      projectSettings[index],
       token
     );
     results.push(result.projectResult);
@@ -163,49 +173,30 @@ export async function analyzeWorkspaceFromProjectsDetailed(
 }
 
 async function analyzeProjectDetailed(
-  config: AnalysisConfigProvider,
   projectUri: Uri,
   workspaceFolder: Uri,
+  settings: AnalysisSettings,
   token?: CancellationToken
 ): Promise<{ projectResult: ProjectResult; context: AnalysisExecutionContext }> {
   const projectUriString = projectUri.toString();
   const context = createExecutionContext();
 
   try {
-    const result = await resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
-    context.resolutionIssues.push(...result.issues);
+    const resolved = await resolveProjectAnalysis(
+      projectUri,
+      workspaceFolder,
+      settings
+    );
+    context.resolutionIssues.push(...resolved.targetResult.issues);
 
     if (token?.isCancellationRequested) {
       return { projectResult: cancelledProjectResult(projectUriString), context };
     }
 
-    if (result.resolution.status !== 'ok') {
-      return {
-        projectResult: {
-          projectUri: projectUriString,
-          findings: [],
-          error: result.resolution.message,
-          errorCode: result.resolution.errorCode,
-        },
-        context,
-      };
-    }
-
-    const outcome = await runAnalysisTarget(
-      config,
-      { ...result.resolution.target, includeBaselineXml: true },
-      token
-    );
-    if (Array.isArray(outcome.warnings)) {
-      context.cleanupWarnings?.push(
-        ...outcome.warnings.map((warning) => ({
-          projectUri: projectUriString,
-          warning,
-        }))
-      );
-    }
+    const execution = await executeProjectAnalysis(resolved, token);
+    context.cleanupWarnings?.push(...execution.cleanupWarnings);
     return {
-      projectResult: projectResultFromOutcome(projectUriString, outcome),
+      projectResult: execution.projectResult,
       context,
     };
   } catch (error) {
@@ -215,6 +206,64 @@ async function analyzeProjectDetailed(
       context,
     };
   }
+}
+
+async function resolveProjectAnalysis(
+  projectUri: Uri,
+  workspaceFolder: Uri,
+  settings: AnalysisSettings
+): Promise<ResolvedProjectAnalysis> {
+  return {
+    projectUri,
+    settings,
+    targetResult: await resolveProjectAnalysisTargetDetailed(
+      projectUri,
+      workspaceFolder
+    ),
+  };
+}
+
+async function executeProjectAnalysis(
+  resolved: ResolvedProjectAnalysis,
+  token?: CancellationToken
+): Promise<ProjectAnalysisExecutionResult> {
+  const projectUri = resolved.projectUri.toString();
+  if (resolved.targetResult.resolution.status !== 'ok') {
+    return {
+      projectResult: {
+        projectUri,
+        findings: [],
+        error: resolved.targetResult.resolution.message,
+        errorCode: resolved.targetResult.resolution.errorCode,
+      },
+      cleanupWarnings: [],
+    };
+  }
+
+  const config: AnalysisConfigProvider = {
+    getAnalysisSettings: () => resolved.settings,
+  };
+  const outcome = await runAnalysisTarget(
+    config,
+    includeBaselineXml(resolved.targetResult.resolution.target.unit),
+    token
+  );
+  return {
+    projectResult: projectResultFromOutcome(projectUri, outcome),
+    cleanupWarnings: Array.isArray(outcome.warnings)
+      ? outcome.warnings.map((warning) => ({ projectUri, warning }))
+      : [],
+  };
+}
+
+function includeBaselineXml(unit: AnalysisExecutionUnit): AnalysisExecutionUnit {
+  return {
+    ...unit,
+    options: {
+      ...unit.options,
+      includeBaselineXml: true,
+    },
+  };
 }
 
 function messageFromUnknown(error: unknown): string {

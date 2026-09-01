@@ -34,8 +34,10 @@ export async function createBaseline(
 
     const runs = provider.getReportRuns();
     const findings = runs.flatMap((run) => run.findings);
+    const resultScope = provider.getResultScope();
     if (
-      provider.getWorkspaceResultsUri() !== workspaceFolder.uri.toString() ||
+      resultScope?.kind !== 'workspace' ||
+      resultScope.workspaceFolder.toString() !== workspaceFolder.uri.toString() ||
       findings.length === 0 ||
       runs.some((run) => run.analysisStatus || !run.baselineXml?.trim())
     ) {

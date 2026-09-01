@@ -5,6 +5,33 @@ function clearModule(moduleId: string): void {
   delete require.cache[require.resolve(moduleId)];
 }
 
+function analysisTarget(
+  path: string,
+  resource: any,
+  options: {
+    resolutionRoots?: string[];
+    runtimeClasspaths?: string[];
+    sourcepaths?: string[];
+    diagnosticScope?: any;
+  } = {}
+) {
+  return {
+    unit: {
+      input: {
+        path,
+        resolutionRoots: options.resolutionRoots,
+      },
+      environment: { runtimeClasspaths: options.runtimeClasspaths },
+      settingsResource: resource,
+      sourceLookup: {
+        preferredResource: resource,
+        roots: options.sourcepaths,
+      },
+    },
+    diagnosticScope: options.diagnosticScope,
+  };
+}
+
 describe('analysisService', () => {
   beforeEach(() => {
     installVscodeMock();
@@ -62,14 +89,12 @@ describe('analysisService', () => {
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: folderUri,
-          targetResolutionRoots: ['/workspace/build/classes'],
+        target: analysisTarget('/workspace/build/classes', folderUri, {
+          resolutionRoots: ['/workspace/build/classes'],
           runtimeClasspaths: ['/workspace/build/classes'],
           sourcepaths: ['/workspace/src'],
           diagnosticScope: { kind: 'folder', uri: folderUri },
-        },
+        }),
       },
       issues: [],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
@@ -138,13 +163,15 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/project/target/classes'],
-          runtimeClasspaths: ['/workspace/project/target/classes'],
-          sourcepaths: ['/workspace/project/src/main/java'],
-        },
+        target: analysisTarget(
+          `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          projectUri,
+          {
+            resolutionRoots: ['/workspace/project/target/classes'],
+            runtimeClasspaths: ['/workspace/project/target/classes'],
+            sourcepaths: ['/workspace/project/src/main/java'],
+          }
+        ),
       },
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
@@ -196,20 +223,23 @@ describe('analysisService', () => {
     const service = require('../services/analysisService') as typeof import('../services/analysisService');
     const receivedEfforts: string[] = [];
     const settingsResources: string[] = [];
+    const events: string[] = [];
     let configuredEffort = 'min';
     const baselineXml = '<BugCollection/>';
 
-    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
-      resolution: {
-        status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/classes`,
-          preferredProject: projectUri,
+    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => {
+      const project = projectUri.toString().split('/').pop();
+      events.push(`resolve:${project}`);
+      return {
+        resolution: {
+          status: 'ok',
+          target: analysisTarget(`/workspace/${project}/classes`, projectUri),
         },
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
+        issues: [],
+      };
+    }) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async (request) => {
+      events.push(`execute:${request.targetPath}`);
       receivedEfforts.push(request.payload.effort);
       assert.strictEqual(request.payload.includeBaselineXml, true);
       configuredEffort = 'max';
@@ -219,12 +249,20 @@ describe('analysisService', () => {
     const result = await service.analyzeWorkspaceFromProjectsDetailed(
       {
         getAnalysisSettings: (resource?: { toString(): string }) => {
-          settingsResources.push(resource?.toString() ?? '');
+          const resourceString = resource?.toString() ?? '';
+          settingsResources.push(resourceString);
+          events.push(`settings:${resourceString.split('/').pop()}`);
           return { effort: configuredEffort };
         },
       } as any,
       vscode.Uri.file('/workspace') as any,
-      ['file:///workspace/project-a', 'file:///workspace/project-b']
+      ['file:///workspace/project-a', 'file:///workspace/project-b'],
+      {
+        onStart: (projectUri) =>
+          events.push(`start:${projectUri.split('/').pop()}`),
+        onDone: (projectUri) =>
+          events.push(`done:${projectUri.split('/').pop()}`),
+      }
     );
 
     assert.deepStrictEqual(settingsResources, [
@@ -233,6 +271,18 @@ describe('analysisService', () => {
     ]);
     assert.deepStrictEqual(receivedEfforts, ['min', 'min']);
     assert.ok(result.results.every((project) => project.baselineXml === baselineXml));
+    assert.deepStrictEqual(events, [
+      'settings:project-a',
+      'settings:project-b',
+      'start:project-a',
+      'resolve:project-a',
+      'execute:/workspace/project-a/classes',
+      'done:project-a',
+      'start:project-b',
+      'resolve:project-b',
+      'execute:/workspace/project-b/classes',
+      'done:project-b',
+    ]);
   });
 
   it('preserves file resolution issues when analysis execution throws after target resolution', async () => {
@@ -246,13 +296,15 @@ describe('analysisService', () => {
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: '/workspace/build/classes',
-          preferredProject: vscode.Uri.file('/workspace/src/Foo.java') as any,
-          targetResolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src/main/java'],
-        },
+        target: analysisTarget(
+          '/workspace/build/classes',
+          vscode.Uri.file('/workspace/src/Foo.java') as any,
+          {
+            resolutionRoots: ['/workspace/build/classes'],
+            runtimeClasspaths: ['/workspace/build/classes'],
+            sourcepaths: ['/workspace/src/main/java'],
+          }
+        ),
       },
       issues: [
         {
@@ -298,13 +350,15 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/out/${projectUri.toString().split('/').pop()}`,
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/out'],
-          runtimeClasspaths: ['/workspace/out'],
-          sourcepaths: ['/workspace/src'],
-        },
+        target: analysisTarget(
+          `/workspace/out/${projectUri.toString().split('/').pop()}`,
+          projectUri,
+          {
+            resolutionRoots: ['/workspace/out'],
+            runtimeClasspaths: ['/workspace/out'],
+            sourcepaths: ['/workspace/src'],
+          }
+        ),
       },
       issues: [
         {
@@ -354,13 +408,15 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          preferredProject: projectUri,
-          targetResolutionRoots: ['/workspace/project/target/classes'],
-          runtimeClasspaths: ['/workspace/project/target/classes'],
-          sourcepaths: ['/workspace/project/src/main/java'],
-        },
+        target: analysisTarget(
+          `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          projectUri,
+          {
+            resolutionRoots: ['/workspace/project/target/classes'],
+            runtimeClasspaths: ['/workspace/project/target/classes'],
+            sourcepaths: ['/workspace/project/src/main/java'],
+          }
+        ),
       },
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
@@ -410,10 +466,10 @@ describe('analysisService', () => {
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
-        target: {
-          targetPath: `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          preferredProject: projectUri,
-        },
+        target: analysisTarget(
+          `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
+          projectUri
+        ),
       },
       issues: [],
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
@@ -436,5 +492,62 @@ describe('analysisService', () => {
     assert.strictEqual(result.results.length, 1);
     assert.deepStrictEqual(failedProjects, []);
     assert.deepStrictEqual(analyzedTargets, ['/workspace/project-a/target/classes']);
+  });
+
+  it('stops after project resolution when the token becomes cancelled', async () => {
+    const vscode = installVscodeMock();
+    const resolverModule =
+      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const spotbugsClient =
+      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const token = { isCancellationRequested: false } as any;
+    const events: string[] = [];
+
+    resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => {
+      events.push(`resolve:${projectUri.toString().split('/').pop()}`);
+      token.isCancellationRequested = true;
+      return {
+        resolution: {
+          status: 'ok',
+          target: analysisTarget('/workspace/project-a/classes', projectUri),
+        },
+        issues: [],
+      };
+    }) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
+    spotbugsClient.runSpotBugsAnalysis = (async () => {
+      events.push('execute');
+      return undefined;
+    }) as typeof spotbugsClient.runSpotBugsAnalysis;
+
+    const result = await service.analyzeWorkspaceFromProjectsDetailed(
+      {
+        getAnalysisSettings: (resource?: { toString(): string }) => {
+          events.push(`settings:${resource?.toString().split('/').pop()}`);
+          return { effort: 'default' };
+        },
+      } as any,
+      vscode.Uri.file('/workspace') as any,
+      ['file:///workspace/project-a', 'file:///workspace/project-b'],
+      {
+        onStart: (projectUri) =>
+          events.push(`start:${projectUri.split('/').pop()}`),
+        onDone: () => events.push('done'),
+        onFail: () => events.push('fail'),
+      },
+      token
+    );
+
+    assert.strictEqual(result.cancelled, true);
+    assert.deepStrictEqual(
+      result.results.map((project) => project.errorCode),
+      ['ANALYSIS_CANCELLED']
+    );
+    assert.deepStrictEqual(events, [
+      'settings:project-a',
+      'settings:project-b',
+      'start:project-a',
+      'resolve:project-a',
+    ]);
   });
 });
