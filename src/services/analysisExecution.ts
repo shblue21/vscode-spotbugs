@@ -1,12 +1,10 @@
 import type { CancellationToken, Uri } from 'vscode';
 import { Logger } from '../core/logger';
 import type { AnalysisSettings } from '../core/config';
+import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
-import {
-  ANALYSIS_PROTOCOL_SCHEMA_VERSION,
-  type AnalysisStats,
-} from '../model/analysisProtocol';
+import { ANALYSIS_PROTOCOL_SCHEMA_VERSION, type AnalysisStats } from '../model/analysisProtocol';
 import * as pathResolver from '../workspace/pathResolver';
 import * as spotbugsClient from '../lsp/spotbugsClient';
 import type { ParsedAnalysis, ParseResult } from '../lsp/spotbugsParser';
@@ -26,19 +24,7 @@ const LOGGED_STATS_FIELDS = [
   ['auxClasspathCount', 'number'],
   ['targetCount', 'number'],
   ['pluginCount', 'number'],
-] as const satisfies readonly (readonly [
-  keyof AnalysisStats,
-  'number' | 'string',
-])[];
-
-export interface AnalysisExecutionTarget {
-  targetPath: string;
-  preferredProject?: Uri;
-  targetResolutionRoots?: string[] | null;
-  runtimeClasspaths?: string[] | null;
-  sourcepaths?: string[] | null;
-  includeBaselineXml?: boolean;
-}
+] as const satisfies readonly (readonly [keyof AnalysisStats, 'number' | 'string'])[];
 
 export interface AnalysisConfigProvider {
   getAnalysisSettings(resource?: Uri): AnalysisSettings;
@@ -60,14 +46,10 @@ export interface AnalysisExecutorDeps {
 
 function createDefaultDeps(): AnalysisExecutorDeps {
   return {
-    validateFilterFilesPreflight:
-      filterFileValidation.validateFilterFilesPreflight,
-    validateExtraAuxClasspathPreflight:
-      filterFileValidation.validateExtraAuxClasspathPreflight,
-    validatePluginJarsPreflight:
-      filterFileValidation.validatePluginJarsPreflight,
-    buildAnalysisRequestPayload:
-      analysisRequestBuilder.buildAnalysisRequestPayload,
+    validateFilterFilesPreflight: filterFileValidation.validateFilterFilesPreflight,
+    validateExtraAuxClasspathPreflight: filterFileValidation.validateExtraAuxClasspathPreflight,
+    validatePluginJarsPreflight: filterFileValidation.validatePluginJarsPreflight,
+    buildAnalysisRequestPayload: analysisRequestBuilder.buildAnalysisRequestPayload,
     runSpotBugsAnalysis: spotbugsClient.runSpotBugsAnalysis,
     parseAnalysisResponse: spotbugsParser.parseAnalysisResponse,
     mapBugsToFindings: spotbugsMapper.mapBugsToFindings,
@@ -81,19 +63,28 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function run(
     config: AnalysisConfigProvider,
-    context: AnalysisExecutionTarget,
-    token?: CancellationToken
+    context: AnalysisExecutionUnit,
+    token?: CancellationToken,
   ): Promise<AnalysisOutcome> {
-    const analysisContext: AnalysisExecutionTarget = {
+    if (context.inputs.length === 0) throw new Error('Analysis unit requires inputs');
+    const analysisContext: AnalysisExecutionUnit = {
       ...context,
-      sourcepaths: Array.isArray(context.sourcepaths)
-        ? context.sourcepaths.slice()
-        : context.sourcepaths,
+      inputs: context.inputs.map((input) => ({
+        ...input,
+        resolutionRoots: input.resolutionRoots ? [...input.resolutionRoots] : input.resolutionRoots,
+        sourceOutputs: input.sourceOutputs ? { ...input.sourceOutputs } : input.sourceOutputs,
+      })),
+      sourceLookup: {
+        ...context.sourceLookup,
+        roots: Array.isArray(context.sourceLookup.roots)
+          ? context.sourceLookup.roots.slice()
+          : context.sourceLookup.roots,
+      },
     };
-    const settings = config.getAnalysisSettings(analysisContext.preferredProject);
+    const settings = config.getAnalysisSettings(analysisContext.settingsResource);
     const preflightFailure = await validateAnalysisPreflight(
       settings,
-      analysisContext.targetPath
+      analysisContext.inputs[0].path,
     );
     if (preflightFailure) {
       return preflightFailure;
@@ -105,14 +96,11 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function validateAnalysisPreflight(
     settings: AnalysisSettings,
-    targetPath: string
+    targetPath: string,
   ): Promise<AnalysisOutcome | undefined> {
     const checks = [
       ['filter', () => deps.validateFilterFilesPreflight(settings)],
-      [
-        'extra aux classpath',
-        () => deps.validateExtraAuxClasspathPreflight(settings),
-      ],
+      ['extra aux classpath', () => deps.validateExtraAuxClasspathPreflight(settings)],
       ['plugin', () => deps.validatePluginJarsPreflight(settings)],
     ] as const;
 
@@ -141,35 +129,49 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function executeAnalysisRequest(
     settings: AnalysisSettings,
-    context: AnalysisExecutionTarget,
-    token?: CancellationToken
+    context: AnalysisExecutionUnit,
+    token?: CancellationToken,
   ): Promise<string | undefined> {
+    const sourceOutputs: Record<string, string> = {};
+    for (const input of context.inputs) {
+      for (const [source, output] of Object.entries(input.sourceOutputs ?? {})) {
+        if (sourceOutputs[source] && sourceOutputs[source] !== output)
+          throw new Error('Conflicting source output mappings in one analysis unit');
+        sourceOutputs[source] = output;
+      }
+    }
     const payload = deps.buildAnalysisRequestPayload(settings, {
-      targetResolutionRoots: context.targetResolutionRoots ?? null,
-      runtimeClasspaths: context.runtimeClasspaths ?? null,
+      inputs: context.inputs.map((input) => ({ kind: input.kind, path: input.path })),
+      targetResolutionRoots: context.inputs.some((input) => Array.isArray(input.resolutionRoots))
+        ? [...new Set(context.inputs.flatMap((input) => input.resolutionRoots ?? []))]
+        : null,
+      runtimeClasspaths: context.environment.runtimeClasspaths
+        ? [...context.environment.runtimeClasspaths]
+        : null,
       extraAuxClasspaths: settings.extraAuxClasspaths ?? null,
-      sourcepaths: context.sourcepaths ?? null,
-      ...(context.includeBaselineXml ? { includeBaselineXml: true } : {}),
+      sourcepaths: context.sourceLookup.roots ? [...context.sourceLookup.roots] : null,
+      ...(context.inputs.some((input) => Boolean(input.sourceOutputs)) ? { sourceOutputs } : {}),
+      ...(context.options?.includeBaselineXml ? { includeBaselineXml: true } : {}),
     });
     return deps.runSpotBugsAnalysis(
       {
-        targetPath: context.targetPath,
+        targetPath: context.inputs[0].path,
         payload,
       },
-      token
+      token,
     );
   }
 
   async function analysisOutcomeFromRawResponse(
     raw: string | undefined,
-    context: AnalysisExecutionTarget
+    context: AnalysisExecutionUnit,
   ): Promise<AnalysisOutcome> {
-    const targetPath = context.targetPath;
+    const targetPath = context.inputs[0].path;
     if (!raw) {
       return createAnalysisFailureOutcome(
         targetPath,
         ERROR_ANALYSIS_NO_RESPONSE,
-        'No response from SpotBugs backend.'
+        'No response from SpotBugs backend.',
       );
     }
 
@@ -183,12 +185,12 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   function analysisOutcomeFromParseError(
     parsed: Extract<ParseResult, { ok: false }>,
-    targetPath: string
+    targetPath: string,
   ): AnalysisOutcome {
     if (parsed.error.kind === 'invalid-json') {
       deps.logger.error(
         'Failed to parse analysis result',
-        parsed.error.cause ?? parsed.error.message
+        parsed.error.cause ?? parsed.error.message,
       );
       return {
         findings: [],
@@ -215,9 +217,9 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
   async function analysisOutcomeFromParsedResponse(
     parsed: ParsedAnalysis,
-    context: AnalysisExecutionTarget
+    context: AnalysisExecutionUnit,
   ): Promise<AnalysisOutcome> {
-    const targetPath = context.targetPath;
+    const targetPath = context.inputs[0].path;
     const {
       bugs,
       errors,
@@ -231,25 +233,18 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     const hasErrors = Array.isArray(errors) && errors.length > 0;
     const hasTerminalErrors = hasErrors && bugs.length === 0;
     const reportableWarnings =
-      !hasTerminalErrors && Array.isArray(warnings) && warnings.length > 0
-        ? warnings
-        : undefined;
+      !hasTerminalErrors && Array.isArray(warnings) && warnings.length > 0 ? warnings : undefined;
 
-    if (
-      typeof schemaVersion === 'number' &&
-      schemaVersion !== ANALYSIS_PROTOCOL_SCHEMA_VERSION
-    ) {
+    if (typeof schemaVersion === 'number' && schemaVersion !== ANALYSIS_PROTOCOL_SCHEMA_VERSION) {
       deps.logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
     }
     if (ignoredMalformedWarnings && !hasTerminalErrors) {
       deps.logger.log(
-        'SpotBugs analysis warning: Ignored malformed warnings field in analysis response.'
+        'SpotBugs analysis warning: Ignored malformed warnings field in analysis response.',
       );
     }
     if (reportableWarnings) {
-      deps.logger.log(
-        `SpotBugs analysis warning: ${formatAnalysisErrors(reportableWarnings)}`
-      );
+      deps.logger.log(`SpotBugs analysis warning: ${formatAnalysisErrors(reportableWarnings)}`);
     }
     if (hasErrors) {
       const combined = formatAnalysisErrors(errors);
@@ -276,8 +271,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     const findings = deps.mapBugsToFindings(bugs);
     const withFullPaths = await deps.addFullPaths(
       findings,
-      context.preferredProject,
-      context.sourcepaths
+      context.sourceLookup.preferredResource,
+      context.sourceLookup.roots,
     );
     logSuccessfulAnalysis(withFullPaths.length, stats);
     const outcome: AnalysisOutcome = {
@@ -298,10 +293,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     return outcome;
   }
 
-  function logSuccessfulAnalysis(
-    findingCount: number,
-    stats: AnalysisStats | undefined
-  ): void {
+  function logSuccessfulAnalysis(findingCount: number, stats: AnalysisStats | undefined): void {
     const logParts = [`findings=${findingCount}`];
     for (const [field, expectedType] of LOGGED_STATS_FIELDS) {
       const value = stats?.[field];
@@ -309,9 +301,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
         logParts.push(`${field}=${value}`);
       }
     }
-    deps.logger.log(
-      `Successfully parsed and added full paths (${logParts.join(', ')}).`
-    );
+    deps.logger.log(`Successfully parsed and added full paths (${logParts.join(', ')}).`);
   }
 
   return {
@@ -321,8 +311,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 
 export function runAnalysisTarget(
   config: AnalysisConfigProvider,
-  context: AnalysisExecutionTarget,
-  token?: CancellationToken
+  context: AnalysisExecutionUnit,
+  token?: CancellationToken,
 ): Promise<AnalysisOutcome> {
   return createAnalysisExecutor().run(config, context, token);
 }
@@ -330,7 +320,7 @@ export function runAnalysisTarget(
 export function createAnalysisFailureOutcome(
   targetPath: string,
   code: string,
-  message: string
+  message: string,
 ): AnalysisOutcome {
   return {
     findings: [],

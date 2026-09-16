@@ -22,6 +22,7 @@ final class AnalysisPipeline {
     AnalysisPipelineResult run(IProgressMonitor monitor, RunAnalysisRequest request) {
         AnalyzerService analyzer = analyzerFactory.create();
         analyzer.setConfiguration(request.getConfig());
+        analyzer.setInputs(request.getInputs());
         long startMillis = System.currentTimeMillis();
         try {
             SpotBugsAnalysisResult result = request.isIncludeBaselineXml()

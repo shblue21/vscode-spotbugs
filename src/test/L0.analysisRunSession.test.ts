@@ -52,7 +52,7 @@ function createFinding(file = '/workspace/src/Foo.java'): Finding {
 }
 
 function createBaseDependencies(
-  vscode: ReturnType<typeof installVscodeMock>
+  vscode: ReturnType<typeof installVscodeMock>,
 ): AnalysisSessionDependencies {
   return {
     analyzeFileDetailed: async () => ({
@@ -91,7 +91,7 @@ function runObservedFileAnalysis(
   uri: Uri,
   lease: AnalysisRunLease,
   dependencies: AnalysisSessionDependencies,
-  calls: string[]
+  calls: string[],
 ): Promise<void> {
   return runFileAnalysisSession({
     config: { getAnalysisSettings: () => ({}) } as any,
@@ -131,6 +131,7 @@ describe('analysisRunSession file analysis', () => {
     let receivedConfig: unknown;
     let receivedUri: unknown;
     let receivedToken: unknown;
+    let resultResource: unknown;
     let reportNativeSarif: string | undefined;
     const token = { isCancellationRequested: false } as CancellationToken;
     const lease = createCurrentLease(token);
@@ -160,16 +161,19 @@ describe('analysisRunSession file analysis', () => {
       config,
       tree: {
         showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[], reportRun) => {
+        showResults: (findings: Finding[], resource, reportRun) => {
           calls.push(`results:${findings.length}`);
-          reportNativeSarif = reportRun?.nativeSarif;
+          resultResource = resource;
+          reportNativeSarif = Array.isArray(reportRun) ? reportRun[0]?.nativeSarif : reportRun?.nativeSarif;
         },
         showAnalysisFailure: (message: string, code?: string) =>
           calls.push(`failure:${code ?? ''}:${message}`),
       },
       diagnostics: {
         replaceForScope: (scope, findings: Finding[]) =>
-          calls.push(`diagnostics:${scope.kind}:${scope.uri.fsPath}:${findings.length}`),
+          calls.push(
+            `diagnostics:${scope.kind}:${scope.kind === 'source-roots' ? scope.uris.map((uri) => uri.fsPath).join(',') : scope.uri.fsPath}:${findings.length}`,
+          ),
         replaceAll: () => calls.push('replaceAll'),
       },
       notifier: {
@@ -186,6 +190,7 @@ describe('analysisRunSession file analysis', () => {
     assert.strictEqual(receivedConfig, config);
     assert.strictEqual(receivedUri, uri);
     assert.strictEqual(receivedToken, token);
+    assert.strictEqual(resultResource, uri);
     assert.strictEqual(reportNativeSarif, '{"version":"2.1.0","runs":[]}');
     assert.deepStrictEqual(calls, [
       'loading',
@@ -224,7 +229,9 @@ describe('analysisRunSession file analysis', () => {
       },
       diagnostics: {
         replaceForScope: (scope, findings: Finding[]) =>
-          calls.push(`diagnostics:${scope.kind}:${scope.uri.fsPath}:${findings.length}`),
+          calls.push(
+            `diagnostics:${scope.kind}:${scope.kind === 'source-roots' ? scope.uris.map((uri) => uri.fsPath).join(',') : scope.uri.fsPath}:${findings.length}`,
+          ),
         replaceAll: () => calls.push('replaceAll'),
       },
       notifier: {
@@ -238,11 +245,7 @@ describe('analysisRunSession file analysis', () => {
       dependencies: deps,
     });
 
-    assert.deepStrictEqual(calls, [
-      'loading',
-      'results:1',
-      'diagnostics:folder:/workspace/src:1',
-    ]);
+    assert.deepStrictEqual(calls, ['loading', 'results:1', 'diagnostics:folder:/workspace/src:1']);
   });
 
   it('renders warning-only file outcomes as successful empty results', async () => {
@@ -355,9 +358,7 @@ describe('analysisRunSession file analysis', () => {
       'failure:ANALYSIS_FAILED:SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
       'log:File analysis finished: elapsedMs=125, file=/workspace/src/Foo.java, findings=0',
     ]);
-    assert.deepStrictEqual(errors, [
-      'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
-    ]);
+    assert.deepStrictEqual(errors, ['SpotBugs analysis failed: [ANALYSIS_FAILED] boom']);
   });
 
   it('renders unexpected file analysis exceptions as failure state', async () => {
@@ -438,12 +439,7 @@ describe('analysisRunSession file analysis', () => {
     const deps = createBaseDependencies(vscode);
     deps.analyzeFileDetailed = async () => result.promise;
 
-    const run = runObservedFileAnalysis(
-      uri,
-      coordinator.begin(),
-      deps,
-      calls
-    );
+    const run = runObservedFileAnalysis(uri, coordinator.begin(), deps, calls);
 
     coordinator.invalidate();
     result.reject(new Error('late failure'));
@@ -473,7 +469,7 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
         report: (value: { message?: string; increment?: number }) =>
           progressMessages.push(value.message ?? ''),
       },
-      token
+      token,
     );
 
   return {
@@ -496,21 +492,21 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
         updateProjectStatus: (
           uriString: string,
           status: string,
-          extra?: { count?: number; error?: string }
+          extra?: { count?: number; error?: string },
         ) =>
-          calls.push(
-            `status:${uriString}:${status}:${extra?.count ?? ''}:${extra?.error ?? ''}`
-          ),
+          calls.push(`status:${uriString}:${status}:${extra?.count ?? ''}:${extra?.error ?? ''}`),
         showWorkspaceCancelled: () => calls.push('cancelled'),
-        showWorkspaceResults: (projectResults: ProjectResult[], workspaceUri: string) => {
+        showWorkspaceResults: (projectResults: ProjectResult[], workspaceFolder: Uri) => {
           workspaceResults.push(projectResults);
-          workspaceResultUris.push(workspaceUri);
+          workspaceResultUris.push(workspaceFolder.toString());
           calls.push(`workspaceResults:${projectResults.length}`);
         },
       },
       diagnostics: {
         replaceForScope: (scope, findings: Finding[]) =>
-          calls.push(`diagnostics:${scope.kind}:${scope.uri.fsPath}:${findings.length}`),
+          calls.push(
+            `diagnostics:${scope.kind}:${scope.kind === 'source-roots' ? scope.uris.map((uri) => uri.fsPath).join(',') : scope.uri.fsPath}:${findings.length}`,
+          ),
         replaceAll: (findings: Finding[]) => calls.push(`replaceAll:${findings.length}`),
       },
       notifier: {
@@ -600,12 +596,7 @@ describe('analysisRunSession workspace analysis', () => {
     const coordinator = new AnalysisRunCoordinator();
     const projectUri = 'file:///workspace/project-a';
     const harness = createWorkspaceHarness({
-      analyzeWorkspaceFromProjectsDetailed: async (
-        _config,
-        _workspace,
-        _projectUris,
-        notify
-      ) => {
+      analyzeWorkspaceFromProjectsDetailed: async (_config, _workspace, _projectUris, notify) => {
         coordinator.invalidate();
         notify?.onStart?.(projectUri, 1, 1);
         notify?.onDone?.(projectUri, 1);
@@ -701,12 +692,11 @@ describe('analysisRunSession workspace analysis', () => {
           report: (value: { message?: string; increment?: number }) =>
             harness.progressMessages.push(value.message ?? ''),
         },
-        harness.token
+        harness.token,
       );
       harness.calls.push('progress:end');
     };
-    harness.args.notifier.info = (message: string) =>
-      harness.calls.push(`info:${message}`);
+    harness.args.notifier.info = (message: string) => harness.calls.push(`info:${message}`);
 
     await runWorkspaceAnalysisSession(harness.args);
 
@@ -738,7 +728,7 @@ describe('analysisRunSession workspace analysis', () => {
         workspace,
         backendProjectUris,
         _notify,
-        token
+        token,
       ) => {
         receivedConfig = config;
         receivedWorkspace = workspace;
@@ -791,11 +781,7 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(logMessages, [
       'Java workspace build returned non-zero (1). Proceeding with best-effort analysis...',
     ]);
-    assert.deepStrictEqual(harness.calls, [
-      'progress:1',
-      'workspaceResults:1',
-      'replaceAll:0',
-    ]);
+    assert.deepStrictEqual(harness.calls, ['progress:1', 'workspaceResults:1', 'replaceAll:0']);
   });
 
   it('preserves diagnostics when all workspace projects fail', async () => {
@@ -880,10 +866,7 @@ describe('analysisRunSession workspace analysis', () => {
       }),
       analyzeWorkspaceFromProjectsDetailed: async (_config, _workspace, projectUris, notify) => {
         notify?.onStart?.(projectUris[0], 1, 2);
-        notify?.onFail?.(
-          projectUris[0],
-          'SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
-        );
+        notify?.onFail?.(projectUris[0], 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom');
         notify?.onStart?.(projectUris[1], 2, 2);
         notify?.onDone?.(projectUris[1], 0);
         return {
@@ -983,6 +966,20 @@ describe('analysisRunSession workspace analysis', () => {
     });
   }
 
+  it('renders cancellation when project discovery is interrupted', async () => {
+    const harness = createWorkspaceHarness({
+      getWorkspaceProjectDiscovery: async () => {
+        harness.token.isCancellationRequested = true;
+        throw new Error('cancelled');
+      },
+    });
+
+    await runWorkspaceAnalysisSession(harness.args);
+
+    assert.deepStrictEqual(harness.calls, ['cancelled']);
+    assert.deepStrictEqual(harness.errors, []);
+  });
+
   it('renders workspace analysis exceptions as failure state', async () => {
     const loggedErrors: string[] = [];
     const harness = createWorkspaceHarness({
@@ -1003,9 +1000,7 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(harness.errors, [
       'SpotBugs: Workspace analysis failed - discovery boom',
     ]);
-    assert.deepStrictEqual(loggedErrors, [
-      'An error occurred during workspace analysis',
-    ]);
+    assert.deepStrictEqual(loggedErrors, ['An error occurred during workspace analysis']);
   });
 
   it('renders workspace build exceptions as failure state', async () => {
@@ -1025,12 +1020,8 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(harness.calls, [
       'failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: build boom',
     ]);
-    assert.deepStrictEqual(harness.errors, [
-      'SpotBugs: Workspace analysis failed - build boom',
-    ]);
-    assert.deepStrictEqual(loggedErrors, [
-      'An error occurred during workspace analysis',
-    ]);
+    assert.deepStrictEqual(harness.errors, ['SpotBugs: Workspace analysis failed - build boom']);
+    assert.deepStrictEqual(loggedErrors, ['An error occurred during workspace analysis']);
   });
 
   it('renders workspace backend exceptions as failure state after discovery', async () => {
@@ -1055,12 +1046,8 @@ describe('analysisRunSession workspace analysis', () => {
       'progress:1',
       'failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: backend boom',
     ]);
-    assert.deepStrictEqual(harness.errors, [
-      'SpotBugs: Workspace analysis failed - backend boom',
-    ]);
-    assert.deepStrictEqual(loggedErrors, [
-      'An error occurred during workspace analysis',
-    ]);
+    assert.deepStrictEqual(harness.errors, ['SpotBugs: Workspace analysis failed - backend boom']);
+    assert.deepStrictEqual(loggedErrors, ['An error occurred during workspace analysis']);
   });
 
   it('renders no-workspace-folder as workspace failure with the exact message', async () => {

@@ -7,14 +7,17 @@ import { AnalysisSettings } from '../core/config';
 export function buildAnalysisRequestPayload(
   settings: AnalysisSettings,
   options: {
+    inputs?: AnalysisRequestPayload['inputs'];
     targetResolutionRoots?: string[] | null;
     runtimeClasspaths?: string[] | null;
     extraAuxClasspaths?: string[] | null;
     sourcepaths?: string[] | null;
+    sourceOutputs?: Record<string, string> | null;
     includeBaselineXml?: boolean;
-  }
+  },
 ): AnalysisRequestPayload {
   const payload: AnalysisRequestPayload = {
+    inputs: (options.inputs ?? []).map((input) => ({ ...input })),
     schemaVersion: ANALYSIS_PROTOCOL_SCHEMA_VERSION,
     effort: settings.effort,
     targetResolutionRoots: Array.isArray(options.targetResolutionRoots)
@@ -29,6 +32,10 @@ export function buildAnalysisRequestPayload(
     sourcepaths: Array.isArray(options.sourcepaths) ? options.sourcepaths.slice() : null,
     ...(options.includeBaselineXml === true ? { includeBaselineXml: true } : {}),
   };
+
+  if (options.sourceOutputs && Object.keys(options.sourceOutputs).length > 0) {
+    payload.sourceOutputs = { ...options.sourceOutputs };
+  }
 
   if (typeof settings.priorityThreshold === 'number') {
     payload.priorityThreshold = settings.priorityThreshold;

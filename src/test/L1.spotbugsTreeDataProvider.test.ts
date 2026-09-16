@@ -1,12 +1,27 @@
 import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 import type { Finding } from '../model/finding';
+import type { Uri } from 'vscode';
 
-installVscodeMock();
+const vscode = installVscodeMock();
+const resultResource = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+const workspaceFolder = vscode.Uri.file('/workspace') as unknown as Uri;
 
 describe('spotbugsTreeDataProvider', () => {
   beforeEach(() => {
     resetVscodeMock();
+  });
+
+  it('preserves independent native runs for a resource with multiple analysis units', async () => {
+    const provider = await createProvider();
+    const runs = [
+      { projectUri: resultResource.toString(), findings: [] as Finding[], nativeSarif: 'first' },
+      { projectUri: resultResource.toString(), findings: [] as Finding[], nativeSarif: 'second' },
+    ];
+    provider.showResults([], resultResource, runs);
+    runs.pop();
+    assert.deepStrictEqual(provider.getReportRuns().map((run) => run.nativeSarif), ['first', 'second']);
+    assert.strictEqual(provider.getResultScope()?.kind, 'resource');
   });
 
   it('renders analysis failure as a distinct tree state', async () => {
@@ -46,7 +61,7 @@ describe('spotbugsTreeDataProvider', () => {
         error: 'SpotBugs could not build the project.',
         errorCode: 'no-class-targets',
       },
-    ]);
+    ], workspaceFolder);
 
     const children = await provider.getChildren();
 
@@ -80,7 +95,7 @@ describe('spotbugsTreeDataProvider', () => {
         projectUri: 'file:///workspace/project-b',
         findings: [makeFinding()],
       },
-    ]);
+    ], workspaceFolder);
 
     const children = await provider.getChildren();
 
@@ -130,6 +145,22 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(children[0].label, 'Ready to analyze. Click the bug icon to start.');
   });
 
+  it('records resource and workspace result scopes explicitly', async () => {
+    const provider = await createProvider();
+
+    provider.showResults([], resultResource);
+    assert.deepStrictEqual(provider.getResultScope(), {
+      kind: 'resource',
+      resource: resultResource,
+    });
+
+    provider.showWorkspaceResults([], workspaceFolder);
+    assert.deepStrictEqual(provider.getResultScope(), {
+      kind: 'workspace',
+      workspaceFolder,
+    });
+  });
+
   it('applies search before grouping and exposes visible findings', async () => {
     const provider = await createProvider();
     const visible = makeFinding({
@@ -142,7 +173,7 @@ describe('spotbugsTreeDataProvider', () => {
       message: 'NP: Null pointer',
     });
 
-    provider.showResults([hidden, visible]);
+    provider.showResults([hidden, visible], resultResource);
     provider.setSearchQuery('CWE-89');
 
     const children = await provider.getChildren();
@@ -169,7 +200,7 @@ describe('spotbugsTreeDataProvider', () => {
       cweId: 89,
     });
 
-    provider.showResults([filterOnly, searchOnly]);
+    provider.showResults([filterOnly, searchOnly], resultResource);
     provider.setFilter('category', 'Correctness');
     provider.setSearchQuery('CWE-89');
 
@@ -199,7 +230,7 @@ describe('spotbugsTreeDataProvider', () => {
       message: 'SQL: Injection risk',
     });
 
-    provider.showResults([first, second]);
+    provider.showResults([first, second], resultResource);
 
     const categories = await provider.getChildren();
     assert.strictEqual(categories.length, 2);
@@ -224,7 +255,7 @@ describe('spotbugsTreeDataProvider', () => {
     const first = makeFinding({ className: 'com.acme.First' });
     const second = makeFinding({ className: undefined, location: {} });
 
-    provider.showResults([first, second]);
+    provider.showResults([first, second], resultResource);
     provider.setGroupBy('package');
 
     const children = await provider.getChildren();
@@ -242,7 +273,7 @@ describe('spotbugsTreeDataProvider', () => {
     const selected = makeFinding({ className: 'com.acme.Example' });
     const other = makeFinding({ className: 'org.example.Other' });
 
-    provider.showResults([selected, other]);
+    provider.showResults([selected, other], resultResource);
     provider.setGroupBy('package');
 
     const children = await provider.getChildren();
@@ -255,12 +286,12 @@ describe('spotbugsTreeDataProvider', () => {
   it('preserves group and sort on new results and resets them on reset', async () => {
     const provider = await createProvider();
 
-    provider.showResults([makeFinding()]);
+    provider.showResults([makeFinding()], resultResource);
     provider.setGroupBy('path');
     provider.setSortBy('rule');
     provider.setSearchQuery('NP');
     provider.setFilter('category', 'Correctness');
-    provider.showResults([makeFinding({ patternId: 'SQL' })]);
+    provider.showResults([makeFinding({ patternId: 'SQL' })], resultResource);
 
     assert.strictEqual(provider.getGroupBy(), 'path');
     assert.strictEqual(provider.getSortBy(), 'rule');
@@ -279,7 +310,7 @@ describe('spotbugsTreeDataProvider', () => {
 
     provider.showWorkspaceResults([
       { projectUri: 'file:///workspace/project-a', findings: [makeFinding()] },
-    ]);
+    ], workspaceFolder);
     provider.setGroupBy('path');
     provider.setSortBy('rule');
     provider.setSearchQuery('NP');
@@ -294,7 +325,7 @@ describe('spotbugsTreeDataProvider', () => {
         reportSummary: { analyzedClassCount: 1 },
         nativeSarif: '{"version":"2.1.0","runs":[]}',
       },
-    ]);
+    ], workspaceFolder);
 
     assert.strictEqual(provider.getGroupBy(), 'path');
     assert.strictEqual(provider.getSortBy(), 'rule');
@@ -315,7 +346,7 @@ describe('spotbugsTreeDataProvider', () => {
       () => provider.showAnalysisFailure('SpotBugs analysis failed: boom', 'ANALYSIS_FAILED'),
       () => provider.showWorkspaceProgress(['file:///workspace/project-a']),
     ]) {
-      provider.showResults([makeFinding()]);
+      provider.showResults([makeFinding()], resultResource);
       provider.setGroupBy('path');
       provider.setSortBy('rule');
       provider.setSearchQuery('NP');
@@ -373,7 +404,7 @@ describe('spotbugsTreeDataProvider', () => {
     ];
 
     for (const transition of transitions) {
-      provider.showResults([finding], {
+      provider.showResults([finding], resultResource, {
         projectUri: 'file:///workspace/project-a',
         findings: [finding],
       });
@@ -391,7 +422,7 @@ describe('spotbugsTreeDataProvider', () => {
     const second = makeFinding({ patternId: 'SQL_INJECTION' });
     const input = [first];
 
-    provider.showResults(input, {
+    provider.showResults(input, resultResource, {
       projectUri: 'file:///workspace/project-a',
       findings: input,
     });
@@ -412,7 +443,7 @@ describe('spotbugsTreeDataProvider', () => {
   it('keeps no cached results distinct from search and filter empty states', async () => {
     const provider = await createProvider();
 
-    provider.showResults([]);
+    provider.showResults([], resultResource);
     provider.setSearchQuery('NP');
     provider.setFilter('category', 'Correctness');
 
@@ -439,7 +470,7 @@ describe('spotbugsTreeDataProvider', () => {
         projectUri: 'file:///workspace/project-b',
         findings: [makeFinding({ patternId: 'NP_ALWAYS_NULL', message: 'NP: Null pointer' })],
       },
-    ]);
+    ], workspaceFolder);
     provider.setSearchQuery('CWE-89');
 
     const children = await provider.getChildren();
@@ -458,7 +489,7 @@ describe('spotbugsTreeDataProvider', () => {
   it('renders workspace cancellation without clearing group and sort', async () => {
     const provider = await createProvider();
 
-    provider.showResults([makeFinding()]);
+    provider.showResults([makeFinding()], resultResource);
     provider.setGroupBy('package');
     provider.setSortBy('rule');
     provider.showWorkspaceProgress(['file:///workspace/project-a']);

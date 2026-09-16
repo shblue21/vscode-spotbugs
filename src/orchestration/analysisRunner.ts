@@ -12,7 +12,7 @@ import { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 import { getWorkspaceProjectDiscovery } from '../workspace/projectDiscovery';
 import { getPrimaryWorkspaceFolder } from '../workspace/workspaceRoots';
 import * as analysisRunSession from './analysisRunSession';
-import { AnalysisRunCoordinator } from './analysisRunCoordinator';
+import { AnalysisRunCoordinator, type AnalysisRunLease } from './analysisRunCoordinator';
 
 export interface RunFileAnalysisArgs {
   config: Config;
@@ -20,7 +20,9 @@ export interface RunFileAnalysisArgs {
   diagnostics: SpotBugsDiagnosticsManager;
   coordinator: AnalysisRunCoordinator;
   uri?: Uri;
+  analysisKind?: 'source' | 'artifact' | 'project';
   notifier?: Notifier;
+  lease?: AnalysisRunLease;
 }
 
 export interface RunWorkspaceAnalysisArgs {
@@ -31,15 +33,19 @@ export interface RunWorkspaceAnalysisArgs {
   notifier?: Notifier;
 }
 
-export async function runFileAnalysis(
-  args: RunFileAnalysisArgs
-): Promise<void> {
+export async function runFileAnalysis(args: RunFileAnalysisArgs): Promise<void> {
   const notifier = args.notifier ?? defaultNotifier;
   const startedAtMs = Date.now();
-  Logger.log('Command spotbugs.run triggered.');
+  const command = {
+    source: 'spotbugs.analyzeSource',
+    artifact: 'spotbugs.analyzeArtifacts',
+    project: 'spotbugs.analyzeProject',
+  }[args.analysisKind ?? 'source'];
+  Logger.log(`Command ${command} triggered.`);
 
   const fileUri = args.uri ?? getActiveFileUri();
-  const lease = fileUri ? args.coordinator.begin() : undefined;
+  const lease = fileUri ? (args.lease ?? args.coordinator.begin()) : undefined;
+  if (lease && !lease.isCurrent()) return;
   await focusSpotbugsTree();
 
   if (!fileUri || !lease) {
@@ -57,16 +63,15 @@ export async function runFileAnalysis(
     diagnostics: args.diagnostics,
     notifier,
     uri: fileUri,
+    analysisKind: args.analysisKind,
     startedAtMs,
     lease,
     dependencies: createAnalysisSessionDependencies(),
   });
 }
 
-export async function runWorkspaceAnalysis(
-  args: RunWorkspaceAnalysisArgs
-): Promise<void> {
-  Logger.log('Command spotbugs.runWorkspace triggered.');
+export async function runWorkspaceAnalysis(args: RunWorkspaceAnalysisArgs): Promise<void> {
+  Logger.log('Command spotbugs.analyzeWorkspace triggered.');
   const lease = args.coordinator.begin();
   await focusSpotbugsTree();
   if (!lease.isCurrent()) {
@@ -90,9 +95,7 @@ export async function runWorkspaceAnalysis(
             cancellable: true,
           },
           async (progress, token) => {
-            const cancellationRegistration = token.onCancellationRequested(() =>
-              lease.cancel()
-            );
+            const cancellationRegistration = token.onCancellationRequested(() => lease.cancel());
             try {
               if (token.isCancellationRequested) {
                 lease.cancel();
@@ -101,8 +104,8 @@ export async function runWorkspaceAnalysis(
             } finally {
               cancellationRegistration.dispose();
             }
-          }
-        )
+          },
+        ),
       ),
     dependencies,
   });

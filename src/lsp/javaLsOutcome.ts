@@ -5,7 +5,8 @@ export type AnalysisResolutionIssueCode =
   | 'JAVA_LS_NO_RESULT'
   | 'JAVA_LS_EMPTY_PROJECT_LIST'
   | 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH'
-  | 'JAVA_LS_EXTENSION_FALLBACK_USED'
+  | 'JAVA_LS_PROJECT_SETTINGS_FAILED'
+  | 'JAVA_PROJECT_METADATA_MISMATCH'
   | 'WORKSPACE_FALLBACK_USED'
   | 'OUTPUT_FALLBACK_USED';
 
@@ -19,14 +20,6 @@ export interface AnalysisResolutionIssue {
     | 'workspace-fallback'
     | 'output-fallback';
   message: string;
-  attemptLabel?: string;
-  variant?:
-    | 'uri-scope'
-    | 'uri'
-    | 'direct'
-    | 'runtime-arg'
-    | 'no-arg'
-    | 'extension-api';
   cause?: string;
 }
 

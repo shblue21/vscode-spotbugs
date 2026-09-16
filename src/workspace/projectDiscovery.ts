@@ -1,5 +1,4 @@
-import { Uri, workspace } from 'vscode';
-import * as path from 'path';
+import { Uri, workspace, type CancellationToken } from 'vscode';
 import { Logger } from '../core/logger';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { JavaLsClient } from '../services/javaLsClient';
@@ -10,17 +9,11 @@ export interface WorkspaceProjectDiscoveryResult {
 }
 
 export async function getWorkspaceProjectDiscovery(
-  workspaceFolder: Uri
+  workspaceFolder: Uri,
+  token?: CancellationToken
 ): Promise<WorkspaceProjectDiscoveryResult> {
-  const outcome = await JavaLsClient.getAllProjectsOutcome();
-  const projectUris = outcome.projectUris.filter((uriString) => {
-    try {
-      const fsPath = Uri.parse(uriString).fsPath;
-      return path.basename(fsPath) !== 'jdt.ls-java-project';
-    } catch {
-      return true;
-    }
-  });
+  const outcome = await JavaLsClient.getAllProjectsOutcome(token);
+  const projectUris = outcome.projectUris;
 
   if (outcome.status === 'resolved' && projectUris.length > 0) {
     Logger.log(`Workspace contains ${projectUris.length} Java projects.`);
@@ -46,11 +39,16 @@ export async function getWorkspaceProjectDiscovery(
   };
 }
 
-export async function getProjectRootPaths(): Promise<string[]> {
+export async function getProjectRootPaths(
+  options: {
+    includeWorkspaceFallback?: boolean;
+    token?: CancellationToken;
+  } = {}
+): Promise<string[]> {
   const rootCandidates: string[] = [];
 
   try {
-    const uris = await JavaLsClient.getAllProjects();
+    const uris = await JavaLsClient.getAllProjects(options.token);
     for (const u of uris) {
       try {
         rootCandidates.push(Uri.parse(u).fsPath);
@@ -58,11 +56,17 @@ export async function getProjectRootPaths(): Promise<string[]> {
         // ignore parse error
       }
     }
-  } catch {
+  } catch (error) {
+    if (options.token?.isCancellationRequested) {
+      throw error;
+    }
     // ignore
   }
 
-  if (rootCandidates.length === 0) {
+  if (
+    rootCandidates.length === 0 &&
+    options.includeWorkspaceFallback !== false
+  ) {
     const folders = workspace.workspaceFolders ?? [];
     for (const f of folders) {
       rootCandidates.push(f.uri.fsPath);

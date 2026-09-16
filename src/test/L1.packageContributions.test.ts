@@ -4,6 +4,7 @@ import * as path from 'path';
 
 type PackageJson = {
   contributes: {
+    javaExtensions: string[];
     views: Record<string, Array<{ id: string; name: string; type?: string }>>;
     configuration: Array<{
       properties?: Record<
@@ -22,6 +23,13 @@ type PackageJson = {
 
 describe('package contributions', () => {
   const manifest = readPackageJson();
+
+  it('keeps Java bundle paths independent of public command names', () => {
+    assert.deepStrictEqual(manifest.contributes.javaExtensions, [
+      './server/com.spotbugs.runner.jar',
+      './server/spotbugs-runner-all.jar',
+    ]);
+  });
 
   it('contributes the results tree, inspector, filters, and plugin inventory views', () => {
     const views = manifest.contributes.views['spotbugs-container'];
@@ -50,14 +58,14 @@ describe('package contributions', () => {
     for (const key of placeholderKeys) {
       assert.ok(
         Object.prototype.hasOwnProperty.call(defaultMessages, key),
-        `package.nls.json is missing ${key}`
+        `package.nls.json is missing ${key}`,
       );
     }
 
     for (const key of Object.keys(koreanMessages)) {
       assert.ok(
         Object.prototype.hasOwnProperty.call(defaultMessages, key),
-        `package.nls.ko.json contains unknown key ${key}`
+        `package.nls.ko.json contains unknown key ${key}`,
       );
     }
   });
@@ -66,7 +74,10 @@ describe('package contributions', () => {
     const commands = manifest.contributes.commands.map((entry) => entry.command);
 
     for (const command of [
-      'spotbugs.runWorkspace',
+      'spotbugs.analyzeWorkspace',
+      'spotbugs.analyzeSource',
+      'spotbugs.analyzeArtifacts',
+      'spotbugs.analyzeProject',
       'spotbugs.revealFindingSource',
       'spotbugs.openFindingDetails',
       'spotbugs.suppressFindings',
@@ -94,11 +105,8 @@ describe('package contributions', () => {
   it('contributes configuration settings', () => {
     const properties = Object.assign(
       {},
-      ...manifest.contributes.configuration.map((group) => group.properties ?? {})
-    ) as Record<
-      string,
-      { type?: string; default?: unknown; scope?: string }
-    >;
+      ...manifest.contributes.configuration.map((group) => group.properties ?? {}),
+    ) as Record<string, { type?: string; default?: unknown; scope?: string }>;
     const setting = properties['spotbugs.results.revealSourceOnSelection'];
 
     assert.ok(setting);
@@ -114,33 +122,32 @@ describe('package contributions', () => {
       itemMenus.some(
         (entry) =>
           entry.command === 'spotbugs.revealFindingSource' &&
-          entry.when === 'view == spotbugs-view && viewItem == spotbugs.bug'
-      )
+          entry.when === 'view == spotbugs-view && viewItem == spotbugs.bug',
+      ),
     );
     assert.ok(
       itemMenus.some(
         (entry) =>
           entry.command === 'spotbugs.openFindingDetails' &&
-          entry.when === 'view == spotbugs-view && viewItem == spotbugs.bug'
-      )
+          entry.when === 'view == spotbugs-view && viewItem == spotbugs.bug',
+      ),
     );
   });
 
   it('adds suppression to finding and group result items only', () => {
     const itemMenus = manifest.contributes.menus['view/item/context'];
     const suppressionMenu = itemMenus.find(
-      (entry) => entry.command === 'spotbugs.suppressFindings'
+      (entry) => entry.command === 'spotbugs.suppressFindings',
     );
 
     assert.strictEqual(
       suppressionMenu?.when,
-      'view == spotbugs-view && (viewItem == spotbugs.bug || viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)'
+      'view == spotbugs-view && (viewItem == spotbugs.bug || viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)',
     );
     assert.ok(
       manifest.contributes.menus.commandPalette.some(
-        (entry) =>
-          entry.command === 'spotbugs.suppressFindings' && entry.when === 'false'
-      )
+        (entry) => entry.command === 'spotbugs.suppressFindings' && entry.when === 'false',
+      ),
     );
   });
 
@@ -153,8 +160,8 @@ describe('package contributions', () => {
           (entry) =>
             entry.command === command &&
             entry.when ===
-              'view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)'
-        )
+              'view == spotbugs-view && (viewItem == spotbugs.category || viewItem == spotbugs.pattern || viewItem == spotbugs.group)',
+        ),
       );
     }
   });
@@ -163,7 +170,7 @@ describe('package contributions', () => {
     const titleMenus = manifest.contributes.menus['view/title'];
 
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-view'), [
-      'spotbugs.runWorkspace',
+      'spotbugs.analyzeWorkspace',
       'spotbugs.searchResults',
       'spotbugs.openSettings',
       'spotbugs.exportSarif',
@@ -187,17 +194,16 @@ describe('package contributions', () => {
     ]);
 
     const removePluginMenu = manifest.contributes.menus['view/item/context'].find(
-      (entry) => entry.command === 'spotbugs.removePluginJar'
+      (entry) => entry.command === 'spotbugs.removePluginJar',
     );
     assert.strictEqual(
       removePluginMenu?.when,
-      'view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/'
+      'view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/',
     );
     assert.ok(
       manifest.contributes.menus.commandPalette.some(
-        (entry) =>
-          entry.command === 'spotbugs.removePluginJar' && entry.when === 'false'
-      )
+        (entry) => entry.command === 'spotbugs.removePluginJar' && entry.when === 'false',
+      ),
     );
     const filterItemMenus = manifest.contributes.menus['view/item/context'];
     for (const [command, viewItem] of [
@@ -208,16 +214,14 @@ describe('package contributions', () => {
         filterItemMenus.some(
           (entry) =>
             entry.command === command &&
-            entry.when ===
-              `view == spotbugs-filters-view && viewItem == ${viewItem}`
-        )
+            entry.when === `view == spotbugs-filters-view && viewItem == ${viewItem}`,
+        ),
       );
     }
     assert.ok(
       manifest.contributes.menus.commandPalette.some(
-        (entry) =>
-          entry.command === 'spotbugs.removeFilterFile' && entry.when === 'false'
-      )
+        (entry) => entry.command === 'spotbugs.removeFilterFile' && entry.when === 'false',
+      ),
     );
 
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
@@ -226,19 +230,20 @@ describe('package contributions', () => {
     assert.strictEqual(resultMenus[2].group, 'navigation@99');
     assert.ok(
       resultMenus
-        .filter((entry) =>
-          entry.command?.startsWith('spotbugs.group') ||
-          entry.command?.startsWith('spotbugs.sort') ||
-          entry.command === 'spotbugs.clearSearch'
+        .filter(
+          (entry) =>
+            entry.command?.startsWith('spotbugs.group') ||
+            entry.command?.startsWith('spotbugs.sort') ||
+            entry.command === 'spotbugs.clearSearch',
         )
-        .every((entry) => entry.group?.startsWith('3_results'))
+        .every((entry) => entry.group?.startsWith('3_results')),
     );
   });
 });
 
 function commandIdsForView(
   titleMenus: Array<{ command?: string; when?: string; group?: string }>,
-  viewId: string
+  viewId: string,
 ): Array<string | undefined> {
   return titleMenus
     .filter((entry) => entry.when === `view == ${viewId}`)
@@ -264,7 +269,7 @@ function readFlatStringMap(fileName: string): Record<string, string> {
 
   assert.ok(
     parsed && typeof parsed === 'object' && !Array.isArray(parsed),
-    `${fileName} must be a flat object with string values`
+    `${fileName} must be a flat object with string values`,
   );
 
   const messages: Record<string, string> = {};

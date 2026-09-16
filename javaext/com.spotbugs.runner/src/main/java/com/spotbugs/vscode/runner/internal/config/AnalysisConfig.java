@@ -3,6 +3,8 @@ package com.spotbugs.vscode.runner.internal.config;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Domain configuration used by the analyzer. This type is independent from
@@ -15,6 +17,7 @@ public class AnalysisConfig {
     private final List<String> runtimeClasspaths;
     private final List<String> extraAuxClasspaths;
     private final List<String> sourcepaths;
+    private final Map<String, String> sourceOutputs;
     private final Integer priorityThreshold; // optional
     private final List<String> includeFilterPaths; // optional
     private final List<String> excludeFilterPaths; // optional
@@ -35,6 +38,9 @@ public class AnalysisConfig {
         this.sourcepaths = b.sourcepaths == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(b.sourcepaths));
+        this.sourceOutputs = b.sourceOutputs == null
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(b.sourceOutputs));
         this.priorityThreshold = b.priorityThreshold;
         this.includeFilterPaths = b.includeFilterPaths == null
                 ? Collections.emptyList()
@@ -55,6 +61,7 @@ public class AnalysisConfig {
     public List<String> getRuntimeClasspaths() { return runtimeClasspaths; }
     public List<String> getExtraAuxClasspaths() { return extraAuxClasspaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
+    public Map<String, String> getSourceOutputs() { return sourceOutputs; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
     public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }
@@ -70,6 +77,7 @@ public class AnalysisConfig {
         private List<String> runtimeClasspaths;
         private List<String> extraAuxClasspaths;
         private List<String> sourcepaths;
+        private Map<String, String> sourceOutputs;
         private Integer priorityThreshold;
         private List<String> includeFilterPaths;
         private List<String> excludeFilterPaths;
@@ -81,6 +89,7 @@ public class AnalysisConfig {
         Builder runtimeClasspaths(List<String> cp) { this.runtimeClasspaths = cp; return this; }
         Builder extraAuxClasspaths(List<String> cp) { this.extraAuxClasspaths = cp; return this; }
         Builder sourcepaths(List<String> sp) { this.sourcepaths = sp; return this; }
+        Builder sourceOutputs(Map<String, String> outputs) { this.sourceOutputs = outputs; return this; }
         Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
         Builder includeFilterPaths(List<String> p) { this.includeFilterPaths = p; return this; }
         Builder excludeFilterPaths(List<String> p) { this.excludeFilterPaths = p; return this; }

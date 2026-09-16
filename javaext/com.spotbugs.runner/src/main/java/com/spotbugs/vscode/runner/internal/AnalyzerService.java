@@ -20,6 +20,11 @@ public class AnalyzerService {
     private List<String> runtimeClasspaths;
     private List<String> extraAuxClasspaths;
     private AnalysisConfig config;
+    private AnalysisInput[] inputs;
+
+    public void setInputs(AnalysisInput[] inputs) {
+        this.inputs = inputs.clone();
+    }
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
     private int lastAuxClasspathCount = 0;
@@ -76,6 +81,7 @@ public class AnalyzerService {
             boolean includeBaselineXml,
             String... filePaths
     ) throws java.io.IOException, InterruptedException {
+        if (this.inputs != null) filePaths = java.util.Arrays.stream(this.inputs).map(input -> input.path).toArray(String[]::new);
         PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
         if (prepared == null) {
             return SpotBugsAnalysisResult.empty();
@@ -116,8 +122,16 @@ public class AnalyzerService {
                 : java.util.Collections.emptyList();
         project.addSourceDirs(sourcepaths);
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
-        TargetResolver resolver = new TargetResolver();
-        List<String> targets = resolver.resolveTargets(filePaths, targetResolutionRootDirs, sourcepaths, monitor);
+        List<String> targets = this.inputs != null
+                ? new InputMaterializer().resolveTargets(this.inputs, targetResolutionRootDirs, sourcepaths,
+                        this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(), monitor)
+                : new SourceInputMaterializer().resolveTargets(
+                filePaths,
+                targetResolutionRootDirs,
+                sourcepaths,
+                this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(),
+                monitor
+        );
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
@@ -144,7 +158,6 @@ public class AnalyzerService {
             return;
         }
         List<String> sourcepaths = this.config != null ? this.config.getSourcepaths() : java.util.Collections.emptyList();
-        String targetPath = (filePaths != null && filePaths.length > 0) ? filePaths[0] : null;
         SourcePathResolver resolver = new SourcePathResolver();
         for (BugInfo bug : bugs) {
             checkCanceled(monitor);
@@ -154,9 +167,12 @@ public class AnalyzerService {
             if (bug.getFullPath() != null && !bug.getFullPath().isEmpty()) {
                 continue;
             }
-            String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, targetPath, monitor);
-            if (fullPath != null && !fullPath.isEmpty()) {
-                bug.setFullPath(fullPath);
+            for (String targetPath : filePaths == null ? new String[0] : filePaths) {
+                String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, targetPath, monitor);
+                if (fullPath != null && !fullPath.isEmpty()) {
+                    bug.setFullPath(fullPath);
+                    break;
+                }
             }
         }
     }

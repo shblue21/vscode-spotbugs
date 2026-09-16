@@ -14,7 +14,7 @@ function makeSettings(overrides: Partial<AnalysisSettings> = {}): AnalysisSettin
 describe('analysisRequestBuilder', () => {
   it('builds the shared run-analysis request payload fixture', () => {
     const fixture = readAnalysisProtocolFixtureJson<AnalysisRequest>(
-      'run-analysis-request-full.json'
+      'run-analysis-request-full.json',
     );
     const includeFilterPaths = ['test-fixtures/analysis-protocol/include-filter.xml'];
     const excludeFilterPaths = ['test-fixtures/analysis-protocol/exclude-filter.xml'];
@@ -31,12 +31,17 @@ describe('analysisRequestBuilder', () => {
         priorityThreshold: 5,
       }),
       {
+        inputs: fixture.payload.inputs,
         targetResolutionRoots: ['/workspace/build/classes', '/workspace/build/generated'],
         runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
         extraAuxClasspaths: ['.'],
         sourcepaths: ['/workspace/src/main/java', '/workspace/generated/sources'],
+        sourceOutputs: Object.fromEntries([
+          ['/workspace/src/main/java', '/workspace/build/classes'],
+          ['/workspace/generated/sources', '/workspace/build/generated'],
+        ]),
         includeBaselineXml: true,
-      }
+      },
     );
 
     assert.strictEqual(fixture.targetPath, '/workspace/build/classes');
@@ -63,7 +68,7 @@ describe('analysisRequestBuilder', () => {
         runtimeClasspaths,
         extraAuxClasspaths: extraAux,
         sourcepaths: ['/workspace/src/main/java'],
-      }
+      },
     );
 
     assert.deepStrictEqual(payload.targetResolutionRoots, targetResolutionRoots);
@@ -82,7 +87,7 @@ describe('analysisRequestBuilder', () => {
         excludeFilterPaths: [],
         excludeBaselineBugsPaths: [],
       }),
-      {}
+      {},
     );
 
     assert.strictEqual('targetResolutionRoots' in payload, true);
@@ -116,7 +121,7 @@ describe('analysisRequestBuilder', () => {
         targetResolutionRoots,
         runtimeClasspaths,
         extraAuxClasspaths: extraAux,
-      }
+      },
     );
 
     include.push('/tmp/spotbugs/include2.xml');

@@ -21,8 +21,8 @@
   "contributes.configuration.spotbugs.filters.excludePaths.markdownDescription": "SpotBugs XML exclude filter file paths (`-exclude`). Supports absolute paths and workspace-relative paths.",
   "contributes.configuration.spotbugs.filters.excludeBaselineBugsPaths.markdownDescription": "SpotBugs XML baseline bug collection file paths (`-excludeBugs`). Supports absolute paths and workspace-relative paths.",
   "contributes.configuration.spotbugs.results.revealSourceOnSelection.markdownDescription": "Reveal the source location in a preview editor when selecting a SpotBugs finding in the results tree.",
-  "contributes.commands.spotbugs.run.title": "Analyze File/Folder",
-  "contributes.commands.spotbugs.runWorkspace.title": "Analyze SpotBugs Workspace",
+  "contributes.commands.spotbugs.analyzeSource.title": "SpotBugs: Analyze Java Sources",
+  "contributes.commands.spotbugs.analyzeWorkspace.title": "Analyze SpotBugs Workspace",
   "contributes.commands.spotbugs.revealFindingSource.title": "SpotBugs: Go to Code",
   "contributes.commands.spotbugs.openFindingDetails.title": "SpotBugs: Open Finding Details",
   "contributes.commands.spotbugs.suppressFindings.title": "SpotBugs: Suppress Findings...",
@@ -41,5 +41,7 @@
   "contributes.commands.spotbugs.removePluginJar.title": "SpotBugs: Remove Plugin JAR",
   "contributes.commands.spotbugs.addFilterFiles.title": "SpotBugs: Add Filter Files...",
   "contributes.commands.spotbugs.removeFilterFile.title": "SpotBugs: Remove Filter File",
-  "contributes.submenus.spotbugs.context.label": "SpotBugs"
+  "contributes.submenus.spotbugs.context.label": "SpotBugs",
+  "contributes.commands.spotbugs.analyzeArtifacts.title": "SpotBugs: Analyze Artifacts",
+  "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Analyze Java Project"
 }

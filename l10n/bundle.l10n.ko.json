@@ -167,5 +167,7 @@
   "Create a SpotBugs baseline from the current workspace results?": "현재 워크스페이스 결과로 SpotBugs Baseline을 생성할까요?",
   "Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.": "Finding 수: {0}\nBaseline 파일: {1}\n기존 Baseline 파일 설정도 유지됩니다.",
   "Could not create the SpotBugs baseline: {0}": "SpotBugs Baseline을 생성하지 못했습니다: {0}",
-  "The baseline file(s) were created but could not be added to the workspace settings: {0}": "Baseline 파일은 생성했지만 워크스페이스 설정에 추가하지 못했습니다: {0}"
+  "The baseline file(s) were created but could not be added to the workspace settings: {0}": "Baseline 파일은 생성했지만 워크스페이스 설정에 추가하지 못했습니다: {0}",
+  "Select a Java project to analyze": "분석할 Java 프로젝트를 선택하세요",
+  "Select Java sources or use Analyze Artifacts for bytecode.": "Java 소스를 선택하거나 바이트코드 분석 명령을 사용하세요."
 }

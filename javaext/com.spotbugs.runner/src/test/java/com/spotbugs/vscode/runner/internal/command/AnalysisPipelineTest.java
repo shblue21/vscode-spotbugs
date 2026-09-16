@@ -148,12 +148,12 @@ public class AnalysisPipelineTest {
     }
 
     private static RunAnalysisRequest request(String targetPath) throws Exception {
-        return new RunAnalysisRequest(targetPath, defaultConfig(), false);
+        return new RunAnalysisRequest(targetPath, defaultConfig(), false, new com.spotbugs.vscode.runner.internal.AnalysisInput[] { new com.spotbugs.vscode.runner.internal.AnalysisInput(com.spotbugs.vscode.runner.internal.AnalysisInput.Kind.ARTIFACT, targetPath) });
     }
 
     private static AnalysisConfig defaultConfig() throws Exception {
         return new RunAnalysisRequestParser(new ConfigParser(), new ConfigValidator())
-                .parse(context("/workspace/build/classes", "{}"))
+                .parse(context("/workspace/build/classes", "{\"inputs\":[{\"kind\":\"artifact\",\"path\":\"/workspace/build/classes\"}]}"))
                 .getConfig();
     }
 

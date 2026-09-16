@@ -13,26 +13,35 @@ const OUTPUT_FALLBACK_NOTICE = {
 } as const;
 
 describe('analysisNotices', () => {
-  it('maps JAVA_LS_EMPTY_RUNTIME_CLASSPATH to a warning notice', () => {
-    const notices = buildResolutionIssueNotices([
-      {
-        code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
-        level: 'warn',
-        source: 'java-ls',
-        phase: 'get-classpaths',
-        message: 'Java LS classpath lookup returned no runtime classpath entries.',
-      },
-    ]);
-
-    assert.deepStrictEqual(notices, [
-      {
-        level: 'warn',
-        code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
-        message:
-          'SpotBugs: Java runtime classpath information is unavailable; results may be incomplete.',
-      },
-    ]);
-  });
+  for (const [code, message] of [
+    [
+      'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
+      'SpotBugs: Java runtime classpath information is unavailable; results may be incomplete.',
+    ],
+    [
+      'JAVA_LS_PROJECT_SETTINGS_FAILED',
+      'SpotBugs: Some Java source/output metadata was unavailable; analysis used the available project output information.',
+    ],
+    [
+      'JAVA_PROJECT_METADATA_MISMATCH',
+      'SpotBugs: Metadata for a different Java project was discarded; analysis continued without it.',
+    ],
+  ] as const) {
+    it(`maps ${code} to a warning notice`, () => {
+      assert.deepStrictEqual(
+        buildResolutionIssueNotices([
+          {
+            code,
+            level: 'warn',
+            source: 'java-ls',
+            phase: 'get-classpaths',
+            message: 'raw issue',
+          },
+        ]),
+        [{ level: 'warn', code, message }]
+      );
+    });
+  }
 
   it('suppresses WORKSPACE_FALLBACK_USED when a more specific workspace-discovery cause exists', () => {
     const notices = buildResolutionIssueNotices([
@@ -450,6 +459,7 @@ describe('analysisNotices', () => {
       },
     ]);
   });
+
 });
 
 function outputFallbackIssue(): AnalysisResolutionIssue {

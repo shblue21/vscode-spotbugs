@@ -167,5 +167,7 @@
   "Create a SpotBugs baseline from the current workspace results?": "Create a SpotBugs baseline from the current workspace results?",
   "Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.": "Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.",
   "Could not create the SpotBugs baseline: {0}": "Could not create the SpotBugs baseline: {0}",
-  "The baseline file(s) were created but could not be added to the workspace settings: {0}": "The baseline file(s) were created but could not be added to the workspace settings: {0}"
+  "The baseline file(s) were created but could not be added to the workspace settings: {0}": "The baseline file(s) were created but could not be added to the workspace settings: {0}",
+  "Select a Java project to analyze": "Select a Java project to analyze",
+  "Select Java sources or use Analyze Artifacts for bytecode.": "Select Java sources or use Analyze Artifacts for bytecode."
 }

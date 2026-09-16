@@ -6,8 +6,10 @@ import {
 } from './helpers/mockVscode';
 import { Finding } from '../model/finding';
 import { AnalysisRunCoordinator } from '../orchestration/analysisRunCoordinator';
+import type { Uri } from 'vscode';
 
-installVscodeMock();
+const vscode = installVscodeMock();
+const resultResource = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
 
 describe('resultsExplorerCommands', () => {
   beforeEach(() => {
@@ -47,7 +49,10 @@ describe('resultsExplorerCommands', () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const { searchResults, clearResultsSearch } = await import('../commands/resultsExplorer');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
-    provider.showResults([makeFinding({ cweId: 89, message: 'SQL risk' })]);
+    provider.showResults(
+      [makeFinding({ cweId: 89, message: 'SQL risk' })],
+      resultResource
+    );
     provider.setSearchQuery('existing query');
 
     await searchResults(provider);
@@ -75,7 +80,10 @@ describe('resultsExplorerCommands', () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const { searchResults } = await import('../commands/resultsExplorer');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
-    provider.showResults([makeFinding({ cweId: 89, message: 'SQL risk' })]);
+    provider.showResults(
+      [makeFinding({ cweId: 89, message: 'SQL risk' })],
+      resultResource
+    );
 
     await searchResults(provider);
     assert.strictEqual(provider.getSearchQuery(), 'CWE-89');
@@ -99,7 +107,7 @@ describe('resultsExplorerCommands', () => {
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
     const finding = makeFinding();
 
-    provider.showResults([finding]);
+    provider.showResults([finding], resultResource);
     const before = provider.getAllFindings();
 
     await clearResultsSearch(provider);
@@ -124,7 +132,7 @@ describe('resultsExplorerCommands', () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const { groupResultsBy, sortResultsBy } = await import('../commands/resultsExplorer');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
-    provider.showResults([makeFinding()]);
+    provider.showResults([makeFinding()], resultResource);
     provider.setGroupBy('class');
     provider.setSortBy('pathLine');
 

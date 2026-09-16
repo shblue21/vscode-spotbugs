@@ -1,6 +1,7 @@
 package com.spotbugs.vscode.runner.api;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Wire/JSON configuration schema. Mirrors user-provided fields and is parsed
@@ -14,6 +15,7 @@ public class ConfigSchema {
     private List<String> runtimeClasspaths;   // optional
     private List<String> extraAuxClasspaths;  // optional
     private List<String> sourcepaths;         // optional
+    private Map<String, String> sourceOutputs; // optional source-to-output mapping
     private Integer priorityThreshold;        // optional
     private List<String> includeFilterPaths;  // optional
     private List<String> excludeFilterPaths;  // optional
@@ -27,6 +29,7 @@ public class ConfigSchema {
     public List<String> getRuntimeClasspaths() { return runtimeClasspaths; }
     public List<String> getExtraAuxClasspaths() { return extraAuxClasspaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
+    public Map<String, String> getSourceOutputs() { return sourceOutputs; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
     public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }

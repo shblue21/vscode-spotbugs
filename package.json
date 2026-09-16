@@ -197,12 +197,12 @@
     ],
     "commands": [
       {
-        "command": "spotbugs.run",
-        "title": "%contributes.commands.spotbugs.run.title%"
+        "command": "spotbugs.analyzeSource",
+        "title": "%contributes.commands.spotbugs.analyzeSource.title%"
       },
       {
-        "command": "spotbugs.runWorkspace",
-        "title": "%contributes.commands.spotbugs.runWorkspace.title%",
+        "command": "spotbugs.analyzeWorkspace",
+        "title": "%contributes.commands.spotbugs.analyzeWorkspace.title%",
         "icon": "$(bug)"
       },
       {
@@ -292,12 +292,20 @@
         "command": "spotbugs.removeFilterFile",
         "title": "%contributes.commands.spotbugs.removeFilterFile.title%",
         "icon": "$(trash)"
+      },
+      {
+        "command": "spotbugs.analyzeArtifacts",
+        "title": "%contributes.commands.spotbugs.analyzeArtifacts.title%"
+      },
+      {
+        "command": "spotbugs.analyzeProject",
+        "title": "%contributes.commands.spotbugs.analyzeProject.title%"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "spotbugs.runWorkspace",
+          "command": "spotbugs.analyzeWorkspace",
           "when": "view == spotbugs-view",
           "group": "navigation@1"
         },
@@ -436,14 +444,18 @@
       ],
       "spotbugs.context": [
         {
-          "command": "spotbugs.run",
-          "when": "!explorerResourceIsFolder",
+          "command": "spotbugs.analyzeSource",
+          "when": "explorerResourceIsFolder || resourceExtname == .java",
           "group": "1_spotbugs@1"
         },
         {
-          "command": "spotbugs.run",
-          "when": "explorerResourceIsFolder",
-          "group": "1_spotbugs@1"
+          "command": "spotbugs.analyzeArtifacts",
+          "when": "explorerResourceIsFolder || resourceExtname == .class || resourceExtname == .jar || resourceExtname == .zip",
+          "group": "1_spotbugs@2"
+        },
+        {
+          "command": "spotbugs.analyzeProject",
+          "group": "1_spotbugs@3"
         }
       ]
     },

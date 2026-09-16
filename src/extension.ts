@@ -29,14 +29,8 @@ import {
   removePluginJar,
   refreshPluginInventory,
 } from './commands/pluginInventory';
-import {
-  addFilterFiles,
-  removeFilterFile,
-} from './commands/filterFiles';
-import type {
-  FilterFileCommandTarget,
-  FilterPaths,
-} from './model/filterFiles';
+import { addFilterFiles, removeFilterFile } from './commands/filterFiles';
+import type { FilterFileCommandTarget, FilterPaths } from './model/filterFiles';
 import {
   clearResultsSearch,
   groupResultsBy,
@@ -78,10 +72,7 @@ export async function deactivate(): Promise<void> {
   await disposeTelemetryWrapper();
 }
 
-async function doActivate(
-  _operationId: string,
-  context: ExtensionContext
-): Promise<void> {
+async function doActivate(_operationId: string, context: ExtensionContext): Promise<void> {
   Logger.initialize();
   Logger.log('SpotBugs extension is now active.');
 
@@ -94,21 +85,16 @@ async function doActivate(
     const filterTreeDataProvider = new FilterTreeDataProvider(filterPaths(config));
     const pluginInventoryTreeDataProvider = new PluginInventoryTreeDataProvider();
     const diagnosticsManager = new SpotBugsDiagnosticsManager();
-    const analysisRunCoordinator = new AnalysisRunCoordinator(
-      () => new CancellationTokenSource()
-    );
+    const analysisRunCoordinator = new AnalysisRunCoordinator(() => new CancellationTokenSource());
     const findingDescriptionPanel = new FindingDescriptionPanel();
     const findingInspectorState = new FindingInspectorState();
-    const findingInspectorViewProvider = new FindingInspectorViewProvider(
-      findingInspectorState
+    const findingInspectorViewProvider = new FindingInspectorViewProvider(findingInspectorState);
+    const diagnosticCodeActionProvider = new SpotBugsDiagnosticCodeActionProvider(
+      diagnosticsManager,
     );
-    const diagnosticCodeActionProvider =
-      new SpotBugsDiagnosticCodeActionProvider(diagnosticsManager);
     const reconcileInspector = (operation: () => Promise<void>) =>
-      reconcileInspectorAfterOperation(
-        findingInspectorState,
-        operation,
-        () => spotbugsTreeDataProvider.getAllFindings()
+      reconcileInspectorAfterOperation(findingInspectorState, operation, () =>
+        spotbugsTreeDataProvider.getAllFindings(),
       );
 
     const spotbugsTreeView = window.createTreeView('spotbugs-view', {
@@ -130,125 +116,105 @@ async function doActivate(
       findingDescriptionPanel,
       findingInspectorState,
       findingInspectorViewProvider,
-      window.registerWebviewViewProvider(
-        FINDING_INSPECTOR_VIEW_ID,
-        findingInspectorViewProvider
-      ),
+      window.registerWebviewViewProvider(FINDING_INSPECTOR_VIEW_ID, findingInspectorViewProvider),
       bindFindingInspectorToTree(spotbugsTreeView, findingInspectorState, {
         revealSourceOnSelection: () => config.revealSourceOnSelection,
         revealFindingSource,
       }),
-      languages.registerCodeActionsProvider(
-        { language: 'java' },
-        diagnosticCodeActionProvider,
-        {
-          providedCodeActionKinds:
-            SpotBugsDiagnosticCodeActionProvider.providedCodeActionKinds,
-        }
-      ),
+      languages.registerCodeActionsProvider({ language: 'java' }, diagnosticCodeActionProvider, {
+        providedCodeActionKinds: SpotBugsDiagnosticCodeActionProvider.providedCodeActionKinds,
+      }),
       // Refresh cached configuration on settings change
       workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration(SETTINGS_SECTION)) {
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
           filterTreeDataProvider.update(filterPaths(config));
-          if (
-            e.affectsConfiguration(`${SETTINGS_SECTION}.${settingKeys.pluginsPaths}`)
-          ) {
+          if (e.affectsConfiguration(`${SETTINGS_SECTION}.${settingKeys.pluginsPaths}`)) {
             invalidatePluginInventoryRefresh();
             void refreshPluginInventory(config, pluginInventoryTreeDataProvider);
           }
         }
       }),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.RUN_ANALYSIS,
-        (uri: Uri | undefined) =>
+      ...(
+        [
+          [SpotBugsCommands.ANALYZE_SOURCE, 'source'],
+          [SpotBugsCommands.ANALYZE_ARTIFACTS, 'artifact'],
+          [SpotBugsCommands.ANALYZE_PROJECT, 'project'],
+        ] as const
+      ).map(([command, kind]) =>
+        instrumentOperationAsVsCodeCommand(command, (uri: Uri | undefined) =>
           clearInspectorBeforeOperation(findingInspectorState, () =>
             checkCode(
               config,
               spotbugsTreeDataProvider,
               diagnosticsManager,
               uri,
-              analysisRunCoordinator
-            )
-          )
+              analysisRunCoordinator,
+              kind,
+            ),
+          ),
+        ),
       ),
 
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.RUN_WORKSPACE, () =>
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ANALYZE_WORKSPACE, () =>
         clearInspectorBeforeOperation(findingInspectorState, () =>
           runWorkspaceAnalysis(
             config,
             spotbugsTreeDataProvider,
             diagnosticsManager,
-            analysisRunCoordinator
-          )
-        )
+            analysisRunCoordinator,
+          ),
+        ),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.REVEAL_FINDING_SOURCE,
-        async (bug) => {
-          const target = await resolveFindingCommandTarget(
-            bug,
-            findingInspectorState,
-            'go to code'
-          );
-          if (!target) {
-            return;
-          }
-          await revealFindingSource(target);
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.REVEAL_FINDING_SOURCE, async (bug) => {
+        const target = await resolveFindingCommandTarget(bug, findingInspectorState, 'go to code');
+        if (!target) {
+          return;
         }
-      ),
+        await revealFindingSource(target);
+      }),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.OPEN_FINDING_DETAILS,
-        async (bug) => {
-          const target = await resolveFindingCommandTarget(
-            bug,
-            findingInspectorState,
-            'open details'
-          );
-          if (!target) {
-            return;
-          }
-          findingDescriptionPanel.show(target);
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_FINDING_DETAILS, async (bug) => {
+        const target = await resolveFindingCommandTarget(
+          bug,
+          findingInspectorState,
+          'open details',
+        );
+        if (!target) {
+          return;
         }
+        findingDescriptionPanel.show(target);
+      }),
+
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.SUPPRESS_FINDINGS, (item: unknown) =>
+        suppressFindings(spotbugsTreeDataProvider, item),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.SUPPRESS_FINDINGS,
-        (item: unknown) => suppressFindings(spotbugsTreeDataProvider, item)
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.CREATE_BASELINE, () =>
+        createBaseline(spotbugsTreeDataProvider),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.CREATE_BASELINE,
-        () => createBaseline(spotbugsTreeDataProvider)
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.FILTER_RESULTS, () =>
+        reconcileInspector(() => selectFindingFilter(spotbugsTreeDataProvider)),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.FILTER_RESULTS,
-        () => reconcileInspector(() => selectFindingFilter(spotbugsTreeDataProvider))
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.SEARCH_RESULTS, () =>
+        reconcileInspector(() => searchResults(spotbugsTreeDataProvider)),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.SEARCH_RESULTS,
-        () => reconcileInspector(() => searchResults(spotbugsTreeDataProvider))
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.CLEAR_SEARCH, () =>
+        reconcileInspector(() => clearResultsSearch(spotbugsTreeDataProvider)),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.CLEAR_SEARCH,
-        () => reconcileInspector(() => clearResultsSearch(spotbugsTreeDataProvider))
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.GROUP_RESULTS_BY, () =>
+        reconcileInspector(() => groupResultsBy(spotbugsTreeDataProvider)),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.GROUP_RESULTS_BY,
-        () => reconcileInspector(() => groupResultsBy(spotbugsTreeDataProvider))
-      ),
-
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.SORT_RESULTS_BY,
-        () => reconcileInspector(() => sortResultsBy(spotbugsTreeDataProvider))
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.SORT_RESULTS_BY, () =>
+        reconcileInspector(() => sortResultsBy(spotbugsTreeDataProvider)),
       ),
 
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.OPEN_SETTINGS, openSettings),
@@ -256,50 +222,39 @@ async function doActivate(
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
         (uri: Uri | undefined) =>
-          refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri)
+          refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.ADD_PLUGIN_JARS,
-        () => addPluginJars()
-      ),
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ADD_PLUGIN_JARS, () => addPluginJars()),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REMOVE_PLUGIN_JAR,
-        (item: PluginJarCommandTarget | undefined) => removePluginJar(item)
+        (item: PluginJarCommandTarget | undefined) => removePluginJar(item),
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.ADD_FILTER_FILES,
-        (item: FilterFileCommandTarget | undefined) => addFilterFiles(item)
+        (item: FilterFileCommandTarget | undefined) => addFilterFiles(item),
       ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REMOVE_FILTER_FILE,
-        (item: FilterFileCommandTarget | undefined) => removeFilterFile(item)
+        (item: FilterFileCommandTarget | undefined) => removeFilterFile(item),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.EXPORT_SARIF,
-        (element?: unknown) => exportSarifReport(spotbugsTreeDataProvider, element)
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.EXPORT_SARIF, (element?: unknown) =>
+        exportSarifReport(spotbugsTreeDataProvider, element),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.EXPORT_HTML,
-        (element?: unknown) => exportHtmlReport(spotbugsTreeDataProvider, element)
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.EXPORT_HTML, (element?: unknown) =>
+        exportHtmlReport(spotbugsTreeDataProvider, element),
       ),
 
-      instrumentOperationAsVsCodeCommand(
-        SpotBugsCommands.RESET_RESULTS,
-        () =>
-          clearInspectorBeforeOperation(findingInspectorState, () =>
-            resetResults(
-              spotbugsTreeDataProvider,
-              diagnosticsManager,
-              analysisRunCoordinator
-            )
-          )
-      )
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.RESET_RESULTS, () =>
+        clearInspectorBeforeOperation(findingInspectorState, () =>
+          resetResults(spotbugsTreeDataProvider, diagnosticsManager, analysisRunCoordinator),
+        ),
+      ),
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
