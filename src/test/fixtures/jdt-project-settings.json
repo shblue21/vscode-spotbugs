@@ -1,0 +1,36 @@
+{
+  "org.eclipse.jdt.ls.core.classpathEntries": [
+    {
+      "kind": 3,
+      "path": "/workspace/project/src/main/java",
+      "attributes": {}
+    },
+    {
+      "kind": 3,
+      "path": "/workspace/project/src/main/java/nested",
+      "output": "/workspace/project/custom/nested",
+      "attributes": {}
+    },
+    {
+      "kind": 3,
+      "path": "/workspace/project/src/test/java",
+      "output": "/workspace/project/custom/test",
+      "attributes": {
+        "test": "true"
+      }
+    },
+    {
+      "kind": 3,
+      "path": "/workspace/project/generated/java",
+      "output": "/workspace/project/custom/generated",
+      "attributes": {}
+    }
+  ],
+  "org.eclipse.jdt.ls.core.sourcePaths": [
+    "/workspace/project/src/main/java",
+    "/workspace/project/src/main/java/nested",
+    "/workspace/project/src/test/java",
+    "/workspace/project/generated/java"
+  ],
+  "org.eclipse.jdt.ls.core.outputPath": "/workspace/project/custom/main"
+}

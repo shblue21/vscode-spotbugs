@@ -18,6 +18,10 @@
       "/workspace/src/main/java",
       "/workspace/generated/sources"
     ],
+    "sourceOutputs": {
+      "/workspace/src/main/java": "/workspace/build/classes",
+      "/workspace/generated/sources": "/workspace/build/generated"
+    },
     "priorityThreshold": 5,
     "includeFilterPaths": [
       "test-fixtures/analysis-protocol/include-filter.xml"
@@ -32,6 +36,12 @@
     "plugins": [
       "/workspace/plugin-a.jar",
       "/workspace/plugin-b.jar"
+    ],
+    "inputs": [
+      {
+        "kind": "artifact",
+        "path": "/workspace/build/classes"
+      }
     ]
   }
 }

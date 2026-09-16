@@ -1,361 +1,442 @@
-import { Uri } from 'vscode';
+import * as path from 'path';
+import { Uri, type CancellationToken } from 'vscode';
 import { Logger } from '../core/logger';
-import { getJavaExtension } from '../core/utils';
 import {
-  JavaLsClasspathResponse,
   requestJavaClasspaths,
+  requestJavaIsTestFile,
+  requestJavaProjectSettings,
+  type JavaLsClasspathResponse,
 } from '../lsp/javaLsGateway';
 import type {
   AnalysisResolutionIssue,
   ClasspathLookupOutcome,
 } from '../lsp/javaLsOutcome';
-import { ClasspathAttempt } from './classpathAttemptSelector';
-import { deriveTargetResolutionRoots } from './classpathLayout';
-import { ClasspathLookupOptions } from './classpathService';
-import type { ClasspathResult } from './classpathTypes';
+import type {
+  ClasspathResult,
+  ClasspathScope,
+  ProjectRef,
+} from './classpathTypes';
+import {
+  isPathInsideOrEqual,
+  isWindowsPath,
+  pathComparisonKey,
+  samePath,
+  uniquePaths,
+} from './pathIdentity';
 
-type AttemptSummary = {
-  invocationCount: number;
-  requestFailureCount: number;
-  noResultCount: number;
+const SOURCE_PATHS = 'org.eclipse.jdt.ls.core.sourcePaths';
+const OUTPUT_PATH = 'org.eclipse.jdt.ls.core.outputPath';
+const CLASSPATH_ENTRIES = 'org.eclipse.jdt.ls.core.classpathEntries';
+
+type SourceOutput = {
+  sourcepath: string;
+  output?: string;
+  declaredOutput?: string;
+  test: boolean;
 };
 
-type CommandResult = AttemptSummary & {
-  response?: JavaLsClasspathResponse;
+type ProjectSettings = {
+  defaultOutput?: string;
+  sourceOutputs: SourceOutput[];
+  sourceRootsAbsent?: true;
 };
 
-export async function runClasspathAttemptsOutcome(
-  attempts: ClasspathAttempt[],
-  opts?: ClasspathLookupOptions
+export interface ClasspathLookupOptions {
+  logFailures?: boolean;
+  scope?: ClasspathScope;
+  expectedProjectRoot?: ProjectRef;
+  analysisResource?: ProjectRef;
+  token?: CancellationToken;
+}
+
+export async function lookupJavaProjectClasspath(
+  project?: ProjectRef,
+  options: ClasspathLookupOptions = {}
 ): Promise<ClasspathLookupOutcome> {
-  const verbose = opts?.verbose ?? envVerbose();
-  const logFailures = opts?.logFailures === true;
-
-  const javaExt = await getJavaExtension().catch(() => undefined);
-  const api: any = javaExt?.exports;
-  let lastFailure: { context: string; message: string } | undefined;
-  const recordFailure = (context: string, message: string): void => {
-    lastFailure = { context, message };
-  };
-  const summary: AttemptSummary = {
-    invocationCount: 0,
-    requestFailureCount: 0,
-    noResultCount: 0,
-  };
-
-  for (const attempt of attempts) {
-    const param = normalizeAttemptParam(attempt.arg);
-    const commandResult = await tryCommandVariants(
-      param,
-      attempt.label,
-      verbose,
-      recordFailure
+  const queryUri = uriOf(project);
+  if (!queryUri) {
+    return unavailable(
+      'JAVA_LS_NO_RESULT',
+      'Java project metadata lookup requires a file or project URI.'
     );
-    mergeAttemptSummary(summary, commandResult);
-    let res = commandResult.response;
-    let usedExtensionFallback = false;
+  }
 
-    if (!res && api && typeof api.getClasspaths === 'function' && param) {
-      const fallbackResult = await tryExtensionFallback(
-        api,
-        param,
-        attempt.label,
-        verbose,
-        recordFailure
-      );
-      mergeAttemptSummary(summary, fallbackResult);
-      res = fallbackResult.response;
-      usedExtensionFallback = !!res;
+  const token = options.token;
+  try {
+    throwIfCancelled(token);
+    const resourcePath = pathOf(options.analysisResource ?? project);
+    const issues: AnalysisResolutionIssue[] = [];
+    let settings: ProjectSettings | undefined;
+    let preliminarySettingsIssue: AnalysisResolutionIssue | undefined;
+    let scope = options.scope;
+
+    if (!scope && resourcePath?.toLowerCase().endsWith('.java')) {
+      try {
+        const testFile = await requestJavaIsTestFile(queryUri, token);
+        throwIfCancelled(token);
+        if (typeof testFile === 'boolean') scope = testFile ? 'test' : 'runtime';
+      } catch (error) {
+        throwIfCancelled(token);
+        logFailure(options, 'isTestFile', error);
+      }
     }
 
-    if (res) {
-      const result = normalizeClasspathResult(res);
-      logSuccess(attempt.label, result);
+    if (!scope) {
+      const loaded = await loadSettings(queryUri, token, options);
+      settings = loaded.settings;
+      preliminarySettingsIssue = loaded.issue;
+      scope = inferScope(resourcePath, settings.sourceOutputs);
+    }
+
+    const response = normalizeClasspathResponse(
+      await requestJavaClasspaths(queryUri, scope, token)
+    );
+    throwIfCancelled(token);
+    if (!response) {
+      return unavailable(
+        'JAVA_LS_NO_RESULT',
+        'Java Language Server returned invalid project classpath metadata.'
+      );
+    }
+    if (
+      options.expectedProjectRoot &&
+      !sameProjectRoot(options.expectedProjectRoot, response.projectRoot)
+    ) {
+      return unavailable(
+        'JAVA_PROJECT_METADATA_MISMATCH',
+        'Java Language Server returned metadata for a different project.'
+      );
+    }
+
+    const settingsMatchValidatedRoot =
+      !!settings &&
+      !!options.expectedProjectRoot &&
+      sameProjectRoot(options.expectedProjectRoot, response.projectRoot);
+    if (!settingsMatchValidatedRoot) {
+      const loaded = await loadSettings(response.projectRoot, token, options);
+      settings = loaded.settings;
+      if (loaded.issue) issues.push(loaded.issue);
+    } else if (preliminarySettingsIssue) {
+      issues.push(preliminarySettingsIssue);
+    }
+    const projectSettings = settings ?? { sourceOutputs: [] };
+
+    const selectedSources = selectSources(
+      projectSettings.sourceOutputs,
+      resourcePath,
+      pathOf(response.projectRoot),
+      scope
+    );
+    const sourcepaths = uniquePaths(selectedSources.map((entry) => entry.sourcepath));
+    const sourceOutputs = Object.fromEntries(
+      selectedSources.flatMap((entry) => {
+        const output = entry.declaredOutput ?? entry.output;
+        return output ? [[entry.sourcepath, output]] : [];
+      })
+    );
+    const targetResolutionRoots = uniquePaths(
+      selectedSources.flatMap((entry) => {
+        const output = entry.declaredOutput ?? entry.output;
+        return output ? [output] : [];
+      })
+    );
+    if (
+      targetResolutionRoots.length === 0 &&
+      projectSettings.defaultOutput &&
+      (projectSettings.sourceOutputs.length === 0 || selectedSources.length > 0)
+    ) {
+      targetResolutionRoots.push(projectSettings.defaultOutput);
+    }
+    const runtimeClasspaths = uniquePaths([
+      ...response.classpaths,
+      ...response.modulepaths,
+    ]);
+    if (runtimeClasspaths.length === 0) {
+      issues.push({
+        code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
+        level: 'warn',
+        source: 'java-ls',
+        phase: 'get-classpaths',
+        message: 'Java LS returned no classpath or modulepath entries.',
+      });
+    }
+
+    const classpath: ClasspathResult = {
+      projectRoot: response.projectRoot,
+      runtimeClasspaths,
+      targetResolutionRoots,
+      sourcepaths,
+      sourceOutputs,
+      ...(projectSettings.sourceRootsAbsent ? { sourceRootsAbsent: true as const } : {}),
+    };
+    Logger.log(
+      `getClasspaths(${scope}) succeeded: projectRoot=${response.projectRoot}, auxPaths=${runtimeClasspaths.length}, targetResolutionRoots=${targetResolutionRoots.length}, sourcepaths=${sourcepaths.length}`
+    );
+    return { status: 'resolved', classpath, issues };
+  } catch (error) {
+    throwIfCancelled(token);
+    logFailure(options, 'getClasspaths', error);
+    return unavailable(
+      'JAVA_LS_REQUEST_FAILED',
+      'Java project metadata lookup failed.',
+      error
+    );
+  }
+}
+
+async function loadSettings(
+  uri: string,
+  token: CancellationToken | undefined,
+  options: ClasspathLookupOptions
+): Promise<{ settings: ProjectSettings; issue?: AnalysisResolutionIssue }> {
+  try {
+    const snapshot = await requestJavaProjectSettings(uri, token);
+    throwIfCancelled(token);
+    const raw = snapshot?.settings;
+    if (!record(raw)) {
       return {
-        status: 'resolved',
-        classpath: result,
-        issues: buildResolvedIssues(result, summary, usedExtensionFallback, lastFailure),
+        settings: { sourceOutputs: [] },
+        issue: settingsIssue('Java project settings returned no usable result.'),
       };
     }
+    const normalized = normalizeSettings(raw, snapshot!.declaredSourceOutputs);
+    return {
+      settings: normalized.settings,
+      ...(normalized.complete
+        ? {}
+        : {
+            issue: settingsIssue(
+              'Source-specific outputs were unavailable; using the default project output.'
+            ),
+          }),
+    };
+  } catch (error) {
+    throwIfCancelled(token);
+    logFailure(options, 'getProjectSettings', error);
+    return {
+      settings: { sourceOutputs: [] },
+      issue: settingsIssue(message(error)),
+    };
   }
+}
 
-  if (logFailures) {
-    if (lastFailure) {
-      Logger.log(
-        `getClasspaths failed (${lastFailure.context}): ${lastFailure.message}`
-      );
-    } else {
-      Logger.log(
-        `getClasspaths returned no results after ${attempts.length} attempt(s)`
-      );
+function normalizeSettings(raw: Record<string, unknown>, declaredSourceOutputs: Record<string, string>): {
+  settings: ProjectSettings;
+  complete: boolean;
+} {
+  const defaultOutput = text(raw[OUTPUT_PATH]);
+  const entries = raw[CLASSPATH_ENTRIES];
+  const sourceOutputs: SourceOutput[] = [];
+  if (Array.isArray(entries)) {
+    for (const entry of entries) {
+      if (!record(entry) || entry.kind !== 1 || !text(entry.path)) continue;
+      const sourcepath = text(entry.path)!;
+      sourceOutputs.push({
+        sourcepath,
+        output: text(entry.output) ?? defaultOutput,
+        test: testEntry(sourcepath, entry.attributes),
+      });
     }
   }
-
+  for (const sourcepath of strings(raw[SOURCE_PATHS]) ?? []) {
+    if (sourceOutputs.some((entry) => samePath(entry.sourcepath, sourcepath))) continue;
+    sourceOutputs.push({
+      sourcepath,
+      output: defaultOutput,
+      test: conventionalScope(sourcepath) === 'test',
+    });
+  }
+  // Selection still uses the legacy output; Java's declared output is applied only afterwards.
+  for (const [sourcepath, output] of Object.entries(declaredSourceOutputs)) {
+    const source = sourceOutputs.find((candidate) => samePath(candidate.sourcepath, sourcepath));
+    if (source) source.declaredOutput = output;
+  }
   return {
-    status: 'unavailable',
-    issues: buildUnavailableIssues(summary, lastFailure),
+    settings: { defaultOutput, sourceOutputs,
+      ...(Array.isArray(raw[SOURCE_PATHS]) && raw[SOURCE_PATHS].length === 0
+        && Array.isArray(entries) && entries.every((entry) => record(entry)
+          && typeof entry.kind === 'number' && entry.kind !== 3)
+        && Object.keys(declaredSourceOutputs).length === 0
+        ? { sourceRootsAbsent: true as const } : {}),
+    },
+    complete: Array.isArray(entries),
   };
 }
 
-function normalizeAttemptParam(arg: unknown): unknown {
-  if (arg && typeof (arg as { scheme?: unknown }).scheme === 'string') {
-    try {
-      return (arg as Uri).toString();
-    } catch {
-      // keep as-is
-    }
+function selectSources(
+  sources: readonly SourceOutput[],
+  resourcePath: string | undefined,
+  projectRoot: string | undefined,
+  scope: ClasspathScope
+): SourceOutput[] {
+  const related = resourcePath ? relatedSources(sources, resourcePath) : [];
+  const allProjectSources =
+    !!resourcePath && !!projectRoot && samePath(resourcePath, projectRoot);
+  const selected = related.length > 0 ? related : allProjectSources ? [...sources] : [];
+  return scope === 'runtime' ? selected.filter((entry) => !entry.test) : selected;
+}
+
+function relatedSources(
+  sources: readonly SourceOutput[],
+  resourcePath: string
+): SourceOutput[] {
+  const direct = sources
+    .map((entry) => ({ entry, length: ancestorLength(entry, resourcePath) }))
+    .filter(({ length }) => length >= 0);
+  if (direct.length > 0) {
+    const longest = Math.max(...direct.map(({ length }) => length));
+    return direct.filter(({ length }) => length === longest).map(({ entry }) => entry);
   }
-  return arg;
+  return sources.filter((entry) => isPathInsideOrEqual(resourcePath, entry.sourcepath));
 }
 
-async function tryCommandVariants(
-  param: unknown,
-  label: string,
-  verbose: boolean,
-  recordFailure: (context: string, message: string) => void
-): Promise<CommandResult> {
-  const summary: AttemptSummary = {
-    invocationCount: 0,
-    requestFailureCount: 0,
-    noResultCount: 0,
-  };
+function ancestorLength(entry: SourceOutput, resourcePath: string): number {
+  return [entry.sourcepath, entry.output]
+    .filter(
+      (candidate): candidate is string =>
+        !!candidate && isPathInsideOrEqual(candidate, resourcePath)
+    )
+    .reduce(
+      (longest, candidate) =>
+        Math.max(longest, pathComparisonKey(candidate).length),
+      -1
+    );
+}
 
-  if (param !== undefined) {
-    const variants: Array<{ args: unknown[]; failureContext: string }> = [
-      {
-        args: [{ uri: param, scope: 'runtime' }],
-        failureContext: `${label}) {uri,scope}`,
-      },
-      { args: [{ uri: param }], failureContext: `${label}) {uri}` },
-      { args: [param], failureContext: `${label}) direct` },
-      { args: [param, 'runtime'], failureContext: `${label}, runtime` },
-    ];
+function inferScope(
+  resourcePath: string | undefined,
+  sources: readonly SourceOutput[]
+): ClasspathScope {
+  if (resourcePath) {
+    const related = relatedSources(sources, resourcePath);
+    if (related.length > 0) return related.some((entry) => entry.test) ? 'test' : 'runtime';
+    return conventionalScope(resourcePath);
+  }
+  return 'runtime';
+}
 
-    for (const variant of variants) {
-      const result = await executeClasspathCommand(
-        variant.args,
-        variant.failureContext,
-        verbose,
-        recordFailure
-      );
-      mergeAttemptSummary(summary, result);
-      if (result.response) {
-        return {
-          ...summary,
-          response: result.response,
-        };
+function testEntry(sourcepath: string, attributes: unknown): boolean {
+  if (record(attributes)) {
+    for (const [name, value] of Object.entries(attributes)) {
+      if (typeof value !== 'string') continue;
+      if (
+        (name.toLowerCase() === 'test' && value.toLowerCase() === 'true') ||
+        (name.toLowerCase().includes('scope') && value.toLowerCase().includes('test'))
+      ) {
+        return true;
       }
     }
   }
-
-  if (param === undefined) {
-    const result = await executeClasspathCommand(
-      [],
-      `no-arg within ${label}`,
-      verbose,
-      recordFailure
-    );
-    mergeAttemptSummary(summary, result);
-    return {
-      ...summary,
-      response: result.response,
-    };
-  }
-
-  return summary;
+  return conventionalScope(sourcepath) === 'test';
 }
 
-async function executeClasspathCommand(
-  args: unknown[],
-  failureContext: string,
-  verbose: boolean,
-  recordFailure: (context: string, message: string) => void
-): Promise<CommandResult> {
+function conventionalScope(value: string): ClasspathScope {
+  const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  return /\/(src\/test|target\/test-classes|build\/classes\/java\/test|bin\/test)(\/|$)/.test(
+    normalized
+  )
+    ? 'test'
+    : 'runtime';
+}
+
+function normalizeClasspathResponse(
+  value: unknown
+): JavaLsClasspathResponse | undefined {
+  if (!record(value)) return undefined;
+  const projectRoot = text(value.projectRoot);
+  const classpaths = strings(value.classpaths);
+  const modulepaths = strings(value.modulepaths);
+  return projectRoot && pathOf(projectRoot) && classpaths && modulepaths
+    ? { projectRoot, classpaths, modulepaths }
+    : undefined;
+}
+
+function sameProjectRoot(expected: ProjectRef, actual: ProjectRef): boolean {
+  const left = pathOf(expected);
+  const right = pathOf(actual);
+  return !!left && !!right && samePath(left, right);
+}
+
+function uriOf(value: ProjectRef): string {
+  if (!value) return '';
+  if (typeof value !== 'string') return value.toString();
+  return isWindowsPath(value) || path.isAbsolute(value)
+    ? Uri.file(value).toString()
+    : value;
+}
+
+function pathOf(value: ProjectRef): string | undefined {
+  if (!value) return undefined;
+  if (typeof value !== 'string') return value.scheme === 'file' ? value.fsPath : undefined;
+  if (isWindowsPath(value) || path.isAbsolute(value)) return value;
   try {
-    const response = await requestJavaClasspaths(...args);
-    if (response !== undefined && response !== null) {
-      return {
-        invocationCount: 1,
-        requestFailureCount: 0,
-        noResultCount: 0,
-        response,
-      };
-    }
-    return {
-      invocationCount: 1,
-      requestFailureCount: 0,
-      noResultCount: 1,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    recordFailure(failureContext, message);
-    if (verbose) Logger.log(`getClasspaths(${failureContext}) failed: ${message}`);
-    return {
-      invocationCount: 1,
-      requestFailureCount: 1,
-      noResultCount: 0,
-    };
+    const uri = Uri.parse(value);
+    return uri.scheme === 'file' ? uri.fsPath : undefined;
+  } catch {
+    return undefined;
   }
 }
 
-async function tryExtensionFallback(
-  api: any,
-  param: unknown,
-  label: string,
-  verbose: boolean,
-  recordFailure: (context: string, message: string) => void
-): Promise<CommandResult> {
-  try {
-    const cpRes = await api.getClasspaths(param, { scope: 'runtime' });
-    if (cpRes) {
-      if (verbose) Logger.log(`Using extension API getClasspaths for ${label}`);
-      return {
-        invocationCount: 1,
-        requestFailureCount: 0,
-        noResultCount: 0,
-        response: {
-          classpaths: cpRes.classpaths,
-          sourcepaths: cpRes.sourcepaths ?? [],
-          output: cpRes.output,
-        },
-      };
-    }
-    return {
-      invocationCount: 1,
-      requestFailureCount: 0,
-      noResultCount: 1,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    recordFailure(`extensionApi ${label}`, message);
-    if (verbose) {
-      Logger.log(`extensionApi.getClasspaths(${label}) failed: ${message}`);
-    }
-    return {
-      invocationCount: 1,
-      requestFailureCount: 1,
-      noResultCount: 0,
-    };
-  }
+function strings(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+    ? value.map((entry) => entry.trim()).filter(Boolean)
+    : undefined;
 }
 
-function normalizeClasspathResult(res: JavaLsClasspathResponse): ClasspathResult {
-  const runtimeClasspaths = Array.isArray(res?.classpaths) ? res.classpaths : [];
+function text(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function settingsIssue(cause: string): AnalysisResolutionIssue {
   return {
-    output: res?.output,
-    runtimeClasspaths,
-    targetResolutionRoots: deriveTargetResolutionRoots(res?.output, runtimeClasspaths),
-    sourcepaths: Array.isArray(res?.sourcepaths) ? res.sourcepaths : [],
+    code: 'JAVA_LS_PROJECT_SETTINGS_FAILED',
+    level: 'warn',
+    source: 'java-ls',
+    phase: 'get-classpaths',
+    message: 'Java project source/output metadata lookup was incomplete.',
+    cause,
   };
 }
 
-function logSuccess(label: string, result: ClasspathResult): void {
-  const runtime = result.runtimeClasspaths.length;
-  const roots = result.targetResolutionRoots.length;
-  const sps = result.sourcepaths.length;
-  Logger.log(
-    `getClasspaths(${label}) succeeded: output=${result.output ?? 'n/a'}, runtimeClasspaths=${runtime}, targetResolutionRoots=${roots}, sourcepaths=${sps}`
-  );
+function unavailable(
+  code:
+    | 'JAVA_LS_REQUEST_FAILED'
+    | 'JAVA_LS_NO_RESULT'
+    | 'JAVA_PROJECT_METADATA_MISMATCH',
+  messageText: string,
+  cause?: unknown
+): ClasspathLookupOutcome {
+  return {
+    status: 'unavailable',
+    issues: [
+      {
+        code,
+        level: 'warn',
+        source: 'java-ls',
+        phase: 'get-classpaths',
+        message: messageText,
+        ...(cause === undefined ? {} : { cause: message(cause) }),
+      },
+    ],
+  };
 }
 
-function envVerbose(): boolean {
-  try {
-    const v = (process.env.SPOTBUGS_LS_VERBOSE || '').toLowerCase();
-    return v === '1' || v === 'true' || v === 'yes';
-  } catch {
-    return false;
-  }
+function throwIfCancelled(token: CancellationToken | undefined): void {
+  if (token?.isCancellationRequested) throw new Error('Operation cancelled');
 }
 
-function mergeAttemptSummary(target: AttemptSummary, update: AttemptSummary): void {
-  target.invocationCount += update.invocationCount;
-  target.requestFailureCount += update.requestFailureCount;
-  target.noResultCount += update.noResultCount;
+function logFailure(
+  options: ClasspathLookupOptions,
+  operation: string,
+  error: unknown
+): void {
+  if (options.logFailures) Logger.log(`${operation} failed: ${message(error)}`);
 }
 
-function buildResolvedIssues(
-  result: ClasspathResult,
-  summary: AttemptSummary,
-  usedExtensionFallback: boolean,
-  lastFailure?: { context: string; message: string }
-): AnalysisResolutionIssue[] {
-  const issues: AnalysisResolutionIssue[] = [];
-
-  if (usedExtensionFallback) {
-    issues.push(...buildUnavailableIssues(summary, lastFailure));
-    issues.push({
-      code: 'JAVA_LS_EXTENSION_FALLBACK_USED',
-      level: 'info',
-      source: 'java-ls',
-      phase: 'get-classpaths',
-      message: 'Java LS extension API fallback provided classpath metadata.',
-      variant: 'extension-api',
-    });
-  }
-
-  if (result.runtimeClasspaths.length === 0) {
-    issues.push({
-      code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
-      level: 'warn',
-      source: 'java-ls',
-      phase: 'get-classpaths',
-      message: 'Java LS classpath lookup returned no runtime classpath entries.',
-    });
-  }
-
-  return issues;
-}
-
-function buildUnavailableIssues(
-  summary: AttemptSummary,
-  lastFailure?: { context: string; message: string }
-): AnalysisResolutionIssue[] {
-  const classification = classifyLookupFailure(summary);
-  if (!classification) {
-    return [];
-  }
-
-  const issues: AnalysisResolutionIssue[] = [];
-
-  if (classification === 'request-failed') {
-    issues.push({
-      code: 'JAVA_LS_REQUEST_FAILED',
-      level: 'warn',
-      source: 'java-ls',
-      phase: 'get-classpaths',
-      message: 'Java LS classpath lookup failed.',
-      attemptLabel: lastFailure?.context,
-      cause: lastFailure?.message,
-    });
-  }
-
-  if (classification === 'no-result') {
-    issues.push({
-      code: 'JAVA_LS_NO_RESULT',
-      level: 'warn',
-      source: 'java-ls',
-      phase: 'get-classpaths',
-      message: 'Java LS classpath lookup returned no usable result.',
-    });
-  }
-
-  return issues;
-}
-
-function classifyLookupFailure(
-  summary: AttemptSummary
-): 'request-failed' | 'no-result' | undefined {
-  if (summary.invocationCount === 0) {
-    return undefined;
-  }
-
-  if (summary.noResultCount > 0) {
-    return 'no-result';
-  }
-
-  if (summary.requestFailureCount === summary.invocationCount) {
-    return 'request-failed';
-  }
-
-  return undefined;
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

@@ -1,26 +1,15 @@
 import { CancellationToken, Uri } from 'vscode';
-import { Logger } from '../core/logger';
-import { Config, type AnalysisSettings } from '../core/config';
+import type { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
-import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisWarning } from '../model/analysisProtocol';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
-import type { ProjectResult } from './projectResult';
-import { projectResultFromOutcome } from './projectResult';
-import {
-  type AnalysisConfigProvider,
-  createAnalysisFailureOutcome,
-  runAnalysisTarget,
-} from './analysisExecution';
-import {
-  resolveFileAnalysisTargetDetailed,
-  resolveProjectAnalysisTargetDetailed,
-  type TargetResolutionResult,
-} from '../workspace/analysisTargetResolver';
-
-const ERROR_ANALYSIS_FAILED = 'ANALYSIS_FAILED';
-const ERROR_ANALYSIS_CANCELLED = 'ANALYSIS_CANCELLED';
+import type { AnalysisPlan, AnalysisSelection } from '../model/analysisPlan';
+import type { AnalysisReportRun } from '../model/analysisReport';
+import { createAnalysisFailureOutcome, runAnalysisTarget } from './analysisExecution';
+import { projectResultFromOutcome, type ProjectResult } from './projectResult';
+import { planAnalysis } from './analysisPlanner';
+import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from '../workspace/analysisTargetCodes';
 
 export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 export type { ProjectResult } from './projectResult';
@@ -29,266 +18,204 @@ export interface ProjectCleanupWarning {
   projectUri: string;
   warning: AnalysisWarning;
 }
-
 export interface AnalysisExecutionContext {
   resolutionIssues: AnalysisResolutionIssue[];
   cleanupWarnings?: ProjectCleanupWarning[];
   diagnosticScope?: DiagnosticUpdateScope;
 }
-
 export interface AnalysisExecutionResult {
   outcome: AnalysisOutcome;
+  cancelled?: boolean;
+  reportRuns?: AnalysisReportRun[];
   context: AnalysisExecutionContext;
 }
-
 export interface WorkspaceExecutionResult {
   results: ProjectResult[];
   cancelled?: boolean;
   context: AnalysisExecutionContext;
 }
-
-interface ResolvedProjectAnalysis {
-  projectUri: Uri;
-  settings: AnalysisSettings;
-  targetResult: TargetResolutionResult;
+export interface AnalysisProgressCallbacks {
+  onStart?: (uri: string, index: number, total: number) => void;
+  onDone?: (uri: string, count: number) => void;
+  onFail?: (uri: string, message: string) => void;
+}
+export interface PlanExecutionResult extends WorkspaceExecutionResult {
+  outcomes: Array<{
+    selectionIndex: number;
+    outcome: AnalysisOutcome;
+    diagnosticScope?: DiagnosticUpdateScope;
+  }>;
 }
 
-interface ProjectAnalysisExecutionResult {
-  projectResult: ProjectResult;
-  cleanupWarnings: ProjectCleanupWarning[];
+/** The only loop executing SpotBugs runs, for every public analysis command. */
+export async function executeAnalysisPlan(
+  plan: AnalysisPlan,
+  notify?: AnalysisProgressCallbacks,
+  token?: CancellationToken,
+): Promise<PlanExecutionResult> {
+  const result: PlanExecutionResult = {
+    results: [],
+    outcomes: [],
+    cancelled: plan.cancelled,
+    context: { resolutionIssues: [...plan.resolutionIssues], cleanupWarnings: [] },
+  };
+  if (plan.cancelled) {
+    for (const problem of plan.problems.filter(
+      (item) => item.outcome.failure?.code === 'ANALYSIS_CANCELLED',
+    )) {
+      result.outcomes.push({ selectionIndex: problem.selectionIndex, outcome: problem.outcome });
+      result.results.push(projectResultFromOutcome(problem.resource.toString(), problem.outcome));
+    }
+    return result;
+  }
+  const work = [
+    ...plan.units.map((unit) => ({
+      selectionIndex: unit.selectionIndex,
+      resource: unit.resource,
+      unit,
+      outcome: undefined as AnalysisOutcome | undefined,
+    })),
+    ...plan.problems.map((problem) => ({ ...problem, unit: undefined })),
+  ].sort((left, right) => left.selectionIndex - right.selectionIndex);
+  for (const [index, item] of work.entries()) {
+    if (result.cancelled || token?.isCancellationRequested) {
+      result.cancelled = true;
+      break;
+    }
+    const selection = plan.selections[item.selectionIndex];
+    const uri = item.resource.toString();
+    notify?.onStart?.(uri, index + 1, work.length);
+    const unit = item.unit;
+    let outcome = item.outcome;
+    if (unit) {
+      try {
+        outcome = await runAnalysisTarget(
+          { getAnalysisSettings: () => unit.settings },
+          unit,
+          token,
+        );
+      } catch (error) {
+        outcome = createAnalysisFailureOutcome(
+          unit.inputs[0].path,
+          'ANALYSIS_FAILED',
+          error instanceof Error ? error.message : String(error),
+        );
+        if (selection.kind === 'project' && outcome.failure)
+          outcome.failure.message = error instanceof Error ? error.message : String(error);
+      }
+    }
+    if (!outcome) throw new Error('Analysis plan has no unit or problem for its selection');
+    result.outcomes.push({
+      selectionIndex: item.selectionIndex,
+      outcome,
+      diagnosticScope: unit?.diagnosticScope,
+    });
+    const project = projectResultFromOutcome(uri, outcome);
+    result.results.push(project);
+    result.context.cleanupWarnings?.push(
+      ...(outcome.warnings ?? []).map((warning) => ({ projectUri: uri, warning })),
+    );
+    if (token?.isCancellationRequested || project.errorCode === 'ANALYSIS_CANCELLED') {
+      result.cancelled = true;
+      break;
+    }
+    if (project.error) notify?.onFail?.(uri, project.error);
+    else notify?.onDone?.(uri, project.findings.length);
+  }
+  return result;
 }
 
 export async function analyzeFileDetailed(
   config: Config,
   uri: Uri,
-  token?: CancellationToken
+  token?: CancellationToken,
+  kind: AnalysisSelection['kind'] = 'source',
 ): Promise<AnalysisExecutionResult> {
-  const context = createExecutionContext();
+  const plan = await planAnalysis(config, [{ kind, resource: uri }], token);
+  const result = await executeAnalysisPlan(plan, undefined, token);
+  return summarizeResourceResults(uri, result);
+}
 
-  try {
-    const result = await resolveFileAnalysisTargetDetailed(uri);
-    context.resolutionIssues.push(...result.issues);
-
-    if (result.resolution.status !== 'ok') {
-      return {
-        outcome: {
-          findings: [],
-          targetPath: uri.fsPath,
-          failure: {
-            kind: 'target',
-            level: 'warn',
-            code: result.resolution.errorCode,
-            message: result.resolution.message,
-          },
-        },
-        context,
-      };
-    }
-    context.diagnosticScope = result.resolution.target.diagnosticScope;
-
-    try {
-      return {
-        outcome: await runAnalysisTarget(config, result.resolution.target.unit, token),
-        context,
-      };
-    } catch (error) {
-      Logger.error('Analyzer: analyzeFile failed', error);
-      return {
-        outcome: createAnalysisFailureOutcome(
-          result.resolution.target.unit.input.path,
-          ERROR_ANALYSIS_FAILED,
-          messageFromUnknown(error)
-        ),
-        context,
-      };
-    }
-  } catch (error) {
-    Logger.error('Analyzer: analyzeFile failed', error);
-    return {
-      outcome: createAnalysisFailureOutcome(
-        uri.fsPath,
-        ERROR_ANALYSIS_FAILED,
-        messageFromUnknown(error)
-      ),
-      context,
-    };
-  }
+/** Keep native runs separate; the outcome is only the resource-level presentation. */
+export function summarizeResourceResults(
+  uri: Uri,
+  result: PlanExecutionResult,
+): AnalysisExecutionResult {
+  const outcomes = result.outcomes.map((entry) => entry.outcome);
+  const failure = outcomes.find((outcome) => outcome.failure)?.failure;
+  const outcome: AnalysisOutcome = result.cancelled
+    ? createAnalysisFailureOutcome(uri.fsPath, 'ANALYSIS_CANCELLED', 'Analysis cancelled')
+    : outcomes.length === 0
+      ? createAnalysisFailureOutcome(uri.fsPath, NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE)
+      : outcomes.length === 1
+        ? outcomes[0]
+        : {
+            findings: outcomes.flatMap((entry) => entry.findings),
+            targetPath: uri.fsPath,
+            ...(failure ? { failure } : {}),
+            errors: outcomes.flatMap((entry) => entry.errors ?? []),
+            warnings: outcomes.flatMap((entry) => entry.warnings ?? []),
+          };
+  // Apply a resource only when every result describes the same replacement scope.
+  const scopes = result.outcomes.map((entry) => entry.diagnosticScope);
+  const scopeKey = (scope: DiagnosticUpdateScope | undefined) => {
+    if (!scope) return '';
+    return scope.kind === 'source-roots'
+      ? JSON.stringify([scope.kind, [...new Set(scope.uris.map((uri) => uri.toString()))].sort(),
+          [...new Set((scope.excludedUris ?? []).map((uri) => uri.toString()))].sort()])
+      : JSON.stringify([scope.kind, scope.uri.toString()]);
+  };
+  const sameScope = scopes.every((scope) => scopeKey(scope) === scopeKey(scopes[0]));
+  return {
+    cancelled: result.cancelled === true,
+    outcome:
+      !failure && !result.cancelled && !sameScope
+        ? {
+            ...outcome,
+            failure: {
+              kind: 'target',
+              level: 'error',
+              code: 'ANALYSIS_SCOPE_MISMATCH',
+              message: 'Analysis units have incompatible result scopes.',
+            },
+          }
+        : outcome,
+    reportRuns: outcomes.map((entry) => ({
+      projectUri: uri.toString(),
+      findings: entry.findings,
+      ...(entry.failure
+        ? {
+            analysisStatus:
+              entry.failure.code === NO_CLASS_TARGETS_CODE
+                ? ('skipped' as const)
+                : ('failed' as const),
+          }
+        : {}),
+      spotbugsVersion: entry.stats?.spotbugsVersion,
+      summary: entry.reportSummary,
+      nativeSarif: entry.nativeSarif,
+      baselineXml: entry.baselineXml,
+    })),
+    context: { ...result.context, diagnosticScope: scopes[0] },
+  };
 }
 
 export async function analyzeWorkspaceFromProjectsDetailed(
   config: Config,
   workspaceFolder: Uri,
   projectUris: string[],
-  notify?: {
-    onStart?: (uriString: string, index: number, total: number) => void;
-    onDone?: (uriString: string, count: number) => void;
-    onFail?: (uriString: string, message: string) => void;
-  },
-  token?: CancellationToken
+  notify?: AnalysisProgressCallbacks,
+  token?: CancellationToken,
 ): Promise<WorkspaceExecutionResult> {
-  const results: ProjectResult[] = [];
-  const context = createExecutionContext();
-  const projectSettings = projectUris.map((uriString) =>
-    config.getAnalysisSettings(Uri.parse(uriString))
-  );
-  let cancelled = false;
-
-  for (let index = 0; index < projectUris.length; index++) {
-    const uriString = projectUris[index];
-    if (token?.isCancellationRequested) {
-      Logger.log('Workspace analysis cancelled by user.');
-      cancelled = true;
-      break;
-    }
-
-    notify?.onStart?.(uriString, index + 1, projectUris.length);
-
-    const result = await analyzeProjectDetailed(
-      Uri.parse(uriString),
-      workspaceFolder,
-      projectSettings[index],
-      token
-    );
-    results.push(result.projectResult);
-    context.resolutionIssues.push(...result.context.resolutionIssues);
-    context.cleanupWarnings?.push(...(result.context.cleanupWarnings ?? []));
-
-    if (
-      token?.isCancellationRequested ||
-      isAnalysisCancelledProjectResult(result.projectResult)
-    ) {
-      Logger.log('Workspace analysis cancelled by backend.');
-      cancelled = true;
-      break;
-    }
-
-    if (result.projectResult.error) {
-      notify?.onFail?.(uriString, result.projectResult.error);
-    } else {
-      notify?.onDone?.(uriString, result.projectResult.findings.length);
-    }
-  }
-
-  return { results, cancelled, context };
-}
-
-async function analyzeProjectDetailed(
-  projectUri: Uri,
-  workspaceFolder: Uri,
-  settings: AnalysisSettings,
-  token?: CancellationToken
-): Promise<{ projectResult: ProjectResult; context: AnalysisExecutionContext }> {
-  const projectUriString = projectUri.toString();
-  const context = createExecutionContext();
-
-  try {
-    const resolved = await resolveProjectAnalysis(
-      projectUri,
-      workspaceFolder,
-      settings
-    );
-    context.resolutionIssues.push(...resolved.targetResult.issues);
-
-    if (token?.isCancellationRequested) {
-      return { projectResult: cancelledProjectResult(projectUriString), context };
-    }
-
-    const execution = await executeProjectAnalysis(resolved, token);
-    context.cleanupWarnings?.push(...execution.cleanupWarnings);
-    return {
-      projectResult: execution.projectResult,
-      context,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      projectResult: { projectUri: projectUriString, findings: [], error: message },
-      context,
-    };
-  }
-}
-
-async function resolveProjectAnalysis(
-  projectUri: Uri,
-  workspaceFolder: Uri,
-  settings: AnalysisSettings
-): Promise<ResolvedProjectAnalysis> {
-  return {
-    projectUri,
-    settings,
-    targetResult: await resolveProjectAnalysisTargetDetailed(
-      projectUri,
-      workspaceFolder
-    ),
-  };
-}
-
-async function executeProjectAnalysis(
-  resolved: ResolvedProjectAnalysis,
-  token?: CancellationToken
-): Promise<ProjectAnalysisExecutionResult> {
-  const projectUri = resolved.projectUri.toString();
-  if (resolved.targetResult.resolution.status !== 'ok') {
-    return {
-      projectResult: {
-        projectUri,
-        findings: [],
-        error: resolved.targetResult.resolution.message,
-        errorCode: resolved.targetResult.resolution.errorCode,
-      },
-      cleanupWarnings: [],
-    };
-  }
-
-  const config: AnalysisConfigProvider = {
-    getAnalysisSettings: () => resolved.settings,
-  };
-  const outcome = await runAnalysisTarget(
+  const plan = await planAnalysis(
     config,
-    includeBaselineXml(resolved.targetResult.resolution.target.unit),
-    token
-  );
-  return {
-    projectResult: projectResultFromOutcome(projectUri, outcome),
-    cleanupWarnings: Array.isArray(outcome.warnings)
-      ? outcome.warnings.map((warning) => ({ projectUri, warning }))
-      : [],
-  };
-}
-
-function includeBaselineXml(unit: AnalysisExecutionUnit): AnalysisExecutionUnit {
-  return {
-    ...unit,
-    options: {
-      ...unit.options,
+    projectUris.map((uri) => ({
+      kind: 'project',
+      resource: Uri.parse(uri),
+      workspaceFolder,
       includeBaselineXml: true,
-    },
-  };
-}
-
-function messageFromUnknown(error: unknown): string {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message.trim();
-  }
-  const message = String(error);
-  return message.trim().length > 0 ? message.trim() : 'Unknown error';
-}
-
-function isAnalysisCancelledProjectResult(result: ProjectResult): boolean {
-  return result.errorCode === ERROR_ANALYSIS_CANCELLED;
-}
-
-function cancelledProjectResult(projectUri: string): ProjectResult {
-  return {
-    projectUri,
-    findings: [],
-    errorCode: ERROR_ANALYSIS_CANCELLED,
-  };
-}
-
-function createExecutionContext(): AnalysisExecutionContext {
-  return {
-    resolutionIssues: [],
-    cleanupWarnings: [],
-  };
+    })),
+    token,
+  );
+  return executeAnalysisPlan(plan, notify, token);
 }

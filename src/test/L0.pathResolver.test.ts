@@ -189,6 +189,7 @@ function makeDeps(
 
 function classpathResult(sourcepaths: string[]) {
   return {
+    projectRoot: 'file:///workspace/project-a',
     runtimeClasspaths: [],
     targetResolutionRoots: [],
     sourcepaths,

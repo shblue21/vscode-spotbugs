@@ -158,8 +158,6 @@ function translateResolutionIssue(
   }
 ): AnalysisNotice | undefined {
   switch (issue.code) {
-    case 'JAVA_LS_EXTENSION_FALLBACK_USED':
-      return undefined;
     case 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH':
       return {
         level: 'warn',
@@ -176,6 +174,20 @@ function translateResolutionIssue(
         code: issue.code,
         message:
           'SpotBugs: Java project discovery was unavailable, so workspace-folder analysis was used.',
+      };
+    case 'JAVA_LS_PROJECT_SETTINGS_FAILED':
+      return {
+        level: 'warn',
+        code: issue.code,
+        message:
+          'SpotBugs: Some Java source/output metadata was unavailable; analysis used the available project output information.',
+      };
+    case 'JAVA_PROJECT_METADATA_MISMATCH':
+      return {
+        level: 'warn',
+        code: issue.code,
+        message:
+          'SpotBugs: Metadata for a different Java project was discarded; analysis continued without it.',
       };
     case 'JAVA_LS_REQUEST_FAILED':
       return translateJavaLsLookupFallbackNotice(issue, context);

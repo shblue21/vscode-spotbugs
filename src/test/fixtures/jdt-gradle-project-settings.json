@@ -1,0 +1,100 @@
+{
+  "org.eclipse.jdt.ls.core.classpathEntries": [
+    {
+      "kind": 3,
+      "path": "/workspace/project/src/main/java",
+      "output": "/workspace/project/bin/main",
+      "attributes": {
+        "gradle_scope": "main",
+        "gradle_used_by_scope": "main,test,integrationTest"
+      }
+    },
+    {
+      "kind": 3,
+      "path": "/workspace/project/generated/java",
+      "output": "/workspace/project/bin/main",
+      "attributes": {
+        "gradle_scope": "main",
+        "gradle_used_by_scope": "main,test,integrationTest"
+      }
+    },
+    {
+      "kind": 3,
+      "path": "/workspace/project/src/test/java",
+      "output": "/workspace/project/bin/test",
+      "attributes": {
+        "test": "true",
+        "gradle_scope": "test",
+        "gradle_used_by_scope": "test"
+      }
+    },
+    {
+      "kind": 3,
+      "path": "/workspace/project/src/integrationTest/java",
+      "output": "/workspace/project/bin/integrationTest",
+      "attributes": {
+        "test": "true",
+        "gradle_scope": "integrationTest",
+        "gradle_used_by_scope": "integrationTest"
+      }
+    },
+    {
+      "kind": 2,
+      "path": "/library",
+      "attributes": {
+        "without_test_code": "true"
+      }
+    },
+    {
+      "kind": 2,
+      "path": "/util",
+      "attributes": {
+        "without_test_code": "true"
+      }
+    },
+    {
+      "kind": 1,
+      "path": "/workspace/project/libs/integration-only.jar",
+      "attributes": {
+        "test": "true",
+        "gradle_used_by_scope": "integrationTest"
+      }
+    },
+    {
+      "kind": 1,
+      "path": "/workspace/project/libs/compile-only.jar",
+      "attributes": {
+        "gradle_used_by_scope": ""
+      }
+    },
+    {
+      "kind": 1,
+      "path": "/workspace/project/libs/main-only.jar",
+      "attributes": {
+        "gradle_used_by_scope": "main,test"
+      }
+    },
+    {
+      "kind": 1,
+      "path": "/workspace/project/libs/runtime-only.jar",
+      "attributes": {
+        "gradle_used_by_scope": "main,test"
+      }
+    },
+    {
+      "kind": 1,
+      "path": "/workspace/project/libs/test-only.jar",
+      "attributes": {
+        "test": "true",
+        "gradle_used_by_scope": "test"
+      }
+    }
+  ],
+  "org.eclipse.jdt.ls.core.sourcePaths": [
+    "/workspace/project/src/main/java",
+    "/workspace/project/generated/java",
+    "/workspace/project/src/test/java",
+    "/workspace/project/src/integrationTest/java"
+  ],
+  "org.eclipse.jdt.ls.core.outputPath": "/workspace/project/bin/default"
+}

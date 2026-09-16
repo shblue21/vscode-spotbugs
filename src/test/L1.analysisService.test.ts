@@ -12,15 +12,20 @@ function analysisTarget(
     resolutionRoots?: string[];
     runtimeClasspaths?: string[];
     sourcepaths?: string[];
+    sourceOutputs?: Record<string, string>;
     diagnosticScope?: any;
-  } = {}
+  } = {},
 ) {
   return {
     unit: {
-      input: {
-        path,
-        resolutionRoots: options.resolutionRoots,
-      },
+      inputs: [
+        {
+          kind: 'source' as const,
+          path,
+          resolutionRoots: options.resolutionRoots,
+          sourceOutputs: options.sourceOutputs,
+        },
+      ],
       environment: { runtimeClasspaths: options.runtimeClasspaths },
       settingsResource: resource,
       sourceLookup: {
@@ -37,17 +42,46 @@ describe('analysisService', () => {
     installVscodeMock();
     resetVscodeMock();
     clearModule('../services/analysisService');
+    clearModule('../services/analysisPlanner');
     clearModule('../services/analysisExecution');
     clearModule('../workspace/analysisTargetResolver');
     clearModule('../workspace/pathResolver');
     clearModule('../lsp/spotbugsClient');
   });
 
+  it('preserves every source input for a project instead of inferring artifacts from paths', async () => {
+    const vscode = installVscodeMock();
+    const resolver = require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const client = require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const resource = vscode.Uri.file('/workspace') as any;
+    const inputs = [
+      { kind: 'source' as const, path: '/workspace/src/A.java' },
+      { kind: 'source' as const, path: '/workspace/src/B.java' },
+    ];
+    resolver.resolveProjectAnalysisTargetDetailed = async () => ({
+      resolution: { status: 'ok', target: {
+        unit: { inputs, environment: {}, sourceLookup: {} },
+      } }, issues: [],
+    });
+    const requests: unknown[] = [];
+    client.runSpotBugsAnalysis = async (request) => {
+      requests.push(request.payload.inputs);
+      return undefined;
+    };
+    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    await service.analyzeWorkspaceFromProjectsDetailed(
+      { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
+      resource, [resource.toString()],
+    );
+    assert.deepStrictEqual(requests, [inputs]);
+  });
+
   it('returns resolution issues through analyzeFileDetailed', async () => {
     const vscode = installVscodeMock();
     const resolverModule =
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
 
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
@@ -61,18 +95,20 @@ describe('analysisService', () => {
           level: 'info',
           source: 'target-resolution',
           phase: 'output-fallback',
-          message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
+          message:
+            'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
         },
       ],
     })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
 
     const detailed = await service.analyzeFileDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace/src/Foo.java') as any
+      vscode.Uri.file('/workspace/src/Foo.java') as any,
     );
-    assert.deepStrictEqual(detailed.context.resolutionIssues.map((issue) => issue.code), [
-      'OUTPUT_FALLBACK_USED',
-    ]);
+    assert.deepStrictEqual(
+      detailed.context.resolutionIssues.map((issue) => issue.code),
+      ['OUTPUT_FALLBACK_USED'],
+    );
     assert.strictEqual(detailed.outcome.failure?.code, 'NO_CLASS_TARGETS');
   });
 
@@ -86,29 +122,33 @@ describe('analysisService', () => {
     const token = { isCancellationRequested: false } as any;
     let receivedToken: unknown;
 
-    resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
-      resolution: {
-        status: 'ok',
-        target: analysisTarget('/workspace/build/classes', folderUri, {
-          resolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src'],
-          diagnosticScope: { kind: 'folder', uri: folderUri },
-        }),
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
+    resolverModule.resolveFileAnalysisTargetDetailed = (async (_uri, actualToken) => {
+      assert.strictEqual(actualToken, token);
+      return {
+        resolution: {
+          status: 'ok',
+          target: analysisTarget('/workspace/build/classes', folderUri, {
+            resolutionRoots: ['/workspace/build/classes'],
+            runtimeClasspaths: ['/workspace/build/classes'],
+            sourcepaths: ['/workspace/src'],
+            diagnosticScope: { kind: 'folder', uri: folderUri },
+          }),
+        },
+        issues: [],
+      };
+    }) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async (request, actualToken) => {
       receivedToken = actualToken;
       assert.strictEqual(request.payload.includeBaselineXml, undefined);
       return undefined;
     }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
     const result = await service.analyzeFileDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       folderUri,
-      token
+      token,
     );
 
     assert.strictEqual(receivedToken, token);
@@ -119,7 +159,8 @@ describe('analysisService', () => {
   it('aggregates per-project resolution issues in analyzeWorkspaceFromProjectsDetailed', async () => {
     const resolverModule =
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
@@ -143,11 +184,11 @@ describe('analysisService', () => {
     const detailed = await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       installVscodeMock().Uri.file('/workspace') as any,
-      ['file:///workspace/project-a', 'file:///workspace/project-b']
+      ['file:///workspace/project-a', 'file:///workspace/project-b'],
     );
     assert.deepStrictEqual(
       detailed.context.resolutionIssues.map((issue) => issue.code),
-      ['JAVA_LS_REQUEST_FAILED', 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH']
+      ['JAVA_LS_REQUEST_FAILED', 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH'],
     );
     assert.strictEqual(detailed.results.length, 2);
   });
@@ -158,7 +199,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
@@ -170,7 +212,7 @@ describe('analysisService', () => {
             resolutionRoots: ['/workspace/project/target/classes'],
             runtimeClasspaths: ['/workspace/project/target/classes'],
             sourcepaths: ['/workspace/project/src/main/java'],
-          }
+          },
         ),
       },
       issues: [],
@@ -194,7 +236,7 @@ describe('analysisService', () => {
     const result = await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       vscode.Uri.file('/workspace') as any,
-      ['file:///workspace/project-a']
+      ['file:///workspace/project-a'],
     );
 
     assert.deepStrictEqual(result.context.cleanupWarnings, [
@@ -220,7 +262,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
     const receivedEfforts: string[] = [];
     const settingsResources: string[] = [];
     const events: string[] = [];
@@ -258,11 +301,9 @@ describe('analysisService', () => {
       vscode.Uri.file('/workspace') as any,
       ['file:///workspace/project-a', 'file:///workspace/project-b'],
       {
-        onStart: (projectUri) =>
-          events.push(`start:${projectUri.split('/').pop()}`),
-        onDone: (projectUri) =>
-          events.push(`done:${projectUri.split('/').pop()}`),
-      }
+        onStart: (projectUri) => events.push(`start:${projectUri.split('/').pop()}`),
+        onDone: (projectUri) => events.push(`done:${projectUri.split('/').pop()}`),
+      },
     );
 
     assert.deepStrictEqual(settingsResources, [
@@ -274,12 +315,12 @@ describe('analysisService', () => {
     assert.deepStrictEqual(events, [
       'settings:project-a',
       'settings:project-b',
-      'start:project-a',
       'resolve:project-a',
+      'resolve:project-b',
+      'start:project-a',
       'execute:/workspace/project-a/classes',
       'done:project-a',
       'start:project-b',
-      'resolve:project-b',
       'execute:/workspace/project-b/classes',
       'done:project-b',
     ]);
@@ -291,7 +332,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
 
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
@@ -303,7 +345,7 @@ describe('analysisService', () => {
             resolutionRoots: ['/workspace/build/classes'],
             runtimeClasspaths: ['/workspace/build/classes'],
             sourcepaths: ['/workspace/src/main/java'],
-          }
+          },
         ),
       },
       issues: [
@@ -322,20 +364,18 @@ describe('analysisService', () => {
 
     const result = await service.analyzeFileDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      vscode.Uri.file('/workspace/src/Foo.java') as any
+      vscode.Uri.file('/workspace/src/Foo.java') as any,
     );
 
-    assert.deepStrictEqual(result.context.resolutionIssues.map((issue) => issue.code), [
-      'JAVA_LS_REQUEST_FAILED',
-    ]);
+    assert.deepStrictEqual(
+      result.context.resolutionIssues.map((issue) => issue.code),
+      ['JAVA_LS_REQUEST_FAILED'],
+    );
     assert.deepStrictEqual(result.outcome.findings, []);
     assert.strictEqual(result.outcome.failure?.kind, 'analysis-error');
     assert.strictEqual(result.outcome.failure?.level, 'error');
     assert.strictEqual(result.outcome.failure?.code, 'ANALYSIS_FAILED');
-    assert.strictEqual(
-      result.outcome.failure?.message,
-      'SpotBugs analysis failed: analysis boom'
-    );
+    assert.strictEqual(result.outcome.failure?.message, 'SpotBugs analysis failed: analysis boom');
     assert.strictEqual(result.outcome.targetPath, '/workspace/build/classes');
   });
 
@@ -345,7 +385,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
@@ -357,7 +398,7 @@ describe('analysisService', () => {
             resolutionRoots: ['/workspace/out'],
             runtimeClasspaths: ['/workspace/out'],
             sourcepaths: ['/workspace/src'],
-          }
+          },
         ),
       },
       issues: [
@@ -366,12 +407,8 @@ describe('analysisService', () => {
             ? 'JAVA_LS_REQUEST_FAILED'
             : 'OUTPUT_FALLBACK_USED',
           level: projectUri.toString().includes('project-a') ? 'warn' : 'info',
-          source: projectUri.toString().includes('project-a')
-            ? 'java-ls'
-            : 'target-resolution',
-          phase: projectUri.toString().includes('project-a')
-            ? 'get-classpaths'
-            : 'output-fallback',
+          source: projectUri.toString().includes('project-a') ? 'java-ls' : 'target-resolution',
+          phase: projectUri.toString().includes('project-a') ? 'get-classpaths' : 'output-fallback',
           message: 'Resolution issue',
         },
       ],
@@ -383,16 +420,16 @@ describe('analysisService', () => {
     const result = await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       vscode.Uri.file('/workspace') as any,
-      ['file:///workspace/project-a', 'file:///workspace/project-b']
+      ['file:///workspace/project-a', 'file:///workspace/project-b'],
     );
 
     assert.deepStrictEqual(
       result.context.resolutionIssues.map((issue) => issue.code),
-      ['JAVA_LS_REQUEST_FAILED', 'OUTPUT_FALLBACK_USED']
+      ['JAVA_LS_REQUEST_FAILED', 'OUTPUT_FALLBACK_USED'],
     );
     assert.deepStrictEqual(
       result.results.map((project) => project.error),
-      ['analysis boom', 'analysis boom']
+      ['analysis boom', 'analysis boom'],
     );
   });
 
@@ -402,7 +439,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
     const analyzedTargets: string[] = [];
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
@@ -415,7 +453,7 @@ describe('analysisService', () => {
             resolutionRoots: ['/workspace/project/target/classes'],
             runtimeClasspaths: ['/workspace/project/target/classes'],
             sourcepaths: ['/workspace/project/src/main/java'],
-          }
+          },
         ),
       },
       issues: [],
@@ -442,7 +480,7 @@ describe('analysisService', () => {
     const result = await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       vscode.Uri.file('/workspace') as any,
-      ['file:///workspace/project-a', 'file:///workspace/project-b']
+      ['file:///workspace/project-a', 'file:///workspace/project-b'],
     );
 
     assert.strictEqual(result.cancelled, true);
@@ -458,7 +496,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
     const token = { isCancellationRequested: false } as any;
     const analyzedTargets: string[] = [];
     const failedProjects: string[] = [];
@@ -468,7 +507,7 @@ describe('analysisService', () => {
         status: 'ok',
         target: analysisTarget(
           `/workspace/${projectUri.toString().split('/').pop()}/target/classes`,
-          projectUri
+          projectUri,
         ),
       },
       issues: [],
@@ -485,7 +524,7 @@ describe('analysisService', () => {
       vscode.Uri.file('/workspace') as any,
       ['file:///workspace/project-a', 'file:///workspace/project-b'],
       { onFail: (projectUri) => failedProjects.push(projectUri) },
-      token
+      token,
     );
 
     assert.strictEqual(result.cancelled, true);
@@ -500,7 +539,8 @@ describe('analysisService', () => {
       require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
     const spotbugsClient =
       require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
+    const service =
+      require('../services/analysisService') as typeof import('../services/analysisService');
     const token = { isCancellationRequested: false } as any;
     const events: string[] = [];
 
@@ -530,23 +570,21 @@ describe('analysisService', () => {
       vscode.Uri.file('/workspace') as any,
       ['file:///workspace/project-a', 'file:///workspace/project-b'],
       {
-        onStart: (projectUri) =>
-          events.push(`start:${projectUri.split('/').pop()}`),
+        onStart: (projectUri) => events.push(`start:${projectUri.split('/').pop()}`),
         onDone: () => events.push('done'),
         onFail: () => events.push('fail'),
       },
-      token
+      token,
     );
 
     assert.strictEqual(result.cancelled, true);
     assert.deepStrictEqual(
       result.results.map((project) => project.errorCode),
-      ['ANALYSIS_CANCELLED']
+      ['ANALYSIS_CANCELLED'],
     );
     assert.deepStrictEqual(events, [
       'settings:project-a',
       'settings:project-b',
-      'start:project-a',
       'resolve:project-a',
     ]);
   });

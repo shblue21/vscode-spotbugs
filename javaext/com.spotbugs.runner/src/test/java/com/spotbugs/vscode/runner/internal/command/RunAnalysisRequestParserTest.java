@@ -57,6 +57,10 @@ public class RunAnalysisRequestParserTest {
                 Arrays.asList("/workspace/src/main/java", "/workspace/generated/sources"),
                 request.getConfig().getSourcepaths()
         );
+        assertEquals(
+                "/workspace/build/generated",
+                request.getConfig().getSourceOutputs().get("/workspace/generated/sources")
+        );
         assertEquals(Integer.valueOf(5), request.getConfig().getPriorityThreshold());
         assertEquals(
                 resolvedFixturePathList(payload, "includeFilterPaths"),
@@ -78,15 +82,17 @@ public class RunAnalysisRequestParserTest {
     }
 
     @Test
-    public void parseTreatsMissingBlankAndNonStringConfigAsDefaultConfig() throws Exception {
-        RunAnalysisRequest missing = parser.parse(context("/workspace/build/classes"));
-        RunAnalysisRequest blank = parser.parse(context("/workspace/build/classes", "   "));
-        RunAnalysisRequest nonString = parser.parse(context("/workspace/build/classes", Integer.valueOf(7)));
+    public void parseRequiresExplicitInputs() {
+        assertEquals("INVALID_ARGUMENT", expectFailure(() -> parser.parse(context("/workspace/build/classes", "{}"))).getCode());
+        assertEquals("INVALID_ARGUMENT", expectFailure(() -> parser.parse(context("/workspace/build/classes", "{\"inputs\":[]}"))).getCode());
+    }
 
-        assertEquals(Effort.DEFAULT, missing.getConfig().getEffort());
-        assertEquals(Effort.DEFAULT, blank.getConfig().getEffort());
-        assertEquals(Effort.DEFAULT, nonString.getConfig().getEffort());
-        assertTrue(!missing.isIncludeBaselineXml());
+    @Test
+    public void parsesMultipleTypedInputsIndependentlyOfDisplayTarget() throws Exception {
+        RunAnalysisRequest request = parser.parse(context("display", "{\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"},{\"kind\":\"artifact\",\"path\":\"/project/B.jar\"}]}"));
+        assertEquals(2, request.getInputs().length);
+        assertEquals(com.spotbugs.vscode.runner.internal.AnalysisInput.Kind.SOURCE, request.getInputs()[0].kind);
+        assertEquals("/project/B.jar", request.getInputs()[1].path);
     }
 
     @Test

@@ -1,8 +1,10 @@
 import type { Uri } from 'vscode';
 
 export interface PathAnalysisInput {
+  kind: 'source' | 'artifact';
   path: string;
   resolutionRoots?: readonly string[] | null;
+  sourceOutputs?: Readonly<Record<string, string>> | null;
 }
 
 export interface AnalysisEnvironment {
@@ -19,7 +21,7 @@ export interface AnalysisExecutionOptions {
 }
 
 export interface AnalysisExecutionUnit {
-  input: PathAnalysisInput;
+  inputs: readonly PathAnalysisInput[];
   environment: AnalysisEnvironment;
   settingsResource?: Uri;
   sourceLookup: SourceLookupContext;

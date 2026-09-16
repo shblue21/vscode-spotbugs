@@ -3,6 +3,7 @@ export namespace JavaLanguageServerCommands {
   // vscode-java standardLanguageClient command, true is full compile, false is incremental compile
   export const COMPILE_WORKSPACE: string = 'java.workspace.compile';
   export const GET_CLASSPATHS: string = 'java.project.getClasspaths';
+  export const IS_TEST_FILE: string = 'java.project.isTestFile';
   export const GET_ALL_JAVA_PROJECTS: string = 'java.project.getAll';
 }
 
@@ -14,8 +15,10 @@ export enum JavaCompileWorkspaceStatus {
 
 // VS Code command IDs owned by this extension (used in menus/UI)
 export namespace SpotBugsCommands {
-  export const RUN_ANALYSIS: string = 'spotbugs.run';
-  export const RUN_WORKSPACE: string = 'spotbugs.runWorkspace';
+  export const ANALYZE_SOURCE: string = 'spotbugs.analyzeSource';
+  export const ANALYZE_ARTIFACTS: string = 'spotbugs.analyzeArtifacts';
+  export const ANALYZE_PROJECT: string = 'spotbugs.analyzeProject';
+  export const ANALYZE_WORKSPACE: string = 'spotbugs.analyzeWorkspace';
   export const REVEAL_FINDING_SOURCE: string = 'spotbugs.revealFindingSource';
   export const OPEN_FINDING_DETAILS: string = 'spotbugs.openFindingDetails';
   export const SUPPRESS_FINDINGS: string = 'spotbugs.suppressFindings';
@@ -38,6 +41,8 @@ export namespace SpotBugsCommands {
 
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)
 export namespace SpotBugsLSCommands {
-  export const RUN_ANALYSIS: string = 'java.spotbugs.run';
+  export const PROJECT_SETTINGS: string = 'java.spotbugs.project.settings';
+  export const ANALYZE_SOURCES: string = 'java.spotbugs.analyzeSources';
+  export const ANALYZE_ARTIFACTS: string = 'java.spotbugs.analyzeArtifacts';
   export const PLUGIN_INVENTORY: string = 'java.spotbugs.plugins.inventory';
 }

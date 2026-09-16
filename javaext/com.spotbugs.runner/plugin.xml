@@ -3,8 +3,10 @@
 <plugin>
   <extension point="org.eclipse.jdt.ls.core.delegateCommandHandler">
     <delegateCommandHandler class="com.spotbugs.vscode.runner.DelegateCommandHandler">
-      <command id="java.spotbugs.run"/>
+      <command id="java.spotbugs.analyzeSources"/>
+      <command id="java.spotbugs.analyzeArtifacts"/>
       <command id="java.spotbugs.plugins.inventory"/>
+      <command id="java.spotbugs.project.settings"/>
     </delegateCommandHandler>
   </extension>
 </plugin>

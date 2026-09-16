@@ -12,6 +12,18 @@ describe('spotbugsTreeDataProvider', () => {
     resetVscodeMock();
   });
 
+  it('preserves independent native runs for a resource with multiple analysis units', async () => {
+    const provider = await createProvider();
+    const runs = [
+      { projectUri: resultResource.toString(), findings: [] as Finding[], nativeSarif: 'first' },
+      { projectUri: resultResource.toString(), findings: [] as Finding[], nativeSarif: 'second' },
+    ];
+    provider.showResults([], resultResource, runs);
+    runs.pop();
+    assert.deepStrictEqual(provider.getReportRuns().map((run) => run.nativeSarif), ['first', 'second']);
+    assert.strictEqual(provider.getResultScope()?.kind, 'resource');
+  });
+
   it('renders analysis failure as a distinct tree state', async () => {
     const provider = await createProvider();
 

@@ -1,14 +1,11 @@
-import { Uri, workspace } from 'vscode';
+import { Uri, workspace, type CancellationToken } from 'vscode';
+import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from '../core/logger';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
 import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
-import {
-  deriveOutputFolder,
-  filterAdmissibleTargetResolutionRoots,
-  getClasspathsOutcome,
-} from './classpathService';
+import { getClasspathsOutcome, type ClasspathScope } from './classpathService';
 import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from './analysisTargetCodes';
 import {
   findOutputFolderFromProject,
@@ -19,6 +16,8 @@ import {
   type OutputFolderSelectionOptions,
 } from './outputResolver';
 import { containsMatchingFile } from './fileTraversal';
+import { isPathInsideOrEqual, pathComparisonKey, relativePath, uniquePaths } from './pathIdentity';
+import { getProjectRootPaths } from './projectDiscovery';
 
 export interface AnalysisTarget {
   unit: AnalysisExecutionUnit;
@@ -45,12 +44,13 @@ export interface TargetResolutionResult {
 
 export interface TargetResolverDeps {
   getClasspathsOutcome: typeof getClasspathsOutcome;
-  deriveOutputFolder: typeof deriveOutputFolder;
   findOutputFolderFromProject: typeof findOutputFolderFromProject;
   hasClassTargets: typeof hasClassTargets;
   hasLooseClassTargets: typeof hasLooseClassTargets;
   isBytecodeTarget: typeof isBytecodeTarget;
   containsJavaSources: typeof containsJavaSources;
+  getProjectRootPaths: typeof getProjectRootPaths;
+  isDirectory: (targetPath: string) => Promise<boolean>;
   getWorkspaceFolder: typeof workspace.getWorkspaceFolder;
   dirname: typeof path.dirname;
   logger: typeof Logger;
@@ -58,12 +58,19 @@ export interface TargetResolverDeps {
 
 const defaultDeps: TargetResolverDeps = {
   getClasspathsOutcome,
-  deriveOutputFolder,
   findOutputFolderFromProject,
   hasClassTargets,
   hasLooseClassTargets,
   isBytecodeTarget,
   containsJavaSources,
+  getProjectRootPaths,
+  isDirectory: async (targetPath: string) => {
+    try {
+      return (await fs.promises.stat(targetPath)).isDirectory();
+    } catch {
+      return false;
+    }
+  },
   getWorkspaceFolder: workspace.getWorkspaceFolder,
   dirname: path.dirname,
   logger: Logger,
@@ -73,10 +80,12 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
   const deps: TargetResolverDeps = { ...defaultDeps, ...overrides };
 
   type ClasspathInfo = {
+    projectRootPath?: string;
+    sourceRootsAbsent?: true;
     targetResolutionRoots?: string[];
     runtimeClasspaths?: string[];
     sourcepaths?: string[];
-    outputPath?: string;
+    sourceOutputs?: Record<string, string>;
     issues: AnalysisResolutionIssue[];
   };
 
@@ -101,140 +110,146 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     };
   }
 
-  function createAnalysisTarget(
-    targetPath: string,
-    preferredResource: Uri,
-    targetResolutionRoots: string[] | undefined,
-    runtimeClasspaths: string[] | undefined,
-    sourcepaths: string[] | undefined,
-    diagnosticScope?: DiagnosticUpdateScope
-  ): AnalysisTarget {
+  function createAnalysisTarget(args: {
+    kind: 'source' | 'artifact';
+    targetPath: string;
+    settingsResource: Uri;
+    sourceLookupResource: Uri;
+    targetResolutionRoots?: string[];
+    runtimeClasspaths?: string[];
+    sourcepaths?: string[];
+    sourceOutputs?: Record<string, string>;
+    diagnosticScope?: DiagnosticUpdateScope;
+  }): AnalysisTarget {
     return {
       unit: {
-        input: {
-          path: targetPath,
-          resolutionRoots: targetResolutionRoots,
-        },
-        environment: { runtimeClasspaths },
-        settingsResource: preferredResource,
+        inputs: [
+          {
+            kind: args.kind,
+            path: args.targetPath,
+            resolutionRoots: args.targetResolutionRoots,
+            sourceOutputs: args.sourceOutputs,
+          },
+        ],
+        environment: { runtimeClasspaths: args.runtimeClasspaths },
+        settingsResource: args.settingsResource,
         sourceLookup: {
-          preferredResource,
-          roots: sourcepaths,
+          preferredResource: args.sourceLookupResource,
+          roots: args.sourcepaths,
         },
       },
-      diagnosticScope,
+      diagnosticScope: args.diagnosticScope,
     };
   }
 
   async function readClasspaths(
     project: Uri,
-    options: { logSuccess?: boolean; logEmpty?: boolean; logFailure?: boolean }
+    options: {
+      logSuccess?: boolean;
+      logEmpty?: boolean;
+      logFailure?: boolean;
+      expectedProjectRoot?: Uri;
+      scope?: ClasspathScope;
+      analysisResource?: Uri;
+      token?: CancellationToken;
+    },
   ): Promise<ClasspathInfo> {
-    let targetResolutionRoots: string[] | undefined;
-    let runtimeClasspaths: string[] | undefined;
-    let sourcepaths: string[] | undefined;
-    let outputPath: string | undefined;
-    let issues: AnalysisResolutionIssue[] = [];
-
     try {
       const outcome = await deps.getClasspathsOutcome(project, {
         logFailures: options.logFailure,
+        expectedProjectRoot: options.expectedProjectRoot,
+        scope: options.scope,
+        analysisResource: options.analysisResource,
+        token: options.token,
       });
-      issues = outcome.issues;
-      const cp = outcome.status === 'resolved' ? outcome.classpath : undefined;
+      if (outcome.status === 'unavailable') {
+        if (options.logEmpty) {
+          deps.logger.log(
+            'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.',
+          );
+        }
+        return { issues: outcome.issues };
+      }
 
-      if (cp && Array.isArray(cp.runtimeClasspaths) && cp.runtimeClasspaths.length > 0) {
-        runtimeClasspaths = cp.runtimeClasspaths;
+      const cp = outcome.classpath;
+      if (cp.runtimeClasspaths.length > 0) {
         if (options.logSuccess) {
           deps.logger.log(
-            `Set ${cp.runtimeClasspaths.length} runtime classpaths and ${cp.targetResolutionRoots.length} target-resolution roots for analysis`
+            `Set ${cp.runtimeClasspaths.length} runtime classpaths and ${cp.targetResolutionRoots.length} target-resolution roots for analysis`,
           );
         }
       } else if (options.logEmpty) {
         deps.logger.log(
-          'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.'
+          'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.',
         );
       }
-      if (Array.isArray(cp?.targetResolutionRoots) && cp.targetResolutionRoots.length > 0) {
-        targetResolutionRoots = cp.targetResolutionRoots;
-      }
-      outputPath = cp?.output;
-      if (Array.isArray(cp?.sourcepaths)) {
-        sourcepaths = cp.sourcepaths.slice();
-      }
+      return {
+        projectRootPath: Uri.parse(cp.projectRoot).fsPath,
+        sourceRootsAbsent: cp.sourceRootsAbsent,
+        targetResolutionRoots:
+          cp.targetResolutionRoots.length > 0 ? cp.targetResolutionRoots.slice() : undefined,
+        runtimeClasspaths:
+          cp.runtimeClasspaths.length > 0 ? cp.runtimeClasspaths.slice() : undefined,
+        sourcepaths: cp.sourcepaths.slice(),
+        sourceOutputs: cp.sourceOutputs ? { ...cp.sourceOutputs } : undefined,
+        issues: outcome.issues,
+      };
     } catch (error) {
+      if (options.token?.isCancellationRequested) {
+        throw error;
+      }
       if (options.logFailure) {
         const message = error instanceof Error ? error.message : String(error);
         deps.logger.log(
-          `Warning: Could not get project runtime classpaths (${message}); target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.`
+          `Warning: Could not get project runtime classpaths (${message}); target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.`,
         );
       }
+      return { issues: [] };
     }
-
-    return { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath, issues };
   }
 
   async function resolveOutputPath(
     targetResolutionRoots: string[] | undefined,
-    outputPath: string | undefined,
-    outputPathRoot: string,
-    targetRootsBoundary: string,
     projectRoot: string,
     hasTargets: (targetPath: string) => Promise<boolean> = deps.hasClassTargets,
-    options: ResolveOutputPathOptions = {}
+    options: ResolveOutputPathOptions = {},
   ): Promise<OutputResolution> {
-    const scopedTargetResolutionRoots = Array.isArray(targetResolutionRoots)
-      ? filterAdmissibleTargetResolutionRoots(
-          targetResolutionRoots,
-          targetRootsBoundary,
-          options
-        )
-      : [];
+    const declaredRoots = uniquePaths(targetResolutionRoots ?? []);
     const usableTargetResolutionRoots = await filterTargetResolutionRootsWithTargets(
-      scopedTargetResolutionRoots,
-      hasTargets
+      declaredRoots,
+      hasTargets,
     );
-    const admissibleOutputPath = outputPath
-      ? filterAdmissibleTargetResolutionRoots([outputPath], outputPathRoot, options)[0]
-      : undefined;
+    const preferredOutput = declaredRoots[0];
     if (
-      admissibleOutputPath &&
-      (!options.allowFallbackFromUnusableOutput ||
-        (await hasTargets(admissibleOutputPath)))
+      preferredOutput &&
+      (!options.allowFallbackFromUnusableOutput || (await hasTargets(preferredOutput)))
     ) {
       return {
-        outputPath: admissibleOutputPath,
+        outputPath: preferredOutput,
         usedFallback: false,
         targetResolutionRoots: usableTargetResolutionRoots,
       };
     }
 
-    let resolved: string | undefined;
-
-    if (usableTargetResolutionRoots.length > 0) {
-      resolved = await deps.deriveOutputFolder(
-        usableTargetResolutionRoots,
-        targetRootsBoundary,
-        hasTargets,
-        options
-      );
-      if (resolved) {
-        return {
-          outputPath: resolved,
-          usedFallback: true,
-          targetResolutionRoots: usableTargetResolutionRoots,
-        };
-      }
+    const declaredOutput = orderOutputFolderCandidates(
+      usableTargetResolutionRoots.map((targetPath, index) => ({
+        targetPath,
+        index,
+      })),
+      options,
+    )[0]?.targetPath;
+    if (declaredOutput) {
+      return {
+        outputPath: declaredOutput,
+        usedFallback: true,
+        targetResolutionRoots: usableTargetResolutionRoots,
+      };
     }
 
-    resolved = await deps.findOutputFolderFromProject(
-      projectRoot,
-      hasTargets,
-      options
-    );
-    if (resolved) {
+    const fallbackOutput = await deps.findOutputFolderFromProject(projectRoot, hasTargets, options);
+    if (fallbackOutput) {
       return {
-        outputPath: resolved,
+        outputPath: fallbackOutput,
         usedFallback: true,
         targetResolutionRoots: [],
       };
@@ -249,7 +264,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
 
   async function filterTargetResolutionRootsWithTargets(
     targetResolutionRoots: readonly string[],
-    hasTargets: (targetPath: string) => Promise<boolean>
+    hasTargets: (targetPath: string) => Promise<boolean>,
   ): Promise<string[]> {
     const result: string[] = [];
     for (const targetRoot of targetResolutionRoots) {
@@ -265,7 +280,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     sourcepaths: readonly string[] | undefined,
     requiresMappedLooseOutput: boolean,
     isJavaSourceTarget: boolean,
-    directTargetHasClassTargets: boolean
+    directTargetHasClassTargets: boolean,
   ): (targetPath: string) => Promise<boolean> {
     if (!requiresMappedLooseOutput) {
       if (directTargetHasClassTargets) {
@@ -276,51 +291,116 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
           targetPath,
           outputRoot,
           sourcepaths,
-          deps.hasClassTargets
+          deps.hasClassTargets,
         );
     }
     if (isJavaSourceTarget) {
       return (outputRoot: string) =>
-        hasJavaSourceClassTarget(
-          targetPath,
-          outputRoot,
-          sourcepaths,
-          deps.hasClassTargets
-        );
+        hasJavaSourceClassTarget(targetPath, outputRoot, sourcepaths, deps.hasClassTargets);
     }
     return (outputRoot: string) =>
       hasJavaSourceDirectoryClassTarget(
         targetPath,
         outputRoot,
         sourcepaths,
-        deps.hasLooseClassTargets
+        deps.hasLooseClassTargets,
       );
   }
 
   async function resolveFileAnalysisTargetDetailed(
-    uri: Uri
+    uri: Uri,
+    token?: CancellationToken,
+    kind?: 'artifact',
   ): Promise<TargetResolutionResult> {
-    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath, issues } =
-      await readClasspaths(uri, {
-      logSuccess: true,
-      logEmpty: true,
-      logFailure: true,
-    });
-    const resolutionIssues = [...issues];
-
     const targetPath = uri.fsPath;
+    const isDirectoryTarget = await deps.isDirectory(targetPath);
+    let metadataUri: Uri | undefined = canQueryMetadataDirectly(targetPath) ? uri : undefined;
+    let selectedProjectRootPath: string | undefined;
+
+    if (isDirectoryTarget || isArchivePath(targetPath)) {
+      const projectRoots = uniquePaths(
+        await deps.getProjectRootPaths({
+          includeWorkspaceFallback: false,
+          token,
+        }),
+      );
+      const owningProjectRoots = projectRoots
+        .filter((projectRoot) => isPathInsideOrEqual(projectRoot, targetPath))
+        .sort((left, right) => pathComparisonKey(right).length - pathComparisonKey(left).length);
+      const owningProjectRoot = owningProjectRoots[0];
+      const containsAnotherProject =
+        isDirectoryTarget &&
+        projectRoots.some(
+          (projectRoot) =>
+            (!owningProjectRoot ||
+              pathComparisonKey(projectRoot) !== pathComparisonKey(owningProjectRoot)) &&
+            isPathInsideOrEqual(targetPath, projectRoot),
+        );
+      if (containsAnotherProject) {
+        return {
+          resolution: {
+            status: 'no-class-targets',
+            errorCode: 'PROJECT_AGGREGATE_FOLDER_UNSUPPORTED',
+            message:
+              'SpotBugs cannot safely analyze a folder spanning Java project roots in one run. Select one project or run workspace analysis.',
+          },
+          issues: [],
+        };
+      }
+      selectedProjectRootPath = owningProjectRoot;
+      metadataUri = selectedProjectRootPath ? Uri.file(selectedProjectRootPath) : undefined;
+    }
+
+    const classpathInfo = metadataUri
+      ? await readClasspaths(metadataUri, {
+          logSuccess: true,
+          logEmpty: true,
+          logFailure: true,
+          analysisResource: uri,
+          token,
+          ...(selectedProjectRootPath
+            ? {
+                expectedProjectRoot: metadataUri,
+              }
+            : {}),
+        })
+      : {
+          issues: [
+            {
+              code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH' as const,
+              level: 'warn' as const,
+              source: 'java-ls' as const,
+              phase: 'get-classpaths' as const,
+              message: 'No owning Java project metadata was available for the selected target.',
+            },
+          ],
+        };
+    const {
+      projectRootPath: returnedProjectRootPath,
+      targetResolutionRoots,
+      runtimeClasspaths,
+      sourcepaths,
+      sourceOutputs,
+      issues,
+    } = classpathInfo;
+    const projectRootPath = returnedProjectRootPath ?? selectedProjectRootPath;
+    const resolutionIssues = [...issues];
+    const declaredOutputPath = targetResolutionRoots?.[0];
+
     let resolvedOutputPath: string | undefined;
     let targetRootCandidates = targetResolutionRoots ?? [];
     let isJavaSourceDirectoryTarget = false;
-    if (!deps.isBytecodeTarget(targetPath)) {
+    if (kind === 'artifact') {
+      if (!(await deps.hasClassTargets(targetPath)))
+        return { resolution: noClassTargets(), issues: resolutionIssues };
+    } else if (!deps.isBytecodeTarget(targetPath)) {
       const isJavaSourceTarget = isJavaSourceFile(targetPath);
       isJavaSourceDirectoryTarget = await isJavaSourceDirectoryPath(
         targetPath,
         sourcepaths,
-        deps.containsJavaSources
+        deps.containsJavaSources,
       );
-      const requiresMappedLooseOutput =
-        isJavaSourceTarget || isJavaSourceDirectoryTarget;
+      const requiresMappedLooseOutput = isJavaSourceTarget || isJavaSourceDirectoryTarget;
       const directTargetHasClassTargets =
         !requiresMappedLooseOutput && (await deps.hasClassTargets(targetPath));
       const outputHasTargets = createOutputTargetPredicate(
@@ -328,48 +408,41 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
         sourcepaths,
         requiresMappedLooseOutput,
         isJavaSourceTarget,
-        directTargetHasClassTargets
+        directTargetHasClassTargets,
       );
       const outputSelectionOptions = requiresMappedLooseOutput
         ? createJavaSourceOutputSelectionOptions(targetPath, sourcepaths)
         : undefined;
       const workspaceFolder = deps.getWorkspaceFolder(uri);
       const workspacePath = workspaceFolder?.uri.fsPath ?? deps.dirname(targetPath);
-      const targetRootsBoundary = inferAnalysisFallbackRoot(
-        targetPath,
-        sourcepaths,
-        outputPath,
-        workspacePath,
-        requiresMappedLooseOutput
-      );
-      const outputPathRoot = inferOutputPathRoot(
-        targetPath,
-        outputPath,
-        targetRootsBoundary
-      );
+      const targetRootsBoundary =
+        projectRootPath && isPathInsideOrEqual(projectRootPath, targetPath)
+          ? projectRootPath
+          : inferAnalysisFallbackRoot(
+              targetPath,
+              sourcepaths,
+              declaredOutputPath,
+              workspacePath,
+              requiresMappedLooseOutput,
+            );
       const outputResolution = await resolveOutputPath(
         targetResolutionRoots,
-        outputPath,
-        outputPathRoot,
-        targetRootsBoundary,
         targetRootsBoundary,
         outputHasTargets,
         {
           ...outputSelectionOptions,
           allowFallbackFromUnusableOutput:
             requiresMappedLooseOutput || !directTargetHasClassTargets,
-          allowRecognizedOutputOutsideBoundary: false,
-        }
+        },
       );
       resolvedOutputPath = outputResolution.outputPath;
       targetRootCandidates = outputResolution.targetResolutionRoots;
       const outputResolutionHasTargets =
-        !!outputResolution.outputPath &&
-        (await outputHasTargets(outputResolution.outputPath));
+        !!outputResolution.outputPath && (await outputHasTargets(outputResolution.outputPath));
       if (!directTargetHasClassTargets && !outputResolutionHasTargets) {
         return {
           resolution: noClassTargets(
-            `Skipping SpotBugs analysis for ${targetPath}: no compiled classes found.`
+            `Skipping SpotBugs analysis for ${targetPath}: no compiled classes found.`,
           ),
           issues: resolutionIssues,
         };
@@ -381,7 +454,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     } else if (!(await deps.hasClassTargets(targetPath))) {
       return {
         resolution: noClassTargets(
-          `Skipping SpotBugs analysis for ${targetPath}: target does not exist.`
+          `Skipping SpotBugs analysis for ${targetPath}: target does not exist.`,
         ),
         issues: resolutionIssues,
       };
@@ -391,20 +464,27 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       targetPath,
       sourcepaths,
       uniquePaths([resolvedOutputPath, ...targetRootCandidates]),
-      isJavaSourceDirectoryTarget
+      isJavaSourceDirectoryTarget,
     );
 
     return {
       resolution: {
         status: 'ok',
-        target: createAnalysisTarget(
+        target: createAnalysisTarget({
+          kind: kind ?? 'source',
           targetPath,
-          uri,
-          classTargetRoots.length > 0 ? classTargetRoots : targetResolutionRoots,
+          settingsResource: uri,
+          sourceLookupResource: uri,
+          targetResolutionRoots:
+            classTargetRoots.length > 0 ? classTargetRoots : targetResolutionRoots,
           runtimeClasspaths,
           sourcepaths,
-          createDiagnosticScope(uri, targetPath, classTargetRoots)
-        ),
+          sourceOutputs,
+          diagnosticScope:
+            kind === 'artifact'
+              ? { kind: 'returned-files', uri }
+              : createDiagnosticScope(uri, targetPath, classTargetRoots),
+        }),
       },
       issues: resolutionIssues,
     };
@@ -412,42 +492,33 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
 
   async function resolveProjectAnalysisTargetDetailed(
     projectUri: Uri,
-    workspaceFolder: Uri
+    workspaceFolder: Uri,
+    token?: CancellationToken,
   ): Promise<TargetResolutionResult> {
     const projectUriString = projectUri.toString();
-    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, outputPath, issues } =
+    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, sourceOutputs, sourceRootsAbsent, issues } =
       await readClasspaths(projectUri, {
         logEmpty: true,
         logFailure: true,
+        expectedProjectRoot: projectUri,
+        scope: 'runtime',
+        analysisResource: projectUri,
+        token,
       });
     const resolutionIssues = [...issues];
-    const projectRoot =
-      projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
-    const targetRootsBoundary = inferAnalysisFallbackRoot(
-      projectRoot,
-      sourcepaths,
-      outputPath,
-      projectRoot,
-      false
-    );
-    const outputPathRoot = inferOutputPathRoot(
-      projectRoot,
-      outputPath,
-      targetRootsBoundary
-    );
+    const projectRoot = projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
     const outputResolution = await resolveOutputPath(
       targetResolutionRoots,
-      outputPath,
-      outputPathRoot,
-      targetRootsBoundary,
       projectRoot,
       deps.hasClassTargets,
-      { allowRecognizedOutputOutsideBoundary: false }
+      {
+        allowFallbackFromUnusableOutput: true,
+      },
     );
     if (!outputResolution.outputPath) {
       return {
         resolution: noClassTargets(
-          `Skipping SpotBugs analysis for ${projectUriString}: no output folder.`
+          `Skipping SpotBugs analysis for ${projectUriString}: no output folder.`,
         ),
         issues: resolutionIssues,
       };
@@ -456,7 +527,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     if (!(await deps.hasClassTargets(outputResolution.outputPath))) {
       return {
         resolution: noClassTargets(
-          `Skipping SpotBugs analysis for ${projectUriString}: no compiled classes in ${outputResolution.outputPath}`
+          `Skipping SpotBugs analysis for ${projectUriString}: no compiled classes in ${outputResolution.outputPath}`,
         ),
         issues: resolutionIssues,
       };
@@ -469,17 +540,27 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       outputResolution.outputPath,
       ...outputResolution.targetResolutionRoots,
     ]);
+    const hasLooseOutput =
+      (await filterTargetResolutionRootsWithTargets(classTargetRoots, deps.hasLooseClassTargets))
+        .length > 0;
+    const analysisPath =
+      !sourceRootsAbsent && sourcepaths && sourcepaths.length > 0 && hasLooseOutput
+        ? projectRoot
+        : outputResolution.outputPath;
 
     return {
       resolution: {
         status: 'ok',
-        target: createAnalysisTarget(
-          outputResolution.outputPath,
-          projectUri,
-          classTargetRoots,
+        target: createAnalysisTarget({
+          kind: !sourceRootsAbsent && analysisPath === projectRoot ? 'source' : 'artifact',
+          targetPath: analysisPath,
+          settingsResource: projectUri,
+          sourceLookupResource: projectUri,
+          targetResolutionRoots: classTargetRoots,
           runtimeClasspaths,
-          sourcepaths
-        ),
+          sourcepaths,
+          sourceOutputs,
+        }),
       },
       issues: resolutionIssues,
     };
@@ -494,16 +575,19 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
 const defaultResolver = createTargetResolver();
 
 export async function resolveFileAnalysisTargetDetailed(
-  uri: Uri
+  uri: Uri,
+  token?: CancellationToken,
+  kind?: 'artifact',
 ): Promise<TargetResolutionResult> {
-  return defaultResolver.resolveFileAnalysisTargetDetailed(uri);
+  return defaultResolver.resolveFileAnalysisTargetDetailed(uri, token, kind);
 }
 
 export async function resolveProjectAnalysisTargetDetailed(
   projectUri: Uri,
-  workspaceFolder: Uri
+  workspaceFolder: Uri,
+  token?: CancellationToken,
 ): Promise<TargetResolutionResult> {
-  return defaultResolver.resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder);
+  return defaultResolver.resolveProjectAnalysisTargetDetailed(projectUri, workspaceFolder, token);
 }
 
 const OUTPUT_PROJECT_ROOT_SUFFIXES = [
@@ -527,7 +611,7 @@ function inferAnalysisFallbackRoot(
   sourcepaths: readonly string[] | undefined,
   outputPath: string | undefined,
   workspacePath: string,
-  useSourceMarkers: boolean
+  useSourceMarkers: boolean,
 ): string {
   if (useSourceMarkers) {
     const markerRoot = inferProjectRootFromSourceMarker(targetPath);
@@ -541,9 +625,7 @@ function inferAnalysisFallbackRoot(
     return sourcepathRoot;
   }
 
-  const outputProjectRoot = outputPath
-    ? inferProjectRootFromOutputPath(outputPath)
-    : undefined;
+  const outputProjectRoot = outputPath ? inferProjectRootFromOutputPath(outputPath) : undefined;
   if (
     outputProjectRoot &&
     isPathInsideOrEqual(outputProjectRoot, targetPath) &&
@@ -553,20 +635,6 @@ function inferAnalysisFallbackRoot(
   }
 
   return workspacePath;
-}
-
-function inferOutputPathRoot(
-  targetPath: string,
-  outputPath: string | undefined,
-  targetRootsBoundary: string
-): string {
-  const outputProjectRoot = outputPath
-    ? inferProjectRootFromOutputPath(outputPath)
-    : undefined;
-  if (outputProjectRoot && isPathInsideOrEqual(outputProjectRoot, targetPath)) {
-    return outputProjectRoot;
-  }
-  return targetRootsBoundary;
 }
 
 function inferProjectRootFromOutputPath(outputPath: string): string | undefined {
@@ -614,12 +682,9 @@ function inferProjectRootFromSourceMarker(sourcePath: string): string | undefine
 
 function inferProjectRootFromSourcepaths(
   targetPath: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): string | undefined {
-  const sourcepathCandidates = findContainingSourcepathCandidates(
-    targetPath,
-    sourcepaths
-  );
+  const sourcepathCandidates = findContainingSourcepathCandidates(targetPath, sourcepaths);
   const sourcepathRoot = sourcepathCandidates[0]?.root;
   if (sourcepathRoot) {
     return inferProjectRootFromSourcepathRoot(sourcepathRoot);
@@ -627,12 +692,12 @@ function inferProjectRootFromSourcepaths(
 
   const nestedSourcepathCandidates = sortSourcepathCandidates(
     normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
-      isPathInsideOrEqual(targetPath, candidate.root)
-    )
+      isPathInsideOrEqual(targetPath, candidate.root),
+    ),
   );
   for (const candidate of nestedSourcepathCandidates) {
     const projectRoot = inferProjectRootFromSourcepathRoot(candidate.root);
-    if (projectRoot && path.resolve(projectRoot) === path.resolve(targetPath)) {
+    if (projectRoot && pathComparisonKey(projectRoot) === pathComparisonKey(targetPath)) {
       return projectRoot;
     }
   }
@@ -641,23 +706,22 @@ function inferProjectRootFromSourcepaths(
 }
 
 function sortSourcepathCandidates<T extends { root: string; index: number }>(
-  candidates: readonly T[]
+  candidates: readonly T[],
 ): T[] {
   return [...candidates].sort(
     (a, b) =>
-      path.resolve(b.root).length - path.resolve(a.root).length ||
-      a.index - b.index
+      pathComparisonKey(b.root).length - pathComparisonKey(a.root).length || a.index - b.index,
   );
 }
 
 function findContainingSourcepathCandidates(
   targetPath: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): Array<{ root: string; index: number }> {
   return sortSourcepathCandidates(
     normalizeSourcepathCandidates(sourcepaths).filter((candidate) =>
-      isPathInsideOrEqual(candidate.root, targetPath)
-    )
+      isPathInsideOrEqual(candidate.root, targetPath),
+    ),
   );
 }
 
@@ -676,9 +740,7 @@ function inferProjectRootFromSourcepathRoot(sourcepathRoot: string): string | un
   return parent && parent !== sourcepathRoot ? parent : undefined;
 }
 
-function inferProjectRootFromGeneratedSourcepath(
-  sourcepathRoot: string
-): string | undefined {
+function inferProjectRootFromGeneratedSourcepath(sourcepathRoot: string): string | undefined {
   const normalized = normalizeForSourceSet(sourcepathRoot);
   const markers = [
     '/target/generated-sources',
@@ -714,14 +776,15 @@ function createOutputFallbackIssue(): AnalysisResolutionIssue {
     level: 'info',
     source: 'target-resolution',
     phase: 'output-fallback',
-    message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
+    message:
+      'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
   };
 }
 
 function createDiagnosticScope(
   uri: Uri,
   targetPath: string,
-  classTargetRoots: readonly string[] = []
+  classTargetRoots: readonly string[] = [],
 ): DiagnosticUpdateScope {
   const ext = path.extname(targetPath).toLowerCase();
   if (ext === '.java') {
@@ -742,7 +805,7 @@ async function hasJavaSourceClassTarget(
   sourcePath: string,
   outputRoot: string,
   sourcepaths: readonly string[] | undefined,
-  hasClassTarget: (targetPath: string) => Promise<boolean>
+  hasClassTarget: (targetPath: string) => Promise<boolean>,
 ): Promise<boolean> {
   for (const classPath of resolveJavaSourceClassPaths(sourcePath, outputRoot, sourcepaths)) {
     if (await hasClassTarget(classPath)) {
@@ -756,29 +819,23 @@ async function hasJavaSourceDirectoryClassTarget(
   sourceDir: string,
   outputRoot: string,
   sourcepaths: readonly string[] | undefined,
-  hasLooseClassTarget: (targetPath: string) => Promise<boolean>
+  hasLooseClassTarget: (targetPath: string) => Promise<boolean>,
 ): Promise<boolean> {
-  for (const relativeDir of deriveRelativeJavaSourceDirectoryPaths(
-    sourceDir,
-    sourcepaths
-  )) {
+  for (const relativeDir of deriveRelativeJavaSourceDirectoryPaths(sourceDir, sourcepaths)) {
     if (!relativeDir) {
       if (
         await hasMappedJavaSourceTreeClassTarget(
           sourceDir,
           outputRoot,
           sourcepaths,
-          hasLooseClassTarget
+          hasLooseClassTarget,
         )
       ) {
         return true;
       }
       continue;
     }
-    const outputDir = path.join(
-      outputRoot,
-      ...relativeDir.split(/[\\/]+/).filter(Boolean)
-    );
+    const outputDir = path.join(outputRoot, ...relativeDir.split(/[\\/]+/).filter(Boolean));
     if (await hasLooseClassTarget(outputDir)) {
       return true;
     }
@@ -790,18 +847,13 @@ async function hasMappedJavaSourceTreeClassTarget(
   sourceDir: string,
   outputRoot: string,
   sourcepaths: readonly string[] | undefined,
-  hasLooseClassTarget: (targetPath: string) => Promise<boolean>
+  hasLooseClassTarget: (targetPath: string) => Promise<boolean>,
 ): Promise<boolean> {
   return containsMatchingFile(
     sourceDir,
     (sourcePath) =>
       isJavaSourceFile(sourcePath) &&
-      hasJavaSourceClassTarget(
-        sourcePath,
-        outputRoot,
-        sourcepaths,
-        hasLooseClassTarget
-      )
+      hasJavaSourceClassTarget(sourcePath, outputRoot, sourcepaths, hasLooseClassTarget),
   );
 }
 
@@ -816,7 +868,7 @@ async function containsJavaSources(targetPath: string): Promise<boolean> {
 async function isJavaSourceDirectoryPath(
   targetPath: string,
   sourcepaths: readonly string[] | undefined,
-  containsJavaSources: (targetPath: string) => Promise<boolean>
+  containsJavaSources: (targetPath: string) => Promise<boolean>,
 ): Promise<boolean> {
   return (
     deriveRelativeJavaSourceDirectoryPaths(targetPath, sourcepaths).length > 0 &&
@@ -828,7 +880,7 @@ type JavaSourceSet = 'main' | 'test' | 'unknown';
 
 function createJavaSourceOutputSelectionOptions(
   sourcePath: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): OutputFolderSelectionOptions {
   const sourceSet = inferJavaSourceSet(sourcePath, sourcepaths);
   if (sourceSet === 'unknown') {
@@ -836,8 +888,7 @@ function createJavaSourceOutputSelectionOptions(
   }
 
   return {
-    rankCandidate: ({ targetPath }) =>
-      rankOutputFolderForSourceSet(targetPath, sourceSet),
+    rankCandidate: ({ targetPath }) => rankOutputFolderForSourceSet(targetPath, sourceSet),
   };
 }
 
@@ -845,11 +896,10 @@ function orderClassTargetRootsForTarget(
   targetPath: string,
   sourcepaths: readonly string[] | undefined,
   classTargetRoots: readonly string[],
-  isJavaSourceDirectoryTarget = false
+  isJavaSourceDirectoryTarget = false,
 ): string[] {
   if (
-    (!isJavaSourceFile(targetPath) &&
-      !isJavaSourceDirectoryTarget) ||
+    (!isJavaSourceFile(targetPath) && !isJavaSourceDirectoryTarget) ||
     classTargetRoots.length < 2
   ) {
     return [...classTargetRoots];
@@ -857,18 +907,15 @@ function orderClassTargetRootsForTarget(
   const options = createJavaSourceOutputSelectionOptions(targetPath, sourcepaths);
   return orderOutputFolderCandidates(
     classTargetRoots.map((root, index) => ({ targetPath: root, index })),
-    options
+    options,
   ).map((candidate) => candidate.targetPath);
 }
 
 function inferJavaSourceSet(
   sourcePath: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): JavaSourceSet {
-  const sourcepathCandidates = findContainingSourcepathCandidates(
-    sourcePath,
-    sourcepaths
-  );
+  const sourcepathCandidates = findContainingSourcepathCandidates(sourcePath, sourcepaths);
 
   for (const candidate of sourcepathCandidates) {
     const sourceSet = classifyJavaSourcePath(candidate.root);
@@ -882,7 +929,7 @@ function inferJavaSourceSet(
 
 function rankOutputFolderForSourceSet(
   targetPath: string,
-  sourceSet: Exclude<JavaSourceSet, 'unknown'>
+  sourceSet: Exclude<JavaSourceSet, 'unknown'>,
 ): number {
   const outputSet = classifyJavaOutputPath(targetPath);
   if (outputSet === sourceSet) {
@@ -957,28 +1004,23 @@ function normalizeForSourceSet(value: string): string {
 function resolveJavaSourceClassPaths(
   sourcePath: string,
   outputRoot: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): string[] {
-  return deriveRelativeJavaSourcePaths(sourcePath, sourcepaths).map(
-    (relativeSourcePath) => {
-      const extension = path.extname(relativeSourcePath);
-      const relativeClassPath = `${relativeSourcePath.slice(0, -extension.length)}.class`;
-      return path.join(outputRoot, ...relativeClassPath.split(/[\\/]+/).filter(Boolean));
-    }
-  );
+  return deriveRelativeJavaSourcePaths(sourcePath, sourcepaths).map((relativeSourcePath) => {
+    const extension = path.extname(relativeSourcePath);
+    const relativeClassPath = `${relativeSourcePath.slice(0, -extension.length)}.class`;
+    return path.join(outputRoot, ...relativeClassPath.split(/[\\/]+/).filter(Boolean));
+  });
 }
 
 function deriveRelativeJavaSourcePaths(
   sourcePath: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): string[] {
-  const sourcepathCandidates = findContainingSourcepathCandidates(
-    sourcePath,
-    sourcepaths
-  );
+  const sourcepathCandidates = findContainingSourcepathCandidates(sourcePath, sourcepaths);
 
   for (const candidate of sourcepathCandidates) {
-    const relative = path.relative(path.resolve(candidate.root), path.resolve(sourcePath));
+    const relative = relativePath(candidate.root, sourcePath);
     if (relative && path.extname(relative).toLowerCase() === '.java') {
       return [relative];
     }
@@ -993,17 +1035,12 @@ function deriveRelativeJavaSourcePaths(
 
 function deriveRelativeJavaSourceDirectoryPaths(
   sourceDir: string,
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): string[] {
-  const sourcepathCandidates = findContainingSourcepathCandidates(
-    sourceDir,
-    sourcepaths
-  );
+  const sourcepathCandidates = findContainingSourcepathCandidates(sourceDir, sourcepaths);
 
   for (const candidate of sourcepathCandidates) {
-    return [
-      path.relative(path.resolve(candidate.root), path.resolve(sourceDir)),
-    ];
+    return [relativePath(candidate.root, sourceDir)];
   }
 
   const markerCandidate = deriveMarkerRelativeJavaSourceDirectoryPath(sourceDir);
@@ -1011,7 +1048,7 @@ function deriveRelativeJavaSourceDirectoryPaths(
 }
 
 function normalizeSourcepathCandidates(
-  sourcepaths: readonly string[] | undefined
+  sourcepaths: readonly string[] | undefined,
 ): Array<{ root: string; index: number }> {
   const result: Array<{ root: string; index: number }> = [];
   const seen = new Set<string>();
@@ -1020,11 +1057,12 @@ function normalizeSourcepathCandidates(
     if (!trimmed) {
       continue;
     }
-    const root = path.resolve(trimmed);
-    if (seen.has(root)) {
+    const root = trimmed;
+    const key = pathComparisonKey(root);
+    if (seen.has(key)) {
       continue;
     }
-    seen.add(root);
+    seen.add(key);
     result.push({ root, index });
   }
   return result;
@@ -1047,9 +1085,7 @@ function deriveMarkerRelativeJavaSourcePath(sourcePath: string): string | undefi
   return undefined;
 }
 
-function deriveMarkerRelativeJavaSourceDirectoryPath(
-  sourceDir: string
-): string | undefined {
+function deriveMarkerRelativeJavaSourceDirectoryPath(sourceDir: string): string | undefined {
   const normalized = normalizeForSourceSet(sourceDir);
   const markers = ['/src/main/java', '/src/test/java', '/src/java', '/src'];
   for (const marker of markers) {
@@ -1059,10 +1095,7 @@ function deriveMarkerRelativeJavaSourceDirectoryPath(
       return normalized.substring(markerIndex + markerWithChild.length);
     }
     const exactMarkerIndex = normalized.indexOf(marker);
-    if (
-      exactMarkerIndex >= 0 &&
-      exactMarkerIndex + marker.length === normalized.length
-    ) {
+    if (exactMarkerIndex >= 0 && exactMarkerIndex + marker.length === normalized.length) {
       return '';
     }
   }
@@ -1077,30 +1110,12 @@ function deriveMarkerRelativeJavaSourceDirectoryPath(
   return undefined;
 }
 
-function uniquePaths(paths: Array<string | undefined>): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const candidate of paths) {
-    if (!candidate) {
-      continue;
-    }
-    const key = path.resolve(candidate);
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    result.push(candidate);
-  }
-  return result;
+function canQueryMetadataDirectly(targetPath: string): boolean {
+  const extension = path.extname(targetPath).toLowerCase();
+  return extension !== '.jar' && extension !== '.zip';
 }
 
-function isPathInsideOrEqual(parentPath: string, candidatePath: string): boolean {
-  const relative = path.relative(path.resolve(parentPath), path.resolve(candidatePath));
-  return (
-    relative === '' ||
-    (relative.length > 0 &&
-      relative !== '..' &&
-      !relative.startsWith(`..${path.sep}`) &&
-      !path.isAbsolute(relative))
-  );
+function isArchivePath(targetPath: string): boolean {
+  const extension = path.extname(targetPath).toLowerCase();
+  return extension === '.jar' || extension === '.zip';
 }

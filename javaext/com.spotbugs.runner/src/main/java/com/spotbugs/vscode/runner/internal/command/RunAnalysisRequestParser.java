@@ -1,5 +1,12 @@
 package com.spotbugs.vscode.runner.internal.command;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.spotbugs.vscode.runner.internal.AnalysisInput;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.spotbugs.vscode.runner.api.ConfigError;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 import com.spotbugs.vscode.runner.internal.config.ConfigParseResult;
@@ -45,7 +52,26 @@ final class RunAnalysisRequestParser {
             throw configFailure(validationResult.getError());
         }
         return new RunAnalysisRequest(targetPath, validationResult.getConfig(),
-                Boolean.TRUE.equals(schema.getIncludeBaselineXml()));
+                Boolean.TRUE.equals(schema.getIncludeBaselineXml()), parseInputs(configJson));
+    }
+
+    private AnalysisInput[] parseInputs(String json) throws AbstractCommandAction.CommandActionException {
+        try {
+            JsonElement inputs = JsonParser.parseString(json).getAsJsonObject().get("inputs");
+            if (inputs == null || !inputs.isJsonArray() || inputs.getAsJsonArray().size() == 0) throw new IllegalArgumentException();
+            List<AnalysisInput> result = new ArrayList<>();
+            for (JsonElement element : inputs.getAsJsonArray()) {
+                JsonObject input = element.getAsJsonObject();
+                if (!input.get("path").isJsonPrimitive() || !input.get("path").getAsJsonPrimitive().isString()
+                        || !input.get("kind").isJsonPrimitive() || !input.get("kind").getAsJsonPrimitive().isString()) throw new IllegalArgumentException();
+                String kind = input.get("kind").getAsString();
+                if (!kind.equals("source") && !kind.equals("artifact")) throw new IllegalArgumentException();
+                result.add(new AnalysisInput(kind.equals("source") ? AnalysisInput.Kind.SOURCE : AnalysisInput.Kind.ARTIFACT, input.get("path").getAsString()));
+            }
+            return result.toArray(new AnalysisInput[0]);
+        } catch (RuntimeException error) {
+            throw new AbstractCommandAction.CommandActionException("INVALID_ARGUMENT", "Analysis requires non-empty inputs with source/artifact kind and path");
+        }
     }
 
     private AbstractCommandAction.CommandActionException configFailure(ConfigError error) {
