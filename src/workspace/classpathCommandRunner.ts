@@ -188,19 +188,16 @@ async function loadSettings(
   options: ClasspathLookupOptions
 ): Promise<{ settings: ProjectSettings; issue?: AnalysisResolutionIssue }> {
   try {
-    const raw = await requestJavaProjectSettings(
-      uri,
-      [SOURCE_PATHS, OUTPUT_PATH, CLASSPATH_ENTRIES],
-      token
-    );
+    const snapshot = await requestJavaProjectSettings(uri, token);
     throwIfCancelled(token);
+    const raw = snapshot?.settings;
     if (!record(raw)) {
       return {
         settings: { sourceOutputs: [] },
         issue: settingsIssue('Java project settings returned no usable result.'),
       };
     }
-    const normalized = normalizeSettings(raw);
+    const normalized = normalizeSettings(raw, snapshot!.declaredSourceOutputs);
     return {
       settings: normalized.settings,
       ...(normalized.complete
@@ -221,7 +218,7 @@ async function loadSettings(
   }
 }
 
-function normalizeSettings(raw: Record<string, unknown>): {
+function normalizeSettings(raw: Record<string, unknown>, declaredSourceOutputs: Record<string, string>): {
   settings: ProjectSettings;
   complete: boolean;
 } {
@@ -247,17 +244,10 @@ function normalizeSettings(raw: Record<string, unknown>): {
       test: conventionalScope(sourcepath) === 'test',
     });
   }
-  // Keep the existing candidate/scope selection above unchanged. JDT CPE_SOURCE
-  // is 3; use its per-source output only after selection, never to reclassify it.
-  if (Array.isArray(entries)) {
-    for (const entry of entries) {
-      if (!record(entry) || entry.kind !== 3) continue;
-      const sourcepath = text(entry.path);
-      const output = text(entry.output);
-      if (!sourcepath || !output) continue;
-      const source = sourceOutputs.find((candidate) => samePath(candidate.sourcepath, sourcepath));
-      if (source) source.declaredOutput = output;
-    }
+  // Selection still uses the legacy output; Java's declared output is applied only afterwards.
+  for (const [sourcepath, output] of Object.entries(declaredSourceOutputs)) {
+    const source = sourceOutputs.find((candidate) => samePath(candidate.sourcepath, sourcepath));
+    if (source) source.declaredOutput = output;
   }
   return {
     settings: { defaultOutput, sourceOutputs },

@@ -13,6 +13,7 @@ import com.spotbugs.vscode.runner.api.CommandResponse;
 import com.spotbugs.vscode.runner.internal.command.AbstractCommandAction;
 import com.spotbugs.vscode.runner.internal.command.PluginInventoryAction;
 import com.spotbugs.vscode.runner.internal.command.RunAnalysisAction;
+import com.spotbugs.vscode.runner.internal.command.ProjectSettingsAction;
 
 public class DelegateCommandHandler implements IDelegateCommandHandler {
 
@@ -41,6 +42,7 @@ public class DelegateCommandHandler implements IDelegateCommandHandler {
         Map<String, AbstractCommandAction> map = new HashMap<>();
         register(map, new RunAnalysisAction());
         register(map, new PluginInventoryAction());
+        register(map, new ProjectSettingsAction());
         return Collections.unmodifiableMap(map);
     }
 

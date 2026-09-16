@@ -1,5 +1,6 @@
 import { commands, type CancellationToken } from 'vscode';
-import { JavaLanguageServerCommands } from '../constants/commands';
+import { JavaLanguageServerCommands, SpotBugsLSCommands } from '../constants/commands';
+import { decodeCommandResponseEnvelope } from './commandResponseEnvelope';
 
 export interface JavaLsClasspathResponse {
   projectRoot: string;
@@ -7,7 +8,10 @@ export interface JavaLsClasspathResponse {
   modulepaths: string[];
 }
 
-export type JavaLsProjectSettingsResponse = Record<string, unknown>;
+export interface JavaLsProjectSettingsResponse {
+  settings: Record<string, unknown>;
+  declaredSourceOutputs: Record<string, string>;
+}
 
 export async function executeWorkspaceCommand<T>(
   command: string,
@@ -35,15 +39,26 @@ export async function requestJavaClasspaths(
 
 export async function requestJavaProjectSettings(
   uri: string,
-  settingKeys: string[],
   token?: CancellationToken
 ): Promise<JavaLsProjectSettingsResponse | undefined> {
-  return executeWorkspaceCommand<JavaLsProjectSettingsResponse>(
-    JavaLanguageServerCommands.GET_PROJECT_SETTINGS,
+  const response = await executeWorkspaceCommand<unknown>(
+    SpotBugsLSCommands.PROJECT_SETTINGS,
     uri,
-    settingKeys,
     ...(token ? [token] : [])
   );
+  if (response === undefined || response === null) return undefined;
+  const decoded = decodeCommandResponseEnvelope(typeof response === 'string' ? JSON.parse(response) : response);
+  if (!decoded) throw new Error('Invalid Java project settings response.');
+  if (decoded.errors?.length) throw new Error(decoded.errors.map((error) => error.message ?? error.code).join('; '));
+  const value = decoded.results?.[0];
+  const record = (input: unknown): input is Record<string, unknown> =>
+    !!input && typeof input === 'object' && !Array.isArray(input);
+  if (decoded.results?.length !== 1 || !record(value) || !record(value.settings)
+      || !record(value.declaredSourceOutputs)
+      || !Object.values(value.declaredSourceOutputs).every((output) => typeof output === 'string' && output.trim())) {
+    throw new Error('Invalid Java project settings snapshot.');
+  }
+  return value as unknown as JavaLsProjectSettingsResponse;
 }
 
 export async function requestJavaIsTestFile(

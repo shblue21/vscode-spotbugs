@@ -5,6 +5,7 @@
     <delegateCommandHandler class="com.spotbugs.vscode.runner.DelegateCommandHandler">
       <command id="java.spotbugs.run"/>
       <command id="java.spotbugs.plugins.inventory"/>
+      <command id="java.spotbugs.project.settings"/>
     </delegateCommandHandler>
   </extension>
 </plugin>

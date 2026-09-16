@@ -14,6 +14,10 @@ function loadService() {
   return { gateway, service };
 }
 
+function snapshot(settings: Record<string, unknown>, declaredSourceOutputs: Record<string, string> = {}) {
+  return { settings, declaredSourceOutputs };
+}
+
 describe('Java classpath contract', () => {
   beforeEach(() => {
     installVscodeMock();
@@ -39,11 +43,6 @@ describe('Java classpath contract', () => {
     const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
 
     await gateway.requestJavaClasspaths('file:///workspace/project', 'test', token);
-    await gateway.requestJavaProjectSettings(
-      'file:///workspace/project',
-      ['source', 'output'],
-      token
-    );
     await gateway.requestJavaIsTestFile('file:///workspace/Test.java', token);
     await gateway.requestAllJavaProjects(token);
 
@@ -53,13 +52,6 @@ describe('Java classpath contract', () => {
         'java.project.getClasspaths',
         'file:///workspace/project',
         '{"scope":"test"}',
-        token,
-      ],
-      [
-        'java.execute.workspaceCommand',
-        'java.project.getSettings',
-        'file:///workspace/project',
-        ['source', 'output'],
         token,
       ],
       [
@@ -107,12 +99,12 @@ describe('Java classpath contract', () => {
     };
     gateway.requestJavaProjectSettings = async (uri) =>
       uri.endsWith('.class')
-        ? {
+        ? snapshot({
             'org.eclipse.jdt.ls.core.sourcePaths': ['/wrong/source'],
             'org.eclipse.jdt.ls.core.outputPath': '/wrong/output',
             'org.eclipse.jdt.ls.core.classpathEntries': [],
-          }
-        : settings;
+          })
+        : snapshot(settings);
 
     const main = await service.getClasspathsOutcome(
       'file:///workspace/project/src/main/java/demo/Main.java'
@@ -160,7 +152,11 @@ describe('Java classpath contract', () => {
     const settings = JSON.parse(fs.readFileSync(
       path.resolve(__dirname, '../../src/test/fixtures/jdt-project-settings.json'), 'utf8',
     ));
-    gateway.requestJavaProjectSettings = async () => settings;
+    gateway.requestJavaProjectSettings = async () => snapshot(settings, {
+      '/workspace/project/src/main/java/nested': '/workspace/project/custom/nested',
+      '/workspace/project/src/test/java': '/workspace/project/custom/test',
+      '/workspace/project/generated/java': '/workspace/project/custom/generated',
+    });
     gateway.requestJavaIsTestFile = async (uri) => uri.includes('/src/test/');
     gateway.requestJavaClasspaths = async () => ({
       projectRoot: 'file:///workspace/project', classpaths: ['/deps/library.jar'], modulepaths: [],
@@ -185,13 +181,16 @@ describe('Java classpath contract', () => {
 
   it('preserves existing source selection even when JDT test attributes disagree with path conventions', async () => {
     const { gateway, service } = loadService();
-    gateway.requestJavaProjectSettings = async () => ({
+    gateway.requestJavaProjectSettings = async () => snapshot({
       'org.eclipse.jdt.ls.core.outputPath': '/workspace/project/bin',
       'org.eclipse.jdt.ls.core.sourcePaths': ['/workspace/project/src/test/java', '/workspace/project/custom-source'],
       'org.eclipse.jdt.ls.core.classpathEntries': [
         { kind: 3, path: '/workspace/project/src/test/java', output: '/workspace/project/test-out', attributes: {} },
         { kind: 3, path: '/workspace/project/custom-source', output: '/workspace/project/custom-out', attributes: { test: 'true' } },
       ],
+    }, {
+      '/workspace/project/src/test/java': '/workspace/project/test-out',
+      '/workspace/project/custom-source': '/workspace/project/custom-out',
     });
     gateway.requestJavaClasspaths = async () => ({
       projectRoot: 'file:///workspace/project', classpaths: [], modulepaths: [],
@@ -206,9 +205,14 @@ describe('Java classpath contract', () => {
 
   it('retains the existing Gradle project selection while preserving declared outputs', async () => {
     const { gateway, service } = loadService();
-    gateway.requestJavaProjectSettings = async () => JSON.parse(fs.readFileSync(
+    gateway.requestJavaProjectSettings = async () => snapshot(JSON.parse(fs.readFileSync(
       path.resolve(__dirname, '../../src/test/fixtures/jdt-gradle-project-settings.json'), 'utf8',
-    ));
+    )), {
+      '/workspace/project/src/main/java': '/workspace/project/bin/main',
+      '/workspace/project/generated/java': '/workspace/project/bin/main',
+      '/workspace/project/src/test/java': '/workspace/project/bin/test',
+      '/workspace/project/src/integrationTest/java': '/workspace/project/bin/integrationTest',
+    });
     gateway.requestJavaClasspaths = async () => ({
       projectRoot: 'file:///workspace/project', classpaths: [], modulepaths: [],
     });
@@ -266,7 +270,7 @@ describe('Java classpath contract', () => {
       ]);
     }
 
-    gateway.requestJavaProjectSettings = async () => ({
+    gateway.requestJavaProjectSettings = async () => snapshot({
       'org.eclipse.jdt.ls.core.outputPath': '/workspace/project-b/test-output',
       'org.eclipse.jdt.ls.core.classpathEntries': [
         {
