@@ -42,6 +42,7 @@ export namespace SpotBugsCommands {
 // Java Language Server delegate command IDs (handled by the JDT LS plugin)
 export namespace SpotBugsLSCommands {
   export const PROJECT_SETTINGS: string = 'java.spotbugs.project.settings';
-  export const RUN_ANALYSIS: string = 'java.spotbugs.run';
+  export const ANALYZE_SOURCES: string = 'java.spotbugs.analyzeSources';
+  export const ANALYZE_ARTIFACTS: string = 'java.spotbugs.analyzeArtifacts';
   export const PLUGIN_INVENTORY: string = 'java.spotbugs.plugins.inventory';
 }

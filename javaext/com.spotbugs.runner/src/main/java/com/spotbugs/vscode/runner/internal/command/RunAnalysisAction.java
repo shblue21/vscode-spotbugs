@@ -3,44 +3,42 @@ package com.spotbugs.vscode.runner.internal.command;
 import com.spotbugs.vscode.runner.api.CommandResponse;
 import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
 import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
 
 /**
- * Handles the {@code java.spotbugs.run} workspace command by invoking SpotBugs analysis
- * on the requested target path.
+ * Shared execution and response handling for the source and artifact command boundaries.
  */
 public final class RunAnalysisAction extends AbstractCommandAction {
 
-    private static final String COMMAND_ID = "java.spotbugs.run";
     private static final String ERROR_ANALYSIS_FAILED = "ANALYSIS_FAILED";
     private static final String ERROR_ANALYSIS_CANCELLED = "ANALYSIS_CANCELLED";
 
     private final RunAnalysisRequestParser requestParser;
+    private final AnalysisInput.Kind expectedKind;
     private final AnalysisPipeline pipeline;
     private final RunAnalysisStatsBuilder statsBuilder = new RunAnalysisStatsBuilder();
 
-    public RunAnalysisAction() {
-        this(new ConfigParser(), new ConfigValidator(), AnalyzerService::new);
+    public RunAnalysisAction(AnalysisInput.Kind expectedKind) {
+        this(expectedKind, new ConfigParser(), new ConfigValidator(), AnalyzerService::new);
     }
 
-    RunAnalysisAction(ConfigParser parser, ConfigValidator validator) {
-        this(parser, validator, AnalyzerService::new);
+    RunAnalysisAction(AnalysisInput.Kind expectedKind, AnalyzerServiceFactory analyzerFactory) {
+        this(expectedKind, new ConfigParser(), new ConfigValidator(), analyzerFactory);
     }
 
-    RunAnalysisAction(AnalyzerServiceFactory analyzerFactory) {
-        this(new ConfigParser(), new ConfigValidator(), analyzerFactory);
-    }
-
-    RunAnalysisAction(ConfigParser parser, ConfigValidator validator, AnalyzerServiceFactory analyzerFactory) {
+    RunAnalysisAction(AnalysisInput.Kind expectedKind, ConfigParser parser, ConfigValidator validator, AnalyzerServiceFactory analyzerFactory) {
+        this.expectedKind = java.util.Objects.requireNonNull(expectedKind, "expectedKind");
         this.requestParser = new RunAnalysisRequestParser(parser, validator);
         this.pipeline = new AnalysisPipeline(analyzerFactory);
     }
 
     @Override
     public String id() {
-        return COMMAND_ID;
+        return expectedKind == AnalysisInput.Kind.SOURCE
+                ? "java.spotbugs.analyzeSources" : "java.spotbugs.analyzeArtifacts";
     }
 
     @Override
@@ -56,6 +54,12 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     @Override
     protected CommandResponse run(ActionContext context) throws Exception {
         RunAnalysisRequest request = requestParser.parse(context);
+        for (AnalysisInput input : request.getInputs()) {
+            if (input.kind != expectedKind) {
+                throw new CommandActionException("INVALID_ARGUMENT",
+                        id() + " requires only " + expectedKind.name().toLowerCase(java.util.Locale.ROOT) + " inputs");
+            }
+        }
         String targetPath = request.getTargetPath();
         AnalysisConfig config = request.getConfig();
 
