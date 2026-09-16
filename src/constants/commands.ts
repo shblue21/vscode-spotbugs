@@ -16,8 +16,10 @@ export enum JavaCompileWorkspaceStatus {
 
 // VS Code command IDs owned by this extension (used in menus/UI)
 export namespace SpotBugsCommands {
-  export const RUN_ANALYSIS: string = 'spotbugs.run';
-  export const RUN_WORKSPACE: string = 'spotbugs.runWorkspace';
+  export const ANALYZE_SOURCE: string = 'spotbugs.analyzeSource';
+  export const ANALYZE_ARTIFACTS: string = 'spotbugs.analyzeArtifacts';
+  export const ANALYZE_PROJECT: string = 'spotbugs.analyzeProject';
+  export const ANALYZE_WORKSPACE: string = 'spotbugs.analyzeWorkspace';
   export const REVEAL_FINDING_SOURCE: string = 'spotbugs.revealFindingSource';
   export const OPEN_FINDING_DETAILS: string = 'spotbugs.openFindingDetails';
   export const SUPPRESS_FINDINGS: string = 'spotbugs.suppressFindings';

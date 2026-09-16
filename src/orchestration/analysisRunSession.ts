@@ -30,19 +30,12 @@ export interface AnalysisProgressReporter {
 }
 
 export type AnalysisProgressRunner = (
-  task: (
-    progress: AnalysisProgressReporter,
-    token: CancellationToken
-  ) => Promise<void>
+  task: (progress: AnalysisProgressReporter, token: CancellationToken) => Promise<void>,
 ) => Promise<void>;
 
 export interface FileAnalysisSessionTree {
   showLoading(): void;
-  showResults(
-    findings: Finding[],
-    resource: Uri,
-    reportRun?: AnalysisReportRun
-  ): void;
+  showResults(findings: Finding[], resource: Uri, reportRun?: AnalysisReportRun | AnalysisReportRun[]): void;
   showAnalysisFailure(message: string, code?: string): void;
 }
 
@@ -52,7 +45,7 @@ export interface WorkspaceAnalysisSessionTree {
   updateProjectStatus(
     uriString: string,
     status: 'pending' | 'running' | 'done' | 'failed' | 'skipped',
-    extra?: { count?: number; error?: string }
+    extra?: { count?: number; error?: string },
   ): void;
   showWorkspaceCancelled(): void;
   showWorkspaceResults(projectResults: ProjectResult[], workspaceFolder: Uri): void;
@@ -73,20 +66,21 @@ export interface AnalysisSessionDependencies {
   analyzeFileDetailed(
     config: Config,
     uri: Uri,
-    token?: CancellationToken
+    token?: CancellationToken,
+    kind?: 'source' | 'artifact' | 'project',
   ): Promise<AnalysisExecutionResult>;
   analyzeWorkspaceFromProjectsDetailed(
     config: Config,
     workspaceFolder: Uri,
     projectUris: string[],
     notify?: WorkspaceProgressCallbacks,
-    token?: CancellationToken
+    token?: CancellationToken,
   ): Promise<WorkspaceExecutionResult>;
   buildWorkspaceAuto(token?: CancellationToken): Promise<number | undefined>;
   getPrimaryWorkspaceFolder(): WorkspaceFolder | undefined;
   getWorkspaceProjectDiscovery(
     workspaceFolder: Uri,
-    token?: CancellationToken
+    token?: CancellationToken,
   ): Promise<WorkspaceProjectDiscoveryResult>;
   logger: AnalysisLogger;
   now(): number;
@@ -99,6 +93,7 @@ export interface RunFileAnalysisSessionArgs {
   notifier: Notifier;
   uri: Uri;
   startedAtMs: number;
+  analysisKind?: 'source' | 'artifact' | 'project';
   lease: AnalysisRunLease;
   dependencies: AnalysisSessionDependencies;
 }
@@ -113,205 +108,190 @@ export interface RunWorkspaceAnalysisSessionArgs {
   dependencies: AnalysisSessionDependencies;
 }
 
-export async function runFileAnalysisSession(
-  args: RunFileAnalysisSessionArgs
-): Promise<void> {
+async function runFileBody(args: RunFileAnalysisSessionArgs): Promise<void> {
   const { dependencies } = args;
   if (!args.lease.isCurrent()) {
     return;
   }
   args.tree.showLoading();
 
-  try {
-    const result = await dependencies.analyzeFileDetailed(
-      args.config,
-      args.uri,
-      args.lease.token
-    );
-    if (!args.lease.isCurrent()) {
+  if (args.analysisKind === 'project') {
+    const build = await dependencies.buildWorkspaceAuto(args.lease.token);
+    if (!args.lease.isCurrent()) return;
+    if (
+      args.lease.token?.isCancellationRequested ||
+      build === JavaCompileWorkspaceStatus.cancelled
+    ) {
+      args.tree.showAnalysisFailure('Analysis cancelled', ERROR_ANALYSIS_CANCELLED);
       return;
     }
-    const outcome = result.outcome;
-    const findings = outcome.findings;
-
-    if (outcome.failure) {
-      args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
-    } else {
-      args.tree.showResults(
-        findings,
-        args.uri,
-        {
-          projectUri: args.uri.toString(),
-          findings,
-          spotbugsVersion: outcome.stats?.spotbugsVersion,
-          summary: outcome.reportSummary,
-          nativeSarif: outcome.nativeSarif,
-        }
-      );
-      args.diagnostics.replaceForScope(
-        result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },
-        findings
-      );
-    }
-
-    emitNotices(
-      args.notifier,
-      buildAnalysisNotices(outcome, {
-        includeHints: true,
-        resolutionIssues: result.context.resolutionIssues,
-      })
-    );
-
-    dependencies.logger.log(
-      `File analysis finished: elapsedMs=${dependencies.now() - args.startedAtMs}, file=${args.uri.fsPath}, findings=${findings.length}`
-    );
-  } catch (error) {
-    const errorMessage = messageFromUnknown(error);
-    const failureMessage = `SpotBugs analysis failed: ${errorMessage}`;
-    dependencies.logger.error('An error occurred during SpotBugs analysis', error);
-    if (!args.lease.isCurrent()) {
-      return;
-    }
-    args.notifier.error(failureMessage);
-    args.tree.showAnalysisFailure(failureMessage, 'ANALYSIS_FAILED');
   }
+
+  const result = await dependencies.analyzeFileDetailed(
+    args.config,
+    args.uri,
+    args.lease.token,
+    ...(args.analysisKind ? ([args.analysisKind] as const) : []),
+  );
+  if (!args.lease.isCurrent()) {
+    return;
+  }
+  const outcome = result.outcome;
+  const findings = outcome.findings;
+
+  if (outcome.failure) {
+    args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
+  } else {
+    args.tree.showResults(findings, args.uri, result.reportRuns ?? {
+      projectUri: args.uri.toString(),
+      findings,
+      spotbugsVersion: outcome.stats?.spotbugsVersion,
+      summary: outcome.reportSummary,
+      nativeSarif: outcome.nativeSarif,
+    });
+    args.diagnostics.replaceForScope(
+      result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },
+      findings,
+    );
+  }
+
+  emitNotices(
+    args.notifier,
+    buildAnalysisNotices(outcome, {
+      includeHints: true,
+      resolutionIssues: result.context.resolutionIssues,
+    }),
+  );
+
+  dependencies.logger.log(
+    `File analysis finished: elapsedMs=${dependencies.now() - args.startedAtMs}, file=${args.uri.fsPath}, findings=${findings.length}`,
+  );
 }
 
-export async function runWorkspaceAnalysisSession(
-  args: RunWorkspaceAnalysisSessionArgs
-): Promise<void> {
+async function runWorkspaceBody(args: RunWorkspaceAnalysisSessionArgs): Promise<void> {
   const { dependencies } = args;
   if (!args.lease.isCurrent()) {
     return;
   }
-  try {
-    let aggregated: Finding[] = [];
-    let projectResults: ProjectResult[] = [];
-    let resolutionIssues: AnalysisResolutionIssue[] = [];
-    let cleanupWarnings: ProjectCleanupWarning[] = [];
-    let workspaceFolderUri: Uri | undefined;
-    let cancelled = false;
 
-    await args.runWithProgress(async (progress, token) => {
-      if (!args.lease.isCurrent()) {
-        return;
-      }
-      progress.report({ message: 'Building Java workspace...' });
-      const buildResult = await dependencies.buildWorkspaceAuto(token);
-      if (!args.lease.isCurrent()) {
-        return;
-      }
-      if (
-        token.isCancellationRequested ||
-        buildResult === JavaCompileWorkspaceStatus.cancelled
-      ) {
-        cancelled = true;
-        return;
-      }
-      if (buildResult !== undefined && buildResult !== 0) {
-        dependencies.logger.log(
-          `Java workspace build returned non-zero (${String(
-            buildResult
-          )}). Proceeding with best-effort analysis...`
-        );
-      }
+  let aggregated: Finding[] = [];
+  let projectResults: ProjectResult[] = [];
+  let resolutionIssues: AnalysisResolutionIssue[] = [];
+  let cleanupWarnings: ProjectCleanupWarning[] = [];
+  let workspaceFolderUri: Uri | undefined;
+  let cancelled = false;
 
-      const wsFolder = dependencies.getPrimaryWorkspaceFolder();
-      if (!wsFolder) {
-        dependencies.logger.error('No workspace folder found.');
-        throw new Error('No workspace folder found.');
-      }
-      workspaceFolderUri = wsFolder.uri;
+  await args.runWithProgress(async (progress, token) => {
+    if (!args.lease.isCurrent()) {
+      return;
+    }
+    progress.report({ message: 'Building Java workspace...' });
+    const buildResult = await dependencies.buildWorkspaceAuto(token);
+    if (!args.lease.isCurrent()) {
+      return;
+    }
+    if (token.isCancellationRequested || buildResult === JavaCompileWorkspaceStatus.cancelled) {
+      cancelled = true;
+      return;
+    }
+    if (buildResult !== undefined && buildResult !== 0) {
+      dependencies.logger.log(
+        `Java workspace build returned non-zero (${String(
+          buildResult,
+        )}). Proceeding with best-effort analysis...`,
+      );
+    }
 
-      let discovery: WorkspaceProjectDiscoveryResult;
-      try {
-        discovery = await dependencies.getWorkspaceProjectDiscovery(
-          wsFolder.uri,
-          token
-        );
-      } catch (error) {
-        if (token.isCancellationRequested) {
-          cancelled = true;
-          return;
-        }
-        throw error;
-      }
-      if (!args.lease.isCurrent()) {
-        return;
-      }
+    const wsFolder = dependencies.getPrimaryWorkspaceFolder();
+    if (!wsFolder) {
+      dependencies.logger.error('No workspace folder found.');
+      throw new Error('No workspace folder found.');
+    }
+    workspaceFolderUri = wsFolder.uri;
+
+    let discovery: WorkspaceProjectDiscoveryResult;
+    try {
+      discovery = await dependencies.getWorkspaceProjectDiscovery(wsFolder.uri, token);
+    } catch (error) {
       if (token.isCancellationRequested) {
         cancelled = true;
         return;
       }
-      args.tree.showWorkspaceProgress(discovery.projectUris);
+      throw error;
+    }
+    if (!args.lease.isCurrent()) {
+      return;
+    }
+    if (token.isCancellationRequested) {
+      cancelled = true;
+      return;
+    }
+    args.tree.showWorkspaceProgress(discovery.projectUris);
 
-      const res = await dependencies.analyzeWorkspaceFromProjectsDetailed(
-        args.config,
-        wsFolder.uri,
-        discovery.projectUris,
-        {
-          onStart: (uriString, index, total) => {
-            if (!args.lease.isCurrent()) {
-              return;
-            }
-            progress.report({ message: `${index}/${total} ${uriString}` });
-            args.tree.updateProjectStatus(uriString, 'running');
-          },
-          onDone: (uriString, count) => {
-            if (args.lease.isCurrent()) {
-              args.tree.updateProjectStatus(uriString, 'done', { count });
-            }
-          },
-          onFail: (uriString, message) => {
-            if (args.lease.isCurrent()) {
-              args.tree.updateProjectStatus(uriString, 'failed', { error: message });
-            }
-          },
+    const res = await dependencies.analyzeWorkspaceFromProjectsDetailed(
+      args.config,
+      wsFolder.uri,
+      discovery.projectUris,
+      {
+        onStart: (uriString, index, total) => {
+          if (!args.lease.isCurrent()) {
+            return;
+          }
+          progress.report({ message: `${index}/${total} ${uriString}` });
+          args.tree.updateProjectStatus(uriString, 'running');
         },
-        token
-      );
-
-      if (!args.lease.isCurrent()) {
-        return;
-      }
-      projectResults = res.results;
-      aggregated = res.results.flatMap((result) => result.findings);
-      resolutionIssues = [...discovery.issues, ...res.context.resolutionIssues];
-      cleanupWarnings = res.context.cleanupWarnings ?? [];
-      cancelled =
-        res.cancelled === true ||
-        token.isCancellationRequested ||
-        res.results.some(isAnalysisCancelledProjectResult);
-    });
+        onDone: (uriString, count) => {
+          if (args.lease.isCurrent()) {
+            args.tree.updateProjectStatus(uriString, 'done', { count });
+          }
+        },
+        onFail: (uriString, message) => {
+          if (args.lease.isCurrent()) {
+            args.tree.updateProjectStatus(uriString, 'failed', { error: message });
+          }
+        },
+      },
+      token,
+    );
 
     if (!args.lease.isCurrent()) {
       return;
     }
-    if (cancelled) {
-      args.tree.showWorkspaceCancelled();
-      return;
-    }
-    if (!workspaceFolderUri) {
-      throw new Error('No workspace folder found.');
-    }
+    projectResults = res.results;
+    aggregated = res.results.flatMap((result) => result.findings);
+    resolutionIssues = [...discovery.issues, ...res.context.resolutionIssues];
+    cleanupWarnings = res.context.cleanupWarnings ?? [];
+    cancelled =
+      res.cancelled === true ||
+      token.isCancellationRequested ||
+      res.results.some(isAnalysisCancelledProjectResult);
+  });
 
-    args.tree.showWorkspaceResults(projectResults, workspaceFolderUri);
-    if (projectResults.every((result) => !result.error)) {
-      args.diagnostics.replaceAll(aggregated);
-    }
-
-    emitNotices(
-      args.notifier,
-      buildWorkspaceCompletionNotices(
-        projectResults,
-        aggregated.length,
-        resolutionIssues,
-        cleanupWarnings
-      )
-    );
-  } catch (error) {
-    renderWorkspaceAnalysisFailure(args, error);
+  if (!args.lease.isCurrent()) {
+    return;
   }
+  if (cancelled) {
+    args.tree.showWorkspaceCancelled();
+    return;
+  }
+  if (!workspaceFolderUri) {
+    throw new Error('No workspace folder found.');
+  }
+
+  args.tree.showWorkspaceResults(projectResults, workspaceFolderUri);
+  if (projectResults.every((result) => !result.error)) {
+    args.diagnostics.replaceAll(aggregated);
+  }
+
+  emitNotices(
+    args.notifier,
+    buildWorkspaceCompletionNotices(
+      projectResults,
+      aggregated.length,
+      resolutionIssues,
+      cleanupWarnings,
+    ),
+  );
 }
 
 export function messageFromUnknown(error: unknown): string {
@@ -336,7 +316,7 @@ function emitNotices(notifier: Notifier, notices: AnalysisNotice[]): void {
 
 function renderWorkspaceAnalysisFailure(
   args: RunWorkspaceAnalysisSessionArgs,
-  error: unknown
+  error: unknown,
 ): void {
   const errorMessage = messageFromUnknown(error);
   args.dependencies.logger.error('An error occurred during workspace analysis', error);
@@ -346,10 +326,42 @@ function renderWorkspaceAnalysisFailure(
   args.notifier.error(`SpotBugs: Workspace analysis failed - ${errorMessage}`);
   args.tree.showAnalysisFailure(
     `SpotBugs workspace analysis failed: ${errorMessage}`,
-    'WORKSPACE_ANALYSIS_FAILED'
+    'WORKSPACE_ANALYSIS_FAILED',
   );
 }
 
 function isAnalysisCancelledProjectResult(result: ProjectResult): boolean {
   return result.errorCode === ERROR_ANALYSIS_CANCELLED;
+}
+
+/** Shared lease and terminal-failure boundary; scope-specific functions only prepare/present. */
+export async function runAnalysisSession(
+  args:
+    | { kind: 'resource'; value: RunFileAnalysisSessionArgs }
+    | { kind: 'workspace'; value: RunWorkspaceAnalysisSessionArgs },
+): Promise<void> {
+  const value = args.value;
+  if (!value.lease.isCurrent()) return;
+  try {
+    if (args.kind === 'resource') await runFileBody(args.value);
+    else await runWorkspaceBody(args.value);
+  } catch (error) {
+    if (args.kind === 'workspace') {
+      renderWorkspaceAnalysisFailure(args.value, error);
+      return;
+    }
+    const failureMessage = 'SpotBugs analysis failed: ' + messageFromUnknown(error);
+    value.dependencies.logger.error('An error occurred during SpotBugs analysis', error);
+    if (!value.lease.isCurrent()) return;
+    value.notifier.error(failureMessage);
+    value.tree.showAnalysisFailure(failureMessage, 'ANALYSIS_FAILED');
+  }
+}
+
+export function runFileAnalysisSession(args: RunFileAnalysisSessionArgs): Promise<void> {
+  return runAnalysisSession({ kind: 'resource', value: args });
+}
+
+export function runWorkspaceAnalysisSession(args: RunWorkspaceAnalysisSessionArgs): Promise<void> {
+  return runAnalysisSession({ kind: 'workspace', value: args });
 }

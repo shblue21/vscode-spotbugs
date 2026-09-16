@@ -68,6 +68,16 @@ export class SpotBugsDiagnosticsManager {
   }
 
   replaceForScope(scope: DiagnosticUpdateScope, findings: Finding[]): void {
+    if (scope.kind === 'source-roots') {
+      const owns = (file: Uri) =>
+        scope.uris.some((uri) => isUriInsideOrEqual(uri, file)) &&
+        !(scope.excludedUris ?? []).some((uri) => isUriInsideOrEqual(uri, file));
+      for (const key of this.findingsByFile.keys()) {
+        if (owns(Uri.parse(key))) this.deletePublishedFile(key);
+      }
+      this.publishGrouped(this.groupFindings(findings, owns));
+      return;
+    }
     if (scope.kind === 'file') {
       this.updateForFile(scope.uri, findings);
       return;
@@ -76,7 +86,7 @@ export class SpotBugsDiagnosticsManager {
     if (scope.kind === 'folder') {
       this.clearFolderScope(scope.uri);
       this.publishGrouped(
-        this.groupFindings(findings, (fileUri) => isUriInsideOrEqual(scope.uri, fileUri))
+        this.groupFindings(findings, (fileUri) => isUriInsideOrEqual(scope.uri, fileUri)),
       );
       return;
     }
@@ -119,15 +129,10 @@ export class SpotBugsDiagnosticsManager {
   getFindingsAt(uri: Uri, position: Position): Finding[] {
     const entries = this.findingsByFile.get(uri.toString());
     if (!entries) return [];
-    return entries
-      .filter(({ range }) => range.contains(position))
-      .map(({ finding }) => finding);
+    return entries.filter(({ range }) => range.contains(position)).map(({ finding }) => finding);
   }
 
-  private appendFinding(
-    bucket: FindingBucket,
-    finding: Finding
-  ): void {
+  private appendFinding(bucket: FindingBucket, finding: Finding): void {
     const range = this.createRange(finding);
     if (!range) return;
     bucket.entries.push({ range, finding });
@@ -181,7 +186,7 @@ export class SpotBugsDiagnosticsManager {
 
   private clearFolderScope(folderUri: Uri): void {
     const keysToDelete = Array.from(this.findingsByFile.keys()).filter((key) =>
-      isUriInsideOrEqual(folderUri, Uri.parse(key))
+      isUriInsideOrEqual(folderUri, Uri.parse(key)),
     );
     for (const key of keysToDelete) {
       this.deletePublishedFile(key);
@@ -200,12 +205,10 @@ export class SpotBugsDiagnosticsManager {
   }
 
   private clearReturnedScopesInside(scopeUri: Uri): void {
-    const scopeKeysToDelete = Array.from(this.filesByReturnedScope.keys()).filter(
-      (scopeKey) => {
-        const candidateUri = getReturnedScopeUri(scopeKey);
-        return candidateUri ? isUriInsideOrEqual(scopeUri, candidateUri) : false;
-      }
-    );
+    const scopeKeysToDelete = Array.from(this.filesByReturnedScope.keys()).filter((scopeKey) => {
+      const candidateUri = getReturnedScopeUri(scopeKey);
+      return candidateUri ? isUriInsideOrEqual(scopeUri, candidateUri) : false;
+    });
     for (const scopeKey of scopeKeysToDelete) {
       this.clearReturnedScope(scopeKey);
     }
@@ -239,7 +242,7 @@ export class SpotBugsDiagnosticsManager {
 
   private groupFindings(
     findings: Finding[],
-    includeFile: (uri: Uri) => boolean = () => true
+    includeFile: (uri: Uri) => boolean = () => true,
   ): Map<string, FindingBucket> {
     const grouped = new Map<string, FindingBucket>();
 
@@ -261,10 +264,7 @@ export class SpotBugsDiagnosticsManager {
     return grouped;
   }
 
-  private publishGrouped(
-    grouped: Map<string, FindingBucket>,
-    publishedFiles?: Set<string>
-  ): void {
+  private publishGrouped(grouped: Map<string, FindingBucket>, publishedFiles?: Set<string>): void {
     for (const [key, { uri, diagnostics, entries }] of grouped) {
       this.collection.set(uri, diagnostics);
       this.findingsByFile.set(key, entries);
@@ -273,9 +273,7 @@ export class SpotBugsDiagnosticsManager {
   }
 }
 
-function getScopeKey(
-  scope: Extract<DiagnosticUpdateScope, { kind: 'returned-files' }>
-): string {
+function getScopeKey(scope: Extract<DiagnosticUpdateScope, { kind: 'returned-files' }>): string {
   return `${RETURNED_SCOPE_KEY_PREFIX}${scope.uri.toString()}`;
 }
 

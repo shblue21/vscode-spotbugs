@@ -12,8 +12,10 @@ describe('Extension activation', () => {
     const registered = await vscode.commands.getCommands(true);
 
     const expected = [
-      SpotBugsCommands.RUN_ANALYSIS,
-      SpotBugsCommands.RUN_WORKSPACE,
+      SpotBugsCommands.ANALYZE_SOURCE,
+      SpotBugsCommands.ANALYZE_ARTIFACTS,
+      SpotBugsCommands.ANALYZE_PROJECT,
+      SpotBugsCommands.ANALYZE_WORKSPACE,
       SpotBugsCommands.REVEAL_FINDING_SOURCE,
       SpotBugsCommands.OPEN_FINDING_DETAILS,
       SpotBugsCommands.SUPPRESS_FINDINGS,
@@ -38,7 +40,7 @@ describe('Extension activation', () => {
 
     assert.ok(
       !registered.includes('spotbugs.openBugLocation'),
-      'Legacy command should not be registered: spotbugs.openBugLocation'
+      'Legacy command should not be registered: spotbugs.openBugLocation',
     );
   });
 });

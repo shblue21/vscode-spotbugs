@@ -11,12 +11,10 @@ import type { SpotBugsTreeDataProvider } from '../ui/spotbugsTreeDataProvider';
 
 let baselineCreationInFlight = false;
 
-export async function createBaseline(
-  provider: SpotBugsTreeDataProvider
-): Promise<void> {
+export async function createBaseline(provider: SpotBugsTreeDataProvider): Promise<void> {
   if (baselineCreationInFlight) {
     await window.showInformationMessage(
-      l10n.t('SpotBugs baseline creation is already in progress.')
+      l10n.t('SpotBugs baseline creation is already in progress.'),
     );
     return;
   }
@@ -27,7 +25,7 @@ export async function createBaseline(
     const [workspaceFolder, ...otherWorkspaceFolders] = workspace.workspaceFolders ?? [];
     if (!workspaceFolder || otherWorkspaceFolders.length > 0) {
       await window.showInformationMessage(
-        l10n.t('SpotBugs baseline creation requires a single-folder workspace.')
+        l10n.t('SpotBugs baseline creation requires a single-folder workspace.'),
       );
       return;
     }
@@ -43,8 +41,8 @@ export async function createBaseline(
     ) {
       await window.showInformationMessage(
         l10n.t(
-          'Run a complete SpotBugs workspace analysis with findings before creating a baseline.'
-        )
+          'Run a complete SpotBugs workspace analysis with findings before creating a baseline.',
+        ),
       );
       return;
     }
@@ -54,17 +52,15 @@ export async function createBaseline(
     try {
       const plans = await planBaselineFiles(
         workspaceRoot,
-        runs
-          .filter((run) => run.findings.length > 0)
-          .map((run) => run.baselineXml!),
+        runs.filter((run) => run.findings.length > 0).map((run) => run.baselineXml!),
         workspace.textDocuments
           .filter(
             (document) =>
               document.isDirty &&
               document.uri.scheme === workspaceFolder.uri.scheme &&
-              document.uri.authority === workspaceFolder.uri.authority
+              document.uri.authority === workspaceFolder.uri.authority,
           )
-          .map((document) => document.uri.fsPath)
+          .map((document) => document.uri.fsPath),
       );
       const createLabel = l10n.t('Create Baseline');
       if (
@@ -75,10 +71,10 @@ export async function createBaseline(
             detail: l10n.t(
               'Findings: {0}\nBaseline file(s): {1}\nExisting baseline files will remain configured.',
               findings.length,
-              plans.map((plan) => path.basename(plan.filePath)).join(', ')
+              plans.map((plan) => path.basename(plan.filePath)).join(', '),
             ),
           },
-          createLabel
+          createLabel,
         )) !== createLabel
       ) {
         return;
@@ -91,30 +87,19 @@ export async function createBaseline(
     }
     try {
       const configuration = workspace.getConfiguration(SETTINGS_SECTION);
-      const rawPaths = configuration.get<unknown>(
-        settingKeys.filtersExcludeBaselineBugsPaths
-      );
+      const rawPaths = configuration.get<unknown>(settingKeys.filtersExcludeBaselineBugsPaths);
       const paths = Array.isArray(rawPaths)
         ? rawPaths.filter((value): value is string => typeof value === 'string')
         : [];
       const configured = new Set(
-        paths.map((value) =>
-          absolutePathKey(path.resolve(workspaceRoot, value.trim()))
-        )
+        paths.map((value) => absolutePathKey(path.resolve(workspaceRoot, value.trim()))),
       );
-      const additions = filePaths.filter(
-        (filePath) => !configured.has(absolutePathKey(filePath))
-      );
+      const additions = filePaths.filter((filePath) => !configured.has(absolutePathKey(filePath)));
       if (additions.length > 0) {
         await configuration.update(
           settingKeys.filtersExcludeBaselineBugsPaths,
-          [
-            ...paths,
-            ...additions.map((filePath) =>
-              path.relative(workspaceRoot, filePath)
-            ),
-          ],
-          false
+          [...paths, ...additions.map((filePath) => path.relative(workspaceRoot, filePath))],
+          false,
         );
       }
     } catch (error) {
@@ -122,8 +107,8 @@ export async function createBaseline(
       await window.showErrorMessage(
         l10n.t(
           'The baseline file(s) were created but could not be added to the workspace settings: {0}',
-          message
-        )
+          message,
+        ),
       );
       return;
     }
@@ -139,12 +124,12 @@ export async function createBaseline(
       l10n.t(
         'Created a SpotBugs baseline for {0} finding(s) in {1} file(s).',
         saved.findingCount,
-        saved.filePaths.length
+        saved.filePaths.length,
       ),
-      runLabel
+      runLabel,
     )) === runLabel
   ) {
-    await commands.executeCommand(SpotBugsCommands.RUN_WORKSPACE);
+    await commands.executeCommand(SpotBugsCommands.ANALYZE_WORKSPACE);
   }
 }
 

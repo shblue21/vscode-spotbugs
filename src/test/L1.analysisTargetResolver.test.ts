@@ -49,23 +49,23 @@ describe('analysisTargetResolver', () => {
 
     const result = await resolver.resolveProjectAnalysisTargetDetailed(
       vscode.Uri.file('/workspace/project') as any,
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok' ? result.resolution.target.unit.input.path : '',
-      '/workspace/project/target/classes'
+      result.resolution.status === 'ok' ? result.resolution.target.unit.inputs[0].path : '',
+      '/workspace/project/target/classes',
     );
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      ['/workspace/project/target/classes']
+      ['/workspace/project/target/classes'],
     );
     assert.deepStrictEqual(
       result.issues.map((issue) => issue.code),
-      ['JAVA_LS_NO_RESULT', 'OUTPUT_FALLBACK_USED']
+      ['JAVA_LS_NO_RESULT', 'OUTPUT_FALLBACK_USED'],
     );
   });
 
@@ -101,7 +101,7 @@ describe('analysisTargetResolver', () => {
 
     const result = await resolver.resolveProjectAnalysisTargetDetailed(
       vscode.Uri.file('/workspace/project') as any,
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
@@ -138,7 +138,7 @@ describe('analysisTargetResolver', () => {
 
     const result = await resolver.resolveProjectAnalysisTargetDetailed(
       vscode.Uri.file('/workspace/project') as any,
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
@@ -202,7 +202,7 @@ describe('analysisTargetResolver', () => {
       vscode,
       resolver,
       '/workspace/project/target/test-classes/demo',
-      'returned-files'
+      'returned-files',
     );
   });
 
@@ -219,7 +219,7 @@ describe('analysisTargetResolver', () => {
       vscode,
       resolver,
       '/workspace/project/build/classes/java/main/demo',
-      'returned-files'
+      'returned-files',
     );
   });
 
@@ -246,7 +246,7 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
@@ -258,10 +258,7 @@ describe('analysisTargetResolver', () => {
       outputPath: '/workspace/project/target/classes',
       sourcepaths: ['/workspace/project/src/main/java'],
       sourceOutputs: Object.fromEntries([
-        [
-          '/workspace/project/src/main/java',
-          '/workspace/project/target/classes',
-        ],
+        ['/workspace/project/src/main/java', '/workspace/project/target/classes'],
       ]),
       hasClassTargets: async () => true,
       hasLooseClassTargets: async () => false,
@@ -269,13 +266,13 @@ describe('analysisTargetResolver', () => {
 
     const result = await resolver.resolveProjectAnalysisTargetDetailed(
       vscode.Uri.file('/workspace/project') as any,
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok' ? result.resolution.target.unit.input.path : '',
-      '/workspace/project/target/classes'
+      result.resolution.status === 'ok' ? result.resolution.target.unit.inputs[0].path : '',
+      '/workspace/project/target/classes',
     );
   });
 
@@ -291,15 +288,13 @@ describe('analysisTargetResolver', () => {
 
     const result = await resolver.resolveProjectAnalysisTargetDetailed(
       vscode.Uri.file('/workspace/project') as any,
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.path
-        : undefined,
-      workspaceOutput
+      result.resolution.status === 'ok' ? result.resolution.target.unit.inputs[0].path : undefined,
+      workspaceOutput,
     );
   });
 
@@ -313,15 +308,15 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      ['/workspace/project/build/classes/java/main']
+      ['/workspace/project/build/classes/java/main'],
     );
   });
 
@@ -336,15 +331,15 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      ['/workspace/build/classes/java/main']
+      ['/workspace/build/classes/java/main'],
     );
   });
 
@@ -363,19 +358,19 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      [looseOutput]
+      [looseOutput],
     );
     assert.deepStrictEqual(
       result.issues.map((issue) => issue.code),
-      ['OUTPUT_FALLBACK_USED']
+      ['OUTPUT_FALLBACK_USED'],
     );
   });
 
@@ -407,16 +402,16 @@ describe('analysisTargetResolver', () => {
       });
 
       const result = await resolver.resolveFileAnalysisTargetDetailed(
-        vscode.Uri.file(testCase.sourcePath) as any
+        vscode.Uri.file(testCase.sourcePath) as any,
       );
 
       assert.strictEqual(result.resolution.status, 'ok', testCase.sourcePath);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.unit.input.resolutionRoots
+          ? result.resolution.target.unit.inputs[0].resolutionRoots
           : undefined,
         testCase.expectedRoots,
-        testCase.sourcePath
+        testCase.sourcePath,
       );
     }
   });
@@ -437,15 +432,15 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/test/java/demo/Foo.java') as any
+      vscode.Uri.file('/workspace/project/src/test/java/demo/Foo.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      [testOutput, mainOutput]
+      [testOutput, mainOutput],
     );
   });
 
@@ -460,7 +455,7 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
@@ -475,12 +470,11 @@ describe('analysisTargetResolver', () => {
         '/workspace/project/generated-sources',
         '/workspace/project/generated-sources/demo',
       ],
-      hasClassTargets: async (targetPath: string) =>
-        targetPath === `${outputRoot}/Repro.class`,
+      hasClassTargets: async (targetPath: string) => targetPath === `${outputRoot}/Repro.class`,
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
@@ -500,7 +494,7 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
@@ -517,7 +511,7 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
@@ -535,7 +529,7 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/generated-sources/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
@@ -547,7 +541,7 @@ describe('analysisTargetResolver', () => {
       targetResolutionRoots: [],
       findOutputFolderFromProject: async (
         _projectRoot: string,
-        hasTargets?: (targetPath: string) => Promise<boolean>
+        hasTargets?: (targetPath: string) => Promise<boolean>,
       ) => {
         for (const candidate of [
           '/workspace/project/build/classes/java/main',
@@ -564,15 +558,15 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any
+      vscode.Uri.file('/workspace/project/src/main/java/demo/Repro.java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      ['/workspace/project/target/classes']
+      ['/workspace/project/target/classes'],
     );
   });
 
@@ -590,7 +584,7 @@ describe('analysisTargetResolver', () => {
         targetResolutionRoots: [],
         findOutputFolderFromProject: async (
           _projectRoot: string,
-          hasTargets?: (targetPath: string) => Promise<boolean>
+          hasTargets?: (targetPath: string) => Promise<boolean>,
         ) => {
           for (const candidate of [archiveOutput, looseOutput]) {
             if (!hasTargets || (await hasTargets(candidate))) {
@@ -605,21 +599,21 @@ describe('analysisTargetResolver', () => {
       });
 
       const result = await resolver.resolveFileAnalysisTargetDetailed(
-        vscode.Uri.file(selectedFolder) as any
+        vscode.Uri.file(selectedFolder) as any,
       );
 
       assert.strictEqual(result.resolution.status, 'ok', selectedFolder);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.unit.input.resolutionRoots
+          ? result.resolution.target.unit.inputs[0].resolutionRoots
           : undefined,
         [looseOutput],
-        selectedFolder
+        selectedFolder,
       );
       assert.deepStrictEqual(
         result.issues.map((issue) => issue.code),
         ['OUTPUT_FALLBACK_USED'],
-        selectedFolder
+        selectedFolder,
       );
     }
   });
@@ -630,20 +624,17 @@ describe('analysisTargetResolver', () => {
     const outputRoot = '/workspace/project/target/classes';
     const resolver = createResolver(vscode, {
       outputPath: outputRoot,
-      hasClassTargets: async (targetPath: string) =>
-        targetPath === selectedFolder,
+      hasClassTargets: async (targetPath: string) => targetPath === selectedFolder,
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file(selectedFolder) as any
+      vscode.Uri.file(selectedFolder) as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.path
-        : undefined,
-      selectedFolder
+      result.resolution.status === 'ok' ? result.resolution.target.unit.inputs[0].path : undefined,
+      selectedFolder,
     );
   });
 
@@ -654,21 +645,18 @@ describe('analysisTargetResolver', () => {
     const resolver = createResolver(vscode, {
       outputPath: outputRoot,
       sourcepaths: ['/workspace/project/src/main/java'],
-      hasClassTargets: async (targetPath: string) =>
-        targetPath === selectedFolder,
+      hasClassTargets: async (targetPath: string) => targetPath === selectedFolder,
       containsJavaSources: async () => false,
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file(selectedFolder) as any
+      vscode.Uri.file(selectedFolder) as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.strictEqual(
-      result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.path
-        : undefined,
-      selectedFolder
+      result.resolution.status === 'ok' ? result.resolution.target.unit.inputs[0].path : undefined,
+      selectedFolder,
     );
   });
 
@@ -683,7 +671,7 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file(selectedFolder) as any
+      vscode.Uri.file(selectedFolder) as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
@@ -692,7 +680,7 @@ describe('analysisTargetResolver', () => {
   it('falls back from unusable output for non-source folders with mapped Java sources', async () => {
     const vscode = installVscodeMock();
     const tempRoot = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'spotbugs-folder-source-fallback-')
+      path.join(os.tmpdir(), 'spotbugs-folder-source-fallback-'),
     );
     try {
       const projectRoot = path.join(tempRoot, 'project');
@@ -703,7 +691,7 @@ describe('analysisTargetResolver', () => {
       });
       await fs.promises.writeFile(
         path.join(projectRoot, 'src', 'main', 'java', 'demo', 'Repro.java'),
-        ''
+        '',
       );
 
       const resolver = createResolver(vscode, {
@@ -718,15 +706,15 @@ describe('analysisTargetResolver', () => {
       });
 
       const result = await resolver.resolveFileAnalysisTargetDetailed(
-        vscode.Uri.file(projectRoot) as any
+        vscode.Uri.file(projectRoot) as any,
       );
 
       assert.strictEqual(result.resolution.status, 'ok');
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.unit.input.resolutionRoots
+          ? result.resolution.target.unit.inputs[0].resolutionRoots
           : undefined,
-        [looseOutput]
+        [looseOutput],
       );
     } finally {
       await fs.promises.rm(tempRoot, { recursive: true, force: true });
@@ -735,9 +723,7 @@ describe('analysisTargetResolver', () => {
 
   it('requires mapped classes for exact Java source root preflight', async () => {
     const vscode = installVscodeMock();
-    const tempRoot = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'spotbugs-source-root-')
-    );
+    const tempRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'spotbugs-source-root-'));
     try {
       const projectRoot = path.join(tempRoot, 'project');
       const sourceRoot = path.join(projectRoot, 'src', 'main', 'java');
@@ -750,21 +736,16 @@ describe('analysisTargetResolver', () => {
       const resolver = createResolver(vscode, {
         outputPath: outputRoot,
         hasClassTargets: async (targetPath: string) =>
-          targetPath === outputRoot ||
-          targetPath === path.join(outputRoot, 'other', 'Other.class'),
+          targetPath === outputRoot || targetPath === path.join(outputRoot, 'other', 'Other.class'),
         containsJavaSources: async () => true,
       });
 
       for (const selectedPath of [sourceRoot, `${sourceRoot}${path.sep}.`]) {
         const result = await resolver.resolveFileAnalysisTargetDetailed(
-          vscode.Uri.file(selectedPath) as any
+          vscode.Uri.file(selectedPath) as any,
         );
 
-        assert.strictEqual(
-          result.resolution.status,
-          'no-class-targets',
-          selectedPath
-        );
+        assert.strictEqual(result.resolution.status, 'no-class-targets', selectedPath);
       }
     } finally {
       await fs.promises.rm(tempRoot, { recursive: true, force: true });
@@ -782,8 +763,7 @@ describe('analysisTargetResolver', () => {
       },
       {
         sourcepath: '/workspace/project/target/generated-sources/annotations',
-        targetPath:
-          '/workspace/project/target/generated-sources/annotations/demo/Repro.java',
+        targetPath: '/workspace/project/target/generated-sources/annotations/demo/Repro.java',
       },
     ]) {
       const resolver = createResolver(vscode, {
@@ -797,16 +777,16 @@ describe('analysisTargetResolver', () => {
       });
 
       const result = await resolver.resolveFileAnalysisTargetDetailed(
-        vscode.Uri.file(testCase.targetPath) as any
+        vscode.Uri.file(testCase.targetPath) as any,
       );
 
       assert.strictEqual(result.resolution.status, 'ok', testCase.sourcepath);
       assert.deepStrictEqual(
         result.resolution.status === 'ok'
-          ? result.resolution.target.unit.input.resolutionRoots
+          ? result.resolution.target.unit.inputs[0].resolutionRoots
           : undefined,
         [outputRoot],
-        testCase.sourcepath
+        testCase.sourcepath,
       );
     }
   });
@@ -820,7 +800,7 @@ describe('analysisTargetResolver', () => {
       findOutputFolderFromProject: async (
         _projectRoot: string,
         hasTargets?: (targetPath: string) => Promise<boolean>,
-        options?: OutputFolderSelectionOptions
+        options?: OutputFolderSelectionOptions,
       ) => {
         for (const candidate of rankRoots([mainOutput, testOutput], options)) {
           if (!hasTargets || (await hasTargets(candidate))) {
@@ -835,14 +815,14 @@ describe('analysisTargetResolver', () => {
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/test/java/demo/Foo.java') as any
+      vscode.Uri.file('/workspace/project/src/test/java/demo/Foo.java') as any,
     );
 
     assert.deepStrictEqual(
       result.resolution.status === 'ok'
-        ? result.resolution.target.unit.input.resolutionRoots
+        ? result.resolution.target.unit.inputs[0].resolutionRoots
         : undefined,
-      [testOutput]
+      [testOutput],
     );
   });
   it('queries the deepest owning project and delegates folder scope inference', async () => {
@@ -857,24 +837,20 @@ describe('analysisTargetResolver', () => {
       projectRootPaths: ['/workspace/project-a', '/workspace/project-a/module'],
       metadataProjectRoot: 'file:///workspace/project-a/module',
       onClasspathProject: (project, options) => {
-        requested.push(
-          typeof project === 'string' ? project : project?.toString() ?? ''
-        );
+        requested.push(typeof project === 'string' ? project : (project?.toString() ?? ''));
         requestedScopes.push(options?.scope);
         analysisResources.push(options?.analysisResource?.toString() ?? '');
       },
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project-a/module/src/test/java') as any
+      vscode.Uri.file('/workspace/project-a/module/src/test/java') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
     assert.deepStrictEqual(requested, ['file:///workspace/project-a/module']);
     assert.deepStrictEqual(requestedScopes, [undefined]);
-    assert.deepStrictEqual(analysisResources, [
-      'file:///workspace/project-a/module/src/test/java',
-    ]);
+    assert.deepStrictEqual(analysisResources, ['file:///workspace/project-a/module/src/test/java']);
   });
 
   it('queries the owning project for an archive inside its output', async () => {
@@ -887,13 +863,11 @@ describe('analysisTargetResolver', () => {
       projectRootPaths: ['/workspace/project'],
       metadataProjectRoot: 'file:///workspace/project',
       onClasspathProject: (project) =>
-        requested.push(
-          typeof project === 'string' ? project : project?.toString() ?? ''
-        ),
+        requested.push(typeof project === 'string' ? project : (project?.toString() ?? '')),
     });
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/target/app.jar') as any
+      vscode.Uri.file('/workspace/project/target/app.jar') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'ok');
@@ -916,24 +890,21 @@ describe('analysisTargetResolver', () => {
     const resolver = resolverModule.createTargetResolver(deps);
 
     const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.strictEqual(result.resolution.status, 'no-class-targets');
     assert.strictEqual(lookupCount, 0);
     assert.strictEqual(
-      result.resolution.status === 'no-class-targets'
-        ? result.resolution.errorCode
-        : undefined,
-      'PROJECT_AGGREGATE_FOLDER_UNSUPPORTED'
+      result.resolution.status === 'no-class-targets' ? result.resolution.errorCode : undefined,
+      'PROJECT_AGGREGATE_FOLDER_UNSUPPORTED',
     );
   });
-
 });
 
 function createResolver(
   vscode: ReturnType<typeof installVscodeMock>,
-  options: Parameters<typeof createResolverDeps>[1]
+  options: Parameters<typeof createResolverDeps>[1],
 ) {
   const resolverModule =
     require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
@@ -946,7 +917,7 @@ async function assertResolvedDiagnosticScope(
     resolveFileAnalysisTargetDetailed(uri: unknown): Promise<any>;
   },
   targetPath: string,
-  expectedKind: 'file' | 'folder' | 'returned-files'
+  expectedKind: 'file' | 'folder' | 'returned-files',
 ): Promise<void> {
   const uri = vscode.Uri.file(targetPath) as any;
   const result = await resolver.resolveFileAnalysisTargetDetailed(uri);
@@ -959,7 +930,7 @@ async function assertResolvedDiagnosticScope(
           uri: result.resolution.target.diagnosticScope?.uri.fsPath,
         }
       : undefined,
-    { kind: expectedKind, uri: uri.fsPath }
+    { kind: expectedKind, uri: uri.fsPath },
   );
 }
 
@@ -972,7 +943,7 @@ function createResolverDeps(
     findOutputFolderFromProject?: (
       projectRoot: string,
       hasTargets?: (targetPath: string) => Promise<boolean>,
-      options?: OutputFolderSelectionOptions
+      options?: OutputFolderSelectionOptions,
     ) => Promise<string | undefined>;
     hasClassTargets?: (targetPath: string) => Promise<boolean>;
     hasLooseClassTargets?: (targetPath: string) => Promise<boolean>;
@@ -988,23 +959,23 @@ function createResolverDeps(
       lookupOptions?: {
         scope?: 'runtime' | 'test';
         analysisResource?: { toString(): string };
-      }
+      },
     ) => void;
-  }
+  },
 ) {
   const targetResolutionRoots = Array.from(
     new Set(
       [options.outputPath, ...(options.targetResolutionRoots ?? [])].filter(
-        (value): value is string => !!value
-      )
-    )
+        (value): value is string => !!value,
+      ),
+    ),
   );
   const runtimeClasspaths = options.runtimeClasspaths ?? targetResolutionRoots;
   const hasClassTargets = options.hasClassTargets ?? (async () => true);
   return {
     getClasspathsOutcome: async (
       project?: string | { toString(): string },
-      lookupOptions?: { scope?: 'runtime' | 'test' }
+      lookupOptions?: { scope?: 'runtime' | 'test' },
     ) => {
       options.onClasspathProject?.(project, lookupOptions);
       return {
@@ -1019,8 +990,7 @@ function createResolverDeps(
         issues: [],
       };
     },
-    findOutputFolderFromProject:
-      options.findOutputFolderFromProject ?? (async () => undefined),
+    findOutputFolderFromProject: options.findOutputFolderFromProject ?? (async () => undefined),
     hasClassTargets,
     hasLooseClassTargets: options.hasLooseClassTargets ?? hasClassTargets,
     containsJavaSources: options.containsJavaSources ?? (async () => false),
@@ -1045,7 +1015,7 @@ type OutputFolderSelectionOptions = {
 
 function rankRoots(
   roots: readonly string[],
-  options: OutputFolderSelectionOptions | undefined
+  options: OutputFolderSelectionOptions | undefined,
 ): string[] {
   return roots
     .map((targetPath, index) => ({

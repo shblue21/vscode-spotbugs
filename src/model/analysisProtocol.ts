@@ -4,6 +4,7 @@ import type { AnalysisReportSummary } from './analysisReport';
 export const ANALYSIS_PROTOCOL_SCHEMA_VERSION = 2;
 
 export interface AnalysisRequestPayload {
+  inputs: Array<{ kind: 'source' | 'artifact'; path: string }>;
   schemaVersion: number;
   effort: string;
   targetResolutionRoots?: string[] | null;

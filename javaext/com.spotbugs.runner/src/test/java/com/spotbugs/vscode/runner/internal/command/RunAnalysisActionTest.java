@@ -282,6 +282,20 @@ public class RunAnalysisActionTest {
     }
 
     private static JsonObject executeWithMonitor(RunAnalysisAction action, IProgressMonitor monitor, Object... args) {
+        if (args.length > 1 && args[0] instanceof String && args[1] instanceof String) {
+            try {
+                JsonObject payload = JsonParser.parseString((String) args[1]).getAsJsonObject();
+                if (!payload.has("inputs")) {
+                    JsonObject input = new JsonObject();
+                    input.addProperty("kind", "artifact");
+                    input.addProperty("path", (String) args[0]);
+                    com.google.gson.JsonArray inputs = new com.google.gson.JsonArray();
+                    inputs.add(input);
+                    payload.add("inputs", inputs);
+                    args[1] = payload.toString();
+                }
+            } catch (RuntimeException invalidJson) { /* Exercise parser failures unchanged. */ }
+        }
         String json = action.execute(args, monitor);
         return JsonParser.parseString(json).getAsJsonObject();
     }

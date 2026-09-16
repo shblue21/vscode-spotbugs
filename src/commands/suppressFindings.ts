@@ -29,12 +29,10 @@ let suppressionInFlight = false;
 export async function suppressFindings(
   provider: SpotBugsTreeDataProvider,
   element: unknown,
-  deps: SuppressFindingsDependencies = defaultDependencies()
+  deps: SuppressFindingsDependencies = defaultDependencies(),
 ): Promise<void> {
   if (suppressionInFlight) {
-    await window.showInformationMessage(
-      l10n.t('A SpotBugs suppression is already in progress.')
-    );
+    await window.showInformationMessage(l10n.t('A SpotBugs suppression is already in progress.'));
     return;
   }
 
@@ -47,42 +45,36 @@ export async function suppressFindings(
   }
 
   if (result && (await deps.notifySaved(result.filePath, result.addedCount))) {
-    await commands.executeCommand(SpotBugsCommands.RUN_WORKSPACE);
+    await commands.executeCommand(SpotBugsCommands.ANALYZE_WORKSPACE);
   }
 }
 
 async function runSuppressFindings(
   provider: SpotBugsTreeDataProvider,
   element: unknown,
-  deps: SuppressFindingsDependencies
+  deps: SuppressFindingsDependencies,
 ): Promise<{ filePath: string; addedCount: number } | undefined> {
-  const workspaceRoots =
-    workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
+  const workspaceRoots = workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [];
   if (workspaceRoots.length !== 1) {
     await window.showInformationMessage(
-      l10n.t('SpotBugs suppression requires a single-folder workspace.')
+      l10n.t('SpotBugs suppression requires a single-folder workspace.'),
     );
     return;
   }
 
   const selectedFindings = provider.getFindingsForNode(element as TreeItem);
   if (selectedFindings.length === 0) {
-    await window.showInformationMessage(
-      l10n.t('Select a SpotBugs finding or group to suppress.')
-    );
+    await window.showInformationMessage(l10n.t('Select a SpotBugs finding or group to suppress.'));
     return;
   }
 
-  const planned = createSuppressionPlan(
-    selectedFindings,
-    provider.getCachedFindings()
-  );
+  const planned = createSuppressionPlan(selectedFindings, provider.getCachedFindings());
   if (!planned.ok) {
     await window.showErrorMessage(
       l10n.t(
         'Could not create a SpotBugs suppression because {0} selected finding(s) do not identify a bug pattern and class.',
-        planned.unsupportedCount
-      )
+        planned.unsupportedCount,
+      ),
     );
     return;
   }
@@ -98,34 +90,26 @@ async function runSuppressFindings(
     await window.showErrorMessage(
       l10n.t(
         'Save or close the modified suppression file before updating it: {0}',
-        path.basename(file.filePath)
-      )
+        path.basename(file.filePath),
+      ),
     );
     return;
   }
 
-  const isConfigured = deps.isExcludeFilterConfigured(
-    file.filePath,
-    workspaceRoots[0]
-  );
+  const isConfigured = deps.isExcludeFilterConfigured(file.filePath, workspaceRoots[0]);
   const existingBlocks = file.kind === 'managed' ? file.blocks : [];
   const selectedBlocks = new Set(planned.value.blocks);
-  if (
-    !isConfigured &&
-    existingBlocks.some((block) => !selectedBlocks.has(block))
-  ) {
+  if (!isConfigured && existingBlocks.some((block) => !selectedBlocks.has(block))) {
     await window.showErrorMessage(
       l10n.t(
-        'The inactive suppression file contains other rules and cannot be re-enabled automatically. Add it from the Filters view or remove the file first.'
-      )
+        'The inactive suppression file contains other rules and cannot be re-enabled automatically. Add it from the Filters view or remove the file first.',
+      ),
     );
     return;
   }
 
   const existingBlockSet = new Set(existingBlocks);
-  const additions = planned.value.blocks.filter(
-    (block) => !existingBlockSet.has(block)
-  );
+  const additions = planned.value.blocks.filter((block) => !existingBlockSet.has(block));
   if (
     (additions.length > 0 || !isConfigured) &&
     !(await deps.confirmPreview(planned.value, file.filePath))
@@ -135,11 +119,10 @@ async function runSuppressFindings(
 
   try {
     if (additions.length > 0) {
-      await deps.writeFile(
-        file.filePath,
-        file.kind === 'managed' ? file.content : undefined,
-        [...existingBlocks, ...additions]
-      );
+      await deps.writeFile(file.filePath, file.kind === 'managed' ? file.content : undefined, [
+        ...existingBlocks,
+        ...additions,
+      ]);
     }
     await deps.ensureExcludeFilterConfigured(file.filePath, workspaceRoots[0]);
   } catch (error) {
@@ -152,10 +135,8 @@ async function runSuppressFindings(
 
 async function selectSuppressionFile(
   workspaceRoot: string,
-  deps: SuppressFindingsDependencies
-): Promise<
-  Extract<ManagedSuppressionFileState, { kind: 'missing' | 'managed' }>
-> {
+  deps: SuppressFindingsDependencies,
+): Promise<Extract<ManagedSuppressionFileState, { kind: 'missing' | 'managed' }>> {
   const primaryPath = path.join(workspaceRoot, SUPPRESSION_FILE_NAME);
   const fallbackPath = path.join(workspaceRoot, SUPPRESSION_FALLBACK_FILE_NAME);
   const [primary, fallback] = await Promise.all([
@@ -167,8 +148,8 @@ async function selectSuppressionFile(
       l10n.t(
         'Both {0} and {1} are managed suppression files. Keep only one configured file.',
         SUPPRESSION_FILE_NAME,
-        SUPPRESSION_FALLBACK_FILE_NAME
-      )
+        SUPPRESSION_FALLBACK_FILE_NAME,
+      ),
     );
   }
   if (primary.kind === 'managed') {
@@ -179,17 +160,13 @@ async function selectSuppressionFile(
   }
 
   const invalid =
-    primary.kind === 'invalid'
-      ? primary
-      : fallback.kind === 'invalid'
-        ? fallback
-        : undefined;
+    primary.kind === 'invalid' ? primary : fallback.kind === 'invalid' ? fallback : undefined;
   if (invalid) {
     throw new Error(
       l10n.t(
         'The managed suppression file was modified or has an unsupported format: {0}',
-        path.basename(invalid.filePath)
-      )
+        path.basename(invalid.filePath),
+      ),
     );
   }
   if (primary.kind === 'missing') {
@@ -200,8 +177,8 @@ async function selectSuppressionFile(
       l10n.t(
         'Cannot create a managed suppression file because both {0} and {1} already exist.',
         SUPPRESSION_FILE_NAME,
-        SUPPRESSION_FALLBACK_FILE_NAME
-      )
+        SUPPRESSION_FALLBACK_FILE_NAME,
+      ),
     );
   }
   return fallback;
@@ -216,15 +193,13 @@ function defaultDependencies(): SuppressFindingsDependencies {
           document.isDirty &&
           document.uri.scheme === workspace.workspaceFolders?.[0]?.uri.scheme &&
           document.uri.authority === workspace.workspaceFolders?.[0]?.uri.authority &&
-          absolutePathKey(document.uri.fsPath) === absolutePathKey(filePath)
+          absolutePathKey(document.uri.fsPath) === absolutePathKey(filePath),
       ),
     isExcludeFilterConfigured: (filePath, workspaceRoot) =>
       isExcludeFilterConfigured(
-        workspace
-          .getConfiguration(SETTINGS_SECTION)
-          .get<unknown>(settingKeys.filtersExcludePaths),
+        workspace.getConfiguration(SETTINGS_SECTION).get<unknown>(settingKeys.filtersExcludePaths),
         filePath,
-        workspaceRoot
+        workspaceRoot,
       ),
     confirmPreview: showSuppressionPreview,
     writeFile: writeManagedSuppressionFile,
@@ -236,21 +211,18 @@ function defaultDependencies(): SuppressFindingsDependencies {
           ? l10n.t(
               'Saved {0} SpotBugs suppression rule(s) to {1}.',
               addedCount,
-              path.basename(filePath)
+              path.basename(filePath),
             )
           : l10n.t(
               'The selected SpotBugs findings are already suppressed in {0}.',
-              path.basename(filePath)
+              path.basename(filePath),
             );
       return (await window.showInformationMessage(message, runLabel)) === runLabel;
     },
   };
 }
 
-async function showSuppressionPreview(
-  plan: SuppressionPlan,
-  filePath: string
-): Promise<boolean> {
+async function showSuppressionPreview(plan: SuppressionPlan, filePath: string): Promise<boolean> {
   const suppressLabel = l10n.t('Suppress');
   return (
     (await window.showWarningMessage(
@@ -264,22 +236,18 @@ async function showSuppressionPreview(
           l10n.t('Suppression file: {0}', path.basename(filePath)),
         ].join('\n'),
       },
-      suppressLabel
+      suppressLabel,
     )) === suppressLabel
   );
 }
 
 async function ensureWorkspaceExcludeFilterConfigured(
   filePath: string,
-  workspaceRoot: string
+  workspaceRoot: string,
 ): Promise<void> {
   const configuration = workspace.getConfiguration(SETTINGS_SECTION);
   const paths = configuration.get<unknown>(settingKeys.filtersExcludePaths);
-  const updated = workspaceExcludePathsWithSuppression(
-    paths,
-    filePath,
-    workspaceRoot
-  );
+  const updated = workspaceExcludePathsWithSuppression(paths, filePath, workspaceRoot);
   if (updated) {
     await configuration.update(settingKeys.filtersExcludePaths, updated, false);
   }
@@ -288,7 +256,7 @@ async function ensureWorkspaceExcludeFilterConfigured(
 export function workspaceExcludePathsWithSuppression(
   rawPaths: unknown,
   filePath: string,
-  workspaceRoot: string
+  workspaceRoot: string,
 ): string[] | undefined {
   const paths = Array.isArray(rawPaths)
     ? rawPaths.filter((value): value is string => typeof value === 'string')
@@ -301,7 +269,7 @@ export function workspaceExcludePathsWithSuppression(
 export function isExcludeFilterConfigured(
   rawPaths: unknown,
   filePath: string,
-  workspaceRoot: string
+  workspaceRoot: string,
 ): boolean {
   const paths = Array.isArray(rawPaths)
     ? rawPaths.filter((value): value is string => typeof value === 'string')
@@ -311,8 +279,8 @@ export function isExcludeFilterConfigured(
       path.isAbsolute(configuredPath)
         ? configuredPath
         : path.resolve(workspaceRoot, configuredPath.trim()),
-      filePath
-    )
+      filePath,
+    ),
   );
 }
 
@@ -328,7 +296,7 @@ function absolutePathKey(value: string): string {
 function formatSuppressionFileError(error: unknown): string {
   if (error instanceof SuppressionFileChangedError) {
     return l10n.t(
-      'The suppression file changed before it could be saved. Review it and try again.'
+      'The suppression file changed before it could be saved. Review it and try again.',
     );
   }
   const message = error instanceof Error ? error.message : String(error);

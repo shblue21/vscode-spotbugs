@@ -21,8 +21,8 @@
   "contributes.configuration.spotbugs.filters.excludePaths.markdownDescription": "SpotBugs XML Exclude Filter 파일 경로(`-exclude`)입니다. 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
   "contributes.configuration.spotbugs.filters.excludeBaselineBugsPaths.markdownDescription": "SpotBugs XML Baseline 버그 컬렉션 파일 경로(`-excludeBugs`)입니다. 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
   "contributes.configuration.spotbugs.results.revealSourceOnSelection.markdownDescription": "결과 트리에서 SpotBugs Finding을 선택하면 소스 위치를 미리 보기 편집기로 엽니다.",
-  "contributes.commands.spotbugs.run.title": "파일/폴더 분석",
-  "contributes.commands.spotbugs.runWorkspace.title": "SpotBugs 워크스페이스 분석",
+  "contributes.commands.spotbugs.analyzeSource.title": "SpotBugs: Java 소스 분석",
+  "contributes.commands.spotbugs.analyzeWorkspace.title": "SpotBugs 워크스페이스 분석",
   "contributes.commands.spotbugs.revealFindingSource.title": "SpotBugs: 코드로 이동",
   "contributes.commands.spotbugs.openFindingDetails.title": "SpotBugs: Finding 세부 정보 열기",
   "contributes.commands.spotbugs.suppressFindings.title": "SpotBugs: Finding 제외...",
@@ -41,5 +41,7 @@
   "contributes.commands.spotbugs.removePluginJar.title": "SpotBugs: 플러그인 JAR 제거",
   "contributes.commands.spotbugs.addFilterFiles.title": "SpotBugs: 필터 파일 추가...",
   "contributes.commands.spotbugs.removeFilterFile.title": "SpotBugs: 필터 파일 제거",
-  "contributes.submenus.spotbugs.context.label": "SpotBugs"
+  "contributes.submenus.spotbugs.context.label": "SpotBugs",
+  "contributes.commands.spotbugs.analyzeArtifacts.title": "SpotBugs: 바이트코드 분석",
+  "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Java 프로젝트 분석"
 }

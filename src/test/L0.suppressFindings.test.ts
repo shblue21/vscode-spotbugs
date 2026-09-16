@@ -9,9 +9,8 @@ import {
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 const vscode = installVscodeMock();
-const { suppressFindings, workspaceExcludePathsWithSuppression } = require(
-  '../commands/suppressFindings'
-) as typeof import('../commands/suppressFindings');
+const { suppressFindings, workspaceExcludePathsWithSuppression } =
+  require('../commands/suppressFindings') as typeof import('../commands/suppressFindings');
 type SuppressFindingsDependencies =
   import('../commands/suppressFindings').SuppressFindingsDependencies;
 
@@ -19,9 +18,7 @@ describe('suppress findings command', () => {
   beforeEach(() => {
     resetVscodeMock({
       workspace: {
-        workspaceFolders: [
-          { name: 'workspace', uri: vscode.Uri.file('/workspace') },
-        ],
+        workspaceFolders: [{ name: 'workspace', uri: vscode.Uri.file('/workspace') }],
       },
     } as never);
   });
@@ -52,20 +49,20 @@ describe('suppress findings command', () => {
         },
       },
       [selected],
-      [selected, additional]
+      [selected, additional],
     );
 
     assert.ok(preview);
     assert.strictEqual(preview.blocks.length, 1);
     assert.deepStrictEqual(
       [preview.selectedCount, preview.matchedCount, preview.additionalCount],
-      [1, 2, 1]
+      [1, 2, 1],
     );
     assert.deepStrictEqual(events, [
       'write:spotbugs-suppressions.xml:1',
       'register:spotbugs-suppressions.xml',
       'notify:1',
-      'command:spotbugs.runWorkspace',
+      'command:spotbugs.analyzeWorkspace',
     ]);
   });
 
@@ -127,18 +124,15 @@ describe('suppress findings command', () => {
 
   it('does not reactivate unrelated rules from an inactive managed file', async () => {
     const selected = finding();
-    const { errors, events } = await runInactiveManagedFile(
-      selected,
-      [
-        blockFor(selected),
-        blockFor(
-          finding({
-            type: 'NP_NULL_ON_SOME_PATH',
-            location: { startLine: 20 },
-          })
-        ),
-      ]
-    );
+    const { errors, events } = await runInactiveManagedFile(selected, [
+      blockFor(selected),
+      blockFor(
+        finding({
+          type: 'NP_NULL_ON_SOME_PATH',
+          location: { startLine: 20 },
+        }),
+      ),
+    ]);
 
     assert.strictEqual(errors.length, 1);
     assert.deepStrictEqual(events, []);
@@ -146,9 +140,7 @@ describe('suppress findings command', () => {
 
   it('previews before safely re-registering the selected existing rule', async () => {
     const selected = finding();
-    const { events } = await runInactiveManagedFile(selected, [
-      blockFor(selected),
-    ]);
+    const { events } = await runInactiveManagedFile(selected, [blockFor(selected)]);
     assert.deepStrictEqual(events, ['preview', 'register']);
   });
 
@@ -158,24 +150,24 @@ describe('suppress findings command', () => {
       workspaceExcludePathsWithSuppression(
         existing,
         '/workspace/spotbugs-suppressions.xml',
-        '/workspace'
+        '/workspace',
       ),
-      [...existing, 'spotbugs-suppressions.xml']
+      [...existing, 'spotbugs-suppressions.xml'],
     );
     assert.strictEqual(
       workspaceExcludePathsWithSuppression(
         ['spotbugs-suppressions.xml'],
         '/workspace/spotbugs-suppressions.xml',
-        '/workspace'
+        '/workspace',
       ),
-      undefined
+      undefined,
     );
   });
 });
 
 async function runInactiveManagedFile(
   selected: Finding,
-  blocks: string[]
+  blocks: string[],
 ): Promise<{ errors: string[]; events: string[] }> {
   const errors: string[] = [];
   const events: string[] = [];
@@ -198,7 +190,7 @@ async function runInactiveManagedFile(
       },
     },
     [selected],
-    [selected]
+    [selected],
   );
   return { errors, events };
 }
@@ -206,21 +198,25 @@ async function runInactiveManagedFile(
 function runCommand(
   overrides: Partial<SuppressFindingsDependencies> = {},
   selected: Finding[] = [finding()],
-  cached: Finding[] = [finding()]
+  cached: Finding[] = [finding()],
 ) {
-  return suppressFindings(provider(selected, cached), {}, {
-    inspectFile: async (filePath): Promise<ManagedSuppressionFileState> => ({
-      kind: 'missing',
-      filePath,
-    }),
-    isDirty: () => false,
-    isExcludeFilterConfigured: () => false,
-    confirmPreview: async () => true,
-    writeFile: async () => undefined,
-    ensureExcludeFilterConfigured: async () => undefined,
-    notifySaved: async () => false,
-    ...overrides,
-  });
+  return suppressFindings(
+    provider(selected, cached),
+    {},
+    {
+      inspectFile: async (filePath): Promise<ManagedSuppressionFileState> => ({
+        kind: 'missing',
+        filePath,
+      }),
+      isDirty: () => false,
+      isExcludeFilterConfigured: () => false,
+      confirmPreview: async () => true,
+      writeFile: async () => undefined,
+      ensureExcludeFilterConfigured: async () => undefined,
+      notifySaved: async () => false,
+      ...overrides,
+    },
+  );
 }
 
 function managedFile(blocks: string[]) {

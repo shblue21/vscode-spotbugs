@@ -19,24 +19,22 @@ function makeConfig(settings: AnalysisSettings = { effort: 'default' }) {
   };
 }
 
-function makeTarget(
-  vscode: ReturnType<typeof installVscodeMock>
-): AnalysisExecutionUnit {
+function makeTarget(vscode: ReturnType<typeof installVscodeMock>): AnalysisExecutionUnit {
   const settingsResource = vscode.Uri.file('/workspace/settings') as unknown as Uri;
   const preferredResource = vscode.Uri.file('/workspace/sources') as unknown as Uri;
   return {
-    input: {
-      path: '/workspace/build/classes',
-      resolutionRoots: ['/workspace/build/classes'],
-      sourceOutputs: Object.fromEntries([
-        ['/workspace/src/main/java', '/workspace/build/classes'],
-      ]),
-    },
+    inputs: [
+      {
+        kind: 'source' as const,
+        path: '/workspace/build/classes',
+        resolutionRoots: ['/workspace/build/classes'],
+        sourceOutputs: Object.fromEntries([
+          ['/workspace/src/main/java', '/workspace/build/classes'],
+        ]),
+      },
+    ],
     environment: {
-      runtimeClasspaths: [
-        '/workspace/build/classes',
-        '/workspace/lib/dependency.jar',
-      ],
+      runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
     },
     settingsResource,
     sourceLookup: {
@@ -65,6 +63,7 @@ function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecut
     validatePluginJarsPreflight: async () => undefined,
     buildAnalysisRequestPayload: (settings, options) => ({
       schemaVersion: 2,
+      inputs: [],
       effort: settings.effort,
       targetResolutionRoots: options.targetResolutionRoots ?? null,
       runtimeClasspaths: options.runtimeClasspaths ?? null,
@@ -74,6 +73,7 @@ function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecut
     runSpotBugsAnalysis: async () =>
       JSON.stringify({
         schemaVersion: 2,
+        inputs: [],
         results: [],
       }),
     parseAnalysisResponse: () => ({
@@ -98,129 +98,47 @@ describe('analysisExecution', () => {
     resetVscodeMock();
   });
 
-  it('short-circuits filter preflight failures before backend execution', async () => {
-    const { createAnalysisExecutor } = loadAnalysisExecution();
-    const backendCalls: unknown[] = [];
-    const executor = createAnalysisExecutor(
-      makeDeps({
-        validateFilterFilesPreflight: async () => ({
-          code: 'CFG_INCLUDE_FILTER_NOT_FOUND',
-          message: 'Include filter not found',
-        }),
-        runSpotBugsAnalysis: async (request) => {
-          backendCalls.push(request);
-          return JSON.stringify({ schemaVersion: 2, results: [] });
-        },
-      })
-    );
-
-    const outcome = await executor.run(
-      makeConfig(),
-      makeTarget(installVscodeMock())
-    );
-
-    assert.deepStrictEqual(backendCalls, []);
-    assert.deepStrictEqual(outcome.findings, []);
-    assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
-    assert.strictEqual(outcome.errors?.[0]?.code, 'CFG_INCLUDE_FILTER_NOT_FOUND');
-    assert.strictEqual(outcome.failure?.kind, 'analysis-error');
-    assert.strictEqual(outcome.failure?.code, 'CFG_INCLUDE_FILTER_NOT_FOUND');
-    assert.strictEqual(
-      outcome.failure?.message,
-      'SpotBugs analysis failed: [CFG_INCLUDE_FILTER_NOT_FOUND] Include filter not found'
-    );
-  });
-
-  it('short-circuits extra aux classpath preflight failures before backend execution', async () => {
-    const { createAnalysisExecutor } = loadAnalysisExecution();
-    const callOrder: string[] = [];
-    const backendCalls: unknown[] = [];
-    const executor = createAnalysisExecutor(
-      makeDeps({
-        validateFilterFilesPreflight: async () => {
-          callOrder.push('filter');
-          return undefined;
-        },
-        validateExtraAuxClasspathPreflight: async () => {
-          callOrder.push('aux');
-          return {
-            code: 'CFG_AUX_CLASSPATH_NOT_FOUND',
-            message: 'Extra aux classpath not found',
-          };
-        },
-        runSpotBugsAnalysis: async (request) => {
-          backendCalls.push(request);
-          return JSON.stringify({ schemaVersion: 2, results: [] });
-        },
-      })
-    );
-
-    const outcome = await executor.run(
-      makeConfig(),
-      makeTarget(installVscodeMock())
-    );
-
-    assert.deepStrictEqual(callOrder, ['filter', 'aux']);
-    assert.deepStrictEqual(backendCalls, []);
-    assert.deepStrictEqual(outcome.findings, []);
-    assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
-    assert.strictEqual(outcome.errors?.[0]?.code, 'CFG_AUX_CLASSPATH_NOT_FOUND');
-    assert.strictEqual(outcome.failure?.kind, 'analysis-error');
-    assert.strictEqual(outcome.failure?.code, 'CFG_AUX_CLASSPATH_NOT_FOUND');
-    assert.strictEqual(
-      outcome.failure?.message,
-      'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] Extra aux classpath not found'
-    );
-  });
-
-  it('short-circuits plugin jar preflight failures before backend execution', async () => {
-    const { createAnalysisExecutor } = loadAnalysisExecution();
-    const callOrder: string[] = [];
-    const backendCalls: unknown[] = [];
-    const executor = createAnalysisExecutor(
-      makeDeps({
-        validateFilterFilesPreflight: async () => {
-          callOrder.push('filter');
-          return undefined;
-        },
-        validateExtraAuxClasspathPreflight: async () => {
-          callOrder.push('aux');
-          return undefined;
-        },
-        validatePluginJarsPreflight: async () => {
-          callOrder.push('plugin');
-          return {
-            code: 'CFG_PLUGIN_NOT_FOUND',
-            message: 'SpotBugs plugin jar not found',
-          };
-        },
+  const preflightCases = [
+    ['filter', 'CFG_INCLUDE_FILTER_NOT_FOUND', 'Include filter not found'],
+    ['aux', 'CFG_AUX_CLASSPATH_NOT_FOUND', 'Extra aux classpath not found'],
+    ['plugin', 'CFG_PLUGIN_NOT_FOUND', 'SpotBugs plugin jar not found'],
+  ] as const;
+  for (const [index, [stage, code, message]] of preflightCases.entries()) {
+    it(`short-circuits ${stage} preflight failures before payload or backend execution`, async () => {
+      const { createAnalysisExecutor } = loadAnalysisExecution();
+      const callOrder: string[] = [];
+      const backendCalls: unknown[] = [];
+      const validate = (name: string) => async () => {
+        callOrder.push(name);
+        return name === stage ? { code, message } : undefined;
+      };
+      const executor = createAnalysisExecutor(makeDeps({
+        validateFilterFilesPreflight: validate('filter'),
+        validateExtraAuxClasspathPreflight: validate('aux'),
+        validatePluginJarsPreflight: validate('plugin'),
         buildAnalysisRequestPayload: () => {
           throw new Error('buildAnalysisRequestPayload should not run');
         },
         runSpotBugsAnalysis: async (request) => {
           backendCalls.push(request);
-          return JSON.stringify({ schemaVersion: 2, results: [] });
+          return JSON.stringify({ schemaVersion: 2, inputs: [], results: [] });
         },
-      })
-    );
+      }));
+      const outcome = await executor.run(
+        makeConfig({ effort: 'default', ...(stage === 'plugin' ? { plugins: ['/workspace/missing-plugin.jar'] } : {}) }),
+        makeTarget(installVscodeMock()),
+      );
 
-    const outcome = await executor.run(
-      makeConfig({ effort: 'default', plugins: ['/workspace/missing-plugin.jar'] }),
-      makeTarget(installVscodeMock())
-    );
-
-    assert.deepStrictEqual(callOrder, ['filter', 'aux', 'plugin']);
-    assert.deepStrictEqual(backendCalls, []);
-    assert.deepStrictEqual(outcome.findings, []);
-    assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
-    assert.strictEqual(outcome.errors?.[0]?.code, 'CFG_PLUGIN_NOT_FOUND');
-    assert.strictEqual(outcome.failure?.kind, 'analysis-error');
-    assert.strictEqual(outcome.failure?.code, 'CFG_PLUGIN_NOT_FOUND');
-    assert.strictEqual(
-      outcome.failure?.message,
-      'SpotBugs analysis failed: [CFG_PLUGIN_NOT_FOUND] SpotBugs plugin jar not found'
-    );
-  });
+      assert.deepStrictEqual(callOrder, preflightCases.slice(0, index + 1).map(([name]) => name));
+      assert.deepStrictEqual(backendCalls, []);
+      assert.deepStrictEqual(outcome.findings, []);
+      assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
+      assert.strictEqual(outcome.errors?.[0]?.code, code);
+      assert.strictEqual(outcome.failure?.kind, 'analysis-error');
+      assert.strictEqual(outcome.failure?.code, code);
+      assert.strictEqual(outcome.failure?.message, `SpotBugs analysis failed: [${code}] ${message}`);
+    });
+  }
 
   it('passes resolved target settings into the backend request and parser', async () => {
     const vscode = installVscodeMock();
@@ -232,10 +150,12 @@ describe('analysisExecution', () => {
     const target = makeTarget(vscode);
     const backendResponse = JSON.stringify({
       schemaVersion: 2,
+      inputs: [],
       results: [],
     });
     const payload = {
       schemaVersion: 2,
+      inputs: [],
       effort: 'max',
       targetResolutionRoots: ['/payload/root'],
       runtimeClasspaths: ['/payload/runtime'],
@@ -246,9 +166,7 @@ describe('analysisExecution', () => {
     let builderOptions:
       | Parameters<AnalysisExecutorDeps['buildAnalysisRequestPayload']>[1]
       | undefined;
-    let backendRequest:
-      | Parameters<AnalysisExecutorDeps['runSpotBugsAnalysis']>[0]
-      | undefined;
+    let backendRequest: Parameters<AnalysisExecutorDeps['runSpotBugsAnalysis']>[0] | undefined;
     let parserInput: string | undefined;
     let settingsResource: Uri | undefined;
 
@@ -272,7 +190,7 @@ describe('analysisExecution', () => {
             },
           };
         },
-      })
+      }),
     );
 
     await executor.run(
@@ -282,20 +200,21 @@ describe('analysisExecution', () => {
           return settings;
         },
       },
-      target
+      target,
     );
 
     assert.strictEqual(settingsResource, target.settingsResource);
     assert.strictEqual(builderSettings, settings);
     assert.deepStrictEqual(builderOptions, {
-      targetResolutionRoots: target.input.resolutionRoots,
+      inputs: [{ kind: 'source', path: target.inputs[0].path }],
+      targetResolutionRoots: target.inputs[0].resolutionRoots,
       runtimeClasspaths: target.environment.runtimeClasspaths,
       extraAuxClasspaths: settings.extraAuxClasspaths,
       sourcepaths: target.sourceLookup.roots,
-      sourceOutputs: target.input.sourceOutputs,
+      sourceOutputs: target.inputs[0].sourceOutputs,
     });
     assert.deepStrictEqual(backendRequest, {
-      targetPath: target.input.path,
+      targetPath: target.inputs[0].path,
       payload,
     });
     assert.strictEqual(backendRequest?.payload, payload);
@@ -310,13 +229,10 @@ describe('analysisExecution', () => {
         addFullPaths: async () => {
           throw new Error('addFullPaths should not run');
         },
-      })
+      }),
     );
 
-    const outcome = await executor.run(
-      makeConfig(),
-      makeTarget(installVscodeMock())
-    );
+    const outcome = await executor.run(makeConfig(), makeTarget(installVscodeMock()));
 
     assert.deepStrictEqual(outcome.findings, []);
     assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
@@ -324,7 +240,7 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.failure?.code, 'ANALYSIS_NO_RESPONSE');
     assert.strictEqual(
       outcome.failure?.message,
-      'SpotBugs analysis failed: No response from SpotBugs backend.'
+      'SpotBugs analysis failed: No response from SpotBugs backend.',
     );
   });
 
@@ -349,15 +265,13 @@ describe('analysisExecution', () => {
               spotbugsVersion: '4.9.8',
             },
             schemaVersion: 2,
+            inputs: [],
           },
         }),
-      })
+      }),
     );
 
-    const outcome = await executor.run(
-      makeConfig(),
-      makeTarget(installVscodeMock())
-    );
+    const outcome = await executor.run(makeConfig(), makeTarget(installVscodeMock()));
 
     assert.deepStrictEqual(outcome.findings, []);
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
@@ -367,7 +281,7 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.failure?.code, 'ANALYSIS_FAILED');
     assert.strictEqual(
       outcome.failure?.message,
-      'SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
+      'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
   });
 
@@ -397,6 +311,7 @@ describe('analysisExecution', () => {
             reportSummary: { analyzedClassCount: 3 },
             nativeSarif: '{"version":"2.1.0","runs":[]}',
             schemaVersion: 2,
+            inputs: [],
           },
         }),
         mapBugsToFindings: () => [mappedFinding],
@@ -406,7 +321,7 @@ describe('analysisExecution', () => {
           addFullPathsSourcepaths = sourcepaths;
           return [enrichedFinding];
         },
-      })
+      }),
     );
 
     const target = makeTarget(vscode);
@@ -414,7 +329,7 @@ describe('analysisExecution', () => {
 
     assert.strictEqual(
       addFullPathsProject?.toString(),
-      target.sourceLookup.preferredResource?.toString()
+      target.sourceLookup.preferredResource?.toString(),
     );
     assert.deepStrictEqual(addFullPathsSourcepaths, target.sourceLookup.roots);
     assert.deepStrictEqual(outcome.findings, [enrichedFinding]);
@@ -437,7 +352,7 @@ describe('analysisExecution', () => {
           backendSourcepaths = request.payload.sourcepaths;
           const roots = target.sourceLookup.roots as string[];
           roots.splice(0, roots.length, '/mutated');
-          return JSON.stringify({ schemaVersion: 2, results: [] });
+          return JSON.stringify({ schemaVersion: 2, inputs: [], results: [] });
         },
         parseAnalysisResponse: () => ({
           ok: true,
@@ -450,17 +365,12 @@ describe('analysisExecution', () => {
           enrichmentSourcepaths = sourcepaths;
           return findings;
         },
-      })
+      }),
     );
 
     await executor.run(makeConfig(), target);
 
-    assert.deepStrictEqual(backendSourcepaths, [
-      '/workspace/src/main/java',
-    ]);
-    assert.deepStrictEqual(enrichmentSourcepaths, [
-      '/workspace/src/main/java',
-    ]);
+    assert.deepStrictEqual(backendSourcepaths, ['/workspace/src/main/java']);
+    assert.deepStrictEqual(enrichmentSourcepaths, ['/workspace/src/main/java']);
   });
-
 });

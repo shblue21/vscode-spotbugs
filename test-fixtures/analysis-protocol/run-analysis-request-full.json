@@ -36,6 +36,12 @@
     "plugins": [
       "/workspace/plugin-a.jar",
       "/workspace/plugin-b.jar"
+    ],
+    "inputs": [
+      {
+        "kind": "artifact",
+        "path": "/workspace/build/classes"
+      }
     ]
   }
 }
