@@ -11,6 +11,7 @@ export function buildAnalysisRequestPayload(
     runtimeClasspaths?: string[] | null;
     extraAuxClasspaths?: string[] | null;
     sourcepaths?: string[] | null;
+    sourceOutputs?: Record<string, string> | null;
     includeBaselineXml?: boolean;
   }
 ): AnalysisRequestPayload {
@@ -29,6 +30,10 @@ export function buildAnalysisRequestPayload(
     sourcepaths: Array.isArray(options.sourcepaths) ? options.sourcepaths.slice() : null,
     ...(options.includeBaselineXml === true ? { includeBaselineXml: true } : {}),
   };
+
+  if (options.sourceOutputs && Object.keys(options.sourceOutputs).length > 0) {
+    payload.sourceOutputs = { ...options.sourceOutputs };
+  }
 
   if (typeof settings.priorityThreshold === 'number') {
     payload.priorityThreshold = settings.priorityThreshold;

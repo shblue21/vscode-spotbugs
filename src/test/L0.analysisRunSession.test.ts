@@ -986,6 +986,20 @@ describe('analysisRunSession workspace analysis', () => {
     });
   }
 
+  it('renders cancellation when project discovery is interrupted', async () => {
+    const harness = createWorkspaceHarness({
+      getWorkspaceProjectDiscovery: async () => {
+        harness.token.isCancellationRequested = true;
+        throw new Error('cancelled');
+      },
+    });
+
+    await runWorkspaceAnalysisSession(harness.args);
+
+    assert.deepStrictEqual(harness.calls, ['cancelled']);
+    assert.deepStrictEqual(harness.errors, []);
+  });
+
   it('renders workspace analysis exceptions as failure state', async () => {
     const loggedErrors: string[] = [];
     const harness = createWorkspaceHarness({

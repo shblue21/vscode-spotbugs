@@ -35,6 +35,10 @@ describe('analysisRequestBuilder', () => {
         runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
         extraAuxClasspaths: ['.'],
         sourcepaths: ['/workspace/src/main/java', '/workspace/generated/sources'],
+        sourceOutputs: Object.fromEntries([
+          ['/workspace/src/main/java', '/workspace/build/classes'],
+          ['/workspace/generated/sources', '/workspace/build/generated'],
+        ]),
         includeBaselineXml: true,
       }
     );

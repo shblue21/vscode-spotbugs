@@ -25,16 +25,14 @@ export async function buildWorkspace(
   if (ensureCommands) {
     const waited = await ensureJavaCommandsAvailable([
       JavaLanguageServerCommands.COMPILE_WORKSPACE,
-      JavaLanguageServerCommands.GET_CLASSPATHS,
     ]);
-    Logger.log(`Checked Java command availability (waited=${waited})`);
+    Logger.log(`Checked Java build command availability (waited=${waited})`);
   }
 
   try {
     const available = await commands.getCommands(true);
     const hasBuild = available.includes(JavaLanguageServerCommands.COMPILE_WORKSPACE);
-    const hasGetCp = available.includes(JavaLanguageServerCommands.GET_CLASSPATHS);
-    Logger.log(`Commands available - build:${hasBuild} getClasspaths:${hasGetCp}`);
+    Logger.log(`Command available - build:${hasBuild}`);
   } catch {
     // ignore
   }

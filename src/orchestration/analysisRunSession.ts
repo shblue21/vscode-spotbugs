@@ -85,7 +85,8 @@ export interface AnalysisSessionDependencies {
   buildWorkspaceAuto(token?: CancellationToken): Promise<number | undefined>;
   getPrimaryWorkspaceFolder(): WorkspaceFolder | undefined;
   getWorkspaceProjectDiscovery(
-    workspaceFolder: Uri
+    workspaceFolder: Uri,
+    token?: CancellationToken
   ): Promise<WorkspaceProjectDiscoveryResult>;
   logger: AnalysisLogger;
   now(): number;
@@ -222,7 +223,19 @@ export async function runWorkspaceAnalysisSession(
       }
       workspaceFolderUri = wsFolder.uri;
 
-      const discovery = await dependencies.getWorkspaceProjectDiscovery(wsFolder.uri);
+      let discovery: WorkspaceProjectDiscoveryResult;
+      try {
+        discovery = await dependencies.getWorkspaceProjectDiscovery(
+          wsFolder.uri,
+          token
+        );
+      } catch (error) {
+        if (token.isCancellationRequested) {
+          cancelled = true;
+          return;
+        }
+        throw error;
+      }
       if (!args.lease.isCurrent()) {
         return;
       }

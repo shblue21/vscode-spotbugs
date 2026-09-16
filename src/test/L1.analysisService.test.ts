@@ -12,6 +12,7 @@ function analysisTarget(
     resolutionRoots?: string[];
     runtimeClasspaths?: string[];
     sourcepaths?: string[];
+    sourceOutputs?: Record<string, string>;
     diagnosticScope?: any;
   } = {}
 ) {
@@ -20,6 +21,7 @@ function analysisTarget(
       input: {
         path,
         resolutionRoots: options.resolutionRoots,
+        sourceOutputs: options.sourceOutputs,
       },
       environment: { runtimeClasspaths: options.runtimeClasspaths },
       settingsResource: resource,
@@ -86,18 +88,21 @@ describe('analysisService', () => {
     const token = { isCancellationRequested: false } as any;
     let receivedToken: unknown;
 
-    resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
-      resolution: {
-        status: 'ok',
-        target: analysisTarget('/workspace/build/classes', folderUri, {
-          resolutionRoots: ['/workspace/build/classes'],
-          runtimeClasspaths: ['/workspace/build/classes'],
-          sourcepaths: ['/workspace/src'],
-          diagnosticScope: { kind: 'folder', uri: folderUri },
-        }),
-      },
-      issues: [],
-    })) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
+    resolverModule.resolveFileAnalysisTargetDetailed = (async (_uri, actualToken) => {
+      assert.strictEqual(actualToken, token);
+      return {
+        resolution: {
+          status: 'ok',
+          target: analysisTarget('/workspace/build/classes', folderUri, {
+            resolutionRoots: ['/workspace/build/classes'],
+            runtimeClasspaths: ['/workspace/build/classes'],
+            sourcepaths: ['/workspace/src'],
+            diagnosticScope: { kind: 'folder', uri: folderUri },
+          }),
+        },
+        issues: [],
+      };
+    }) as typeof resolverModule.resolveFileAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async (request, actualToken) => {
       receivedToken = actualToken;
       assert.strictEqual(request.payload.includeBaselineXml, undefined);

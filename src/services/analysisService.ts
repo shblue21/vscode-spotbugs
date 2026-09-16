@@ -66,7 +66,7 @@ export async function analyzeFileDetailed(
   const context = createExecutionContext();
 
   try {
-    const result = await resolveFileAnalysisTargetDetailed(uri);
+    const result = await resolveFileAnalysisTargetDetailed(uri, token);
     context.resolutionIssues.push(...result.issues);
 
     if (result.resolution.status !== 'ok') {
@@ -185,7 +185,8 @@ async function analyzeProjectDetailed(
     const resolved = await resolveProjectAnalysis(
       projectUri,
       workspaceFolder,
-      settings
+      settings,
+      token
     );
     context.resolutionIssues.push(...resolved.targetResult.issues);
 
@@ -211,14 +212,16 @@ async function analyzeProjectDetailed(
 async function resolveProjectAnalysis(
   projectUri: Uri,
   workspaceFolder: Uri,
-  settings: AnalysisSettings
+  settings: AnalysisSettings,
+  token?: CancellationToken
 ): Promise<ResolvedProjectAnalysis> {
   return {
     projectUri,
     settings,
     targetResult: await resolveProjectAnalysisTargetDetailed(
       projectUri,
-      workspaceFolder
+      workspaceFolder,
+      token
     ),
   };
 }

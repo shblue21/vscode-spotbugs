@@ -57,6 +57,10 @@ public class RunAnalysisRequestParserTest {
                 Arrays.asList("/workspace/src/main/java", "/workspace/generated/sources"),
                 request.getConfig().getSourcepaths()
         );
+        assertEquals(
+                "/workspace/build/generated",
+                request.getConfig().getSourceOutputs().get("/workspace/generated/sources")
+        );
         assertEquals(Integer.valueOf(5), request.getConfig().getPriorityThreshold());
         assertEquals(
                 resolvedFixturePathList(payload, "includeFilterPaths"),

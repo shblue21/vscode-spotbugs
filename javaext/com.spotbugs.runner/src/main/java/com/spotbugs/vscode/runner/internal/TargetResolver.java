@@ -6,10 +6,11 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.bcel.classfile.ClassParser;
@@ -35,9 +36,19 @@ public class TargetResolver {
             List<String> sourcepaths,
             IProgressMonitor monitor
     ) throws IOException {
+        return resolveTargets(inputs, targetResolutionRootDirs, sourcepaths, Collections.emptyMap(), monitor);
+    }
+
+    public List<String> resolveTargets(
+            String[] inputs,
+            List<File> targetResolutionRootDirs,
+            List<String> sourcepaths,
+            Map<String, String> sourceOutputs,
+            IProgressMonitor monitor
+    ) throws IOException {
         List<String> targets = new ArrayList<>();
         Set<String> seen = new HashSet<>();
-        List<SourceRoot> sourceRoots = normalizeSourceRoots(sourcepaths);
+        List<SourceRoot> sourceRoots = normalizeSourceRoots(sourcepaths, sourceOutputs);
         if (inputs == null) {
             return targets;
         }
@@ -53,6 +64,7 @@ public class TargetResolver {
                         p,
                         targetResolutionRootDirs,
                         sourceRoots,
+                        sourceOutputs != null && !sourceOutputs.isEmpty(),
                         targets,
                         seen,
                         monitor
@@ -114,17 +126,23 @@ public class TargetResolver {
             String sourceDir,
             List<File> targetResolutionRootDirs,
             List<SourceRoot> sourceRoots,
+            boolean sourceOutputsDeclared,
             List<String> out,
             Set<String> seen,
             IProgressMonitor monitor
     ) throws IOException {
         String relativeDir = deriveRelativeDirectoryPathFromSource(sourceDir, sourceRoots, monitor);
-        if (relativeDir == null) {
+        boolean aggregateSourceRoots = relativeDir == null
+                && sourceRoots != null
+                && !sourceRoots.isEmpty()
+                && sourceOutputsDeclared
+                && !isInsideOutputRoot(sourceDir, targetResolutionRootDirs);
+        if (relativeDir == null && !aggregateSourceRoots) {
             return SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
         }
 
         File sourceDirFile = new File(sourceDir);
-        if (!containsJavaSourceRecursively(sourceDirFile, monitor)) {
+        if (!aggregateSourceRoots && !containsJavaSourceRecursively(sourceDirFile, monitor)) {
             return SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
         }
 
@@ -133,7 +151,22 @@ public class TargetResolver {
         }
 
         int before = out.size();
-        if (relativeDir.isEmpty()) {
+        if (aggregateSourceRoots) {
+            for (SourceRoot sourceRoot : sourceRoots) {
+                checkCanceled(monitor);
+                File sourceRootDir = sourceRoot.path.toFile();
+                if (sourceRootDir.isDirectory()) {
+                    collectMappedClassesForSourceTree(
+                            sourceRootDir,
+                            targetResolutionRootDirs,
+                            sourceRoots,
+                            out,
+                            seen,
+                            monitor
+                    );
+                }
+            }
+        } else if (relativeDir.isEmpty()) {
             collectMappedClassesForSourceTree(
                     sourceDirFile,
                     targetResolutionRootDirs,
@@ -155,6 +188,21 @@ public class TargetResolver {
         return out.size() > before
                 ? SourceDirectoryResolution.SOURCE_DIRECTORY_WITH_OUTPUTS
                 : SourceDirectoryResolution.SOURCE_DIRECTORY_NO_OUTPUTS;
+    }
+
+    private boolean isInsideOutputRoot(String sourceDir, List<File> outputRoots) {
+        Path selected = toNormalizedPath(sourceDir);
+        if (selected == null || outputRoots == null) {
+            return false;
+        }
+        for (File outputRoot : outputRoots) {
+            if (outputRoot == null) continue;
+            Path root = toNormalizedPath(outputRoot.getAbsolutePath());
+            if (root != null && selected.startsWith(root)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void collectMappedClassesForSourceTree(
@@ -248,12 +296,15 @@ public class TargetResolver {
     ) throws IOException {
         boolean added = false;
         if (targetResolutionRootDirs != null && !targetResolutionRootDirs.isEmpty()) {
-            for (String rel : deriveRelativePathsFromSource(javaPath, sourceRoots, monitor)) {
-                String classRel = toClassRelativePath(rel);
+            for (SourceMatch match : deriveRelativePathsFromSource(javaPath, sourceRoots, monitor)) {
+                String classRel = toClassRelativePath(match.relativePath);
                 if (classRel == null) {
                     continue;
                 }
-                for (File dir : targetResolutionRootDirs) {
+                List<File> outputRoots = match.outputRoot == null
+                        ? targetResolutionRootDirs
+                        : Collections.singletonList(match.outputRoot.toFile());
+                for (File dir : outputRoots) {
                     checkCanceled(monitor);
                     if (dir == null) continue;
                     if (addClassFamily(dir, classRel, out, seen, monitor)) {
@@ -312,12 +363,12 @@ public class TargetResolver {
         return true;
     }
 
-    private List<String> deriveRelativePathsFromSource(
+    private List<SourceMatch> deriveRelativePathsFromSource(
             String sourcePath,
             List<SourceRoot> sourceRoots,
             IProgressMonitor monitor
     ) {
-        LinkedHashSet<String> candidates = new LinkedHashSet<>();
+        List<SourceMatch> candidates = new ArrayList<>();
         Path source = toNormalizedPath(sourcePath);
         if (source != null && sourceRoots != null) {
             for (SourceRoot root : sourceRoots) {
@@ -328,18 +379,18 @@ public class TargetResolver {
                 Path relative = root.path.relativize(source);
                 String rel = normalizeRelativePath(relative.toString());
                 if (!rel.isEmpty()) {
-                    candidates.add(rel);
+                    candidates.add(new SourceMatch(rel, root.outputRoot));
                 }
-                return new ArrayList<>(candidates);
+                return candidates;
             }
         }
 
         String markerCandidate = deriveRelativePathFromSource(sourcePath);
         if (markerCandidate == null) {
-            return new ArrayList<>();
+            return candidates;
         }
-        candidates.add(normalizeRelativePath(markerCandidate));
-        return new ArrayList<>(candidates);
+        candidates.add(new SourceMatch(normalizeRelativePath(markerCandidate), null));
+        return candidates;
     }
 
     private String deriveRelativeDirectoryPathFromSource(
@@ -449,7 +500,10 @@ public class TargetResolver {
         }
     }
 
-    private List<SourceRoot> normalizeSourceRoots(List<String> sourcepaths) {
+    private List<SourceRoot> normalizeSourceRoots(
+            List<String> sourcepaths,
+            Map<String, String> sourceOutputs
+    ) {
         List<SourceRoot> roots = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         if (sourcepaths == null) {
@@ -464,7 +518,8 @@ public class TargetResolver {
             }
             String key = root.toString();
             if (seen.add(key)) {
-                roots.add(new SourceRoot(root, index));
+                String output = sourceOutputs != null ? sourceOutputs.get(sourcepath) : null;
+                roots.add(new SourceRoot(root, toNormalizedPath(output), index));
             }
             index++;
         }
@@ -503,11 +558,23 @@ public class TargetResolver {
 
     private static final class SourceRoot {
         private final Path path;
+        private final Path outputRoot;
         private final int index;
 
-        private SourceRoot(Path path, int index) {
+        private SourceRoot(Path path, Path outputRoot, int index) {
             this.path = path;
+            this.outputRoot = outputRoot;
             this.index = index;
+        }
+    }
+
+    private static final class SourceMatch {
+        private final String relativePath;
+        private final Path outputRoot;
+
+        private SourceMatch(String relativePath, Path outputRoot) {
+            this.relativePath = relativePath;
+            this.outputRoot = outputRoot;
         }
     }
 

@@ -7,6 +7,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.bcel.Const;
 import org.apache.bcel.generic.ClassGen;
@@ -257,6 +259,35 @@ public class TargetResolverTest {
         }
     }
 
+    @Test
+    public void projectDirectoryMapsAllConfiguredSourceRootsToTheirOutputs() throws Exception {
+        File project = temporaryFolder.newFolder("project-aggregate");
+        File mainSource = mkdirs(project, "src/main/java");
+        File linkedSource = temporaryFolder.newFolder("linked-source");
+        File mainOutput = mkdirs(project, "target/classes");
+        File linkedOutput = mkdirs(project, "target/generated-classes");
+        File mainFile = touch(mkdirs(mainSource, "demo"), "Main.java");
+        File linkedFile = touch(mkdirs(linkedSource, "generated"), "Generated.java");
+        File mainClass = touch(mkdirs(mainOutput, "demo"), "Main.class");
+        File linkedClass = touch(mkdirs(linkedOutput, "generated"), "Generated.class");
+        touch(mkdirs(mainOutput, "generated"), "Generated.class");
+        Map<String, String> sourceOutputs = new LinkedHashMap<>();
+        sourceOutputs.put(mainSource.getAbsolutePath(), mainOutput.getAbsolutePath());
+        sourceOutputs.put(linkedSource.getAbsolutePath(), linkedOutput.getAbsolutePath());
+
+        List<String> actual = new TargetResolver().resolveTargets(
+                new String[] { project.getAbsolutePath() },
+                listOfFiles(mainOutput, linkedOutput),
+                listOf(mainSource.getAbsolutePath(), linkedSource.getAbsolutePath()),
+                sourceOutputs,
+                null
+        );
+
+        assertEquals(sortedPaths(mainClass, linkedClass), sorted(actual));
+        assertTrue(mainFile.isFile());
+        assertTrue(linkedFile.isFile());
+    }
+
     private File touch(File parent, String name) throws Exception {
         File file = new File(parent, name);
         assertTrue(file.createNewFile());
@@ -304,6 +335,12 @@ public class TargetResolverTest {
 
     private List<String> listOf(String... values) {
         List<String> result = new ArrayList<>();
+        Collections.addAll(result, values);
+        return result;
+    }
+
+    private List<File> listOfFiles(File... values) {
+        List<File> result = new ArrayList<>();
         Collections.addAll(result, values);
         return result;
     }

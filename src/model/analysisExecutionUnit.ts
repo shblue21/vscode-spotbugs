@@ -3,6 +3,7 @@ import type { Uri } from 'vscode';
 export interface PathAnalysisInput {
   path: string;
   resolutionRoots?: readonly string[] | null;
+  sourceOutputs?: Readonly<Record<string, string>> | null;
 }
 
 export interface AnalysisEnvironment {

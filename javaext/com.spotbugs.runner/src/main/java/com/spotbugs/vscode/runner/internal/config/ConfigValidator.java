@@ -3,6 +3,8 @@ package com.spotbugs.vscode.runner.internal.config;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 import com.spotbugs.vscode.runner.api.ConfigError;
@@ -23,6 +25,7 @@ public class ConfigValidator {
         List<String> runtimeClasspaths = normalizeList(schema.getRuntimeClasspaths());
         List<String> extraAuxClasspaths = normalizeList(schema.getExtraAuxClasspaths());
         List<String> sps = normalizeList(schema.getSourcepaths());
+        Map<String, String> sourceOutputs = normalizeMap(schema.getSourceOutputs());
 
         // Optional fields: normalize empties to null
         Integer priorityThreshold = schema.getPriorityThreshold();
@@ -55,6 +58,7 @@ public class ConfigValidator {
             .runtimeClasspaths(runtimeClasspaths)
             .extraAuxClasspaths(extraAuxClasspaths)
             .sourcepaths(sps)
+            .sourceOutputs(sourceOutputs)
             .priorityThreshold(priorityThreshold)
             .includeFilterPaths(includeFilterPaths)
             .excludeFilterPaths(excludeFilterPaths)
@@ -74,5 +78,17 @@ public class ConfigValidator {
             if (!t.isEmpty()) set.add(t);
         }
         return new ArrayList<>(set);
+    }
+
+    private static Map<String, String> normalizeMap(Map<String, String> in) {
+        Map<String, String> normalized = new LinkedHashMap<>();
+        if (in == null) return normalized;
+        for (Map.Entry<String, String> entry : in.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) continue;
+            String source = entry.getKey().trim();
+            String output = entry.getValue().trim();
+            if (!source.isEmpty() && !output.isEmpty()) normalized.put(source, output);
+        }
+        return normalized;
     }
 }

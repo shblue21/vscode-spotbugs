@@ -2,7 +2,9 @@ export namespace JavaLanguageServerCommands {
   export const EXECUTE_WORKSPACE_COMMAND: string = 'java.execute.workspaceCommand';
   // vscode-java standardLanguageClient command, true is full compile, false is incremental compile
   export const COMPILE_WORKSPACE: string = 'java.workspace.compile';
+  export const GET_PROJECT_SETTINGS: string = 'java.project.getSettings';
   export const GET_CLASSPATHS: string = 'java.project.getClasspaths';
+  export const IS_TEST_FILE: string = 'java.project.isTestFile';
   export const GET_ALL_JAVA_PROJECTS: string = 'java.project.getAll';
 }
 

@@ -2,11 +2,12 @@ import { commands, type CancellationToken } from 'vscode';
 import { JavaLanguageServerCommands } from '../constants/commands';
 
 export interface JavaLsClasspathResponse {
-  classpaths?: string[];
-  sourcepaths?: string[];
-  output?: string;
-  [key: string]: unknown;
+  projectRoot: string;
+  classpaths: string[];
+  modulepaths: string[];
 }
+
+export type JavaLsProjectSettingsResponse = Record<string, unknown>;
 
 export async function executeWorkspaceCommand<T>(
   command: string,
@@ -20,17 +21,48 @@ export async function executeWorkspaceCommand<T>(
 }
 
 export async function requestJavaClasspaths(
-  ...args: unknown[]
+  uri: string,
+  scope: 'runtime' | 'test',
+  token?: CancellationToken
 ): Promise<JavaLsClasspathResponse | undefined> {
-  return commands.executeCommand<JavaLsClasspathResponse>(
+  return executeWorkspaceCommand<JavaLsClasspathResponse>(
     JavaLanguageServerCommands.GET_CLASSPATHS,
-    ...args
+    uri,
+    JSON.stringify({ scope }),
+    ...(token ? [token] : [])
   );
 }
 
-export async function requestAllJavaProjects(): Promise<string[] | undefined> {
-  return commands.executeCommand<string[]>(
-    JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS
+export async function requestJavaProjectSettings(
+  uri: string,
+  settingKeys: string[],
+  token?: CancellationToken
+): Promise<JavaLsProjectSettingsResponse | undefined> {
+  return executeWorkspaceCommand<JavaLsProjectSettingsResponse>(
+    JavaLanguageServerCommands.GET_PROJECT_SETTINGS,
+    uri,
+    settingKeys,
+    ...(token ? [token] : [])
+  );
+}
+
+export async function requestJavaIsTestFile(
+  uri: string,
+  token?: CancellationToken
+): Promise<boolean | undefined> {
+  return executeWorkspaceCommand<boolean>(
+    JavaLanguageServerCommands.IS_TEST_FILE,
+    uri,
+    ...(token ? [token] : [])
+  );
+}
+
+export async function requestAllJavaProjects(
+  token?: CancellationToken
+): Promise<string[] | undefined> {
+  return executeWorkspaceCommand<string[]>(
+    JavaLanguageServerCommands.GET_ALL_JAVA_PROJECTS,
+    ...(token ? [token] : [])
   );
 }
 

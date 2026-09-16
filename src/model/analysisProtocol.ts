@@ -10,6 +10,7 @@ export interface AnalysisRequestPayload {
   runtimeClasspaths?: string[] | null;
   extraAuxClasspaths?: string[] | null;
   sourcepaths?: string[] | null;
+  sourceOutputs?: Record<string, string> | null;
   priorityThreshold?: number;
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];

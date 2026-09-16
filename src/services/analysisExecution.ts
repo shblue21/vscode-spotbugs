@@ -78,6 +78,12 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
   ): Promise<AnalysisOutcome> {
     const analysisContext: AnalysisExecutionUnit = {
       ...context,
+      input: {
+        ...context.input,
+        ...(context.input.sourceOutputs
+          ? { sourceOutputs: { ...context.input.sourceOutputs } }
+          : {}),
+      },
       sourceLookup: {
         ...context.sourceLookup,
         roots: Array.isArray(context.sourceLookup.roots)
@@ -150,6 +156,9 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       sourcepaths: context.sourceLookup.roots
         ? [...context.sourceLookup.roots]
         : null,
+      ...(context.input.sourceOutputs
+        ? { sourceOutputs: { ...context.input.sourceOutputs } }
+        : {}),
       ...(context.options?.includeBaselineXml ? { includeBaselineXml: true } : {}),
     });
     return deps.runSpotBugsAnalysis(

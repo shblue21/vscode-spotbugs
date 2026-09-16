@@ -28,6 +28,9 @@ function makeTarget(
     input: {
       path: '/workspace/build/classes',
       resolutionRoots: ['/workspace/build/classes'],
+      sourceOutputs: Object.fromEntries([
+        ['/workspace/src/main/java', '/workspace/build/classes'],
+      ]),
     },
     environment: {
       runtimeClasspaths: [
@@ -289,6 +292,7 @@ describe('analysisExecution', () => {
       runtimeClasspaths: target.environment.runtimeClasspaths,
       extraAuxClasspaths: settings.extraAuxClasspaths,
       sourcepaths: target.sourceLookup.roots,
+      sourceOutputs: target.input.sourceOutputs,
     });
     assert.deepStrictEqual(backendRequest, {
       targetPath: target.input.path,

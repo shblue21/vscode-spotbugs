@@ -1,11 +1,14 @@
-import { Uri } from 'vscode';
+import * as path from 'path';
+import { Uri, type CancellationToken } from 'vscode';
 import type { JavaProjectsOutcome } from '../lsp/javaLsOutcome';
 import { requestAllJavaProjects } from '../lsp/javaLsGateway';
 
 export class JavaLsClient {
-  static async getAllProjectsOutcome(): Promise<JavaProjectsOutcome> {
+  static async getAllProjectsOutcome(
+    token?: CancellationToken
+  ): Promise<JavaProjectsOutcome> {
     try {
-      const uris = await requestAllJavaProjects();
+      const uris = await requestAllJavaProjects(token);
       if (uris === undefined || uris === null) {
         return {
           status: 'unavailable',
@@ -25,7 +28,7 @@ export class JavaLsClient {
       const projectUris = uris.filter((uriString) => {
         try {
           const p = Uri.parse(uriString).fsPath;
-          return !p.endsWith('jdt.ls-java-project');
+          return path.basename(p) !== 'jdt.ls-java-project';
         } catch {
           return true;
         }
@@ -53,6 +56,9 @@ export class JavaLsClient {
         issues: [],
       };
     } catch (error) {
+      if (token?.isCancellationRequested) {
+        throw error;
+      }
       return {
         status: 'unavailable',
         projectUris: [],
@@ -70,8 +76,8 @@ export class JavaLsClient {
     }
   }
 
-  static async getAllProjects(): Promise<string[]> {
-    const outcome = await JavaLsClient.getAllProjectsOutcome();
+  static async getAllProjects(token?: CancellationToken): Promise<string[]> {
+    const outcome = await JavaLsClient.getAllProjectsOutcome(token);
     return outcome.projectUris;
   }
 }

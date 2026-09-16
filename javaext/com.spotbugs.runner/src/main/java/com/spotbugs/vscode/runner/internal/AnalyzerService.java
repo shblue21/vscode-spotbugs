@@ -117,7 +117,13 @@ public class AnalyzerService {
         project.addSourceDirs(sourcepaths);
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         TargetResolver resolver = new TargetResolver();
-        List<String> targets = resolver.resolveTargets(filePaths, targetResolutionRootDirs, sourcepaths, monitor);
+        List<String> targets = resolver.resolveTargets(
+                filePaths,
+                targetResolutionRootDirs,
+                sourcepaths,
+                this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(),
+                monitor
+        );
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
