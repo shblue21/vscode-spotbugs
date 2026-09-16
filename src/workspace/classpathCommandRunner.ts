@@ -38,6 +38,7 @@ type SourceOutput = {
 type ProjectSettings = {
   defaultOutput?: string;
   sourceOutputs: SourceOutput[];
+  sourceRootsAbsent?: true;
 };
 
 export interface ClasspathLookupOptions {
@@ -166,6 +167,7 @@ export async function lookupJavaProjectClasspath(
       targetResolutionRoots,
       sourcepaths,
       sourceOutputs,
+      ...(projectSettings.sourceRootsAbsent ? { sourceRootsAbsent: true as const } : {}),
     };
     Logger.log(
       `getClasspaths(${scope}) succeeded: projectRoot=${response.projectRoot}, auxPaths=${runtimeClasspaths.length}, targetResolutionRoots=${targetResolutionRoots.length}, sourcepaths=${sourcepaths.length}`
@@ -250,7 +252,13 @@ function normalizeSettings(raw: Record<string, unknown>, declaredSourceOutputs: 
     if (source) source.declaredOutput = output;
   }
   return {
-    settings: { defaultOutput, sourceOutputs },
+    settings: { defaultOutput, sourceOutputs,
+      ...(Array.isArray(raw[SOURCE_PATHS]) && raw[SOURCE_PATHS].length === 0
+        && Array.isArray(entries) && entries.every((entry) => record(entry)
+          && typeof entry.kind === 'number' && entry.kind !== 3)
+        && Object.keys(declaredSourceOutputs).length === 0
+        ? { sourceRootsAbsent: true as const } : {}),
+    },
     complete: Array.isArray(entries),
   };
 }

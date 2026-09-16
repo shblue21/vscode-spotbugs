@@ -81,6 +81,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
 
   type ClasspathInfo = {
     projectRootPath?: string;
+    sourceRootsAbsent?: true;
     targetResolutionRoots?: string[];
     runtimeClasspaths?: string[];
     sourcepaths?: string[];
@@ -184,6 +185,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       }
       return {
         projectRootPath: Uri.parse(cp.projectRoot).fsPath,
+        sourceRootsAbsent: cp.sourceRootsAbsent,
         targetResolutionRoots:
           cp.targetResolutionRoots.length > 0 ? cp.targetResolutionRoots.slice() : undefined,
         runtimeClasspaths:
@@ -494,7 +496,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     token?: CancellationToken,
   ): Promise<TargetResolutionResult> {
     const projectUriString = projectUri.toString();
-    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, sourceOutputs, issues } =
+    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, sourceOutputs, sourceRootsAbsent, issues } =
       await readClasspaths(projectUri, {
         logEmpty: true,
         logFailure: true,
@@ -542,7 +544,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       (await filterTargetResolutionRootsWithTargets(classTargetRoots, deps.hasLooseClassTargets))
         .length > 0;
     const analysisPath =
-      sourcepaths && sourcepaths.length > 0 && hasLooseOutput
+      !sourceRootsAbsent && sourcepaths && sourcepaths.length > 0 && hasLooseOutput
         ? projectRoot
         : outputResolution.outputPath;
 
@@ -550,7 +552,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       resolution: {
         status: 'ok',
         target: createAnalysisTarget({
-          kind: analysisPath === projectRoot ? 'source' : 'artifact',
+          kind: !sourceRootsAbsent && analysisPath === projectRoot ? 'source' : 'artifact',
           targetPath: analysisPath,
           settingsResource: projectUri,
           sourceLookupResource: projectUri,

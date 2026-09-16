@@ -9,4 +9,6 @@ export interface ClasspathResult {
   targetResolutionRoots: string[];
   sourcepaths: string[];
   sourceOutputs?: Record<string, string>;
+  /** Explicitly confirmed by JDT; absent when settings are missing or incomplete. */
+  sourceRootsAbsent?: true;
 }
