@@ -77,13 +77,7 @@ public class AnalyzerService {
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, selectedInputs);
-        return new SpotBugsAnalysisResult(
-                bugs,
-                result.getWarnings(),
-                result.getReportSummary(),
-                result.getNativeSarif(),
-                result.getBaselineXml()
-        );
+        return result;
     }
 
     private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {

@@ -19,8 +19,6 @@ import com.spotbugs.vscode.runner.internal.AnalyzerService;
 import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
-import com.spotbugs.vscode.runner.internal.config.ConfigParser;
-import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
 
 public class AnalysisPipelineTest {
 
@@ -153,7 +151,7 @@ public class AnalysisPipelineTest {
     }
 
     private static AnalysisConfig defaultConfig() throws Exception {
-        return new RunAnalysisRequestParser(new ConfigParser(), new ConfigValidator())
+        return new RunAnalysisRequestParser()
                 .parse(context("/workspace/build/classes", "{\"inputs\":[{\"kind\":\"artifact\",\"path\":\"/workspace/build/classes\"}]}"))
                 .getConfig();
     }

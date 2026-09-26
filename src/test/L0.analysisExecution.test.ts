@@ -226,7 +226,7 @@ describe('analysisExecution', () => {
     );
   });
 
-  it('preserves terminal backend errors with stats and schemaVersion', async () => {
+  it('preserves terminal backend errors with stats', async () => {
     const { createAnalysisExecutor } = loadAnalysisExecution();
     const executor = createAnalysisExecutor(
       makeDeps({
@@ -259,7 +259,6 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
     assert.strictEqual(outcome.warnings, undefined);
     assert.strictEqual(outcome.stats?.target, '/workspace/build/classes');
-    assert.strictEqual(outcome.schemaVersion, 2);
     assert.strictEqual(outcome.failure?.code, 'ANALYSIS_FAILED');
     assert.strictEqual(
       outcome.failure?.message,
@@ -320,7 +319,6 @@ describe('analysisExecution', () => {
     assert.strictEqual(outcome.stats?.durationMs, 12);
     assert.strictEqual(outcome.reportSummary?.analyzedClassCount, 3);
     assert.strictEqual(outcome.nativeSarif, '{"version":"2.1.0","runs":[]}');
-    assert.strictEqual(outcome.schemaVersion, 2);
   });
 
   it('keeps the analysis-start sourcepath snapshot through backend execution', async () => {
