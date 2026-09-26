@@ -26,7 +26,7 @@ export interface AnalysisExecutionContext {
 export interface AnalysisExecutionResult {
   outcome: AnalysisOutcome;
   cancelled?: boolean;
-  reportRuns?: AnalysisReportRun[];
+  reportRuns: AnalysisReportRun[];
   context: AnalysisExecutionContext;
 }
 export interface WorkspaceExecutionResult {
@@ -90,7 +90,7 @@ export async function executeAnalysisPlan(
     if (unit) {
       try {
         outcome = await runAnalysisTarget(
-          { getAnalysisSettings: () => unit.settings },
+          unit.settings,
           unit,
           token,
         );

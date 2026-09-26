@@ -142,13 +142,7 @@ async function runFileBody(args: RunFileAnalysisSessionArgs): Promise<void> {
   if (outcome.failure) {
     args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
   } else {
-    args.tree.showResults(findings, args.uri, result.reportRuns ?? {
-      projectUri: args.uri.toString(),
-      findings,
-      spotbugsVersion: outcome.stats?.spotbugsVersion,
-      summary: outcome.reportSummary,
-      nativeSarif: outcome.nativeSarif,
-    });
+    args.tree.showResults(findings, args.uri, result.reportRuns);
     args.diagnostics.replaceForScope(
       result.context.diagnosticScope ?? { kind: 'file', uri: args.uri },
       findings,

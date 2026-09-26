@@ -27,7 +27,6 @@ function analysisTarget(
         },
       ],
       environment: { runtimeClasspaths: options.runtimeClasspaths },
-      settingsResource: resource,
       sourceLookup: {
         preferredResource: resource,
         roots: options.sourcepaths,

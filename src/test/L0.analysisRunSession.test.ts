@@ -56,6 +56,7 @@ function createBaseDependencies(
 ): AnalysisSessionDependencies {
   return {
     analyzeFileDetailed: async () => ({
+      reportRuns: [{ projectUri: 'file:///workspace/src/Foo.java', findings: [] }],
       outcome: {
         findings: [],
         targetPath: '/workspace/src/Foo.java',
@@ -141,6 +142,9 @@ describe('analysisRunSession file analysis', () => {
       receivedUri = actualUri;
       receivedToken = actualToken;
       return {
+        reportRuns: [{ projectUri: uri.toString(), findings: [finding],
+          nativeSarif: '{"version":"2.1.0","runs":[]}', baselineXml: '<BugCollection/>',
+        }],
         outcome: {
           findings: [finding],
           nativeSarif: '{"version":"2.1.0","runs":[]}',
@@ -164,7 +168,10 @@ describe('analysisRunSession file analysis', () => {
         showResults: (findings: Finding[], resource, reportRun) => {
           calls.push(`results:${findings.length}`);
           resultResource = resource;
-          reportNativeSarif = Array.isArray(reportRun) ? reportRun[0]?.nativeSarif : reportRun?.nativeSarif;
+          assert.ok(Array.isArray(reportRun));
+          assert.deepStrictEqual(reportRun[0].findings, [finding]);
+          assert.strictEqual(reportRun[0].baselineXml, '<BugCollection/>');
+          reportNativeSarif = reportRun[0].nativeSarif;
         },
         showAnalysisFailure: (message: string, code?: string) =>
           calls.push(`failure:${code ?? ''}:${message}`),
@@ -209,6 +216,7 @@ describe('analysisRunSession file analysis', () => {
     const deps = createBaseDependencies(vscode);
 
     deps.analyzeFileDetailed = async () => ({
+      reportRuns: [{ projectUri: folderUri.toString(), findings: [finding] }],
       outcome: {
         findings: [finding],
         targetPath: folderUri.fsPath,
@@ -257,6 +265,7 @@ describe('analysisRunSession file analysis', () => {
     const deps = createBaseDependencies(vscode);
 
     deps.analyzeFileDetailed = async () => ({
+      reportRuns: [{ projectUri: uri.toString(), findings: [] }],
       outcome: {
         findings: [],
         targetPath: '/workspace/build/classes',
@@ -315,6 +324,7 @@ describe('analysisRunSession file analysis', () => {
       error: () => undefined,
     };
     deps.analyzeFileDetailed = async () => ({
+      reportRuns: [{ projectUri: uri.toString(), findings: [], analysisStatus: 'failed' }],
       outcome: {
         findings: [],
         targetPath: uri.fsPath,
@@ -419,6 +429,7 @@ describe('analysisRunSession file analysis', () => {
     const run = runObservedFileAnalysis(uri, coordinator.begin(), deps, calls);
     coordinator.begin();
     result.resolve({
+      reportRuns: [{ projectUri: uri.toString(), findings: [createFinding(uri.fsPath)] }],
       outcome: {
         findings: [createFinding(uri.fsPath)],
         targetPath: uri.fsPath,

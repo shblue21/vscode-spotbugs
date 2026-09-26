@@ -1,4 +1,4 @@
-import type { CancellationToken, Uri } from 'vscode';
+import type { CancellationToken } from 'vscode';
 import { Logger } from '../core/logger';
 import type { AnalysisSettings } from '../core/config';
 import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
@@ -25,10 +25,6 @@ const LOGGED_STATS_FIELDS = [
   ['targetCount', 'number'],
   ['pluginCount', 'number'],
 ] as const satisfies readonly (readonly [keyof AnalysisStats, 'number' | 'string'])[];
-
-export interface AnalysisConfigProvider {
-  getAnalysisSettings(resource?: Uri): AnalysisSettings;
-}
 
 type LoggerLike = Pick<typeof Logger, 'log' | 'error'>;
 
@@ -62,7 +58,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
   const deps: AnalysisExecutorDeps = { ...createDefaultDeps(), ...overrides };
 
   async function run(
-    config: AnalysisConfigProvider,
+    settings: AnalysisSettings,
     context: AnalysisExecutionUnit,
     token?: CancellationToken,
   ): Promise<AnalysisOutcome> {
@@ -81,7 +77,6 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
           : context.sourceLookup.roots,
       },
     };
-    const settings = config.getAnalysisSettings(analysisContext.settingsResource);
     const preflightFailure = await validateAnalysisPreflight(
       settings,
       analysisContext.inputs[0].path,
@@ -310,11 +305,11 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
 }
 
 export function runAnalysisTarget(
-  config: AnalysisConfigProvider,
+  settings: AnalysisSettings,
   context: AnalysisExecutionUnit,
   token?: CancellationToken,
 ): Promise<AnalysisOutcome> {
-  return createAnalysisExecutor().run(config, context, token);
+  return createAnalysisExecutor().run(settings, context, token);
 }
 
 export function createAnalysisFailureOutcome(

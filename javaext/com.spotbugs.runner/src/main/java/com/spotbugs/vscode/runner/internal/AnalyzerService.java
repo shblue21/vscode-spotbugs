@@ -20,11 +20,6 @@ public class AnalyzerService {
     private List<String> runtimeClasspaths;
     private List<String> extraAuxClasspaths;
     private AnalysisConfig config;
-    private AnalysisInput[] inputs;
-
-    public void setInputs(AnalysisInput[] inputs) {
-        this.inputs = inputs.clone();
-    }
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
     private int lastAuxClasspathCount = 0;
@@ -62,27 +57,13 @@ public class AnalyzerService {
         return lastAuxClasspathCount;
     }
 
-    public List<BugInfo> analyzeToBugs(String... filePaths) throws java.io.IOException, InterruptedException {
-        return analyzeToBugs(null, filePaths);
-    }
-
-    public List<BugInfo> analyzeToBugs(IProgressMonitor monitor, String... filePaths)
-            throws java.io.IOException, InterruptedException {
-        return analyzeToBugsWithWarnings(monitor, filePaths).getBugs();
-    }
-
-    public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths)
-            throws java.io.IOException, InterruptedException {
-        return analyzeToBugsWithWarnings(monitor, false, filePaths);
-    }
-
     public SpotBugsAnalysisResult analyzeToBugsWithWarnings(
             IProgressMonitor monitor,
             boolean includeBaselineXml,
-            String... filePaths
+            AnalysisInput[] inputs
     ) throws java.io.IOException, InterruptedException {
-        if (this.inputs != null) filePaths = java.util.Arrays.stream(this.inputs).map(input -> input.path).toArray(String[]::new);
-        PreparedAnalysis prepared = prepareAnalysis(monitor, filePaths);
+        AnalysisInput[] selectedInputs = inputs.clone();
+        PreparedAnalysis prepared = prepareAnalysis(monitor, selectedInputs);
         if (prepared == null) {
             return SpotBugsAnalysisResult.empty();
         }
@@ -95,7 +76,7 @@ public class AnalyzerService {
         ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
-        applyFullPaths(bugs, monitor, filePaths);
+        applyFullPaths(bugs, monitor, selectedInputs);
         return new SpotBugsAnalysisResult(
                 bugs,
                 result.getWarnings(),
@@ -105,12 +86,12 @@ public class AnalyzerService {
         );
     }
 
-    private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, String... filePaths) throws java.io.IOException {
+    private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
         checkCanceled(monitor);
         this.lastTargetCount = 0;
         this.lastTargetResolutionRootCount = 0;
         this.lastAuxClasspathCount = 0;
-        if (filePaths == null || filePaths.length == 0) {
+        if (inputs.length == 0) {
             return null;
         }
 
@@ -122,16 +103,9 @@ public class AnalyzerService {
                 : java.util.Collections.emptyList();
         project.addSourceDirs(sourcepaths);
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
-        List<String> targets = this.inputs != null
-                ? new InputMaterializer().resolveTargets(this.inputs, targetResolutionRootDirs, sourcepaths,
-                        this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(), monitor)
-                : new SourceInputMaterializer().resolveTargets(
-                filePaths,
-                targetResolutionRootDirs,
-                sourcepaths,
-                this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(),
-                monitor
-        );
+        List<String> targets = new InputMaterializer().resolveTargets(
+                inputs, targetResolutionRootDirs, sourcepaths,
+                this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(), monitor);
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
@@ -153,7 +127,7 @@ public class AnalyzerService {
         return new PreparedAnalysis(project, rankThreshold, plugins);
     }
 
-    private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, String... filePaths) {
+    private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, AnalysisInput[] inputs) {
         if (bugs == null || bugs.isEmpty()) {
             return;
         }
@@ -167,8 +141,8 @@ public class AnalyzerService {
             if (bug.getFullPath() != null && !bug.getFullPath().isEmpty()) {
                 continue;
             }
-            for (String targetPath : filePaths == null ? new String[0] : filePaths) {
-                String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, targetPath, monitor);
+            for (AnalysisInput input : inputs) {
+                String fullPath = resolver.resolve(bug.getRealSourcePath(), sourcepaths, input.path, monitor);
                 if (fullPath != null && !fullPath.isEmpty()) {
                     bug.setFullPath(fullPath);
                     break;

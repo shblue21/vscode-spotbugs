@@ -13,14 +13,7 @@ function loadAnalysisExecution(): AnalysisExecutionModule {
   return require('../services/analysisExecution') as AnalysisExecutionModule;
 }
 
-function makeConfig(settings: AnalysisSettings = { effort: 'default' }) {
-  return {
-    getAnalysisSettings: (_resource?: Uri) => settings,
-  };
-}
-
 function makeTarget(vscode: ReturnType<typeof installVscodeMock>): AnalysisExecutionUnit {
-  const settingsResource = vscode.Uri.file('/workspace/settings') as unknown as Uri;
   const preferredResource = vscode.Uri.file('/workspace/sources') as unknown as Uri;
   return {
     inputs: [
@@ -36,7 +29,6 @@ function makeTarget(vscode: ReturnType<typeof installVscodeMock>): AnalysisExecu
     environment: {
       runtimeClasspaths: ['/workspace/build/classes', '/workspace/lib/dependency.jar'],
     },
-    settingsResource,
     sourceLookup: {
       preferredResource,
       roots: ['/workspace/src/main/java'],
@@ -125,7 +117,7 @@ describe('analysisExecution', () => {
         },
       }));
       const outcome = await executor.run(
-        makeConfig({ effort: 'default', ...(stage === 'plugin' ? { plugins: ['/workspace/missing-plugin.jar'] } : {}) }),
+        { effort: 'default', ...(stage === 'plugin' ? { plugins: ['/workspace/missing-plugin.jar'] } : {}) },
         makeTarget(installVscodeMock()),
       );
 
@@ -168,7 +160,6 @@ describe('analysisExecution', () => {
       | undefined;
     let backendRequest: Parameters<AnalysisExecutorDeps['runSpotBugsAnalysis']>[0] | undefined;
     let parserInput: string | undefined;
-    let settingsResource: Uri | undefined;
 
     const executor = createAnalysisExecutor(
       makeDeps({
@@ -193,17 +184,8 @@ describe('analysisExecution', () => {
       }),
     );
 
-    await executor.run(
-      {
-        getAnalysisSettings: (resource?: Uri) => {
-          settingsResource = resource;
-          return settings;
-        },
-      },
-      target,
-    );
+    await executor.run(settings, target);
 
-    assert.strictEqual(settingsResource, target.settingsResource);
     assert.strictEqual(builderSettings, settings);
     assert.deepStrictEqual(builderOptions, {
       inputs: [{ kind: 'source', path: target.inputs[0].path }],
@@ -232,7 +214,7 @@ describe('analysisExecution', () => {
       }),
     );
 
-    const outcome = await executor.run(makeConfig(), makeTarget(installVscodeMock()));
+    const outcome = await executor.run({ effort: 'default' }, makeTarget(installVscodeMock()));
 
     assert.deepStrictEqual(outcome.findings, []);
     assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
@@ -271,7 +253,7 @@ describe('analysisExecution', () => {
       }),
     );
 
-    const outcome = await executor.run(makeConfig(), makeTarget(installVscodeMock()));
+    const outcome = await executor.run({ effort: 'default' }, makeTarget(installVscodeMock()));
 
     assert.deepStrictEqual(outcome.findings, []);
     assert.strictEqual(outcome.errors?.[0]?.code, 'ANALYSIS_FAILED');
@@ -325,7 +307,7 @@ describe('analysisExecution', () => {
     );
 
     const target = makeTarget(vscode);
-    const outcome = await executor.run(makeConfig(), target);
+    const outcome = await executor.run({ effort: 'default' }, target);
 
     assert.strictEqual(
       addFullPathsProject?.toString(),
@@ -368,7 +350,7 @@ describe('analysisExecution', () => {
       }),
     );
 
-    await executor.run(makeConfig(), target);
+    await executor.run({ effort: 'default' }, target);
 
     assert.deepStrictEqual(backendSourcepaths, ['/workspace/src/main/java']);
     assert.deepStrictEqual(enrichmentSourcepaths, ['/workspace/src/main/java']);
