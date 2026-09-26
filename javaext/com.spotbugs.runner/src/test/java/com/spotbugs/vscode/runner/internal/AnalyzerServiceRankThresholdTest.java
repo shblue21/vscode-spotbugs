@@ -14,8 +14,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.core.runtime.IProgressMonitor;
 import org.junit.Test;
+import org.eclipse.core.runtime.NullProgressMonitor;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -61,11 +61,17 @@ public class AnalyzerServiceRankThresholdTest {
 
     @Test
     public void structuredResultIncludesPlainReportData() throws Exception {
-        SpotBugsAnalysisResult result = configuredAnalyzer(20).analyzeToBugsWithWarnings(
-                null,
-                true,
-                fixtureClassPath()
-        );
+        AnalysisInput[] inputs = fixtureInputs();
+        AnalyzerService analyzer = configuredAnalyzer(20);
+        SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(
+                new NullProgressMonitor() {
+                    @Override
+                    public boolean isCanceled() {
+                        inputs[0] = new AnalysisInput(AnalysisInput.Kind.ARTIFACT, "/missing.class");
+                        return false;
+                    }
+                }, true, inputs);
+        assertEquals(1, analyzer.getLastTargetCount());
         AnalysisReportSummary summary = result.getReportSummary();
         BugInfo fixtureBug = onlyFixtureBug(result.getBugs());
 
@@ -103,7 +109,7 @@ public class AnalyzerServiceRankThresholdTest {
 
     private void assertNativeSarifPresence(Integer threshold, boolean expected) throws Exception {
         AnalyzerService analyzer = configuredAnalyzer(threshold);
-        SpotBugsAnalysisResult analysis = analyzer.analyzeToBugsWithWarnings(null, fixtureClassPath());
+        SpotBugsAnalysisResult analysis = analyzer.analyzeToBugsWithWarnings(null, false, fixtureInputs());
         String sarif = analysis.getNativeSarif();
         assertNull(analysis.getBaselineXml());
         assertNotNull(message("native SARIF", threshold), sarif);
@@ -139,7 +145,11 @@ public class AnalyzerServiceRankThresholdTest {
     }
 
     private List<BugInfo> analyzeBugs(Integer threshold) throws Exception {
-        return configuredAnalyzer(threshold).analyzeToBugs((IProgressMonitor) null, fixtureClassPath());
+        return configuredAnalyzer(threshold).analyzeToBugsWithWarnings(null, false, fixtureInputs()).getBugs();
+    }
+
+    private AnalysisInput[] fixtureInputs() throws Exception {
+        return new AnalysisInput[] { new AnalysisInput(AnalysisInput.Kind.ARTIFACT, fixtureClassPath()) };
     }
 
     private AnalyzerService configuredAnalyzer(Integer threshold) {

@@ -28,7 +28,6 @@ export interface OutputFolderCandidate {
 
 export interface OutputFolderSelectionOptions {
   rankCandidate?: (candidate: OutputFolderCandidate) => number;
-  allowRecognizedOutputOutsideBoundary?: boolean;
 }
 
 export function isBytecodeTarget(targetPath: string): boolean {

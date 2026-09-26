@@ -63,7 +63,7 @@ public class SourceInputMaterializer {
             File f = new File(p);
             if (f.isDirectory()) {
                 // If a source directory is selected, map it to an output directory first.
-                SourceDirectoryResolution sourceDirectoryResolution = collectOutputClassesForSourceDirectory(
+                boolean handledAsSource = collectOutputClassesForSourceDirectory(
                         p,
                         targetResolutionRootDirs,
                         sourceRoots,
@@ -73,7 +73,7 @@ public class SourceInputMaterializer {
                         sourceFiles,
                         monitor
                 );
-                if (sourceDirectoryResolution == SourceDirectoryResolution.NOT_SOURCE_DIRECTORY) {
+                if (!handledAsSource) {
                     collectTargetsRecursively(f, targetResolutionRootDirs, sourceRoots, targets, seen, sourceFiles, monitor);
                 }
                 continue;
@@ -127,7 +127,7 @@ public class SourceInputMaterializer {
         }
     }
 
-    private SourceDirectoryResolution collectOutputClassesForSourceDirectory(
+    private boolean collectOutputClassesForSourceDirectory(
             String sourceDir,
             List<File> targetResolutionRootDirs,
             List<SourceRoot> sourceRoots,
@@ -144,19 +144,18 @@ public class SourceInputMaterializer {
                 && sourceOutputsDeclared
                 && !isInsideOutputRoot(sourceDir, targetResolutionRootDirs);
         if (relativeDir == null && !aggregateSourceRoots) {
-            return SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
+            return false;
         }
 
         File sourceDirFile = new File(sourceDir);
         if (!aggregateSourceRoots && !containsJavaSourceRecursively(sourceDirFile, monitor)) {
-            return SourceDirectoryResolution.NOT_SOURCE_DIRECTORY;
+            return false;
         }
 
         if (targetResolutionRootDirs == null || targetResolutionRootDirs.isEmpty()) {
-            return SourceDirectoryResolution.SOURCE_DIRECTORY_NO_OUTPUTS;
+            return true;
         }
 
-        int before = out.size();
         if (aggregateSourceRoots) {
             for (SourceRoot sourceRoot : sourceRoots) {
                 checkCanceled(monitor);
@@ -211,9 +210,7 @@ public class SourceInputMaterializer {
                 }
             }
         }
-        return out.size() > before
-                ? SourceDirectoryResolution.SOURCE_DIRECTORY_WITH_OUTPUTS
-                : SourceDirectoryResolution.SOURCE_DIRECTORY_NO_OUTPUTS;
+        return true;
     }
 
     /** Each declared descendant owns its walk; deeper roots are handled independently. */
@@ -339,7 +336,7 @@ public class SourceInputMaterializer {
                 || new File(sourceDir, sourceFileName).isFile();
     }
 
-    private boolean addTargetsForJavaFile(
+    private void addTargetsForJavaFile(
             String javaPath,
             List<File> targetResolutionRootDirs,
             List<SourceRoot> sourceRoots,
@@ -348,31 +345,18 @@ public class SourceInputMaterializer {
             SourceFileCache sourceFiles,
             IProgressMonitor monitor
     ) throws IOException {
-        boolean added = false;
-        if (targetResolutionRootDirs != null && !targetResolutionRootDirs.isEmpty()) {
-            for (SourceMatch match : deriveRelativePathsFromSource(javaPath, sourceRoots, monitor)) {
-                String classRel = toClassRelativePath(match.relativePath);
-                if (classRel == null) {
-                    continue;
-                }
-                List<File> outputRoots = match.outputRoot == null
-                        ? targetResolutionRootDirs
-                        : Collections.singletonList(match.outputRoot.toFile());
-                for (File dir : outputRoots) {
-                    checkCanceled(monitor);
-                    if (dir == null) continue;
-                    if (addClassFamily(dir, classRel, out, seen, sourceFiles, monitor)) {
-                        added = true;
-                        break;
-                    }
-                }
-                if (added) {
-                    break;
-                }
-            }
+        if (targetResolutionRootDirs == null || targetResolutionRootDirs.isEmpty()) return;
+        SourceMatch match = deriveRelativePathFromSource(javaPath, sourceRoots, monitor);
+        if (match == null) return;
+        String classRel = toClassRelativePath(match.relativePath);
+        if (classRel == null) return;
+        List<File> outputRoots = match.outputRoot == null
+                ? targetResolutionRootDirs
+                : Collections.singletonList(match.outputRoot.toFile());
+        for (File dir : outputRoots) {
+            checkCanceled(monitor);
+            if (dir != null && addClassFamily(dir, classRel, out, seen, sourceFiles, monitor)) return;
         }
-
-        return added;
     }
 
     private boolean addClassFamily(
@@ -451,12 +435,11 @@ public class SourceInputMaterializer {
         }
     }
 
-    private List<SourceMatch> deriveRelativePathsFromSource(
+    private SourceMatch deriveRelativePathFromSource(
             String sourcePath,
             List<SourceRoot> sourceRoots,
             IProgressMonitor monitor
     ) {
-        List<SourceMatch> candidates = new ArrayList<>();
         Path source = toNormalizedPath(sourcePath);
         if (source != null && sourceRoots != null) {
             for (SourceRoot root : sourceRoots) {
@@ -466,19 +449,13 @@ public class SourceInputMaterializer {
                 }
                 Path relative = root.path.relativize(source);
                 String rel = normalizeRelativePath(relative.toString());
-                if (!rel.isEmpty()) {
-                    candidates.add(new SourceMatch(rel, root.outputRoot));
-                }
-                return candidates;
+                return rel.isEmpty() ? null : new SourceMatch(rel, root.outputRoot);
             }
         }
 
         String markerCandidate = deriveRelativePathFromSource(sourcePath);
-        if (markerCandidate == null) {
-            return candidates;
-        }
-        candidates.add(new SourceMatch(normalizeRelativePath(markerCandidate), null));
-        return candidates;
+        return markerCandidate == null ? null
+                : new SourceMatch(normalizeRelativePath(markerCandidate), null);
     }
 
     private String deriveRelativeDirectoryPathFromSource(
@@ -664,11 +641,5 @@ public class SourceInputMaterializer {
             this.relativePath = relativePath;
             this.outputRoot = outputRoot;
         }
-    }
-
-    private enum SourceDirectoryResolution {
-        NOT_SOURCE_DIRECTORY,
-        SOURCE_DIRECTORY_NO_OUTPUTS,
-        SOURCE_DIRECTORY_WITH_OUTPUTS
     }
 }

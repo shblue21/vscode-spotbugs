@@ -22,12 +22,10 @@ final class AnalysisPipeline {
     AnalysisPipelineResult run(IProgressMonitor monitor, RunAnalysisRequest request) {
         AnalyzerService analyzer = analyzerFactory.create();
         analyzer.setConfiguration(request.getConfig());
-        analyzer.setInputs(request.getInputs());
         long startMillis = System.currentTimeMillis();
         try {
-            SpotBugsAnalysisResult result = request.isIncludeBaselineXml()
-                    ? analyzer.analyzeToBugsWithWarnings(monitor, true, request.getTargetPath())
-                    : analyzer.analyzeToBugsWithWarnings(monitor, request.getTargetPath());
+            SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(
+                    monitor, request.isIncludeBaselineXml(), request.getInputs());
             if (monitor != null && monitor.isCanceled()) {
                 return AnalysisPipelineResult.cancelled(analyzer, startMillis);
             }

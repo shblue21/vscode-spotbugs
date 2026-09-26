@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.config.ConfigParser;
@@ -56,7 +57,7 @@ public class AnalysisPipelineTest {
         NullProgressMonitor monitor = new NullProgressMonitor();
         AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 progressMonitor.setCanceled(true);
                 return new SpotBugsAnalysisResult(Collections.nCopies(2, (BugInfo) null), Collections.emptyList());
             }
@@ -73,7 +74,7 @@ public class AnalysisPipelineTest {
     public void runReturnsCancelledForCancellationExceptions() throws Exception {
         AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 throw new CancellationException("stop");
             }
         });
@@ -88,7 +89,7 @@ public class AnalysisPipelineTest {
     public void runReturnsCancelledForInterruptedExceptionsAndRestoresInterruptStatus() throws Exception {
         AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths)
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs)
                     throws IOException, InterruptedException {
                 throw new InterruptedException("stop");
             }
@@ -114,7 +115,7 @@ public class AnalysisPipelineTest {
         NullProgressMonitor monitor = new NullProgressMonitor();
         AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, String... filePaths)
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, boolean includeBaselineXml, AnalysisInput[] inputs)
                     throws IOException {
                 progressMonitor.setCanceled(true);
                 throw new IOException("wrapped interruption");
@@ -132,7 +133,7 @@ public class AnalysisPipelineTest {
         IOException failure = new IOException("analysis boom");
         AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths)
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs)
                     throws IOException, InterruptedException {
                 throw failure;
             }
@@ -176,8 +177,8 @@ public class AnalysisPipelineTest {
         }
 
         @Override
-        public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
-            this.targetPath = filePaths != null && filePaths.length > 0 ? filePaths[0] : null;
+        public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
+            this.targetPath = inputs.length > 0 ? inputs[0].path : null;
             return bugs != null ? new SpotBugsAnalysisResult(bugs, Collections.emptyList()) : null;
         }
     }

@@ -113,7 +113,6 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
   function createAnalysisTarget(args: {
     kind: 'source' | 'artifact';
     targetPath: string;
-    settingsResource: Uri;
     sourceLookupResource: Uri;
     targetResolutionRoots?: string[];
     runtimeClasspaths?: string[];
@@ -132,7 +131,6 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
           },
         ],
         environment: { runtimeClasspaths: args.runtimeClasspaths },
-        settingsResource: args.settingsResource,
         sourceLookup: {
           preferredResource: args.sourceLookupResource,
           roots: args.sourcepaths,
@@ -473,7 +471,6 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
         target: createAnalysisTarget({
           kind: kind ?? 'source',
           targetPath,
-          settingsResource: uri,
           sourceLookupResource: uri,
           targetResolutionRoots:
             classTargetRoots.length > 0 ? classTargetRoots : targetResolutionRoots,
@@ -554,7 +551,6 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
         target: createAnalysisTarget({
           kind: !sourceRootsAbsent && analysisPath === projectRoot ? 'source' : 'artifact',
           targetPath: analysisPath,
-          settingsResource: projectUri,
           sourceLookupResource: projectUri,
           targetResolutionRoots: classTargetRoots,
           runtimeClasspaths,
@@ -1019,7 +1015,8 @@ function deriveRelativeJavaSourcePaths(
 ): string[] {
   const sourcepathCandidates = findContainingSourcepathCandidates(sourcePath, sourcepaths);
 
-  for (const candidate of sourcepathCandidates) {
+  const candidate = sourcepathCandidates[0];
+  if (candidate) {
     const relative = relativePath(candidate.root, sourcePath);
     if (relative && path.extname(relative).toLowerCase() === '.java') {
       return [relative];
@@ -1039,7 +1036,8 @@ function deriveRelativeJavaSourceDirectoryPaths(
 ): string[] {
   const sourcepathCandidates = findContainingSourcepathCandidates(sourceDir, sourcepaths);
 
-  for (const candidate of sourcepathCandidates) {
+  const candidate = sourcepathCandidates[0];
+  if (candidate) {
     return [relativePath(candidate.root, sourceDir)];
   }
 
@@ -1050,22 +1048,7 @@ function deriveRelativeJavaSourceDirectoryPaths(
 function normalizeSourcepathCandidates(
   sourcepaths: readonly string[] | undefined,
 ): Array<{ root: string; index: number }> {
-  const result: Array<{ root: string; index: number }> = [];
-  const seen = new Set<string>();
-  for (const [index, sourcepath] of (sourcepaths ?? []).entries()) {
-    const trimmed = sourcepath.trim();
-    if (!trimmed) {
-      continue;
-    }
-    const root = trimmed;
-    const key = pathComparisonKey(root);
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    result.push({ root, index });
-  }
-  return result;
+  return uniquePaths(sourcepaths ?? []).map((root, index) => ({ root, index }));
 }
 
 function deriveMarkerRelativeJavaSourcePath(sourcePath: string): string | undefined {

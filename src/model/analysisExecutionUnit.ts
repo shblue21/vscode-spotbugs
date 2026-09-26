@@ -23,7 +23,6 @@ export interface AnalysisExecutionOptions {
 export interface AnalysisExecutionUnit {
   inputs: readonly PathAnalysisInput[];
   environment: AnalysisEnvironment;
-  settingsResource?: Uri;
   sourceLookup: SourceLookupContext;
   options?: AnalysisExecutionOptions;
 }

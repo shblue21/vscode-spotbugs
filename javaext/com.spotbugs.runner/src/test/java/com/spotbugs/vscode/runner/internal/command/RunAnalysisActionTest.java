@@ -45,7 +45,7 @@ public class RunAnalysisActionTest {
     public void executeWrapsAnalyzerFailuresWithRootCauseAsAnalysisFailedEnvelope() throws Exception {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 throw new RuntimeException("outer", new IllegalStateException("inner"));
             }
         });
@@ -73,7 +73,7 @@ public class RunAnalysisActionTest {
     public void executeWrapsLinkageErrorsAsAnalysisFailedEnvelope() {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 throw new NoClassDefFoundError("missing detector dependency");
             }
         });
@@ -94,7 +94,7 @@ public class RunAnalysisActionTest {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
-                    boolean includeBaselineXml, String... filePaths) {
+                    boolean includeBaselineXml, AnalysisInput[] inputs) {
                 assertTrue(includeBaselineXml);
                 return new SpotBugsAnalysisResult(
                         Collections.nCopies(2, (BugInfo) null),
@@ -121,7 +121,7 @@ public class RunAnalysisActionTest {
     public void executeSerializesWarningsFromSuccessfulAnalysis() {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 return new SpotBugsAnalysisResult(
                         Collections.emptyList(),
                         Collections.singletonList(new CommandWarning(
@@ -188,7 +188,7 @@ public class RunAnalysisActionTest {
         NullProgressMonitor monitor = new NullProgressMonitor();
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 progressMonitor.setCanceled(true);
                 return SpotBugsAnalysisResult.empty();
             }
@@ -322,20 +322,14 @@ public class RunAnalysisActionTest {
         String[] paths = {"/workspace/first.jar", "/workspace/second.java"};
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
-            public void setInputs(AnalysisInput[] inputs) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
+                    boolean includeBaselineXml, AnalysisInput[] inputs) {
+                executions.incrementAndGet();
                 assertEquals(2, inputs.length);
                 for (int index = 0; index < inputs.length; index++) {
                     assertEquals(inputKind, inputs[index].kind);
                     assertEquals(paths[index], inputs[index].path);
                 }
-                super.setInputs(inputs);
-            }
-
-            @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
-                executions.incrementAndGet();
-                assertEquals(1, filePaths.length);
-                assertEquals("/workspace", filePaths[0]);
                 return SpotBugsAnalysisResult.empty();
             }
         });
@@ -351,6 +345,7 @@ public class RunAnalysisActionTest {
         JsonObject response = execute(action, "/workspace", payload.toString());
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(1, executions.get());
+        assertEquals("/workspace", response.getAsJsonObject("stats").get("target").getAsString());
     }
 
     private String kindName() {
@@ -395,7 +390,7 @@ public class RunAnalysisActionTest {
     private static AnalyzerService emptyAnalyzer() {
         return new AnalyzerService() {
             @Override
-            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+            public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 return SpotBugsAnalysisResult.empty();
             }
         };
@@ -403,7 +398,7 @@ public class RunAnalysisActionTest {
 
     private static final class CountingAnalyzerService extends AnalyzerService {
         @Override
-        public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, String... filePaths) {
+        public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
             return SpotBugsAnalysisResult.empty();
         }
 
