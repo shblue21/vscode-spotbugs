@@ -16,16 +16,11 @@ import org.junit.Test;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.spotbugs.vscode.runner.internal.config.ConfigParser;
-import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
 import com.spotbugs.vscode.runner.internal.config.Effort;
 
 public class RunAnalysisRequestParserTest {
 
-    private final RunAnalysisRequestParser parser = new RunAnalysisRequestParser(
-            new ConfigParser(),
-            new ConfigValidator()
-    );
+    private final RunAnalysisRequestParser parser = new RunAnalysisRequestParser();
 
     @Test
     public void parseReturnsTargetPathAndValidatedConfig() throws Exception {

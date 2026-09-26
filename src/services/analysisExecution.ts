@@ -252,7 +252,6 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
           errors,
           stats,
           targetPath,
-          schemaVersion,
           failure: {
             kind: 'analysis-error',
             level: 'error',
@@ -277,7 +276,6 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       nativeSarif,
       baselineXml: parsed.baselineXml,
       targetPath,
-      schemaVersion,
     };
     if (Array.isArray(errors) && errors.length > 0) {
       outcome.errors = errors;

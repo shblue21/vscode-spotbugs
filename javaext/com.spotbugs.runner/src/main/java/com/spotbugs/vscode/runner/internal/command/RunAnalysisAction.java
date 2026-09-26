@@ -5,8 +5,6 @@ import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
 import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
-import com.spotbugs.vscode.runner.internal.config.ConfigParser;
-import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
 
 /**
  * Shared execution and response handling for the source and artifact command boundaries.
@@ -22,16 +20,12 @@ public final class RunAnalysisAction extends AbstractCommandAction {
     private final RunAnalysisStatsBuilder statsBuilder = new RunAnalysisStatsBuilder();
 
     public RunAnalysisAction(AnalysisInput.Kind expectedKind) {
-        this(expectedKind, new ConfigParser(), new ConfigValidator(), AnalyzerService::new);
+        this(expectedKind, AnalyzerService::new);
     }
 
     RunAnalysisAction(AnalysisInput.Kind expectedKind, AnalyzerServiceFactory analyzerFactory) {
-        this(expectedKind, new ConfigParser(), new ConfigValidator(), analyzerFactory);
-    }
-
-    RunAnalysisAction(AnalysisInput.Kind expectedKind, ConfigParser parser, ConfigValidator validator, AnalyzerServiceFactory analyzerFactory) {
         this.expectedKind = java.util.Objects.requireNonNull(expectedKind, "expectedKind");
-        this.requestParser = new RunAnalysisRequestParser(parser, validator);
+        this.requestParser = new RunAnalysisRequestParser();
         this.pipeline = new AnalysisPipeline(analyzerFactory);
     }
 

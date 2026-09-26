@@ -28,6 +28,5 @@ export interface AnalysisOutcome {
   nativeSarif?: string;
   baselineXml?: string;
   targetPath?: string;
-  schemaVersion?: number;
   failure?: AnalysisFailure;
 }

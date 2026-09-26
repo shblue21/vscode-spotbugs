@@ -16,17 +16,8 @@ import com.spotbugs.vscode.runner.internal.config.ConfigValidator;
 
 final class RunAnalysisRequestParser {
 
-    private final ConfigParser configParser;
-    private final ConfigValidator configValidator;
-
-    RunAnalysisRequestParser() {
-        this(new ConfigParser(), new ConfigValidator());
-    }
-
-    RunAnalysisRequestParser(ConfigParser parser, ConfigValidator validator) {
-        this.configParser = parser != null ? parser : new ConfigParser();
-        this.configValidator = validator != null ? validator : new ConfigValidator();
-    }
+    private final ConfigParser configParser = new ConfigParser();
+    private final ConfigValidator configValidator = new ConfigValidator();
 
     RunAnalysisRequest parse(AbstractCommandAction.ActionContext context)
             throws AbstractCommandAction.CommandActionException {
