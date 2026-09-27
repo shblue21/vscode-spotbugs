@@ -51,7 +51,8 @@ describe('resultsExplorerCommands', () => {
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
     provider.showResults(
       [makeFinding({ cweId: 89, message: 'SQL risk' })],
-      resultResource
+      resultResource,
+      []
     );
     provider.setSearchQuery('existing query');
 
@@ -82,7 +83,8 @@ describe('resultsExplorerCommands', () => {
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
     provider.showResults(
       [makeFinding({ cweId: 89, message: 'SQL risk' })],
-      resultResource
+      resultResource,
+      []
     );
 
     await searchResults(provider);
@@ -107,7 +109,7 @@ describe('resultsExplorerCommands', () => {
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
     const finding = makeFinding();
 
-    provider.showResults([finding], resultResource);
+    provider.showResults([finding], resultResource, []);
     const before = provider.getAllFindings();
 
     await clearResultsSearch(provider);
@@ -132,7 +134,7 @@ describe('resultsExplorerCommands', () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const { groupResultsBy, sortResultsBy } = await import('../commands/resultsExplorer');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
-    provider.showResults([makeFinding()], resultResource);
+    provider.showResults([makeFinding()], resultResource, []);
     provider.setGroupBy('class');
     provider.setSortBy('pathLine');
 

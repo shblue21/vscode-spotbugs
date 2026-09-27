@@ -492,7 +492,6 @@ function createWorkspaceHarness(overrides: Partial<AnalysisSessionDependencies> 
     workspaceResults,
     workspaceResultUris,
     token,
-    dependencies,
     args: {
       config: { getAnalysisSettings: () => ({}) } as any,
       tree: {
@@ -991,97 +990,30 @@ describe('analysisRunSession workspace analysis', () => {
     assert.deepStrictEqual(harness.errors, []);
   });
 
-  it('renders workspace analysis exceptions as failure state', async () => {
-    const loggedErrors: string[] = [];
-    const harness = createWorkspaceHarness({
-      logger: {
-        log: () => undefined,
-        error: (message) => loggedErrors.push(message),
-      },
-      getWorkspaceProjectDiscovery: async () => {
-        throw new Error('discovery boom');
-      },
+  for (const [stage, dependency, message, prefix, loggedPrefix] of [
+    ['discovery', 'getWorkspaceProjectDiscovery', 'discovery boom', [], []],
+    ['build', 'buildWorkspaceAuto', 'build boom', [], []],
+    ['backend', 'analyzeWorkspaceFromProjectsDetailed', 'backend boom', ['progress:1'], []],
+    ['missing workspace', 'getPrimaryWorkspaceFolder', 'No workspace folder found.', [], ['No workspace folder found.']],
+  ] as const) {
+    it(`renders ${stage} failure with exact messages and preserves diagnostics`, async () => {
+      const loggedErrors: string[] = [];
+      const fail = async () => { throw new Error(message); };
+      const harness = createWorkspaceHarness({
+        getWorkspaceProjectDiscovery: async () => ({
+          projectUris: ['file:///workspace/project-a'], issues: [],
+        }),
+        [dependency]: dependency === 'getPrimaryWorkspaceFolder' ? () => undefined : fail,
+        logger: { log: () => undefined, error: (text) => loggedErrors.push(text) },
+      });
+
+      await runWorkspaceAnalysisSession(harness.args);
+
+      assert.deepStrictEqual(harness.calls, [
+        ...prefix, `failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: ${message}`,
+      ]);
+      assert.deepStrictEqual(harness.errors, [`SpotBugs: Workspace analysis failed - ${message}`]);
+      assert.deepStrictEqual(loggedErrors, [...loggedPrefix, 'An error occurred during workspace analysis']);
     });
-
-    await runWorkspaceAnalysisSession(harness.args);
-
-    assert.deepStrictEqual(harness.calls, [
-      'failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: discovery boom',
-    ]);
-    assert.deepStrictEqual(harness.errors, [
-      'SpotBugs: Workspace analysis failed - discovery boom',
-    ]);
-    assert.deepStrictEqual(loggedErrors, ['An error occurred during workspace analysis']);
-  });
-
-  it('renders workspace build exceptions as failure state', async () => {
-    const loggedErrors: string[] = [];
-    const harness = createWorkspaceHarness({
-      buildWorkspaceAuto: async () => {
-        throw new Error('build boom');
-      },
-      logger: {
-        log: () => undefined,
-        error: (message) => loggedErrors.push(message),
-      },
-    });
-
-    await runWorkspaceAnalysisSession(harness.args);
-
-    assert.deepStrictEqual(harness.calls, [
-      'failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: build boom',
-    ]);
-    assert.deepStrictEqual(harness.errors, ['SpotBugs: Workspace analysis failed - build boom']);
-    assert.deepStrictEqual(loggedErrors, ['An error occurred during workspace analysis']);
-  });
-
-  it('renders workspace backend exceptions as failure state after discovery', async () => {
-    const loggedErrors: string[] = [];
-    const harness = createWorkspaceHarness({
-      logger: {
-        log: () => undefined,
-        error: (message) => loggedErrors.push(message),
-      },
-      getWorkspaceProjectDiscovery: async () => ({
-        projectUris: ['file:///workspace/project-a'],
-        issues: [],
-      }),
-      analyzeWorkspaceFromProjectsDetailed: async () => {
-        throw new Error('backend boom');
-      },
-    });
-
-    await runWorkspaceAnalysisSession(harness.args);
-
-    assert.deepStrictEqual(harness.calls, [
-      'progress:1',
-      'failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: backend boom',
-    ]);
-    assert.deepStrictEqual(harness.errors, ['SpotBugs: Workspace analysis failed - backend boom']);
-    assert.deepStrictEqual(loggedErrors, ['An error occurred during workspace analysis']);
-  });
-
-  it('renders no-workspace-folder as workspace failure with the exact message', async () => {
-    const loggedErrors: string[] = [];
-    const harness = createWorkspaceHarness({
-      getPrimaryWorkspaceFolder: () => undefined,
-      logger: {
-        log: () => undefined,
-        error: (message) => loggedErrors.push(message),
-      },
-    });
-
-    await runWorkspaceAnalysisSession(harness.args);
-
-    assert.deepStrictEqual(harness.calls, [
-      'failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: No workspace folder found.',
-    ]);
-    assert.deepStrictEqual(harness.errors, [
-      'SpotBugs: Workspace analysis failed - No workspace folder found.',
-    ]);
-    assert.deepStrictEqual(loggedErrors, [
-      'No workspace folder found.',
-      'An error occurred during workspace analysis',
-    ]);
-  });
+  }
 });

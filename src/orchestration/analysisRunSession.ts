@@ -35,7 +35,7 @@ export type AnalysisProgressRunner = (
 
 export interface FileAnalysisSessionTree {
   showLoading(): void;
-  showResults(findings: Finding[], resource: Uri, reportRun?: AnalysisReportRun | AnalysisReportRun[]): void;
+  showResults(findings: Finding[], resource: Uri, reportRuns: AnalysisReportRun[]): void;
   showAnalysisFailure(message: string, code?: string): void;
 }
 

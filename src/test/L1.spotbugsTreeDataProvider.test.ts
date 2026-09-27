@@ -148,7 +148,7 @@ describe('spotbugsTreeDataProvider', () => {
   it('records resource and workspace result scopes explicitly', async () => {
     const provider = await createProvider();
 
-    provider.showResults([], resultResource);
+    provider.showResults([], resultResource, []);
     assert.deepStrictEqual(provider.getResultScope(), {
       kind: 'resource',
       resource: resultResource,
@@ -173,7 +173,7 @@ describe('spotbugsTreeDataProvider', () => {
       message: 'NP: Null pointer',
     });
 
-    provider.showResults([hidden, visible], resultResource);
+    provider.showResults([hidden, visible], resultResource, []);
     provider.setSearchQuery('CWE-89');
 
     const children = await provider.getChildren();
@@ -200,7 +200,7 @@ describe('spotbugsTreeDataProvider', () => {
       cweId: 89,
     });
 
-    provider.showResults([filterOnly, searchOnly], resultResource);
+    provider.showResults([filterOnly, searchOnly], resultResource, []);
     provider.setFilter('category', 'Correctness');
     provider.setSearchQuery('CWE-89');
 
@@ -230,7 +230,7 @@ describe('spotbugsTreeDataProvider', () => {
       message: 'SQL: Injection risk',
     });
 
-    provider.showResults([first, second], resultResource);
+    provider.showResults([first, second], resultResource, []);
 
     const categories = await provider.getChildren();
     assert.strictEqual(categories.length, 2);
@@ -255,7 +255,7 @@ describe('spotbugsTreeDataProvider', () => {
     const first = makeFinding({ className: 'com.acme.First' });
     const second = makeFinding({ className: undefined, location: {} });
 
-    provider.showResults([first, second], resultResource);
+    provider.showResults([first, second], resultResource, []);
     provider.setGroupBy('package');
 
     const children = await provider.getChildren();
@@ -273,7 +273,7 @@ describe('spotbugsTreeDataProvider', () => {
     const selected = makeFinding({ className: 'com.acme.Example' });
     const other = makeFinding({ className: 'org.example.Other' });
 
-    provider.showResults([selected, other], resultResource);
+    provider.showResults([selected, other], resultResource, []);
     provider.setGroupBy('package');
 
     const children = await provider.getChildren();
@@ -286,12 +286,12 @@ describe('spotbugsTreeDataProvider', () => {
   it('preserves group and sort on new results and resets them on reset', async () => {
     const provider = await createProvider();
 
-    provider.showResults([makeFinding()], resultResource);
+    provider.showResults([makeFinding()], resultResource, []);
     provider.setGroupBy('path');
     provider.setSortBy('rule');
     provider.setSearchQuery('NP');
     provider.setFilter('category', 'Correctness');
-    provider.showResults([makeFinding({ patternId: 'SQL' })], resultResource);
+    provider.showResults([makeFinding({ patternId: 'SQL' })], resultResource, []);
 
     assert.strictEqual(provider.getGroupBy(), 'path');
     assert.strictEqual(provider.getSortBy(), 'rule');
@@ -346,7 +346,7 @@ describe('spotbugsTreeDataProvider', () => {
       () => provider.showAnalysisFailure('SpotBugs analysis failed: boom', 'ANALYSIS_FAILED'),
       () => provider.showWorkspaceProgress(['file:///workspace/project-a']),
     ]) {
-      provider.showResults([makeFinding()], resultResource);
+      provider.showResults([makeFinding()], resultResource, []);
       provider.setGroupBy('path');
       provider.setSortBy('rule');
       provider.setSearchQuery('NP');
@@ -404,10 +404,10 @@ describe('spotbugsTreeDataProvider', () => {
     ];
 
     for (const transition of transitions) {
-      provider.showResults([finding], resultResource, {
+      provider.showResults([finding], resultResource, [{
         projectUri: 'file:///workspace/project-a',
         findings: [finding],
-      });
+      }]);
       transition();
 
       assert.deepStrictEqual(provider.getCachedFindings(), []);
@@ -422,10 +422,10 @@ describe('spotbugsTreeDataProvider', () => {
     const second = makeFinding({ patternId: 'SQL_INJECTION' });
     const input = [first];
 
-    provider.showResults(input, resultResource, {
-      projectUri: 'file:///workspace/project-a',
-      findings: input,
-    });
+    const runs = [{ projectUri: 'file:///workspace/project-a', findings: [first] }];
+    provider.showResults(input, resultResource, runs);
+    runs[0].findings.push(second);
+    runs.push({ projectUri: 'file:///workspace/project-b', findings: [second] });
     input.push(second);
 
     const cached = provider.getCachedFindings();
@@ -437,13 +437,14 @@ describe('spotbugsTreeDataProvider', () => {
 
     assert.deepStrictEqual(provider.getCachedFindings(), [first]);
     assert.deepStrictEqual(provider.getAllFindings(), [first]);
+    assert.strictEqual(provider.getReportRuns().length, 1);
     assert.deepStrictEqual(provider.getReportRuns()[0].findings, [first]);
   });
 
   it('keeps no cached results distinct from search and filter empty states', async () => {
     const provider = await createProvider();
 
-    provider.showResults([], resultResource);
+    provider.showResults([], resultResource, []);
     provider.setSearchQuery('NP');
     provider.setFilter('category', 'Correctness');
 
@@ -489,7 +490,7 @@ describe('spotbugsTreeDataProvider', () => {
   it('renders workspace cancellation without clearing group and sort', async () => {
     const provider = await createProvider();
 
-    provider.showResults([makeFinding()], resultResource);
+    provider.showResults([makeFinding()], resultResource, []);
     provider.setGroupBy('package');
     provider.setSortBy('rule');
     provider.showWorkspaceProgress(['file:///workspace/project-a']);
