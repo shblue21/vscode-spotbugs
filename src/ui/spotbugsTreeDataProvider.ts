@@ -183,15 +183,13 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   public showResults(
     findings: Finding[],
     resource: Uri,
-    reportRun?: AnalysisReportRun | AnalysisReportRun[]
+    reportRuns: AnalysisReportRun[]
   ): void {
     const cachedFindings = findings ? findings.slice() : [];
     this.transitionTo({
       kind: 'results',
       findings: cachedFindings,
-      reportRuns: Array.isArray(reportRun)
-        ? reportRun.map((run) => ({ ...run, findings: run.findings.slice() }))
-        : reportRun ? [{ ...reportRun, findings: cachedFindings }] : [],
+      reportRuns: reportRuns.map((run) => ({ ...run, findings: run.findings.slice() })),
       workspaceStatusItems: [],
       scope: { kind: 'resource', resource },
     });

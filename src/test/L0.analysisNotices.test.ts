@@ -210,37 +210,23 @@ describe('analysisNotices', () => {
     );
   });
 
-  it('keeps resolution notices on fatal error outcomes with no findings', () => {
-    const notices = buildAnalysisNotices(
-      {
+  for (const includeLookupFailure of [false, true]) {
+    it(`keeps one fatal error notice with lookup failure=${includeLookupFailure}`, () => {
+      const notices = buildAnalysisNotices({
         findings: [],
-        errors: [
-          {
-            message: 'aux classpath is invalid',
-            code: 'CFG_AUX_CLASSPATH_NOT_FOUND',
-          },
-        ],
-      },
-      {
-        resolutionIssues: [
-          {
-            code: 'JAVA_LS_REQUEST_FAILED',
-            level: 'warn',
-            source: 'java-ls',
-            phase: 'get-classpaths',
-            message: 'Java LS classpath lookup failed.',
-          },
-        ],
-      }
-    );
-
-    assert.deepStrictEqual(notices, [
-      {
+        errors: [{ code: 'CFG_AUX_CLASSPATH_NOT_FOUND', message: 'aux classpath is invalid' }],
+      }, {
+        resolutionIssues: includeLookupFailure ? [{
+          code: 'JAVA_LS_REQUEST_FAILED', level: 'warn', source: 'java-ls',
+          phase: 'get-classpaths', message: 'Java LS classpath lookup failed.',
+        }] : [],
+      });
+      assert.deepStrictEqual(notices, [{
         level: 'error',
         message: 'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
-      },
-    ]);
-  });
+      }]);
+    });
+  }
 
   it('suppresses JAVA_LS_REQUEST_FAILED on terminal target failures', () => {
     const notices = buildAnalysisNotices(
@@ -280,25 +266,6 @@ describe('analysisNotices', () => {
           'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.'
       )
     );
-  });
-
-  it('keeps a fatal error notice for errors-only outcomes with no findings', () => {
-    const notices = buildAnalysisNotices({
-      findings: [],
-      errors: [
-        {
-          message: 'aux classpath is invalid',
-          code: 'CFG_AUX_CLASSPATH_NOT_FOUND',
-        },
-      ],
-    });
-
-    assert.deepStrictEqual(notices, [
-      {
-        level: 'error',
-        message: 'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
-      },
-    ]);
   });
 
   it('emits cleanup warning notices without converting zero-finding outcomes into failures', () => {
