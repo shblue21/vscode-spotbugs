@@ -12,6 +12,7 @@
   "contributes.configuration.results.title": "SpotBugs: 결과",
   "contributes.configuration.spotbugs.analysis.effort.markdownDescription": "분석 강도를 설정합니다.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.min": "정확도를 높이지만 메모리 사용량도 증가시키는 일부 분석을 비활성화합니다.",
+  "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.less": "min과 default 사이의 분석 강도입니다. 정확도를 높이는 일부 분석을 비활성화합니다.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.default": "여러 분석을 실행해 버그를 찾습니다.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.max": "정확도를 높이고 더 많은 버그를 찾는 분석을 활성화합니다. 메모리를 더 사용하고 분석 시간이 길어질 수 있습니다.",
   "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "High·Medium·Low 신뢰도의 버그 중 Rank가 이 값 이하인 항목을 보고합니다(1이 가장 심각하고 20이 가장 낮습니다). 실험적 Finding은 제외됩니다. 값을 설정하지 않으면 기본 동작을 사용합니다.",
