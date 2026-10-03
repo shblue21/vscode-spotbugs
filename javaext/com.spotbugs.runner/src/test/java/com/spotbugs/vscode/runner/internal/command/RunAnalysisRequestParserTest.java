@@ -1,6 +1,7 @@
 package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -17,6 +18,11 @@ import org.junit.Test;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spotbugs.vscode.runner.internal.config.Effort;
+import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
+import edu.umd.cs.findbugs.FindBugs;
+import edu.umd.cs.findbugs.FindBugs2;
+import edu.umd.cs.findbugs.config.AnalysisFeatureSetting;
+import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class RunAnalysisRequestParserTest {
 
@@ -74,6 +80,20 @@ public class RunAnalysisRequestParserTest {
                 request.getConfig().getPlugins()
         );
         assertTrue(request.isIncludeBaselineXml());
+
+        parseablePayload.addProperty("effort", "less");
+        try (var engine = new FindBugs2() {
+            AnalysisFeatureSetting[] applied;
+            @Override
+            public void setAnalysisFeatureSettings(AnalysisFeatureSetting[] settings) {
+                super.setAnalysisFeatureSettings(settings);
+                applied = settings;
+            }
+        }) {
+            new PreferencesApplier().apply(UserPreferences.createDefaultUserPreferences(), engine,
+                    parser.parse(context("/project", parseablePayload.toString())).getConfig());
+            assertSame(FindBugs.LESS_EFFORT, engine.applied);
+        }
     }
 
     @Test

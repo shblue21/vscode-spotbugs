@@ -99,11 +99,13 @@
             "default": "default",
             "enum": [
               "min",
+              "less",
               "default",
               "max"
             ],
             "enumDescriptions": [
               "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.min%",
+              "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.less%",
               "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.default%",
               "%contributes.configuration.spotbugs.analysis.effort.enumDescriptions.max%"
             ],

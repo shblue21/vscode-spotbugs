@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class ConfigSchema {
     private Integer schemaVersion;            // optional, for future growth
-    private String effort;                    // "min" | "default" | "max"
+    private String effort;                    // "min" | "less" | "default" | "max"
     private List<String> targetResolutionRoots; // optional
     private List<String> runtimeClasspaths;   // optional
     private List<String> extraAuxClasspaths;  // optional
