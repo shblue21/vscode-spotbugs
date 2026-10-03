@@ -33,7 +33,7 @@ import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.Project;
-import edu.umd.cs.findbugs.classfile.ClassDescriptor;
+import edu.umd.cs.findbugs.classfile.DescriptorFactory;
 import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class SpotBugsExecutorPluginLoadingTest {
@@ -189,7 +189,7 @@ public class SpotBugsExecutorPluginLoadingTest {
                     @Override
                     public void execute() {
                         getBugReporter().reportMissingClass(
-                                ClassDescriptor.createClassDescriptor("com/example/MissingDependency")
+                                DescriptorFactory.createClassDescriptor("com/example/MissingDependency")
                         );
                     }
                 },
