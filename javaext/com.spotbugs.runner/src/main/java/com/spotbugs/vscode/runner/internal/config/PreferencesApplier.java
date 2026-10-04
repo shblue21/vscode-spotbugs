@@ -20,7 +20,7 @@ public class PreferencesApplier {
         if (engine != null) {
             // FindBugs2 executes whatever is currently stored in AnalysisOptions.
             // Updating UserPreferences alone leaves the engine pinned to DEFAULT_EFFORT.
-            // UserPreferences only accepts min/default/max in SpotBugs 4.9.8.
+            // UserPreferences only accepts min/default/max.
             // LESS uses neutral default preferences and the explicit engine feature set.
             engine.setAnalysisFeatureSettings(cfg.getEffort() == Effort.LESS
                     ? FindBugs.LESS_EFFORT : prefs.getAnalysisFeatureSettings());

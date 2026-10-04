@@ -80,8 +80,12 @@ public class RunAnalysisRequestParserTest {
                 request.getConfig().getPlugins()
         );
         assertTrue(request.isIncludeBaselineXml());
+    }
 
-        parseablePayload.addProperty("effort", "less");
+    @Test
+    public void parsedLessEffortAppliesEngineFeatureSettings() throws Exception {
+        RunAnalysisRequest request = parser.parse(context("/project",
+                "{\"effort\":\"less\",\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}"));
         try (var engine = new FindBugs2() {
             AnalysisFeatureSetting[] applied;
             @Override
@@ -91,7 +95,7 @@ public class RunAnalysisRequestParserTest {
             }
         }) {
             new PreferencesApplier().apply(UserPreferences.createDefaultUserPreferences(), engine,
-                    parser.parse(context("/project", parseablePayload.toString())).getConfig());
+                    request.getConfig());
             assertSame(FindBugs.LESS_EFFORT, engine.applied);
         }
     }
