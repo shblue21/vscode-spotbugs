@@ -5,6 +5,7 @@ import { Logger } from './logger';
 
 export interface AnalysisSettings {
   effort: string;
+  minimumConfidence?: unknown;
   priorityThreshold?: number;
   extraAuxClasspaths?: string[];
   includeFilterPaths?: string[];
@@ -15,6 +16,7 @@ export interface AnalysisSettings {
 
 export class Config {
   public effort!: string;
+  public minimumConfidence?: unknown;
   // Future-ready fields (optional; only sent when defined)
   public priorityThreshold?: number;
   public extraAuxClasspaths?: string[];
@@ -34,6 +36,8 @@ export class Config {
     // Normalize to lowercase: min | default | max
     const effort = config.get<string>(settingKeys.analysisEffort) ?? 'default';
     this.effort = (effort || 'default').toLowerCase();
+
+    this.minimumConfidence = config.get<unknown>(settingKeys.analysisMinimumConfidence);
 
     const pt = config.get<unknown>(settingKeys.analysisPriorityThreshold);
     this.priorityThreshold =
@@ -149,6 +153,7 @@ export class Config {
   public getAnalysisSettings(resource?: Uri): AnalysisSettings {
     const settings: AnalysisSettings = {
       effort: this.effort,
+      minimumConfidence: this.minimumConfidence,
     };
     if (typeof this.priorityThreshold === 'number') {
       settings.priorityThreshold = this.priorityThreshold;

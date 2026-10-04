@@ -7,6 +7,7 @@ export interface AnalysisRequestPayload {
   inputs: Array<{ kind: 'source' | 'artifact'; path: string }>;
   schemaVersion: number;
   effort: string;
+  minimumConfidence?: 'high' | 'medium' | 'low';
   targetResolutionRoots?: string[] | null;
   runtimeClasspaths?: string[] | null;
   extraAuxClasspaths?: string[] | null;

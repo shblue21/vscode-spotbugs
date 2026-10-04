@@ -66,7 +66,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         SpotBugsExecutor executor = new SpotBugsExecutor(
                 findBugs,
                 project,
-                3,
+                3, null,
                 Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())
         );
 
@@ -89,7 +89,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         List<BugInfo> bugs = new SpotBugsExecutor(
                 findBugs,
                 project,
-                20,
+                20, null,
                 Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())
         ).executeBugs();
         BugInfo finding = onlyBugOfType(bugs, "STRUTS2_ENDPOINT");
@@ -109,7 +109,7 @@ public class SpotBugsExecutorPluginLoadingTest {
             new SpotBugsExecutor(
                     new CapturingFindBugs(pluginId),
                     new Project(),
-                    3,
+                    3, null,
                     Collections.singletonList(invalidPlugin.getAbsolutePath())
             ).executeBugs();
             fail("Expected invalid plugin jar to fail analysis");
@@ -121,7 +121,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         new SpotBugsExecutor(
                 retryFindBugs,
                 new Project(),
-                3,
+                3, null,
                 Collections.singletonList(validPlugin.getAbsolutePath())
         ).executeBugs();
 
@@ -138,7 +138,7 @@ public class SpotBugsExecutorPluginLoadingTest {
             new SpotBugsExecutor(
                     new CapturingFindBugs(pluginId),
                     new Project(),
-                    3,
+                    3, null,
                     Collections.singletonList(pluginJar.getAbsolutePath()),
                     new LinkageFailingLifecycle()
             ).executeBugs();
@@ -152,7 +152,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         new SpotBugsExecutor(
                 retryFindBugs,
                 new Project(),
-                3,
+                3, null,
                 Collections.singletonList(pluginJar.getAbsolutePath())
         ).executeBugs();
 
@@ -166,7 +166,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         SpotBugsExecutor executor = new SpotBugsExecutor(
                 new CapturingFindBugs(FINDSECBUGS_PLUGIN_ID),
                 new Project(),
-                3,
+                3, null,
                 Collections.singletonList(pluginJar.getAbsolutePath()),
                 new CloseFailingLifecycle()
         );
@@ -194,7 +194,7 @@ public class SpotBugsExecutorPluginLoadingTest {
                     }
                 },
                 new Project(),
-                3,
+                3, null,
                 Collections.emptyList()
         ).executeBugsWithWarnings(null, true);
 
@@ -216,7 +216,7 @@ public class SpotBugsExecutorPluginLoadingTest {
             new SpotBugsExecutor(
                     new CapturingFindBugs(removeFailurePluginId),
                     new Project(),
-                    3,
+                    3, null,
                     Arrays.asList(
                             removeFailurePlugin.getAbsolutePath(),
                             closeFailurePlugin.getAbsolutePath()

@@ -110,6 +110,19 @@
             "markdownDescription": "%contributes.configuration.spotbugs.analysis.effort.markdownDescription%",
             "scope": "window"
           },
+          "spotbugs.analysis.minimumConfidence": {
+            "type": "string",
+            "default": "default",
+            "enum": ["default", "high", "medium", "low"],
+            "enumDescriptions": [
+              "%contributes.configuration.spotbugs.analysis.minimumConfidence.default%",
+              "%contributes.configuration.spotbugs.analysis.minimumConfidence.high%",
+              "%contributes.configuration.spotbugs.analysis.minimumConfidence.medium%",
+              "%contributes.configuration.spotbugs.analysis.minimumConfidence.low%"
+            ],
+            "markdownDescription": "%contributes.configuration.spotbugs.analysis.minimumConfidence.markdownDescription%",
+            "scope": "window"
+          },
           "spotbugs.analysis.priorityThreshold": {
             "type": "integer",
             "default": 9,

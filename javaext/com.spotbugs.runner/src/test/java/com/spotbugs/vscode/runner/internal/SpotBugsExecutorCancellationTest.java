@@ -34,7 +34,7 @@ public class SpotBugsExecutorCancellationTest {
         SpotBugsExecutor executor = new SpotBugsExecutor(
                 findBugs,
                 new Project(),
-                9,
+                9, null,
                 Collections.emptyList()
         );
 

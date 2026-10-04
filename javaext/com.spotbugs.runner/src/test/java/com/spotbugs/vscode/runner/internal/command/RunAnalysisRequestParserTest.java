@@ -77,6 +77,21 @@ public class RunAnalysisRequestParserTest {
     }
 
     @Test
+    public void validatesMinimumConfidence() throws Exception {
+        String[] values = { "null", "\"default\"", "\"high\"", "\"medium\"", "\"low\"" };
+        Integer[] expected = { null, null, 1, 2, 3 };
+        String inputs = ",\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}";
+        for (int i = 0; i < values.length; i++) {
+            assertEquals(expected[i], parser.parse(context("/project",
+                    "{\"minimumConfidence\":" + values[i] + inputs)).getConfig().getConfidenceThreshold());
+        }
+        for (String value : new String[] { "\"\"", "\"HIGH\"", "\"unknown\"", "1", "true" }) {
+            assertEquals("CFG_CONFIDENCE_INVALID", expectFailure(() -> parser.parse(context("/project",
+                    "{\"minimumConfidence\":" + value + inputs))).getCode());
+        }
+    }
+
+    @Test
     public void parseRequiresExplicitInputs() {
         assertEquals("INVALID_ARGUMENT", expectFailure(() -> parser.parse(context("/workspace/build/classes", "{}"))).getCode());
         assertEquals("INVALID_ARGUMENT", expectFailure(() -> parser.parse(context("/workspace/build/classes", "{\"inputs\":[]}"))).getCode());

@@ -72,6 +72,7 @@ public class AnalyzerService {
                 this.findBugs,
                 prepared.project,
                 prepared.rankThreshold,
+                this.config != null ? this.config.getConfidenceThreshold() : null,
                 prepared.plugins
         ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);

@@ -16,6 +16,7 @@ public class ConfigSchema {
     private List<String> extraAuxClasspaths;  // optional
     private List<String> sourcepaths;         // optional
     private Map<String, String> sourceOutputs; // optional source-to-output mapping
+    private String minimumConfidence;
     private Integer priorityThreshold;        // optional
     private List<String> includeFilterPaths;  // optional
     private List<String> excludeFilterPaths;  // optional
@@ -30,6 +31,7 @@ public class ConfigSchema {
     public List<String> getExtraAuxClasspaths() { return extraAuxClasspaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
     public Map<String, String> getSourceOutputs() { return sourceOutputs; }
+    public String getMinimumConfidence() { return minimumConfidence; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
     public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }

@@ -33,6 +33,13 @@ export function buildAnalysisRequestPayload(
     ...(options.includeBaselineXml === true ? { includeBaselineXml: true } : {}),
   };
 
+  const confidence = settings.minimumConfidence;
+  if (confidence === 'high' || confidence === 'medium' || confidence === 'low') {
+    payload.minimumConfidence = confidence;
+  } else if (confidence !== undefined && confidence !== null && confidence !== 'default') {
+    throw new Error('Invalid spotbugs.analysis.minimumConfidence: expected default, high, medium, or low.');
+  }
+
   if (options.sourceOutputs && Object.keys(options.sourceOutputs).length > 0) {
     payload.sourceOutputs = { ...options.sourceOutputs };
   }
