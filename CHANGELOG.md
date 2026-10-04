@@ -1,4 +1,12 @@
 # Changelog
+## [0.12.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.11.0...v0.12.0) (2026-10-04)
+
+
+### Features
+
+* add minimum confidence setting ([#155](https://github.com/shblue21/vscode-spotbugs/issues/155)) ([ac26ad7](https://github.com/shblue21/vscode-spotbugs/commit/ac26ad77eee57b67bc478fcde88b2e3778d3310e))
+* support less analysis effort ([#153](https://github.com/shblue21/vscode-spotbugs/issues/153)) ([69cb443](https://github.com/shblue21/vscode-spotbugs/commit/69cb4430100d4d4431d8db67b4f8a02621772b64))
+
 ## [0.11.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.10.0...v0.11.0) (2026-09-16)
 
 

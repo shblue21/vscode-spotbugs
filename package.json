@@ -2,7 +2,7 @@
   "name": "vscode-spotbugs",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
@@ -115,7 +115,12 @@
           "spotbugs.analysis.minimumConfidence": {
             "type": "string",
             "default": "default",
-            "enum": ["default", "high", "medium", "low"],
+            "enum": [
+              "default",
+              "high",
+              "medium",
+              "low"
+            ],
             "enumDescriptions": [
               "%contributes.configuration.spotbugs.analysis.minimumConfidence.default%",
               "%contributes.configuration.spotbugs.analysis.minimumConfidence.high%",
