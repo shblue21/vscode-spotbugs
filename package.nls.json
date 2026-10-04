@@ -12,6 +12,7 @@
   "contributes.configuration.results.title": "SpotBugs: Results",
   "contributes.configuration.spotbugs.analysis.effort.markdownDescription": "Set analysis effort level.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.min": "Disables several analyses that increase precision but also increase memory consumption.",
+  "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.less": "Disables some precision-enhancing analyses; an intermediate effort between min and default.",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.default": "Run several analyses to find bugs",
   "contributes.configuration.spotbugs.analysis.effort.enumDescriptions.max": "Enable analyses which increase precision and find more bugs, but which may require more memory and take more time to complete",
   "contributes.configuration.spotbugs.analysis.minimumConfidence.markdownDescription": "Minimum confidence of reported findings, independent of bug rank and analysis effort. Applies to the next analysis.",

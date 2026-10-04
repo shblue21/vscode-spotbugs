@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import edu.umd.cs.findbugs.FindBugs2;
+import edu.umd.cs.findbugs.FindBugs;
 import edu.umd.cs.findbugs.config.UserPreferences;
 
 /** Applies AnalysisConfig to SpotBugs user preferences and engine. */
@@ -19,7 +20,10 @@ public class PreferencesApplier {
         if (engine != null) {
             // FindBugs2 executes whatever is currently stored in AnalysisOptions.
             // Updating UserPreferences alone leaves the engine pinned to DEFAULT_EFFORT.
-            engine.setAnalysisFeatureSettings(prefs.getAnalysisFeatureSettings());
+            // UserPreferences only accepts min/default/max.
+            // LESS uses neutral default preferences and the explicit engine feature set.
+            engine.setAnalysisFeatureSettings(cfg.getEffort() == Effort.LESS
+                    ? FindBugs.LESS_EFFORT : prefs.getAnalysisFeatureSettings());
         }
 
         // Filter files are applied by FindBugs2#setUserPreferences via configureFilters.
@@ -36,6 +40,7 @@ public class PreferencesApplier {
         switch (e) {
             case MIN: return "min";
             case MAX: return "max";
+            case LESS: return "default";
             default: return "default";
         }
     }
