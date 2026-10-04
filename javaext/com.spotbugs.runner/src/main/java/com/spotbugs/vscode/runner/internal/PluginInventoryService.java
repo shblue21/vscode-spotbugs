@@ -4,10 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -31,12 +29,12 @@ public class PluginInventoryService {
 
     public List<PluginInventoryEntry> inspect(List<String> pluginPaths) {
         List<String> paths = pluginPaths != null ? pluginPaths : java.util.Collections.emptyList();
-        Map<String, Integer> firstIndexByPluginId = new HashMap<>();
+        Set<String> pluginIds = new HashSet<>();
         Set<String> canonicalPaths = new HashSet<>();
         List<PluginInventoryEntry> entries = new ArrayList<>();
 
         for (int index = 0; index < paths.size(); index++) {
-            entries.add(inspectOne(index, paths.get(index), firstIndexByPluginId, canonicalPaths));
+            entries.add(inspectOne(index, paths.get(index), pluginIds, canonicalPaths));
         }
         return entries;
     }
@@ -44,7 +42,7 @@ public class PluginInventoryService {
     private PluginInventoryEntry inspectOne(
             int index,
             String configuredPath,
-            Map<String, Integer> firstIndexByPluginId,
+            Set<String> pluginIds,
             Set<String> canonicalPaths
     ) {
         String path = configuredPath != null ? configuredPath : "";
@@ -91,33 +89,13 @@ public class PluginInventoryService {
         String shortDescription = trimToNull(summary != null ? summary.description : null);
         String provider = trimToNull(summary != null ? summary.provider : null);
         String website = trimToNull(summary != null ? summary.webbsite : null);
-        if (pluginId != null && firstCanonicalPath) {
-            Integer duplicateIndex = firstIndexByPluginId.get(pluginId);
-            if (duplicateIndex != null) {
-                return new PluginInventoryEntry(
-                        index,
-                        path,
-                        canonicalPath,
-                        STATUS_DUPLICATE_PLUGIN_ID,
-                        pluginId,
-                        shortDescription,
-                        provider,
-                        website,
-                        descriptor.version,
-                        descriptor.detectorCount,
-                        descriptor.bugPatternCount,
-                        descriptor.bugPatternTypes,
-                        "Duplicate plugin id: " + pluginId
-                );
-            }
-            firstIndexByPluginId.put(pluginId, index);
-        }
+        boolean duplicate = pluginId != null && firstCanonicalPath && !pluginIds.add(pluginId);
 
         return new PluginInventoryEntry(
                 index,
                 path,
                 canonicalPath,
-                STATUS_VALIDATED,
+                duplicate ? STATUS_DUPLICATE_PLUGIN_ID : STATUS_VALIDATED,
                 pluginId,
                 shortDescription,
                 provider,
@@ -126,7 +104,7 @@ public class PluginInventoryService {
                 descriptor.detectorCount,
                 descriptor.bugPatternCount,
                 descriptor.bugPatternTypes,
-                null
+                duplicate ? "Duplicate plugin id: " + pluginId : null
         );
     }
 

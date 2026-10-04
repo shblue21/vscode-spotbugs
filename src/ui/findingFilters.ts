@@ -34,15 +34,12 @@ export function applyFindingFilters(
   findings: Finding[],
   filters: FindingFilterState
 ): Finding[] {
-  return findings.filter((finding) =>
-    FILTER_KIND_ORDER.every((kind) => {
-      const expected = filters[kind];
-      if (!expected) {
-        return true;
-      }
-      return getFindingFilterValue(finding, kind) === expected;
-    })
-  );
+  const activeKinds = FILTER_KIND_ORDER.filter((kind) => filters[kind]);
+  return findings.filter((finding) => {
+    if (activeKinds.length === 0) return true;
+    const values = toFindingFacets(finding).filterValues;
+    return activeKinds.every((kind) => values[kind] === filters[kind]);
+  });
 }
 
 export function getFindingFilterOptions(
@@ -81,13 +78,6 @@ export function getFindingFilterDisplayLabel(
   value: string
 ): string {
   return getFindingFilterLabel(findings, kind, value);
-}
-
-function getFindingFilterValue(
-  finding: Finding,
-  kind: FindingFilterKind
-): string | undefined {
-  return toFindingFilterOption(kind, finding)?.value;
 }
 
 function getFindingFilterLabel(

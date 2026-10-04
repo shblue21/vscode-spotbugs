@@ -105,6 +105,19 @@ describe('findingFilters', () => {
     );
   });
 
+  it('preserves empty-filter behavior without reading finding facets', () => {
+    const finding = { message: 'no location' } as Finding;
+    const input = new Array<Finding>(2);
+    input[1] = finding;
+    for (const filters of [{}, { severity: '' }, { unknown: 'ignored' }]) {
+      const result = applyFindingFilters(input, filters);
+      assert.notStrictEqual(result, input);
+      assert.deepStrictEqual(result, [finding]);
+      assert.strictEqual(result[0], finding);
+    }
+    assert.deepStrictEqual(applyFindingFilters(findings, { severity: ' ' }), []);
+  });
+
   it('applies multiple filter kinds to the cached findings', () => {
     const filtered = applyFindingFilters(findings, {
       severity: 'Warning',
