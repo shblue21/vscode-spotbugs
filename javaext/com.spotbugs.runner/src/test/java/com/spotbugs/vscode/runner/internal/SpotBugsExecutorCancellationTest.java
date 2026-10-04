@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.FindBugsProgress;
+import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
 
 public class SpotBugsExecutorCancellationTest {
@@ -34,7 +35,7 @@ public class SpotBugsExecutorCancellationTest {
         SpotBugsExecutor executor = new SpotBugsExecutor(
                 findBugs,
                 new Project(),
-                9,
+                9, Priorities.LOW_PRIORITY,
                 Collections.emptyList()
         );
 

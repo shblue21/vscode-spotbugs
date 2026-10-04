@@ -12,6 +12,18 @@ function makeSettings(overrides: Partial<AnalysisSettings> = {}): AnalysisSettin
 }
 
 describe('analysisRequestBuilder', () => {
+  it('validates confidence only when building an analysis request', () => {
+    for (const minimumConfidence of [undefined, null, 'default', 'high', 'medium', 'low']) {
+      const payload = buildAnalysisRequestPayload(makeSettings({ minimumConfidence }), {});
+      assert.strictEqual(payload.minimumConfidence,
+        ['high', 'medium', 'low'].includes(minimumConfidence as string) ? minimumConfidence : undefined);
+    }
+    for (const minimumConfidence of ['', 'HIGH', 'unknown', 1, false, [], {}]) {
+      assert.throws(() => buildAnalysisRequestPayload(makeSettings({ minimumConfidence }), {}),
+        /minimumConfidence/);
+    }
+  });
+
   it('builds the shared run-analysis request payload fixture', () => {
     const fixture = readAnalysisProtocolFixtureJson<AnalysisRequest>(
       'run-analysis-request-full.json',

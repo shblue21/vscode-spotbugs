@@ -18,6 +18,7 @@ public class AnalysisConfig {
     private final List<String> extraAuxClasspaths;
     private final List<String> sourcepaths;
     private final Map<String, String> sourceOutputs;
+    private final Integer confidenceThreshold;
     private final Integer priorityThreshold; // optional
     private final List<String> includeFilterPaths; // optional
     private final List<String> excludeFilterPaths; // optional
@@ -25,6 +26,7 @@ public class AnalysisConfig {
     private final List<String> plugins;      // optional
 
     private AnalysisConfig(Builder b) {
+        this.confidenceThreshold = b.confidenceThreshold;
         this.effort = b.effort == null ? Effort.DEFAULT : b.effort;
         this.targetResolutionRoots = b.targetResolutionRoots == null
                 ? Collections.emptyList()
@@ -62,6 +64,7 @@ public class AnalysisConfig {
     public List<String> getExtraAuxClasspaths() { return extraAuxClasspaths; }
     public List<String> getSourcepaths() { return sourcepaths; }
     public Map<String, String> getSourceOutputs() { return sourceOutputs; }
+    public Integer getConfidenceThreshold() { return confidenceThreshold; }
     public Integer getPriorityThreshold() { return priorityThreshold; }
     public List<String> getIncludeFilterPaths() { return includeFilterPaths; }
     public List<String> getExcludeFilterPaths() { return excludeFilterPaths; }
@@ -78,6 +81,7 @@ public class AnalysisConfig {
         private List<String> extraAuxClasspaths;
         private List<String> sourcepaths;
         private Map<String, String> sourceOutputs;
+        private Integer confidenceThreshold;
         private Integer priorityThreshold;
         private List<String> includeFilterPaths;
         private List<String> excludeFilterPaths;
@@ -90,6 +94,7 @@ public class AnalysisConfig {
         Builder extraAuxClasspaths(List<String> cp) { this.extraAuxClasspaths = cp; return this; }
         Builder sourcepaths(List<String> sp) { this.sourcepaths = sp; return this; }
         Builder sourceOutputs(Map<String, String> outputs) { this.sourceOutputs = outputs; return this; }
+        Builder confidenceThreshold(Integer value) { this.confidenceThreshold = value; return this; }
         Builder priorityThreshold(Integer p) { this.priorityThreshold = p; return this; }
         Builder includeFilterPaths(List<String> p) { this.includeFilterPaths = p; return this; }
         Builder excludeFilterPaths(List<String> p) { this.excludeFilterPaths = p; return this; }

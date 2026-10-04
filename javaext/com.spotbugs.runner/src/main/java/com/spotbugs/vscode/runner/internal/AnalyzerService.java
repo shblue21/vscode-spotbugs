@@ -9,6 +9,7 @@ import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 import org.eclipse.core.runtime.IProgressMonitor;
 
 import edu.umd.cs.findbugs.FindBugs2;
+import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.config.UserPreferences;
 
@@ -68,10 +69,14 @@ public class AnalyzerService {
             return SpotBugsAnalysisResult.empty();
         }
         checkCanceled(monitor);
+        Integer confidenceThreshold = this.config != null ? this.config.getConfidenceThreshold() : null;
+        int effectiveConfidenceThreshold = confidenceThreshold != null ? confidenceThreshold
+                : prepared.rankThreshold == null ? Priorities.HIGH_PRIORITY : Priorities.LOW_PRIORITY;
         SpotBugsAnalysisResult result = new SpotBugsExecutor(
                 this.findBugs,
                 prepared.project,
                 prepared.rankThreshold,
+                effectiveConfidenceThreshold,
                 prepared.plugins
         ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);

@@ -51,6 +51,22 @@ public class AnalyzerServiceRankThresholdTest {
     }
 
     @Test
+    public void confidenceAndRankApplyToAllReports() throws Exception {
+        String[] confidences = { "default", "high", "medium", "low", "low", "default", "low" };
+        Integer[] ranks = { 6, 6, 6, 6, 5, null, null };
+        int[] counts = { 1, 0, 0, 1, 0, 0, 1 };
+        for (int i = 0; i < confidences.length; i++) {
+            AnalyzerService analyzer = new AnalyzerService();
+            analyzer.setConfiguration(config(ranks[i], confidences[i]));
+            SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(null, true, fixtureInputs());
+            assertEquals(counts[i], result.getBugs().size());
+            assertEquals(counts[i], JsonParser.parseString(result.getNativeSarif()).getAsJsonObject()
+                    .getAsJsonArray("runs").get(0).getAsJsonObject().getAsJsonArray("results").size());
+            assertEquals(counts[i] != 0, result.getBaselineXml().contains("type=\"" + BUG_TYPE + "\""));
+        }
+    }
+
+    @Test
     public void nativeSarifUsesExactRankThreshold() throws Exception {
         assertNativeSarifPresence(5, false);
         assertNativeSarifPresence(6, true);
@@ -154,12 +170,13 @@ public class AnalyzerServiceRankThresholdTest {
 
     private AnalyzerService configuredAnalyzer(Integer threshold) {
         AnalyzerService analyzer = new AnalyzerService();
-        analyzer.setConfiguration(config(threshold));
+        analyzer.setConfiguration(config(threshold, null));
         return analyzer;
     }
 
-    private AnalysisConfig config(Integer threshold) {
+    private AnalysisConfig config(Integer threshold, String confidence) {
         JsonObject json = new JsonObject();
+        if (confidence != null) json.addProperty("minimumConfidence", confidence);
         if (threshold != null) {
             json.addProperty("priorityThreshold", threshold);
         }

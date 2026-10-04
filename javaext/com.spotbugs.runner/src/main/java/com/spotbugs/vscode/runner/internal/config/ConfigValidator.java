@@ -18,6 +18,19 @@ public class ConfigValidator {
             return ConfigValidationResult.error("CFG_BAD_JSON", "Missing configuration");
         }
 
+        Integer confidenceThreshold = null;
+        String confidence = schema.getMinimumConfidence();
+        if (confidence != null) {
+            switch (confidence) {
+                case "default": break;
+                case "high": confidenceThreshold = edu.umd.cs.findbugs.Priorities.HIGH_PRIORITY; break;
+                case "medium": confidenceThreshold = edu.umd.cs.findbugs.Priorities.NORMAL_PRIORITY; break;
+                case "low": confidenceThreshold = edu.umd.cs.findbugs.Priorities.LOW_PRIORITY; break;
+                default: return ConfigValidationResult.error("CFG_CONFIDENCE_INVALID",
+                        "minimumConfidence must be default, high, medium, or low");
+            }
+        }
+
         // Effort normalization (default on unknown)
         Effort effort = Effort.fromString(schema.getEffort());
 
@@ -54,6 +67,7 @@ public class ConfigValidator {
         AnalysisConfig cfg = AnalysisConfig
             .newBuilder()
             .effort(effort)
+            .confidenceThreshold(confidenceThreshold)
             .targetResolutionRoots(targetResolutionRoots)
             .runtimeClasspaths(runtimeClasspaths)
             .extraAuxClasspaths(extraAuxClasspaths)
