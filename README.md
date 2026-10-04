@@ -31,7 +31,7 @@ Analyze Java code with SpotBugs directly in VS Code and compatible editors. View
 
 ## Requirements
 
-- VS Code 1.85 or later, or a compatible editor supporting VS Code API 1.85
+- VS Code 1.101 or later, or a compatible editor supporting VS Code API 1.101
 - Java 11 or later (JDK)
 - A trusted workspace
 - “Language Support for Java by Red Hat” (`redhat.java`), installed automatically as a dependency
