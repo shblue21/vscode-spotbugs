@@ -60,31 +60,11 @@ public class CommandResponse {
                 Collections.emptyList(), Collections.singletonList(error), null, stats, null, null, null);
     }
 
-    public int getSchemaVersion() {
-        return schemaVersion;
-    }
-
-    public Object getResults() {
-        return results;
-    }
-
-    public List<CommandError> getErrors() {
-        return errors;
-    }
-
-    public List<CommandWarning> getWarnings() {
-        return warnings != null ? warnings : Collections.emptyList();
-    }
-
     public RunAnalysisSummary getStats() {
         return stats;
     }
 
     public AnalysisReportSummary getReportSummary() {
         return reportSummary;
-    }
-
-    public String getNativeSarif() {
-        return nativeSarif;
     }
 }

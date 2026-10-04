@@ -29,7 +29,6 @@ import edu.umd.cs.findbugs.NoOpFindBugsProgress;
 import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
 import edu.umd.cs.findbugs.PluginLoader;
-import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.ProjectStats;
 import edu.umd.cs.findbugs.SortedBugCollection;
@@ -47,23 +46,22 @@ public class SpotBugsExecutor {
     private final List<String> pluginJars; // optional
     private final PluginLifecycle pluginLifecycle;
 
-    public SpotBugsExecutor(FindBugs2 findBugs, Project project, Integer rankThreshold, List<String> pluginJars) {
-        this(findBugs, project, rankThreshold, pluginJars, PluginLifecycle.DEFAULT);
+    public SpotBugsExecutor(FindBugs2 findBugs, Project project, Integer rankThreshold, int confidenceThreshold, List<String> pluginJars) {
+        this(findBugs, project, rankThreshold, confidenceThreshold, pluginJars, PluginLifecycle.DEFAULT);
     }
 
     SpotBugsExecutor(
             FindBugs2 findBugs,
             Project project,
             Integer rankThreshold,
+            int confidenceThreshold,
             List<String> pluginJars,
             PluginLifecycle pluginLifecycle
     ) {
         this.findBugs = findBugs;
         this.project = project;
         this.defaultBugReporter = new DeferredSarifBugReporter(project);
-        this.effectivePriorityThreshold = rankThreshold == null
-                ? Priorities.HIGH_PRIORITY
-                : Priorities.LOW_PRIORITY;
+        this.effectivePriorityThreshold = confidenceThreshold;
         this.effectiveRankThreshold = rankThreshold == null
                 ? BugRanker.VISIBLE_RANK_MAX
                 : Math.max(

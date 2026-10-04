@@ -49,10 +49,13 @@ public class PluginInventoryServiceTest {
         File first = createPluginJar("com.example.duplicate", "first.jar");
         File second = createPluginJar("com.example.duplicate", "second.jar");
 
+        File third = createPluginJar("com.example.duplicate", "third.jar");
         List<PluginInventoryEntry> entries = new PluginInventoryService()
-                .inspect(Arrays.asList(first.getAbsolutePath(), second.getAbsolutePath()));
+                .inspect(Arrays.asList(first.getAbsolutePath(), second.getAbsolutePath(), second.getAbsolutePath(), third.getAbsolutePath()));
 
-        assertEquals(2, entries.size());
+        assertEquals(4, entries.size());
+        assertEquals("VALIDATED", entries.get(2).getStatus());
+        assertEquals("DUPLICATE_PLUGIN_ID", entries.get(3).getStatus());
         assertEquals("VALIDATED", entries.get(0).getStatus());
         assertEquals("com.example.duplicate", entries.get(0).getPluginId());
         assertEquals("1.2.3", entries.get(0).getVersion());
