@@ -58,6 +58,10 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 
 ## Settings
 
+### Diagnostics
+
+Use `spotbugs.diagnostics.severity.rank1To4`, `rank5To9`, `rank10To14`, and `rank15To20` to choose `error`, `warning`, or `information` for each rank band in the editor and Problems view. Defaults are `error`, `warning`, `information`, and `information`, respectively. Settings can be configured per workspace folder and apply immediately to existing diagnostics.
+
 ### Analysis
 
 - `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `less`, `default`, `max`). Default: `default`. `less` is an intermediate level between `min` and `default` that disables some precision-enhancing analyses.

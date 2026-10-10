@@ -213,6 +213,57 @@
             "scope": "window"
           }
         }
+      },
+      {
+        "type": "object",
+        "title": "%contributes.configuration.diagnostics.title%",
+        "order": 3,
+        "properties": {
+          "spotbugs.diagnostics.severity.rank1To4": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "information"
+            ],
+            "default": "error",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank1To4.markdownDescription%",
+            "scope": "resource"
+          },
+          "spotbugs.diagnostics.severity.rank5To9": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "information"
+            ],
+            "default": "warning",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank5To9.markdownDescription%",
+            "scope": "resource"
+          },
+          "spotbugs.diagnostics.severity.rank10To14": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "information"
+            ],
+            "default": "information",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank10To14.markdownDescription%",
+            "scope": "resource"
+          },
+          "spotbugs.diagnostics.severity.rank15To20": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "information"
+            ],
+            "default": "information",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank15To20.markdownDescription%",
+            "scope": "resource"
+          }
+        }
       }
     ],
     "commands": [

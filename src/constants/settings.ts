@@ -1,6 +1,7 @@
 export const SETTINGS_SECTION = 'spotbugs';
 
 export const settingKeys = {
+  diagnosticsSeverity: 'diagnostics.severity',
   analysisMinimumConfidence: 'analysis.minimumConfidence',
   analysisEffort: 'analysis.effort',
   analysisPriorityThreshold: 'analysis.priorityThreshold',

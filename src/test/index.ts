@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as Mocha from 'mocha';
+const mochaConstructor: typeof import('mocha') = require('mocha').Mocha;
 
 export function run(): Promise<void> {
-  const mocha = new Mocha({ ui: 'bdd', color: true });
+  const mocha = new mochaConstructor({ ui: 'bdd', color: true });
   const testsRoot = path.resolve(__dirname);
   const files = collectTestFiles(testsRoot);
 
