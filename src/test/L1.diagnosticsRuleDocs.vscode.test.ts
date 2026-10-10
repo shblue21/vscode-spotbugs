@@ -16,6 +16,39 @@ const rewrittenHelpUri =
 const detailHtml = '<p>Local SpotBugs detail.</p>';
 
 describe('SpotBugs diagnostic explanations', () => {
+  it('applies rank defaults and refreshes configured severities without losing scope ownership', async () => {
+    const manager = new SpotBugsDiagnosticsManager();
+    const config = vscode.workspace.getConfiguration('spotbugs');
+    const keys = ['rank1To4', 'rank5To9', 'rank10To14', 'rank15To20']
+      .map((band) => `diagnostics.severity.${band}`);
+    const previous = keys.map((key) => config.inspect(key)?.globalValue);
+    try {
+      const document = await openTempJavaDocument();
+      const findings = [1, 4, 5, 9, 10, 14, 15, 20].map((rank) => createFinding(document.uri, { rank }));
+      const scope = { kind: 'returned-files' as const, uri: vscode.Uri.file('/analysis-target') };
+      manager.replaceForScope(scope, findings);
+      assert.deepStrictEqual(spotbugsDiagnostics(document.uri).map((d) => d.severity), [
+        vscode.DiagnosticSeverity.Error, vscode.DiagnosticSeverity.Warning,
+        vscode.DiagnosticSeverity.Information, vscode.DiagnosticSeverity.Information,
+      ].flatMap((severity) => [severity, severity]));
+      const values = ['warning', 'information', 'error', 'warning'];
+      for (let i = 0; i < keys.length; i++) {
+        await config.update(keys[i], values[i], vscode.ConfigurationTarget.Global);
+      }
+      assert.deepStrictEqual(spotbugsDiagnostics(document.uri).map((d) => d.severity), [
+        vscode.DiagnosticSeverity.Warning, vscode.DiagnosticSeverity.Information,
+        vscode.DiagnosticSeverity.Error, vscode.DiagnosticSeverity.Warning,
+      ].flatMap((severity) => [severity, severity]));
+      manager.replaceForScope(scope, []);
+      assert.deepStrictEqual(spotbugsDiagnostics(document.uri), []);
+    } finally {
+      manager.dispose();
+      for (let i = 0; i < keys.length; i++) {
+        await config.update(keys[i], previous[i], vscode.ConfigurationTarget.Global);
+      }
+    }
+  });
+
   afterEach(async () => {
     for (const targetPath of cleanupPaths) {
       await fs.rm(targetPath, { recursive: true, force: true });

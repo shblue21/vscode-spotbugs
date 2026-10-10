@@ -11,6 +11,7 @@ import {
   workspace,
 } from 'vscode';
 import type { DiagnosticUpdateScope } from '../model/diagnosticScope';
+import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Finding } from '../model/finding';
 import { Severity } from '../model/severity';
 import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
@@ -36,11 +37,25 @@ type FindingBucket = {
 export class SpotBugsDiagnosticsManager {
   private readonly collection: DiagnosticCollection;
   private readonly documentOpenSubscription: Disposable;
+  private readonly configurationSubscription: Disposable;
   private readonly findingsByFile = new Map<string, FindingRange[]>();
   private readonly filesByReturnedScope = new Map<string, Set<string>>();
 
   constructor() {
     this.collection = languages.createDiagnosticCollection('spotbugs');
+    this.configurationSubscription = workspace.onDidChangeConfiguration((event) => {
+      const section = `${SETTINGS_SECTION}.${settingKeys.diagnosticsSeverity}`;
+      if (!event.affectsConfiguration(section)) return;
+      for (const [key, entries] of this.findingsByFile) {
+        const uri = Uri.parse(key);
+        if (event.affectsConfiguration(section, uri)) {
+          this.collection.set(
+            uri,
+            entries.map(({ range, finding }) => this.createDiagnostic(range, finding, uri)),
+          );
+        }
+      }
+    });
     this.documentOpenSubscription = workspace.onDidOpenTextDocument((document) => {
       const entries = this.findingsByFile.get(document.uri.toString());
       if (entries) {
@@ -51,6 +66,7 @@ export class SpotBugsDiagnosticsManager {
 
   dispose(): void {
     this.documentOpenSubscription.dispose();
+    this.configurationSubscription.dispose();
     this.collection.dispose();
     this.findingsByFile.clear();
     this.filesByReturnedScope.clear();
@@ -111,7 +127,7 @@ export class SpotBugsDiagnosticsManager {
     for (const finding of filtered) {
       const range = this.createRange(finding);
       if (!range) continue;
-      diagnostics.push(this.createDiagnostic(range, finding));
+      diagnostics.push(this.createDiagnostic(range, finding, targetUri));
       entries.push({ range, finding });
     }
 
@@ -136,13 +152,29 @@ export class SpotBugsDiagnosticsManager {
     const range = this.createRange(finding);
     if (!range) return;
     bucket.entries.push({ range, finding });
-    bucket.diagnostics.push(this.createDiagnostic(range, finding));
+    bucket.diagnostics.push(this.createDiagnostic(range, finding, bucket.uri));
   }
 
-  private createDiagnostic(range: Range, finding: Finding): Diagnostic {
+  private getDiagnosticSeverity(rank: number | undefined, uri: Uri): DiagnosticSeverity {
+    let severity = toDiagnosticSeverity(rankToSeverity(rank));
+    if (typeof rank === 'number' && rank >= 1 && rank <= 20) {
+      const band = rank <= 4 ? 'rank1To4'
+        : rank <= 9 ? 'rank5To9'
+        : rank <= 14 ? 'rank10To14'
+        : 'rank15To20';
+      const value = workspace
+        .getConfiguration(SETTINGS_SECTION, uri)
+        .get<unknown>(`${settingKeys.diagnosticsSeverity}.${band}`);
+      if (value === 'error') severity = DiagnosticSeverity.Error;
+      else if (value === 'warning') severity = DiagnosticSeverity.Warning;
+      else if (value === 'information') severity = DiagnosticSeverity.Information;
+    }
+    return severity;
+  }
+
+  private createDiagnostic(range: Range, finding: Finding, uri: Uri): Diagnostic {
     const message = formatFindingSummary(finding);
-    const severity = rankToSeverity(finding.rank);
-    const diagnostic = new Diagnostic(range, message, toDiagnosticSeverity(severity));
+    const diagnostic = new Diagnostic(range, message, this.getDiagnosticSeverity(finding.rank, uri));
     diagnostic.source = SPOTBUGS_DIAGNOSTIC_SOURCE;
     const docUri = !hasFindingLocalDescription(finding)
       ? getFindingDocumentationUri(finding)
