@@ -19,7 +19,7 @@ describe('SpotBugs diagnostic explanations', () => {
   it('applies rank defaults and refreshes configured severities without losing scope ownership', async () => {
     const manager = new SpotBugsDiagnosticsManager();
     const config = vscode.workspace.getConfiguration('spotbugs');
-    const keys = ['rank1To4', 'rank5To9', 'rank10To14', 'rank15To20']
+    const keys = ['scariest', 'scary', 'troubling', 'ofConcern']
       .map((band) => `diagnostics.severity.${band}`);
     const previous = keys.map((key) => config.inspect(key)?.globalValue);
     try {

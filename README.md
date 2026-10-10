@@ -60,7 +60,7 @@ Rule documentation actions may open external SpotBugs documentation links. Basic
 
 ### Diagnostics
 
-Use `spotbugs.diagnostics.severity.rank1To4`, `rank5To9`, `rank10To14`, and `rank15To20` to choose `error`, `warning`, or `information` for each rank band in the editor and Problems view. Defaults are `error`, `warning`, `information`, and `information`, respectively. Settings can be configured per workspace folder and apply immediately to existing diagnostics.
+Use `spotbugs.diagnostics.severity.scariest`, `scary`, `troubling`, and `ofConcern` to choose `error`, `warning`, or `information` for each rank band in the editor and Problems view. Defaults are `error`, `warning`, `information`, and `information`, respectively. Settings can be configured per workspace folder and apply immediately to existing diagnostics.
 
 ### Analysis
 

@@ -219,7 +219,8 @@
         "title": "%contributes.configuration.diagnostics.title%",
         "order": 3,
         "properties": {
-          "spotbugs.diagnostics.severity.rank1To4": {
+          "spotbugs.diagnostics.severity.scariest": {
+            "order": 1,
             "type": "string",
             "enum": [
               "error",
@@ -227,10 +228,11 @@
               "information"
             ],
             "default": "error",
-            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank1To4.markdownDescription%",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.scariest.markdownDescription%",
             "scope": "resource"
           },
-          "spotbugs.diagnostics.severity.rank5To9": {
+          "spotbugs.diagnostics.severity.scary": {
+            "order": 2,
             "type": "string",
             "enum": [
               "error",
@@ -238,10 +240,11 @@
               "information"
             ],
             "default": "warning",
-            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank5To9.markdownDescription%",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.scary.markdownDescription%",
             "scope": "resource"
           },
-          "spotbugs.diagnostics.severity.rank10To14": {
+          "spotbugs.diagnostics.severity.troubling": {
+            "order": 3,
             "type": "string",
             "enum": [
               "error",
@@ -249,10 +252,11 @@
               "information"
             ],
             "default": "information",
-            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank10To14.markdownDescription%",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.troubling.markdownDescription%",
             "scope": "resource"
           },
-          "spotbugs.diagnostics.severity.rank15To20": {
+          "spotbugs.diagnostics.severity.ofConcern": {
+            "order": 4,
             "type": "string",
             "enum": [
               "error",
@@ -260,7 +264,7 @@
               "information"
             ],
             "default": "information",
-            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.rank15To20.markdownDescription%",
+            "markdownDescription": "%contributes.configuration.spotbugs.diagnostics.severity.ofConcern.markdownDescription%",
             "scope": "resource"
           }
         }

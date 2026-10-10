@@ -1,9 +1,9 @@
 {
   "contributes.configuration.diagnostics.title": "SpotBugs: Diagnostics",
-  "contributes.configuration.spotbugs.diagnostics.severity.rank1To4.markdownDescription": "Severity for rank 1–4 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
-  "contributes.configuration.spotbugs.diagnostics.severity.rank5To9.markdownDescription": "Severity for rank 5–9 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
-  "contributes.configuration.spotbugs.diagnostics.severity.rank10To14.markdownDescription": "Severity for rank 10–14 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
-  "contributes.configuration.spotbugs.diagnostics.severity.rank15To20.markdownDescription": "Severity for rank 15–20 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
+  "contributes.configuration.spotbugs.diagnostics.severity.scariest.markdownDescription": "Severity for rank 1–4 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
+  "contributes.configuration.spotbugs.diagnostics.severity.scary.markdownDescription": "Severity for rank 5–9 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
+  "contributes.configuration.spotbugs.diagnostics.severity.troubling.markdownDescription": "Severity for rank 10–14 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
+  "contributes.configuration.spotbugs.diagnostics.severity.ofConcern.markdownDescription": "Severity for rank 15–20 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
   "displayName": "SpotBugs",
   "description": "Java static analysis and bug detection with SpotBugs, diagnostics, filters, and SARIF export",
   "capabilities.untrustedWorkspaces.description": "SpotBugs requires a trusted Java workspace to build and analyze project contents.",
