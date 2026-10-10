@@ -1,4 +1,16 @@
 # Changelog
+## [0.13.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.12.0...v0.13.0) (2026-10-10)
+
+
+### Features
+
+* configure diagnostic severity by bug rank ([#159](https://github.com/shblue21/vscode-spotbugs/issues/159)) ([3619676](https://github.com/shblue21/vscode-spotbugs/commit/361967654c4620a5812f60e290e37b6766edf9d3))
+
+
+### Bug Fixes
+
+* clarify diagnostic severity setting labels and order ([#162](https://github.com/shblue21/vscode-spotbugs/issues/162)) ([9a0494c](https://github.com/shblue21/vscode-spotbugs/commit/9a0494cda14cde86105febecf19a7fccdb19454b))
+
 ## [0.12.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.11.0...v0.12.0) (2026-10-04)
 
 
