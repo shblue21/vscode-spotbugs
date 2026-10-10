@@ -158,10 +158,10 @@ export class SpotBugsDiagnosticsManager {
   private getDiagnosticSeverity(rank: number | undefined, uri: Uri): DiagnosticSeverity {
     let severity = toDiagnosticSeverity(rankToSeverity(rank));
     if (typeof rank === 'number' && rank >= 1 && rank <= 20) {
-      const band = rank <= 4 ? 'rank1To4'
-        : rank <= 9 ? 'rank5To9'
-        : rank <= 14 ? 'rank10To14'
-        : 'rank15To20';
+      const band = rank <= 4 ? 'scariest'
+        : rank <= 9 ? 'scary'
+        : rank <= 14 ? 'troubling'
+        : 'ofConcern';
       const value = workspace
         .getConfiguration(SETTINGS_SECTION, uri)
         .get<unknown>(`${settingKeys.diagnosticsSeverity}.${band}`);
