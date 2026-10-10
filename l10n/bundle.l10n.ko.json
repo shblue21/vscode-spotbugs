@@ -1,4 +1,9 @@
 {
+  "Settings: {0}": "설정 위치: {0}",
+  "Could not update SpotBugs plugins: {0}": "SpotBugs 플러그인 설정을 변경하지 못했습니다: {0}",
+  "Disabled": "비활성화됨",
+  "Not inspected": "확인 전",
+  "Disabled. Enable to use in the next analysis.": "비활성화된 플러그인입니다. 활성화하면 다음 분석부터 사용합니다.",
   "Analyzing...": "분석 중...",
   "Analyzing…": "분석 중…",
   "Cannot open file: Could not resolve path for {0}": "파일을 열 수 없습니다. 경로를 확인하지 못했습니다: {0}",

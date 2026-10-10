@@ -313,6 +313,7 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
       overrides.workspace?.getConfiguration ??
       (() => ({
         get: () => undefined,
+        inspect: () => undefined,
       })),
     getWorkspaceFolder:
       overrides.workspace?.getWorkspaceFolder ??

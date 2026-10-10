@@ -2,6 +2,7 @@ import { workspace, ExtensionContext, Uri } from 'vscode';
 import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Logger } from './logger';
+import { readPluginConfiguration, type ConfiguredPlugin, type PluginConfigurationState } from '../services/pluginConfiguration';
 
 export interface AnalysisSettings {
   effort: string;
@@ -23,7 +24,7 @@ export class Config {
   public includeFilterPaths?: string[];
   public excludeFilterPaths?: string[];
   public excludeBaselineBugsPaths?: string[];
-  public plugins?: string[];
+  private pluginConfiguration!: PluginConfigurationState;
   public revealSourceOnSelection!: boolean;
 
   public constructor(_ctx: ExtensionContext) {
@@ -61,7 +62,7 @@ export class Config {
       config.get<unknown>(settingKeys.filtersExcludeBaselineBugsPaths)
     );
 
-    this.plugins = this.readStringArray(config.get<unknown>(settingKeys.pluginsPaths));
+    this.pluginConfiguration = readPluginConfiguration();
 
     const revealSourceOnSelection = config.get<boolean | undefined>(
       settingKeys.resultsRevealSourceOnSelection
@@ -177,10 +178,21 @@ export class Config {
     if (excludeBaselineBugsPaths) {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }
-    const plugins = this.resolvePathsToAbsolute(this.plugins, resource);
-    if (plugins) {
+    const plugins = Array.from(new Set(this.getConfiguredPlugins(resource)
+      .filter((plugin) => plugin.enabled).map((plugin) => plugin.resolvedPath)));
+    if (plugins.length > 0) {
       settings.plugins = plugins;
     }
     return settings;
+  }
+
+  public getConfiguredPlugins(resource?: Uri): ConfiguredPlugin[] {
+    const { paths, disabledPaths, target } = this.pluginConfiguration;
+    return paths.map((pluginPath) => ({
+      path: pluginPath,
+      resolvedPath: this.resolveToAbsolute(pluginPath, resource)!,
+      enabled: !disabledPaths.includes(pluginPath),
+      target,
+    }));
   }
 }

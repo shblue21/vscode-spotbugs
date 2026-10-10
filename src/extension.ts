@@ -7,7 +7,7 @@ import {
   Uri,
   workspace,
 } from 'vscode';
-import { SETTINGS_SECTION, settingKeys } from './constants/settings';
+import { SETTINGS_SECTION } from './constants/settings';
 import { SpotBugsTreeDataProvider } from './ui/spotbugsTreeDataProvider';
 import { PluginInventoryTreeDataProvider } from './ui/pluginInventoryTreeDataProvider';
 import { FilterTreeDataProvider } from './ui/filterTreeDataProvider';
@@ -27,6 +27,7 @@ import {
   invalidatePluginInventoryRefresh,
   type PluginJarCommandTarget,
   removePluginJar,
+  setPluginEnabled,
   refreshPluginInventory,
 } from './commands/pluginInventory';
 import { addFilterFiles, removeFilterFile } from './commands/filterFiles';
@@ -107,6 +108,23 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
       treeDataProvider: pluginInventoryTreeDataProvider,
     });
 
+    async function updatePlugins(update: () => Promise<boolean>): Promise<void> {
+      let changed = false;
+      try {
+        changed = await update();
+      } catch (error) {
+        changed = true; // A multi-setting update may have partially succeeded.
+        defaultNotifier.error(l10n.t('Could not update SpotBugs plugins: {0}',
+          error instanceof Error ? error.message : String(error)));
+        throw error;
+      } finally {
+        if (changed) {
+          config.init();
+          void refreshPluginInventory(config, pluginInventoryTreeDataProvider);
+        }
+      }
+    }
+
     context.subscriptions.push(
       spotbugsTreeView,
       filterTreeView,
@@ -130,7 +148,7 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
           filterTreeDataProvider.update(filterPaths(config));
-          if (e.affectsConfiguration(`${SETTINGS_SECTION}.${settingKeys.pluginsPaths}`)) {
+          if (e.affectsConfiguration(`${SETTINGS_SECTION}.plugins`)) {
             invalidatePluginInventoryRefresh();
             void refreshPluginInventory(config, pluginInventoryTreeDataProvider);
           }
@@ -225,12 +243,17 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
           refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri),
       ),
 
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ADD_PLUGIN_JARS, () => addPluginJars()),
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ADD_PLUGIN_JARS, () => updatePlugins(() => addPluginJars())),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REMOVE_PLUGIN_JAR,
-        (item: PluginJarCommandTarget | undefined) => removePluginJar(item),
+        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => removePluginJar(item)),
       ),
+
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ENABLE_PLUGIN,
+        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => setPluginEnabled(item, true))),
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.DISABLE_PLUGIN,
+        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => setPluginEnabled(item, false))),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.ADD_FILTER_FILES,

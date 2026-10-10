@@ -198,7 +198,7 @@ describe('package contributions', () => {
     );
     assert.strictEqual(
       removePluginMenu?.when,
-      'view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/',
+      'view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error|uninspected|disabled)$/',
     );
     assert.ok(
       manifest.contributes.menus.commandPalette.some(

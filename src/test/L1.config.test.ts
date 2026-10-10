@@ -20,6 +20,7 @@ describe('Config', () => {
     resetVscodeMock({
       workspace: {
         getConfiguration: () => ({
+          inspect: () => undefined,
           get: (key: string) =>
             key === 'results.revealSourceOnSelection' ? false : undefined,
         }),
@@ -42,10 +43,10 @@ describe('Config', () => {
           { name: 'workspace-b', uri: workspaceB },
         ],
         getConfiguration: () => ({
-          get: (key: string) =>
-            key === 'plugins.paths'
-              ? ['plugins/findsecbugs.jar', '/opt/spotbugs/custom.jar']
-              : undefined,
+          get: () => undefined,
+          inspect: (key: string) => key === 'plugins.paths'
+            ? { workspaceValue: ['plugins/findsecbugs.jar', '/opt/spotbugs/custom.jar'] }
+            : { workspaceValue: ['/opt/spotbugs/custom.jar'], globalValue: ['plugins/findsecbugs.jar'] },
         }),
         getWorkspaceFolder: (uri: typeof workspaceA) =>
           uri.fsPath.startsWith(workspaceB.fsPath)
@@ -60,9 +61,9 @@ describe('Config', () => {
       vscode.Uri.file('/workspace-b/src/main/java/App.java') as never
     );
 
+    assert.deepStrictEqual(config.getConfiguredPlugins().map((plugin) => plugin.enabled), [true, false]);
     assert.deepStrictEqual(settings.plugins, [
       path.resolve('/workspace-b', 'plugins/findsecbugs.jar'),
-      '/opt/spotbugs/custom.jar',
     ]);
   });
 });
