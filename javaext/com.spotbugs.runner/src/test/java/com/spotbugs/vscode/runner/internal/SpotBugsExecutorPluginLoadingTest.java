@@ -189,9 +189,9 @@ public class SpotBugsExecutorPluginLoadingTest {
                 new FindBugs2() {
                     @Override
                     public void execute() {
-                        getBugReporter().reportMissingClass(
-                                DescriptorFactory.createClassDescriptor("com/example/MissingDependency")
-                        );
+                        for (String name : new String[] { "com/example/Z", "com/example/A", "com/example/Z" }) {
+                            getBugReporter().reportMissingClass(DescriptorFactory.createClassDescriptor(name));
+                        }
                     }
                 },
                 new Project(),
@@ -201,6 +201,7 @@ public class SpotBugsExecutorPluginLoadingTest {
 
         assertEquals(1, result.getWarnings().size());
         assertEquals("ANALYSIS_INCOMPLETE", result.getWarnings().get(0).getCode());
+        assertEquals(Arrays.asList("com.example.A", "com.example.Z"), result.getMissingClasses());
         assertNull(result.getBaselineXml());
     }
 

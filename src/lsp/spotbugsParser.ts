@@ -20,6 +20,7 @@ export interface ParseError {
 
 export interface ParsedAnalysis {
   bugs: Bug[];
+  missingClasses?: string[];
   errors?: AnalysisError[];
   warnings?: AnalysisWarning[];
   ignoredMalformedWarnings?: boolean;
@@ -95,6 +96,7 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     ok: true,
     value: {
       bugs,
+      missingClasses: normalizeMissingClasses(envelope.missingClasses),
       errors,
       warnings,
       ignoredMalformedWarnings,
@@ -108,6 +110,13 @@ export function parseAnalysisResponse(raw: string): ParseResult {
       schemaVersion,
     },
   };
+}
+
+function normalizeMissingClasses(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const names = value.filter((name): name is string => typeof name === 'string')
+    .map((name) => name.trim()).filter(Boolean);
+  return names.length > 0 ? [...new Set(names)].sort() : undefined;
 }
 
 function normalizeAnalysisReportSummary(

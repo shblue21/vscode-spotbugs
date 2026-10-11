@@ -95,6 +95,7 @@ public class SpotBugsExecutor {
             CommandWarning sarifWarning = null;
             CommandWarning baselineWarning = null;
             boolean analysisIncomplete;
+            List<String> missingClasses = new ArrayList<>();
             try {
                 execute(defaultBugReporter, monitor);
                 try {
@@ -107,9 +108,9 @@ public class SpotBugsExecutor {
                 }
                 bugs = collectBugs(defaultBugReporter);
                 reportSummary = collectReportSummary(defaultBugReporter);
-                analysisIncomplete = !defaultBugReporter.getQueuedErrors().isEmpty()
-                        || ((SortedBugCollection) defaultBugReporter.getBugCollection())
-                                .missingClassIterator().hasNext();
+                ((SortedBugCollection) defaultBugReporter.getBugCollection())
+                        .missingClassIterator().forEachRemaining(missingClasses::add);
+                analysisIncomplete = !defaultBugReporter.getQueuedErrors().isEmpty() || !missingClasses.isEmpty();
                 if (includeBaselineXml && !analysisIncomplete) {
                     try {
                         checkCanceled(monitor);
@@ -141,7 +142,8 @@ public class SpotBugsExecutor {
                         "SpotBugs analysis may be incomplete because classes were missing or recoverable errors occurred."
                 ));
             }
-            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif, baselineXml);
+            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif, baselineXml,
+                    missingClasses);
         }
     }
 

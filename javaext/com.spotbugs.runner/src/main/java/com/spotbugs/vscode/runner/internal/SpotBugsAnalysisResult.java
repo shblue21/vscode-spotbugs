@@ -15,9 +15,10 @@ public class SpotBugsAnalysisResult {
     private final AnalysisReportSummary reportSummary;
     private final String nativeSarif;
     private final String baselineXml;
+    private final List<String> missingClasses;
 
     public SpotBugsAnalysisResult(List<BugInfo> bugs, List<CommandWarning> warnings) {
-        this(bugs, warnings, null, null, null);
+        this(bugs, warnings, null, null, null, Collections.emptyList());
     }
 
     public SpotBugsAnalysisResult(
@@ -25,13 +26,15 @@ public class SpotBugsAnalysisResult {
             List<CommandWarning> warnings,
             AnalysisReportSummary reportSummary,
             String nativeSarif,
-            String baselineXml
+            String baselineXml,
+            List<String> missingClasses
     ) {
         this.bugs = normalize(bugs);
         this.warnings = normalize(warnings);
         this.reportSummary = reportSummary;
         this.nativeSarif = nativeSarif;
         this.baselineXml = baselineXml;
+        this.missingClasses = normalize(missingClasses);
     }
 
     public List<BugInfo> getBugs() {
@@ -52,6 +55,10 @@ public class SpotBugsAnalysisResult {
 
     public String getBaselineXml() {
         return baselineXml;
+    }
+
+    public List<String> getMissingClasses() {
+        return missingClasses;
     }
 
     public static SpotBugsAnalysisResult empty() {
