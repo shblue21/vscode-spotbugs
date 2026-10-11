@@ -1,4 +1,18 @@
 # Changelog
+## [0.13.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.12.0...v0.13.0) (2026-10-11)
+
+
+### Features
+
+* configure diagnostic severity by bug rank ([#159](https://github.com/shblue21/vscode-spotbugs/issues/159)) ([3619676](https://github.com/shblue21/vscode-spotbugs/commit/361967654c4620a5812f60e290e37b6766edf9d3))
+* enable and disable configured SpotBugs plugins ([#163](https://github.com/shblue21/vscode-spotbugs/issues/163)) ([476b1fc](https://github.com/shblue21/vscode-spotbugs/commit/476b1fc5a202872c68daa84bca4b1e4d3d8db555))
+* log missing classes in SpotBugs Output ([#164](https://github.com/shblue21/vscode-spotbugs/issues/164)) ([430e28d](https://github.com/shblue21/vscode-spotbugs/commit/430e28da09dc016ed365008f65a46e36a22383eb))
+
+
+### Bug Fixes
+
+* clarify diagnostic severity setting labels and order ([#162](https://github.com/shblue21/vscode-spotbugs/issues/162)) ([9a0494c](https://github.com/shblue21/vscode-spotbugs/commit/9a0494cda14cde86105febecf19a7fccdb19454b))
+
 ## [0.12.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.11.0...v0.12.0) (2026-10-04)
 
 
