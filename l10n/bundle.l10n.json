@@ -1,4 +1,9 @@
 {
+  "Settings: {0}": "Settings: {0}",
+  "Could not update SpotBugs plugins: {0}": "Could not update SpotBugs plugins: {0}",
+  "Disabled": "Disabled",
+  "Not inspected": "Not inspected",
+  "Disabled. Enable to use in the next analysis.": "Disabled. Enable to use in the next analysis.",
   "Failed to activate SpotBugs extension: {0}": "Failed to activate SpotBugs extension: {0}",
   "Ready to analyze. Click the bug icon to start.": "Ready to analyze. Click the bug icon to start.",
   "Analyzing...": "Analyzing...",

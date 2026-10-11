@@ -68,7 +68,7 @@ export function planPathRemoval(
   return paths.length === state.paths.length ? undefined : paths;
 }
 
-function normalizedStringArray(value: unknown): string[] {
+export function normalizedStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }

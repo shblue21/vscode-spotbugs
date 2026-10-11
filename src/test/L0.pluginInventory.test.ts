@@ -13,9 +13,11 @@ const { getPluginInventory, parsePluginInventoryResponse } = require(
   '../services/pluginInventoryService'
 ) as typeof import('../services/pluginInventoryService');
 
-function makeConfig(settings: AnalysisSettings) {
+function makeConfig(settings: AnalysisSettings, disabled: string[] = []) {
   return {
-    getAnalysisSettings: (_resource?: Uri) => settings,
+    getConfiguredPlugins: (_resource?: Uri) => (settings.plugins ?? []).map((pluginPath) => ({
+      path: pluginPath, resolvedPath: pluginPath, enabled: !disabled.includes(pluginPath), target: 'workspace' as const,
+    })),
   };
 }
 
@@ -44,7 +46,6 @@ describe('pluginInventoryCommands', () => {
     const refresh = refreshPluginInventory(
       makeConfig({ effort: 'default', plugins: ['/workspace/plugin-a.jar'] }),
       {
-        showLoading: () => undefined,
         showInventory: (result: PluginInventoryResult) => {
           published.push(result);
         },
@@ -57,7 +58,8 @@ describe('pluginInventoryCommands', () => {
     resolveBackend?.(inventoryResponse([{ index: 0, path: 'plugin-a.jar' }]));
     await refresh;
 
-    assert.deepStrictEqual(published, []);
+    assert.strictEqual(published.length, 1); // Only the immediate configuration snapshot.
+    assert.strictEqual(published[0].items[0].status, undefined);
   });
 
   it('does not use active editor as a fallback refresh resource', async () => {
@@ -72,17 +74,49 @@ describe('pluginInventoryCommands', () => {
 
     await refreshPluginInventory(
       {
-        getAnalysisSettings: (resource?: Uri) => {
+        getConfiguredPlugins: (resource?: Uri) => {
           observedResource = resource;
-          return { effort: 'default', plugins: ['/workspace/plugin-a.jar'] };
+          return makeConfig({ effort: 'default', plugins: ['/workspace/plugin-a.jar'] }).getConfiguredPlugins();
         },
       },
-      { showLoading: () => undefined, showInventory: () => undefined },
+      { showInventory: () => undefined },
       undefined,
       { runPluginInventory: async () => inventoryResponse([]) }
     );
 
     assert.strictEqual(observedResource, undefined);
+  });
+
+  it('serializes toggles at the registration scope and clears state on removal and re-add', async () => {
+    const { setPluginEnabled, removePluginJar, addPluginJars } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
+    const vscode = installVscodeMock();
+    for (const target of ['global', 'workspace'] as const) {
+      const state = { target, paths: ['/a.jar', '/b.jar'], disabledPaths: [] as string[], workspaceRoots: [] };
+      const deps: PluginConfigurationDeps = {
+        readConfiguration: () => ({ ...state, disabledPaths: [...state.disabledPaths] }),
+        selectPluginJars: async () => [vscode.Uri.file('/b.jar') as unknown as Uri],
+        validatePluginJars: async () => undefined,
+        writeConfiguration: async (paths, scope) => { assert.strictEqual(scope, target); state.paths = paths; },
+        writeDisabledPaths: async (paths, scope) => { assert.strictEqual(scope, target); await Promise.resolve(); state.disabledPaths = paths; },
+      };
+      await Promise.all(['/a.jar', '/b.jar'].map((pluginPath) => setPluginEnabled({ pluginPath }, false, deps)));
+      assert.deepStrictEqual(state.disabledPaths, ['/a.jar', '/b.jar']);
+      await setPluginEnabled({ pluginPath: '/a.jar' }, true, deps);
+      await removePluginJar({ pluginPath: '/b.jar' }, deps);
+      assert.deepStrictEqual(state.disabledPaths, []);
+      state.disabledPaths = ['/b.jar']; // A stale entry left by a manual settings edit.
+      await addPluginJars(deps);
+      assert.deepStrictEqual(state.paths, ['/a.jar', '/b.jar']);
+      assert.deepStrictEqual(state.disabledPaths, []);
+      await setPluginEnabled({ pluginPath: '/a.jar', configurationTarget: target === 'global' ? 'workspace' : 'global' }, false, deps);
+      assert.deepStrictEqual(state.disabledPaths, []);
+      const write = deps.writeDisabledPaths;
+      deps.writeDisabledPaths = async () => { throw new Error('write failed'); };
+      await assert.rejects(setPluginEnabled({ pluginPath: '/a.jar' }, false, deps), /write failed/);
+      deps.writeDisabledPaths = write;
+      await setPluginEnabled({ pluginPath: '/a.jar' }, false, deps);
+      assert.deepStrictEqual(state.disabledPaths, ['/a.jar']);
+    }
   });
 
   it('validates and adds selected plugin jars', async () => {
@@ -112,21 +146,30 @@ describe('pluginInventoryCommands', () => {
     ]);
   });
 
-  it('removes only the matching configured path and ignores stale rows', async () => {
-    const { removePluginJar } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
+  it('toggles and removes only the selected registration across path aliases', async () => {
+    const { removePluginJar, setPluginEnabled } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const writes: Array<{ paths: string[]; target: string }> = [];
     const state: PathSettingState = {
       target: 'workspace',
-      paths: ['plugins/a.jar', '/outside/b.jar'],
-      workspaceRoots: ['/workspace'],
+      paths: ['plugins/a.jar', '/workspace/plugins/a.jar'],
+      workspaceRoots: ['/workspace', '/workspace-b'],
     };
     const deps = pluginConfigurationDeps(state, [], writes);
 
-    await removePluginJar({ pluginPath: '/workspace/plugins/a.jar' }, deps);
+    let disabledPaths: string[] = [];
+    deps.readConfiguration = () => ({ ...state, disabledPaths });
+    let disabledWrites = 0;
+    deps.writeDisabledPaths = async (paths) => { disabledPaths = paths; disabledWrites++; };
+    await setPluginEnabled({ pluginPath: 'plugins/a.jar' }, false, deps);
+    assert.deepStrictEqual(disabledPaths, ['plugins/a.jar']);
+    assert.strictEqual(await setPluginEnabled({ pluginPath: 'plugins/a.jar' }, false, deps), false);
+    assert.strictEqual(disabledWrites, 1);
+    await removePluginJar({ pluginPath: 'plugins/a.jar' }, deps);
+    assert.deepStrictEqual(disabledPaths, []);
     await removePluginJar({ pluginPath: '/workspace/plugins/missing.jar' }, deps);
 
     assert.deepStrictEqual(writes, [
-      { paths: ['/outside/b.jar'], target: 'workspace' },
+      { paths: ['/workspace/plugins/a.jar'], target: 'workspace' },
     ]);
   });
 });
@@ -138,7 +181,8 @@ function pluginConfigurationDeps(
 ): PluginConfigurationDeps {
   return {
     selectPluginJars: async () => selected,
-    readConfiguration: () => state,
+    readConfiguration: () => ({ ...state, disabledPaths: [] }),
+    writeDisabledPaths: async () => undefined,
     writeConfiguration: async (paths, target) => {
       writes.push({ paths, target });
     },
@@ -328,10 +372,10 @@ describe('pluginInventoryParser', () => {
 });
 
 describe('pluginInventoryService', () => {
-  it('does not call the backend when no plugin paths are configured', async () => {
+  it('keeps disabled plugins visible without calling the backend', async () => {
     let backendCalled = false;
 
-    const result = await getPluginInventory(makeConfig({ effort: 'default' }), undefined, {
+    const result = await getPluginInventory(makeConfig({ effort: 'default', plugins: ['/missing.jar'] }, ['/missing.jar']), undefined, {
       runPluginInventory: async () => {
         backendCalled = true;
         return '{}';
@@ -339,17 +383,21 @@ describe('pluginInventoryService', () => {
     });
 
     assert.strictEqual(backendCalled, false);
-    assert.deepStrictEqual(result.items, []);
+    assert.strictEqual(result.items[0].enabled, false);
+    const providerModule = require('../ui/pluginInventoryTreeDataProvider') as typeof import('../ui/pluginInventoryTreeDataProvider');
+    const view = new providerModule.PluginInventoryTreeDataProvider();
+    view.showInventory(result);
+    assert.strictEqual((await view.getChildren())[0].contextValue, 'spotbugs.plugin.disabled');
   });
 
-  it('sends configured plugin paths to the backend and returns parsed rows', async () => {
+  it('inspects only active paths and maps rows back across disabled entries', async () => {
     const requests: unknown[] = [];
 
     const result = await getPluginInventory(
       makeConfig({
         effort: 'default',
-        plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
-      }),
+        plugins: ['/missing.jar', '/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
+      }, ['/missing.jar']),
       undefined,
       {
         runPluginInventory: async (request) => {
@@ -371,11 +419,11 @@ describe('pluginInventoryService', () => {
         plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
       },
     ]);
-    assert.strictEqual(result.items.length, 2);
-    assert.strictEqual(result.items[0].status, 'validated');
-    assert.strictEqual(result.items[0].path, '/workspace/plugin-a.jar');
-    assert.strictEqual(result.items[1].status, 'backend-error');
-    assert.strictEqual(result.items[1].path, '/workspace/plugin-b.jar');
+    assert.strictEqual(result.items.length, 3);
+    assert.strictEqual(result.items[1].status, 'validated');
+    assert.strictEqual(result.items[1].path, '/workspace/plugin-a.jar');
+    assert.strictEqual(result.items[2].status, 'backend-error');
+    assert.strictEqual(result.items[2].path, '/workspace/plugin-b.jar');
   });
 
   it('returns backend-error rows for each configured path when the command fails', async () => {

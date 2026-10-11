@@ -69,6 +69,7 @@ Use `spotbugs.diagnostics.severity.scariest`, `scary`, `troubling`, and `ofConce
 - `spotbugs.analysis.priorityThreshold`: Report bugs meeting the minimum confidence setting with rank less than or equal to this value (1 = most severe, 20 = least). Experimental findings remain excluded. Default: `9`.
 - `spotbugs.analysis.extraAuxClasspaths`: Additional SpotBugs aux classpath entries appended after Java LS runtime classpath entries. Supports absolute and workspace-relative jar/directory paths.
 - `spotbugs.plugins.paths`: SpotBugs plugin jar paths loaded before analysis. Add or remove jars from the **Plugins** view, or configure absolute and workspace-relative `.jar` paths manually.
+- In the **Plugins** view, right-click a plugin to enable or disable it for the next analysis. Disabled plugins stay listed. Changes use the same User or Workspace settings as the registered paths; `spotbugs.plugins.disabledPaths` stores the disabled entries.
 
 ### SpotBugs Filter Files
 

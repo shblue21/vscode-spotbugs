@@ -148,6 +148,14 @@
             "markdownDescription": "%contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription%",
             "scope": "window"
           },
+          "spotbugs.plugins.disabledPaths": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "uniqueItems": true,
+            "markdownDescription": "%contributes.configuration.spotbugs.plugins.disabledPaths.markdownDescription%",
+            "scope": "window"
+          },
           "spotbugs.plugins.paths": {
             "type": "array",
             "items": {
@@ -354,6 +362,14 @@
         "icon": "$(add)"
       },
       {
+        "command": "spotbugs.enablePlugin",
+        "title": "%contributes.commands.spotbugs.enablePlugin.title%"
+      },
+      {
+        "command": "spotbugs.disablePlugin",
+        "title": "%contributes.commands.spotbugs.disablePlugin.title%"
+      },
+      {
         "command": "spotbugs.removePluginJar",
         "title": "%contributes.commands.spotbugs.removePluginJar.title%",
         "icon": "$(trash)"
@@ -456,6 +472,8 @@
         }
       ],
       "commandPalette": [
+        { "command": "spotbugs.enablePlugin", "when": "false" },
+        { "command": "spotbugs.disablePlugin", "when": "false" },
         {
           "command": "spotbugs.removePluginJar",
           "when": "false"
@@ -502,8 +520,18 @@
           "group": "navigation@4"
         },
         {
+          "command": "spotbugs.enablePlugin",
+          "when": "view == spotbugs-plugins-view && viewItem == spotbugs.plugin.disabled",
+          "group": "1_manage@0"
+        },
+        {
+          "command": "spotbugs.disablePlugin",
+          "when": "view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error|uninspected)$/",
+          "group": "1_manage@0"
+        },
+        {
           "command": "spotbugs.removePluginJar",
-          "when": "view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error)$/",
+          "when": "view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(validated|duplicate-plugin-id|validation-failed|backend-error|uninspected|disabled)$/",
           "group": "1_manage@1"
         },
         {

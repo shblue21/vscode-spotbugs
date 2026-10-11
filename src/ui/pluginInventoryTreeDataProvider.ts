@@ -20,7 +20,8 @@ class PluginInventoryTreeItem extends TreeItem {
   constructor(
     label: string,
     public readonly pluginPath?: string,
-    public readonly rules: readonly string[] = []
+    public readonly rules: readonly string[] = [],
+    public readonly configurationTarget?: 'global' | 'workspace'
   ) {
     super(
       label,
@@ -64,11 +65,6 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  public showLoading(): void {
-    this.viewItems = [this.createMessageItem(l10n.t('Inspecting SpotBugs plugin jars...'))];
-    this._onDidChangeTreeData.fire(undefined);
-  }
-
   public showInventory(result: PluginInventoryResult): void {
     if (result.items.length === 0) {
       this.viewItems = [
@@ -84,10 +80,11 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
     const itemPath = item.path || item.canonicalPath || l10n.t('Plugin {0}', item.index + 1);
     const treeItem = new PluginInventoryTreeItem(
       path.basename(itemPath),
-      item.path,
-      item.bugPatternTypes
+      item.configuredPath ?? item.path,
+      item.bugPatternTypes,
+      item.configurationTarget
     );
-    const statusLabel = statusDescription(item.status);
+    const statusLabel = item.enabled === false ? l10n.t('Disabled') : statusDescription(item.status);
     const statusAndId = item.pluginId
       ? `${statusLabel}: ${item.pluginId}`
       : statusLabel;
@@ -97,8 +94,8 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
       ? `${statusAndId} · ${declaredCounts}`
       : statusAndId;
     treeItem.tooltip = tooltip(item);
-    treeItem.contextValue = `spotbugs.plugin.${item.status}`;
-    treeItem.iconPath = statusIcon(item.status);
+    treeItem.contextValue = `spotbugs.plugin.${item.enabled === false ? 'disabled' : item.status ?? 'uninspected'}`;
+    treeItem.iconPath = item.enabled === false ? new ThemeIcon('circle-slash') : statusIcon(item.status);
     return treeItem;
   }
 
@@ -109,7 +106,7 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
   }
 }
 
-function statusDescription(status: PluginInventoryStatus): string {
+function statusDescription(status: PluginInventoryStatus | undefined): string {
   switch (status) {
     case 'validated':
       return l10n.t('Validated');
@@ -119,10 +116,12 @@ function statusDescription(status: PluginInventoryStatus): string {
       return l10n.t('Validation failed');
     case 'backend-error':
       return l10n.t('Backend error');
+    default:
+      return l10n.t('Not inspected');
   }
 }
 
-function statusIcon(status: PluginInventoryStatus): ThemeIcon {
+function statusIcon(status: PluginInventoryStatus | undefined): ThemeIcon {
   switch (status) {
     case 'validated':
       return new ThemeIcon('pass');
@@ -131,12 +130,17 @@ function statusIcon(status: PluginInventoryStatus): ThemeIcon {
     case 'validation-failed':
     case 'backend-error':
       return new ThemeIcon('error');
+    default:
+      return new ThemeIcon('circle-outline');
   }
 }
 
 function tooltip(item: PluginInventoryItem): string {
   const declaredCounts = declaredCountSummary(item);
   return [
+    item.enabled === false ? l10n.t('Disabled. Enable to use in the next analysis.') : undefined,
+    item.configurationTarget ? l10n.t('Settings: {0}',
+      item.configurationTarget === 'workspace' ? l10n.t('Workspace') : l10n.t('User')) : undefined,
     item.shortDescription,
     item.provider ? l10n.t('Provider: {0}', item.provider) : undefined,
     item.version ? l10n.t('Version: {0}', item.version) : undefined,

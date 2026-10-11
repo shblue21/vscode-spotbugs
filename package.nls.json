@@ -1,4 +1,7 @@
 {
+  "contributes.commands.spotbugs.enablePlugin.title": "Enable Plugin",
+  "contributes.commands.spotbugs.disablePlugin.title": "Disable Plugin",
+  "contributes.configuration.spotbugs.plugins.disabledPaths.markdownDescription": "Plugin paths to leave out of the next analysis. Enable or disable plugins from the Plugins view. Store this list alongside the registered paths in User or Workspace settings.",
   "contributes.configuration.diagnostics.title": "SpotBugs: Diagnostics",
   "contributes.configuration.spotbugs.diagnostics.severity.scariest.markdownDescription": "Severity for rank 1–4 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
   "contributes.configuration.spotbugs.diagnostics.severity.scary.markdownDescription": "Severity for rank 5–9 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",

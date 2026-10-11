@@ -19,7 +19,10 @@ export interface PluginInventoryItem {
   index: number;
   path: string;
   canonicalPath?: string;
-  status: PluginInventoryStatus;
+  status?: PluginInventoryStatus;
+  configuredPath?: string;
+  enabled?: boolean;
+  configurationTarget?: 'global' | 'workspace';
   pluginId?: string;
   shortDescription?: string;
   provider?: string;
@@ -170,11 +173,31 @@ export interface PluginInventoryServiceDeps {
 }
 
 export async function getPluginInventory(
-  config: Pick<Config, 'getAnalysisSettings'>,
+  config: Pick<Config, 'getConfiguredPlugins'>,
   resource?: Uri,
   deps: PluginInventoryServiceDeps = {}
 ): Promise<PluginInventoryResult> {
-  const plugins = config.getAnalysisSettings(resource).plugins?.slice() ?? [];
+  const configured = config.getConfiguredPlugins(resource);
+  const plugins = configured.filter((plugin) => plugin.enabled).map((plugin) => plugin.resolvedPath);
+  const inspected = await inspectPlugins(plugins, deps);
+  let activeIndex = 0;
+  return {
+    ...inspected,
+    items: configured.map((plugin, index) => ({
+      ...(plugin.enabled ? inspected.items[activeIndex++] : {}),
+      index,
+      path: plugin.resolvedPath,
+      configuredPath: plugin.path,
+      enabled: plugin.enabled,
+      configurationTarget: plugin.target,
+    })),
+  };
+}
+
+async function inspectPlugins(
+  plugins: string[],
+  deps: PluginInventoryServiceDeps,
+): Promise<PluginInventoryResult> {
   if (plugins.length === 0) {
     return { items: [] };
   }
