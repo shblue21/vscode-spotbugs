@@ -101,7 +101,8 @@ public class RunAnalysisActionTest {
                         Collections.emptyList(),
                         null,
                         "{\"version\":\"2.1.0\",\"runs\":[]}",
-                        "<?xml version=\"1.0\"?><BugCollection/>"
+                        "<?xml version=\"1.0\"?><BugCollection/>",
+                        Collections.emptyList()
                 );
             }
         });
@@ -268,11 +269,13 @@ public class RunAnalysisActionTest {
                 reportSummary,
                 Collections.emptyList(),
                 null,
-                null
+                null,
+                Collections.singletonList("com.example.Missing")
         );
         JsonObject json = JsonParser.parseString(new Gson().toJson(response)).getAsJsonObject();
         JsonObject stats = json.getAsJsonObject("stats");
 
+        assertEquals("com.example.Missing", json.getAsJsonArray("missingClasses").get(0).getAsString());
         assertSame(summary, response.getStats());
         assertSame(reportSummary, response.getReportSummary());
         assertFalse(json.has("warnings"));

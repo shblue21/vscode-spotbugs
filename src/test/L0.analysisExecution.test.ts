@@ -90,6 +90,27 @@ describe('analysisExecution', () => {
     resetVscodeMock();
   });
 
+  it('logs missing classes once per analysis with all targets and ignores malformed metadata', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    const { parseAnalysisResponse } = require('../lsp/spotbugsParser') as typeof import('../lsp/spotbugsParser');
+    const logs: string[] = [];
+    let missingClasses: unknown = ['pkg.Z', 'pkg.A', 'pkg.Z', '', null];
+    const executor = createAnalysisExecutor(makeDeps({
+      runSpotBugsAnalysis: async () => JSON.stringify({ results: [], missingClasses }),
+      parseAnalysisResponse,
+      logger: { log: (message) => logs.push(message), error: () => undefined },
+    }));
+    const target = makeTarget(installVscodeMock());
+    target.inputs = [{ kind: 'artifact', path: '/project/a.jar' }, { kind: 'artifact', path: '/project/b.jar' }];
+    for (const value of [missingClasses, undefined, [], 'malformed']) {
+      missingClasses = value;
+      assert.strictEqual((await executor.run({ effort: 'default' }, target)).failure, undefined);
+    }
+    assert.deepStrictEqual(logs.filter((line) => line.startsWith('[Warning]')), [
+      '[Warning] Missing classes required for SpotBugs analysis (/project/a.jar, /project/b.jar):\n  - pkg.A\n  - pkg.Z',
+    ]);
+  });
+
   const preflightCases = [
     ['filter', 'CFG_INCLUDE_FILTER_NOT_FOUND', 'Include filter not found'],
     ['aux', 'CFG_AUX_CLASSPATH_NOT_FOUND', 'Extra aux classpath not found'],

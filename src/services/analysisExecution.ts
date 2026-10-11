@@ -241,6 +241,9 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     if (reportableWarnings) {
       deps.logger.log(`SpotBugs analysis warning: ${formatAnalysisErrors(reportableWarnings)}`);
     }
+    if (parsed.missingClasses?.length) {
+      logMissingClasses(parsed.missingClasses, context);
+    }
     if (hasErrors) {
       const combined = formatAnalysisErrors(errors);
       deps.logger.error(`SpotBugs analysis error: ${combined}`);
@@ -284,6 +287,14 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       outcome.warnings = reportableWarnings;
     }
     return outcome;
+  }
+
+  function logMissingClasses(names: readonly string[], context: AnalysisExecutionUnit): void {
+    const targets = context.inputs.map((input) => input.path).join(', ');
+    deps.logger.log(
+      `[Warning] Missing classes required for SpotBugs analysis (${targets}):\n` +
+      names.map((name) => `  - ${name}`).join('\n'),
+    );
   }
 
   function logSuccessfulAnalysis(findingCount: number, stats: AnalysisStats | undefined): void {

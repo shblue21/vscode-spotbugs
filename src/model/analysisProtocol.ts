@@ -47,6 +47,7 @@ export interface AnalysisStats {
 }
 
 export interface AnalysisResponse<TBug = Bug> {
+  missingClasses?: string[];
   schemaVersion?: number;
   results?: TBug[];
   errors?: AnalysisError[];

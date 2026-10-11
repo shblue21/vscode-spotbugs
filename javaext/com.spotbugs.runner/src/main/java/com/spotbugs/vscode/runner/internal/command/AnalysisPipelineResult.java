@@ -78,6 +78,10 @@ final class AnalysisPipelineResult {
         return result.getBaselineXml();
     }
 
+    java.util.List<String> getMissingClasses() {
+        return result.getMissingClasses();
+    }
+
     int getFindingCount() {
         return getResults().size();
     }

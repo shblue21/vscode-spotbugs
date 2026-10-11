@@ -88,7 +88,8 @@ public final class RunAnalysisAction extends AbstractCommandAction {
                 pipelineResult.getReportSummary(),
                 pipelineResult.getWarnings(),
                 pipelineResult.getNativeSarif(),
-                pipelineResult.getBaselineXml()
+                pipelineResult.getBaselineXml(),
+                pipelineResult.getMissingClasses()
         );
     }
 

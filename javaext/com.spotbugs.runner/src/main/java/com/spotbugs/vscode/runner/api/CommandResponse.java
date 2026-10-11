@@ -14,6 +14,7 @@ public class CommandResponse {
     private final AnalysisReportSummary reportSummary;
     private final String nativeSarif;
     private final String baselineXml;
+    private final List<String> missingClasses;
 
     private CommandResponse(
             Object results,
@@ -22,7 +23,8 @@ public class CommandResponse {
             RunAnalysisSummary stats,
             AnalysisReportSummary reportSummary,
             String nativeSarif,
-            String baselineXml
+            String baselineXml,
+            List<String> missingClasses
     ) {
         this.schemaVersion = SCHEMA_VERSION;
         this.results = results != null ? results : Collections.emptyList();
@@ -32,10 +34,11 @@ public class CommandResponse {
         this.reportSummary = reportSummary;
         this.nativeSarif = nativeSarif;
         this.baselineXml = baselineXml;
+        this.missingClasses = missingClasses != null && !missingClasses.isEmpty() ? missingClasses : null;
     }
 
     public static CommandResponse success(Object results, RunAnalysisSummary stats) {
-        return new CommandResponse(results, Collections.emptyList(), null, stats, null, null, null);
+        return new CommandResponse(results, Collections.emptyList(), null, stats, null, null, null, null);
     }
 
     public static CommandResponse success(
@@ -44,10 +47,11 @@ public class CommandResponse {
             AnalysisReportSummary reportSummary,
             List<CommandWarning> warnings,
             String nativeSarif,
-            String baselineXml
+            String baselineXml,
+            List<String> missingClasses
     ) {
         return new CommandResponse(results, Collections.emptyList(), warnings, stats, reportSummary,
-                nativeSarif, baselineXml);
+                nativeSarif, baselineXml, missingClasses);
     }
 
     public static CommandResponse error(String code, String message) {
@@ -57,7 +61,7 @@ public class CommandResponse {
     public static CommandResponse error(String code, String message, RunAnalysisSummary stats) {
         CommandError error = new CommandError(code, message);
         return new CommandResponse(
-                Collections.emptyList(), Collections.singletonList(error), null, stats, null, null, null);
+                Collections.emptyList(), Collections.singletonList(error), null, stats, null, null, null, null);
     }
 
     public RunAnalysisSummary getStats() {
