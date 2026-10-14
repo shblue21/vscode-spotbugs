@@ -14,75 +14,104 @@
 
 # SpotBugs for VS Code
 
-Analyze Java code with SpotBugs directly in VS Code and compatible editors. View findings in a dedicated tree view, jump to offending lines, and track issues with editor diagnostics.
+Run [SpotBugs](https://spotbugs.github.io/) on Java projects in VS Code.
 
 ![SpotBugs demo](https://raw.githubusercontent.com/shblue21/vscode-spotbugs/main/images/spotbugs_demo.gif)
 
 </div>
 
-> ⚠️ This extension is under active development. Frequent changes and updates are expected.
-
 ## Features
 
-- Analyze a single file or an entire workspace (Maven/Gradle projects)
-- Search, filter, group, and sort findings with severity indicators
-- Navigate to bug locations in source files with matching diagnostics/squiggles
+- Analyze Java sources, projects, and compiled artifacts
+- Search, filter, group, and sort findings
+- Read bug details and jump to the affected code
+- Manage XML filters, suppressions, baselines, and SpotBugs plugins
 - Export findings as SARIF or HTML
 
 ## Requirements
 
-- VS Code 1.101 or later, or a compatible editor supporting VS Code API 1.101
-- Java 11 or later (JDK)
-- A trusted workspace
-- “Language Support for Java by Red Hat” (`redhat.java`), installed automatically as a dependency
-
-## Privacy / Local Analysis
-
-SpotBugs analysis runs locally in your workspace. This extension does not send source files, compiled classes, filter files, SARIF output, or SpotBugs findings to a hosted analysis service. Native SARIF reports can contain local source-root URIs, so review them before sharing.
-
-Rule documentation actions may open external SpotBugs documentation links. Basic extension operation telemetry follows your editor's telemetry settings.
+- VS Code 1.101 or later, or a compatible editor supporting VS Code API 1.101 and the Java extension
+- [Language Support for Java by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.java), installed automatically as a dependency
+- A JDK for your project. See the Java extension’s [JDK setup guide](https://github.com/redhat-developer/vscode-java#setting-the-jdk).
+- A trusted workspace; virtual workspaces are not supported
 
 ## Getting Started
 
-1) Open a Java project in your editor
-2) Run `Analyze SpotBugs Workspace`
-3) Review findings in the “SpotBugs” view (Activity Bar)
+1. Install **SpotBugs** from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=shblue21.vscode-spotbugs) or [Open VSX](https://open-vsx.org/extension/shblue21/vscode-spotbugs).
+2. Open your Java project and wait for the Java extension to finish loading it.
+3. Save your changes and run **Analyze SpotBugs Workspace** from the Command Palette.
+4. Open **SpotBugs** in the Activity Bar. Select a finding to see its details and the affected code.
+
+SpotBugs checks compiled Java classes. Workspace and project analysis build through the Java extension. For individual sources or artifacts, build your changes first.
 
 ## Commands
 
-- `Analyze File/Folder` — Analyze a selected file or folder
-- `Analyze SpotBugs Workspace` — Build and analyze all projects in the workspace
-- `SpotBugs: Create Baseline from Current Workspace Results...` — Save the current complete workspace findings as an additive local baseline
-- `Export SpotBugs Results (SARIF)`, `Export SpotBugs Results (HTML)` — Save current findings
-- `Reset SpotBugs Results` — Clear the SpotBugs view and diagnostics
+| Command | Purpose |
+| --- | --- |
+| **Analyze SpotBugs Workspace** | Analyze the Java projects loaded in your workspace. |
+| **SpotBugs: Analyze Java Project** | Analyze the current project, or choose one from the list. |
+| **SpotBugs: Analyze Java Sources** | Analyze compiled classes for a Java source file or folder. |
+| **SpotBugs: Analyze Artifacts** | Analyze class files, JARs, ZIPs, or bytecode directories. |
+| **Export SpotBugs Results (SARIF)** / **Export SpotBugs Results (HTML)** | Export results matching the current search and filters. |
+| **Reset SpotBugs Results** | Clear results and editor diagnostics. |
+
+Right-click a finding or group and choose **Suppress Findings...** to add an XML exclusion rule.
+
+To ignore existing findings in future runs, use **SpotBugs: Create Baseline from Current Workspace Results...** after a successful, complete workspace analysis. This includes all findings, even those hidden by view filters. Both suppression and baseline creation require a single-folder workspace.
 
 ## Settings
 
-### Diagnostics
-
-Use `spotbugs.diagnostics.severity.scariest`, `scary`, `troubling`, and `ofConcern` to choose `error`, `warning`, or `information` for each rank band in the editor and Problems view. Defaults are `error`, `warning`, `information`, and `information`, respectively. Settings can be configured per workspace folder and apply immediately to existing diagnostics.
+Open **SpotBugs: Open Settings** for all options. Analysis settings take effect on the next run.
 
 ### Analysis
 
-When required classes are missing, their names are grouped by analysis target in **Output → SpotBugs**. The log is recorded automatically without opening the panel.
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `spotbugs.analysis.effort` | `default` | Analysis effort: `min`, `less`, `default`, or `max`. |
+| `spotbugs.analysis.minimumConfidence` | `default` | Minimum confidence: `high`, `medium`, or `low`. Default settings report all three confidence levels. |
+| `spotbugs.analysis.priorityThreshold` | `9` | Maximum rank to report: `1` is most severe, `20` least severe. |
+| `spotbugs.analysis.extraAuxClasspaths` | `[]` | Additional dependency JARs or directories. |
 
-- `spotbugs.analysis.effort`: SpotBugs effort level (`min`, `less`, `default`, `max`). Default: `default`. `less` is an intermediate level between `min` and `default` that disables some precision-enhancing analyses.
-- `spotbugs.analysis.minimumConfidence`: Minimum confidence to report (`default`, `high`, `medium`, `low`). `default` preserves existing behavior: High/Medium/Low when a rank threshold is configured, otherwise High only. Applies to the next analysis and does not change effort or rank.
-- `spotbugs.analysis.priorityThreshold`: Report bugs meeting the minimum confidence setting with rank less than or equal to this value (1 = most severe, 20 = least). Experimental findings remain excluded. Default: `9`.
-- `spotbugs.analysis.extraAuxClasspaths`: Additional SpotBugs aux classpath entries appended after Java LS runtime classpath entries. Supports absolute and workspace-relative jar/directory paths.
-- `spotbugs.plugins.paths`: SpotBugs plugin jar paths loaded before analysis. Add or remove jars from the **Plugins** view, or configure absolute and workspace-relative `.jar` paths manually.
-- In the **Plugins** view, right-click a plugin to enable or disable it for the next analysis. Disabled plugins stay listed. Changes use the same User or Workspace settings as the registered paths; `spotbugs.plugins.disabledPaths` stores the disabled entries.
+### Filters and Plugins
 
-### SpotBugs Filter Files
+Use the **Filters** and **Plugins** views to add or remove files, or configure paths directly:
 
-- `spotbugs.filters.includePaths`: SpotBugs XML include filter paths (`-include`). Supports absolute and workspace-relative paths.
-- `spotbugs.filters.excludePaths`: SpotBugs XML exclude filter paths (`-exclude`). Supports absolute and workspace-relative paths.
-- `spotbugs.filters.excludeBaselineBugsPaths`: SpotBugs XML baseline bug collection paths (`-excludeBugs`). Supports absolute and workspace-relative paths.
+- `spotbugs.filters.includePaths`: XML include filters
+- `spotbugs.filters.excludePaths`: XML exclude filters
+- `spotbugs.filters.excludeBaselineBugsPaths`: XML baseline bug collections
+- `spotbugs.plugins.paths`: SpotBugs plugin JARs
+
+Paths can be absolute or workspace-relative. Right-click a plugin to enable or disable it for the next analysis. Disabled plugins stay listed in `spotbugs.plugins.paths`; `spotbugs.plugins.disabledPaths` records which ones to skip. Keep both settings at the same User or Workspace level.
+
+### Results and Diagnostics
+
+Set `spotbugs.results.revealSourceOnSelection` to `false` to turn off automatic source preview.
+
+Use `spotbugs.diagnostics.severity.*` to change how findings appear in the editor and Problems view:
+
+| Setting suffix | Rank | Default |
+| --- | --- | --- |
+| `scariest` | 1–4 | `error` |
+| `scary` | 5–9 | `warning` |
+| `troubling` | 10–14 | `information` |
+| `ofConcern` | 15–20 | `information` |
+
+Choose `error`, `warning`, or `information`. Changes apply immediately and can be set per workspace folder.
+
+## Troubleshooting
+
+Check **Output → SpotBugs** for analysis logs and missing class names. Make sure your Java project is loaded and builds successfully. Add missing dependencies to your project or use `spotbugs.analysis.extraAuxClasspaths`.
+
+## Privacy
+
+Analysis runs locally in your workspace. This extension does not upload your code or findings, and does not currently send telemetry. Your editor and Java extension have separate telemetry settings.
+
+Rule documentation links open in your browser. SARIF reports can include local file paths, so check them before sharing.
+
+## Feedback and Contributing
+
+Report bugs and suggest improvements in [GitHub Issues](https://github.com/shblue21/vscode-spotbugs/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## License
 
-The source code for this extension is licensed under the MIT License. This
-extension uses and may bundle SpotBugs, which is licensed under the GNU Lesser
-General Public License, version 2.1. Third-party components retain their
-respective licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
-details.
+The extension is [MIT-licensed](LICENSE). SpotBugs is licensed under LGPL 2.1. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for third-party licenses.
