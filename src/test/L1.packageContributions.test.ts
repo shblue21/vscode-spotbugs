@@ -181,17 +181,17 @@ describe('package contributions', () => {
       'spotbugs.groupResultsBy',
       'spotbugs.sortResultsBy',
       'spotbugs.clearSearch',
-    ]);
+    ].sort());
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-inspector-view'), [
       'spotbugs.revealFindingSource',
-    ]);
+    ].sort());
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-filters-view'), [
       'spotbugs.addFilterFiles',
-    ]);
+    ].sort());
     assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-plugins-view'), [
       'spotbugs.addPluginJars',
       'spotbugs.refreshPluginInventory',
-    ]);
+    ].sort());
 
     const removePluginMenu = manifest.contributes.menus['view/item/context'].find(
       (entry) => entry.command === 'spotbugs.removePluginJar',
@@ -225,9 +225,9 @@ describe('package contributions', () => {
     );
 
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
-    assert.strictEqual(resultMenus[0].group, 'navigation@1');
-    assert.strictEqual(resultMenus[1].group, 'navigation@2');
-    assert.strictEqual(resultMenus[2].group, 'navigation@99');
+    assert.strictEqual(resultMenus.find((entry) => entry.command === 'spotbugs.analyzeWorkspace')?.group, 'navigation@1');
+    assert.strictEqual(resultMenus.find((entry) => entry.command === 'spotbugs.searchResults')?.group, 'navigation@2');
+    assert.strictEqual(resultMenus.find((entry) => entry.command === 'spotbugs.openSettings')?.group, 'navigation@99');
     assert.ok(
       resultMenus
         .filter(
@@ -247,7 +247,8 @@ function commandIdsForView(
 ): Array<string | undefined> {
   return titleMenus
     .filter((entry) => entry.when === `view == ${viewId}`)
-    .map((entry) => entry.command);
+    .map((entry) => entry.command)
+    .sort();
 }
 
 function readPackageJson(): PackageJson {

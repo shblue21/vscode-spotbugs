@@ -272,6 +272,8 @@ public class SpotBugsExecutorPluginLoadingTest {
             }
         }
         DetectorFactoryCollection.resetInstance(null);
+        // Stub executions do not perform the real engine's descriptor cleanup.
+        DescriptorFactory.clearInstance();
     }
 
     private static void removePluginIfLoaded(String pluginId) {

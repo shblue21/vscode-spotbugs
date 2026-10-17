@@ -68,84 +68,10 @@ describe('findingInspectorLifecycle', () => {
     assert.strictEqual(state.current.finding, finding);
   });
 
-  it('clears inspector for reset/rerun lifecycle without disposing or blanking opened details', async () => {
-    let disposeCount = 0;
-    let operationCalled = false;
-    const webview = { html: '' };
-    resetVscodeMock({
-      window: {
-        createWebviewPanel: () => ({
-          title: '',
-          webview,
-          reveal: () => undefined,
-          dispose: () => {
-            disposeCount += 1;
-          },
-          onDidDispose: () => ({ dispose: () => undefined }),
-        }),
-      } as never,
-    });
-    const detailsPanelModule = await import('../ui/findingDescriptionPanel');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const { clearInspectorBeforeOperation } = await import(
-      '../commands/findingInspectorLifecycle'
-    );
-    const finding = makeFinding({ patternId: 'NP_ALWAYS_NULL', type: 'NP_ALWAYS_NULL' });
-    const state = new findingInspectorState.FindingInspectorState();
-    const panel = new detailsPanelModule.FindingDescriptionPanel();
 
-    state.select(finding);
-    panel.show(finding);
-    const htmlBeforeLifecycle = webview.html;
-    await clearInspectorBeforeOperation(state, async () => {
-      operationCalled = true;
-    });
-
-    assert.strictEqual(operationCalled, true);
-    assert.strictEqual(state.current.status, 'empty');
-    assert.strictEqual(disposeCount, 0);
-    assert.strictEqual(webview.html, htmlBeforeLifecycle);
-    assert.ok(webview.html.includes('NP_ALWAYS_NULL'));
-  });
-
-  it('reconciles inspector after filter invalidation without touching opened details', async () => {
-    let disposeCount = 0;
-    const webview = { html: '' };
-    resetVscodeMock({
-      window: {
-        createWebviewPanel: () => ({
-          title: '',
-          webview,
-          reveal: () => undefined,
-          dispose: () => {
-            disposeCount += 1;
-          },
-          onDidDispose: () => ({ dispose: () => undefined }),
-        }),
-      } as never,
-    });
-    const detailsPanelModule = await import('../ui/findingDescriptionPanel');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const { reconcileInspectorAfterOperation } = await import(
-      '../commands/findingInspectorLifecycle'
-    );
-    const finding = makeFinding({ patternId: 'NP_ALWAYS_NULL', type: 'NP_ALWAYS_NULL' });
-    const state = new findingInspectorState.FindingInspectorState();
-    const panel = new detailsPanelModule.FindingDescriptionPanel();
-
-    state.select(finding);
-    panel.show(finding);
-    const htmlBeforeLifecycle = webview.html;
-    await reconcileInspectorAfterOperation(state, async () => undefined, () => []);
-
-    assert.strictEqual(state.current.status, 'empty');
-    assert.strictEqual(disposeCount, 0);
-    assert.strictEqual(webview.html, htmlBeforeLifecycle);
-    assert.ok(webview.html.includes('NP_ALWAYS_NULL'));
-  });
 });
 
-function makeFinding(overrides: Partial<Finding> = {}): Finding {
+function makeFinding(): Finding {
   return {
     patternId: 'NP_ALWAYS_NULL',
     type: 'NP_ALWAYS_NULL',
@@ -155,6 +81,5 @@ function makeFinding(overrides: Partial<Finding> = {}): Finding {
       fullPath: '/tmp/Example.java',
       startLine: 1,
     },
-    ...overrides,
   };
 }

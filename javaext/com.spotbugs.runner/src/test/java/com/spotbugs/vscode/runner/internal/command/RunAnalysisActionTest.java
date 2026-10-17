@@ -2,7 +2,6 @@ package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -14,14 +13,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
-import com.spotbugs.vscode.runner.api.CommandResponse;
-import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
 import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
@@ -50,7 +47,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
@@ -78,7 +76,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
@@ -90,7 +89,7 @@ public class RunAnalysisActionTest {
     }
 
     @Test
-    public void executeReportsNonzeroFindingCountFromResults() {
+    public void executeReportsFindingsAndReportMetadata() {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
@@ -99,17 +98,22 @@ public class RunAnalysisActionTest {
                 return new SpotBugsAnalysisResult(
                         Collections.nCopies(2, (BugInfo) null),
                         Collections.emptyList(),
-                        null,
+                        new AnalysisReportSummary(1200, 4, 2),
                         "{\"version\":\"2.1.0\",\"runs\":[]}",
                         "<?xml version=\"1.0\"?><BugCollection/>",
-                        Collections.emptyList()
+                        Collections.singletonList("com.example.Missing")
                 );
             }
         });
 
-        JsonObject response = execute(action, "/workspace/build/classes", "{\"includeBaselineXml\":true}");
+        JsonObject request = validRequest("/workspace/build/classes");
+        request.addProperty("includeBaselineXml", true);
+        JsonObject response = execute(action, "/workspace/build/classes", request.toString());
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
+        assertEquals("com.example.Missing", response.getAsJsonArray("missingClasses").get(0).getAsString());
+        assertFalse(response.has("warnings"));
+        assertEquals(1200, response.getAsJsonObject("reportSummary").get("analyzedCodeSize").getAsInt());
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(2, response.getAsJsonArray("results").size());
         assertEquals(2, response.getAsJsonObject("stats").get("findingCount").getAsInt());
@@ -133,7 +137,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals(0, response.getAsJsonArray("results").size());
@@ -195,7 +200,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes", "{}");
+        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals("ANALYSIS_CANCELLED", firstError(response).get("code").getAsString());
@@ -214,7 +220,8 @@ public class RunAnalysisActionTest {
             return emptyAnalyzer();
         });
 
-        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes", "{}");
+        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
 
         assertEquals("ANALYSIS_CANCELLED", firstError(response).get("code").getAsString());
         assertEquals(0, analyzerCreations.get());
@@ -224,15 +231,16 @@ public class RunAnalysisActionTest {
     public void executeReportsAllCurrentStatsKeysAndCounts() {
         CountingAnalyzerService analyzer = new CountingAnalyzerService();
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> analyzer);
-        String tempDir = jsonString(System.getProperty("java.io.tmpdir"));
-        String configJson = "{"
-                + "\"targetResolutionRoots\":[\"/workspace/out-a\",\"/workspace/out-b\",\"/workspace/out-c\"],"
-                + "\"runtimeClasspaths\":[\"/workspace/out-a\",\"/workspace/lib.jar\"],"
-                + "\"extraAuxClasspaths\":[\"" + tempDir + "\"],"
-                + "\"plugins\":[\"/workspace/plugin-a.jar\",\"/workspace/plugin-b.jar\"]"
-                + "}";
+        JsonObject request = validRequest("/workspace/build/classes");
+        request.add("targetResolutionRoots", JsonParser.parseString(
+                "[\"/workspace/out-a\",\"/workspace/out-b\",\"/workspace/out-c\"]"));
+        request.add("runtimeClasspaths", JsonParser.parseString("[\"/workspace/out-a\",\"/workspace/lib.jar\"]"));
+        JsonArray extraAuxClasspaths = new JsonArray();
+        extraAuxClasspaths.add(System.getProperty("java.io.tmpdir"));
+        request.add("extraAuxClasspaths", extraAuxClasspaths);
+        request.add("plugins", JsonParser.parseString("[\"/workspace/plugin-a.jar\",\"/workspace/plugin-b.jar\"]"));
 
-        JsonObject response = execute(action, "/workspace/build/classes", configJson);
+        JsonObject response = execute(action, "/workspace/build/classes", request.toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
         assertEquals("/workspace/build/classes", stats.get("target").getAsString());
@@ -248,51 +256,6 @@ public class RunAnalysisActionTest {
     }
 
     @Test
-    public void commandResponseKeepsStatsJsonFieldForTypedRunAnalysisSummary() {
-        RunAnalysisSummary summary = new RunAnalysisSummary(
-                "/workspace/build/classes",
-                42L,
-                3,
-                "4.9.8",
-                7,
-                2,
-                1,
-                4,
-                5,
-                2
-        );
-        AnalysisReportSummary reportSummary = new AnalysisReportSummary(1200, 4, 2);
-
-        CommandResponse response = CommandResponse.success(
-                Collections.emptyList(),
-                summary,
-                reportSummary,
-                Collections.emptyList(),
-                null,
-                null,
-                Collections.singletonList("com.example.Missing")
-        );
-        JsonObject json = JsonParser.parseString(new Gson().toJson(response)).getAsJsonObject();
-        JsonObject stats = json.getAsJsonObject("stats");
-
-        assertEquals("com.example.Missing", json.getAsJsonArray("missingClasses").get(0).getAsString());
-        assertSame(summary, response.getStats());
-        assertSame(reportSummary, response.getReportSummary());
-        assertFalse(json.has("warnings"));
-        assertEquals("/workspace/build/classes", stats.get("target").getAsString());
-        assertEquals(42L, stats.get("durationMs").getAsLong());
-        assertEquals(3, stats.get("findingCount").getAsInt());
-        assertEquals("4.9.8", stats.get("spotbugsVersion").getAsString());
-        assertEquals(7, stats.get("targetResolutionRootCount").getAsInt());
-        assertEquals(2, stats.get("runtimeClasspathCount").getAsInt());
-        assertEquals(1, stats.get("extraAuxClasspathCount").getAsInt());
-        assertEquals(4, stats.get("auxClasspathCount").getAsInt());
-        assertEquals(5, stats.get("targetCount").getAsInt());
-        assertEquals(2, stats.get("pluginCount").getAsInt());
-        assertEquals(1200, json.getAsJsonObject("reportSummary").get("analyzedCodeSize").getAsInt());
-    }
-
-    @Test
     public void commandIdMatchesItsAcceptedKind() {
         RunAnalysisAction action = new RunAnalysisAction(inputKind);
         assertEquals(inputKind == AnalysisInput.Kind.SOURCE
@@ -300,7 +263,7 @@ public class RunAnalysisActionTest {
     }
 
     @Test
-    public void wrongMixedAndEmptyInputsAreRejectedBeforeAnalyzerCreation() {
+    public void missingEmptyWrongAndMixedInputsAreRejectedBeforeAnalyzerCreation() {
         AtomicInteger analyzerCreations = new AtomicInteger();
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> {
             analyzerCreations.incrementAndGet();
@@ -309,12 +272,13 @@ public class RunAnalysisActionTest {
         String wrongKind = inputKind == AnalysisInput.Kind.SOURCE ? "artifact" : "source";
         String wrong = "{\"kind\":\"" + wrongKind + "\",\"path\":\"/workspace/wrong\"}";
         String matching = "{\"kind\":\"" + kindName() + "\",\"path\":\"/workspace/right\"}";
-        for (String inputs : new String[] {"[]", "[" + wrong + "]",
-                "[" + matching + "," + wrong + "]", "[" + wrong + "," + matching + "]"}) {
-            JsonObject response = execute(action, "/workspace", "{\"inputs\":" + inputs + "}");
-            assertEquals(inputs, "INVALID_ARGUMENT", firstError(response).get("code").getAsString());
-            assertEquals(inputs, 0, response.getAsJsonArray("results").size());
-            assertFalse(inputs, response.has("stats"));
+        for (String request : new String[] {"{}", "{\"inputs\":[]}",
+                "{\"inputs\":[" + wrong + "]}", "{\"inputs\":[" + matching + "," + wrong + "]}",
+                "{\"inputs\":[" + wrong + "," + matching + "]}"}) {
+            JsonObject response = execute(action, "/workspace", request);
+            assertEquals(request, "INVALID_ARGUMENT", firstError(response).get("code").getAsString());
+            assertEquals(request, 0, response.getAsJsonArray("results").size());
+            assertFalse(request, response.has("stats"));
         }
         assertEquals(0, analyzerCreations.get());
     }
@@ -336,16 +300,7 @@ public class RunAnalysisActionTest {
                 return SpotBugsAnalysisResult.empty();
             }
         });
-        com.google.gson.JsonArray inputs = new com.google.gson.JsonArray();
-        for (String path : paths) {
-            JsonObject input = new JsonObject();
-            input.addProperty("kind", kindName());
-            input.addProperty("path", path);
-            inputs.add(input);
-        }
-        JsonObject payload = new JsonObject();
-        payload.add("inputs", inputs);
-        JsonObject response = execute(action, "/workspace", payload.toString());
+        JsonObject response = execute(action, "/workspace", validRequest(paths).toString());
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(1, executions.get());
         assertEquals("/workspace", response.getAsJsonObject("stats").get("target").getAsString());
@@ -355,8 +310,17 @@ public class RunAnalysisActionTest {
         return inputKind.name().toLowerCase(java.util.Locale.ROOT);
     }
 
-    private JsonObject executeDefault(RunAnalysisAction action) {
-        return execute(action, "/workspace/build/classes", "{}");
+    private JsonObject validRequest(String... paths) {
+        JsonArray inputs = new JsonArray();
+        for (String path : paths) {
+            JsonObject input = new JsonObject();
+            input.addProperty("kind", kindName());
+            input.addProperty("path", path);
+            inputs.add(input);
+        }
+        JsonObject request = new JsonObject();
+        request.add("inputs", inputs);
+        return request;
     }
 
     private JsonObject execute(RunAnalysisAction action, Object... args) {
@@ -364,30 +328,12 @@ public class RunAnalysisActionTest {
     }
 
     private JsonObject executeWithMonitor(RunAnalysisAction action, IProgressMonitor monitor, Object... args) {
-        if (args.length > 1 && args[0] instanceof String && args[1] instanceof String) {
-            try {
-                JsonObject payload = JsonParser.parseString((String) args[1]).getAsJsonObject();
-                if (!payload.has("inputs")) {
-                    JsonObject input = new JsonObject();
-                    input.addProperty("kind", kindName());
-                    input.addProperty("path", (String) args[0]);
-                    com.google.gson.JsonArray inputs = new com.google.gson.JsonArray();
-                    inputs.add(input);
-                    payload.add("inputs", inputs);
-                    args[1] = payload.toString();
-                }
-            } catch (RuntimeException invalidJson) { /* Exercise parser failures unchanged. */ }
-        }
         String json = action.execute(args, monitor);
         return JsonParser.parseString(json).getAsJsonObject();
     }
 
     private static JsonObject firstError(JsonObject response) {
         return response.getAsJsonArray("errors").get(0).getAsJsonObject();
-    }
-
-    private static String jsonString(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static AnalyzerService emptyAnalyzer() {

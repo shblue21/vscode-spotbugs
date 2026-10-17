@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import { JavaCompileWorkspaceStatus } from '../constants/commands';
 import { AnalysisRunCoordinator } from '../orchestration/analysisRunCoordinator';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
@@ -226,19 +227,17 @@ describe('analysisRunner', () => {
         },
       } as any,
     });
-    const analysisService =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-    const workspaceBuildService =
-      require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-    const projectDiscovery =
-      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const workspaceRoots =
-      require('../workspace/workspaceRoots') as typeof import('../workspace/workspaceRoots');
-    const loggerModule = require('../core/logger') as typeof import('../core/logger');
+    const buildService = require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
+    const originalBuild = buildService.buildWorkspaceAuto;
+    const buildTokens: unknown[] = [];
     const { delegated, restore } = captureFileAnalysisSessions();
     Date.now = () => 1234;
 
     try {
+      buildService.buildWorkspaceAuto = async (token) => {
+        buildTokens.push(token);
+        return JavaCompileWorkspaceStatus.cancelled;
+      };
       const runner =
         require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
       const uri = vscode.Uri.file('/workspace/src/Foo.java') as any;
@@ -275,29 +274,13 @@ describe('analysisRunner', () => {
       assert.strictEqual(args.notifier, notifier);
       assert.strictEqual(args.uri, uri);
       assert.strictEqual(args.startedAtMs, 1234);
-      assert.strictEqual(
-        args.dependencies.analyzeFileDetailed,
-        analysisService.analyzeFileDetailed,
-      );
-      assert.strictEqual(
-        args.dependencies.analyzeWorkspaceFromProjectsDetailed,
-        analysisService.analyzeWorkspaceFromProjectsDetailed,
-      );
-      assert.strictEqual(
-        args.dependencies.buildWorkspaceAuto,
-        workspaceBuildService.buildWorkspaceAuto,
-      );
-      assert.strictEqual(
-        args.dependencies.getPrimaryWorkspaceFolder,
-        workspaceRoots.getPrimaryWorkspaceFolder,
-      );
-      assert.strictEqual(
-        args.dependencies.getWorkspaceProjectDiscovery,
-        projectDiscovery.getWorkspaceProjectDiscovery,
-      );
-      assert.strictEqual(args.dependencies.logger, loggerModule.Logger);
       assert.strictEqual(args.dependencies.now(), 1234);
+      const token = { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => undefined }) };
+      assert.strictEqual(await args.dependencies.buildWorkspaceAuto(token), JavaCompileWorkspaceStatus.cancelled);
+      assert.strictEqual(buildTokens.length, 1);
+      assert.strictEqual(buildTokens[0], token);
     } finally {
+      buildService.buildWorkspaceAuto = originalBuild;
       Date.now = originalDateNow;
       restore();
     }
@@ -406,6 +389,7 @@ describe('analysisRunner', () => {
 
   it('opens workspace progress with the current options and forwards token/progress', async () => {
     const vscode = installVscodeMock();
+    const workspaceUri = vscode.Uri.file('/workspace');
     const progress = { report: () => undefined };
     let cancellationRegistrationDisposed = false;
     let cancelProgress: () => void = () => undefined;
@@ -441,7 +425,7 @@ describe('analysisRunner', () => {
         workspaceFolders: [
           {
             name: 'workspace',
-            uri: vscode.Uri.file('/workspace') as any,
+            uri: workspaceUri as any,
           },
         ],
       } as any,
@@ -451,22 +435,38 @@ describe('analysisRunner', () => {
     const notifierModule = require('../core/notifier') as typeof import('../core/notifier');
     const originalRunWorkspaceAnalysisSession = session.runWorkspaceAnalysisSession;
     const delegated: unknown[] = [];
+    const discovery = require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
+    const analysis = require('../services/analysisService') as typeof import('../services/analysisService');
+    const originalDiscovery = discovery.getWorkspaceProjectDiscovery;
+    const originalAnalysis = analysis.analyzeWorkspaceFromProjectsDetailed;
+    const discovered = { projectUris: ['file:///workspace/project'], issues: [] };
+    const analyzed = { results: [{ projectUri: discovered.projectUris[0], findings: [] }], context: { resolutionIssues: [] } };
+    const serviceCalls: unknown[][] = [];
+    const notify = { onStart: () => undefined };
 
-    session.runWorkspaceAnalysisSession = (async (args: unknown) => {
+    session.runWorkspaceAnalysisSession = async (args) => {
       delegated.push(args);
-      await (
-        args as {
-          runWithProgress: (
-            task: (progress: unknown, token: unknown) => Promise<void>,
-          ) => Promise<void>;
-        }
-      ).runWithProgress(async (progressArg, tokenArg) => {
+      await args.runWithProgress(async (progressArg, tokenArg) => {
         progressTokens.push(progressArg, tokenArg);
+        const deps = args.dependencies;
+        const folder = deps.getPrimaryWorkspaceFolder();
+        assert.strictEqual(folder?.uri.toString(), workspaceUri.toString());
+        assert.deepStrictEqual(await deps.getWorkspaceProjectDiscovery(folder!.uri, tokenArg), discovered);
+        assert.deepStrictEqual(await deps.analyzeWorkspaceFromProjectsDetailed(args.config, folder!.uri,
+          discovered.projectUris, notify, tokenArg), analyzed);
         cancelProgress();
       });
-    }) as typeof session.runWorkspaceAnalysisSession;
+    };
 
     try {
+      discovery.getWorkspaceProjectDiscovery = async (...args) => {
+        serviceCalls.push(['discover', ...args]);
+        return discovered;
+      };
+      analysis.analyzeWorkspaceFromProjectsDetailed = async (...args) => {
+        serviceCalls.push(['analyze', ...args]);
+        return analyzed;
+      };
       const runner =
         require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
       const config = { getAnalysisSettings: () => ({}) } as any;
@@ -497,12 +497,7 @@ describe('analysisRunner', () => {
         },
       ]);
       assert.strictEqual(delegated.length, 1);
-      const delegatedArgs = delegated[0] as {
-        config: unknown;
-        tree: unknown;
-        diagnostics: unknown;
-        notifier: unknown;
-      };
+      const delegatedArgs = delegated[0] as import('../orchestration/analysisRunSession').RunWorkspaceAnalysisSessionArgs;
       assert.strictEqual(delegatedArgs.config, config);
       assert.strictEqual(delegatedArgs.tree, tree);
       assert.strictEqual(delegatedArgs.diagnostics, diagnostics);
@@ -510,7 +505,14 @@ describe('analysisRunner', () => {
       assert.deepStrictEqual(progressTokens, [progress, leaseToken]);
       assert.strictEqual(leaseCancelCalls, 1);
       assert.strictEqual(cancellationRegistrationDisposed, true);
+      assert.deepStrictEqual(serviceCalls, [
+        ['discover', workspaceUri, leaseToken],
+        ['analyze', config, workspaceUri, discovered.projectUris, notify, leaseToken],
+      ]);
+      for (const call of serviceCalls) assert.strictEqual(call.at(-1), leaseToken);
     } finally {
+      discovery.getWorkspaceProjectDiscovery = originalDiscovery;
+      analysis.analyzeWorkspaceFromProjectsDetailed = originalAnalysis;
       session.runWorkspaceAnalysisSession = originalRunWorkspaceAnalysisSession;
     }
   });

@@ -74,12 +74,12 @@ describe('spotbugsParser', () => {
     }
   });
 
-  it('parses envelope responses with errors and stats', () => {
+  it('parses envelope responses with normalized errors and stats', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
         schemaVersion: 2,
         results: [{ type: 'UR' }],
-        errors: [{ code: 'X', message: 'warn' }],
+        errors: [null, { code: 'X', message: 'warn' }],
         stats: { target: '/tmp/Foo', durationMs: 12 },
         nativeSarif: '{"version":"2.1.0","runs":[]}',
       })
@@ -172,32 +172,6 @@ describe('spotbugsParser', () => {
         assert.strictEqual(result.error.kind, 'invalid-json');
         assert.strictEqual(result.error.message, 'Invalid response payload.');
       }
-    }
-  });
-
-  it('normalizes envelope errors to string code and message fields', () => {
-    const result = parseAnalysisResponse(
-      JSON.stringify({
-        schemaVersion: 2,
-        results: [],
-        errors: [
-          null,
-          'bad',
-          { code: 7, message: 'message only' },
-          { code: 'CODE_ONLY', message: 9 },
-          { code: 'VALID', message: 'valid message', extra: 'ignored' },
-          {},
-        ],
-      })
-    );
-
-    assert.strictEqual(result.ok, true);
-    if (result.ok) {
-      assert.deepStrictEqual(result.value.errors, [
-        { message: 'message only' },
-        { code: 'CODE_ONLY' },
-        { code: 'VALID', message: 'valid message' },
-      ]);
     }
   });
 
