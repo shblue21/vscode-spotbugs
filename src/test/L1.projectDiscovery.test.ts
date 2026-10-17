@@ -1,18 +1,18 @@
 import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
-function clearModule(moduleId: string): void {
-  delete require.cache[require.resolve(moduleId)];
-}
-
 describe('projectDiscovery', () => {
+  let restoreMocks: () => void;
+
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    clearModule('../workspace/projectDiscovery');
-    clearModule('../services/javaLsClient');
-    clearModule('../core/logger');
+    const client = require('../services/javaLsClient') as typeof import('../services/javaLsClient');
+    const original = client.JavaLsClient.getAllProjectsOutcome;
+    restoreMocks = () => { client.JavaLsClient.getAllProjectsOutcome = original; };
   });
+
+  afterEach(() => restoreMocks());
 
   it('returns resolved project discovery without fallback issues', async () => {
     const vscode = installVscodeMock();

@@ -9,7 +9,6 @@ import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 type AnalysisExecutionModule = typeof import('../services/analysisExecution');
 
 function loadAnalysisExecution(): AnalysisExecutionModule {
-  delete require.cache[require.resolve('../services/analysisExecution')];
   return require('../services/analysisExecution') as AnalysisExecutionModule;
 }
 

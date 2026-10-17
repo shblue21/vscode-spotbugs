@@ -4,10 +4,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
-function clearModule(moduleId: string): void {
-  delete require.cache[require.resolve(moduleId)];
-}
-
 function loadService() {
   const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
   const service = require('../workspace/classpathService') as typeof import('../workspace/classpathService');
@@ -19,14 +15,17 @@ function snapshot(settings: Record<string, unknown>, declaredSourceOutputs: Reco
 }
 
 describe('Java classpath contract', () => {
+  let restoreGateway: () => void;
+
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    clearModule('../workspace/classpathService');
-    clearModule('../workspace/classpathCommandRunner');
-    clearModule('../lsp/javaLsGateway');
-    clearModule('../core/logger');
+    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const original = { ...gateway };
+    restoreGateway = () => { Object.assign(gateway, original); };
   });
+
+  afterEach(() => restoreGateway());
 
   it('uses the exact cancellable workspace-command arguments', async () => {
     const calls: unknown[][] = [];

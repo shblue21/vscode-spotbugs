@@ -1,10 +1,6 @@
 import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
-function clearModule(moduleId: string): void {
-  delete require.cache[require.resolve(moduleId)];
-}
-
 function analysisTarget(
   path: string,
   resource: any,
@@ -37,16 +33,22 @@ function analysisTarget(
 }
 
 describe('analysisService', () => {
+  let restoreMocks: () => void;
+
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    clearModule('../services/analysisService');
-    clearModule('../services/analysisPlanner');
-    clearModule('../services/analysisExecution');
-    clearModule('../workspace/analysisTargetResolver');
-    clearModule('../workspace/pathResolver');
-    clearModule('../lsp/spotbugsClient');
+    const resolver = require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+    const client = require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
+    const originalResolver = { ...resolver };
+    const originalClient = { ...client };
+    restoreMocks = () => {
+      Object.assign(resolver, originalResolver);
+      Object.assign(client, originalClient);
+    };
   });
+
+  afterEach(() => restoreMocks());
 
   it('preserves every source input for a project instead of inferring artifacts from paths', async () => {
     const vscode = installVscodeMock();

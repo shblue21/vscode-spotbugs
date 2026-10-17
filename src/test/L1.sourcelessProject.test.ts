@@ -6,14 +6,17 @@ import * as path from 'path';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 describe('source-less project target selection', () => {
+  let restoreGateway: () => void;
+
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    for (const module of ['../lsp/javaLsGateway', '../workspace/classpathCommandRunner',
-      '../workspace/classpathService', '../workspace/analysisTargetResolver']) {
-      delete require.cache[require.resolve(module)];
-    }
+    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const original = { ...gateway };
+    restoreGateway = () => { Object.assign(gateway, original); };
   });
+
+  afterEach(() => restoreGateway());
 
   for (const rootOutput of [false, true]) {
     it(`routes confirmed source-less output to artifacts${rootOutput ? ' even at the project root' : ''}`, async () => {

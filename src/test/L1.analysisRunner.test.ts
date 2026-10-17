@@ -218,7 +218,7 @@ describe('analysisRunner', () => {
   });
 
   it('focuses the SpotBugs tree and delegates explicit file analysis', async () => {
-    const originalDateNow = Date.now;
+    const earliestStart = Date.now();
     const commandCalls: unknown[][] = [];
     const vscode = resetVscodeMock({
       commands: {
@@ -231,7 +231,6 @@ describe('analysisRunner', () => {
     const originalBuild = buildService.buildWorkspaceAuto;
     const buildTokens: unknown[] = [];
     const { delegated, restore } = captureFileAnalysisSessions();
-    Date.now = () => 1234;
 
     try {
       buildService.buildWorkspaceAuto = async (token) => {
@@ -273,15 +272,15 @@ describe('analysisRunner', () => {
       assert.strictEqual(args.diagnostics, diagnostics);
       assert.strictEqual(args.notifier, notifier);
       assert.strictEqual(args.uri, uri);
-      assert.strictEqual(args.startedAtMs, 1234);
-      assert.strictEqual(args.dependencies.now(), 1234);
+      assert.ok(args.startedAtMs >= earliestStart && args.startedAtMs <= Date.now());
+      const now = args.dependencies.now();
+      assert.ok(now >= args.startedAtMs && now <= Date.now());
       const token = { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => undefined }) };
       assert.strictEqual(await args.dependencies.buildWorkspaceAuto(token), JavaCompileWorkspaceStatus.cancelled);
       assert.strictEqual(buildTokens.length, 1);
       assert.strictEqual(buildTokens[0], token);
     } finally {
       buildService.buildWorkspaceAuto = originalBuild;
-      Date.now = originalDateNow;
       restore();
     }
   });
