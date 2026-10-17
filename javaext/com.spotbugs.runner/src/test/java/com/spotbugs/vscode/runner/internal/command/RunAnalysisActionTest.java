@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
@@ -46,7 +47,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
@@ -74,7 +76,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
@@ -103,7 +106,9 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = execute(action, "/workspace/build/classes", "{\"includeBaselineXml\":true}");
+        JsonObject request = validRequest("/workspace/build/classes");
+        request.addProperty("includeBaselineXml", true);
+        JsonObject response = execute(action, "/workspace/build/classes", request.toString());
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals("com.example.Missing", response.getAsJsonArray("missingClasses").get(0).getAsString());
@@ -132,7 +137,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeDefault(action);
+        JsonObject response = execute(action, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals(0, response.getAsJsonArray("results").size());
@@ -194,7 +200,8 @@ public class RunAnalysisActionTest {
             }
         });
 
-        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes", "{}");
+        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals("ANALYSIS_CANCELLED", firstError(response).get("code").getAsString());
@@ -213,7 +220,8 @@ public class RunAnalysisActionTest {
             return emptyAnalyzer();
         });
 
-        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes", "{}");
+        JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes",
+                validRequest("/workspace/build/classes").toString());
 
         assertEquals("ANALYSIS_CANCELLED", firstError(response).get("code").getAsString());
         assertEquals(0, analyzerCreations.get());
@@ -223,15 +231,16 @@ public class RunAnalysisActionTest {
     public void executeReportsAllCurrentStatsKeysAndCounts() {
         CountingAnalyzerService analyzer = new CountingAnalyzerService();
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> analyzer);
-        String tempDir = jsonString(System.getProperty("java.io.tmpdir"));
-        String configJson = "{"
-                + "\"targetResolutionRoots\":[\"/workspace/out-a\",\"/workspace/out-b\",\"/workspace/out-c\"],"
-                + "\"runtimeClasspaths\":[\"/workspace/out-a\",\"/workspace/lib.jar\"],"
-                + "\"extraAuxClasspaths\":[\"" + tempDir + "\"],"
-                + "\"plugins\":[\"/workspace/plugin-a.jar\",\"/workspace/plugin-b.jar\"]"
-                + "}";
+        JsonObject request = validRequest("/workspace/build/classes");
+        request.add("targetResolutionRoots", JsonParser.parseString(
+                "[\"/workspace/out-a\",\"/workspace/out-b\",\"/workspace/out-c\"]"));
+        request.add("runtimeClasspaths", JsonParser.parseString("[\"/workspace/out-a\",\"/workspace/lib.jar\"]"));
+        JsonArray extraAuxClasspaths = new JsonArray();
+        extraAuxClasspaths.add(System.getProperty("java.io.tmpdir"));
+        request.add("extraAuxClasspaths", extraAuxClasspaths);
+        request.add("plugins", JsonParser.parseString("[\"/workspace/plugin-a.jar\",\"/workspace/plugin-b.jar\"]"));
 
-        JsonObject response = execute(action, "/workspace/build/classes", configJson);
+        JsonObject response = execute(action, "/workspace/build/classes", request.toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
         assertEquals("/workspace/build/classes", stats.get("target").getAsString());
@@ -254,7 +263,7 @@ public class RunAnalysisActionTest {
     }
 
     @Test
-    public void wrongMixedAndEmptyInputsAreRejectedBeforeAnalyzerCreation() {
+    public void missingEmptyWrongAndMixedInputsAreRejectedBeforeAnalyzerCreation() {
         AtomicInteger analyzerCreations = new AtomicInteger();
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> {
             analyzerCreations.incrementAndGet();
@@ -263,12 +272,13 @@ public class RunAnalysisActionTest {
         String wrongKind = inputKind == AnalysisInput.Kind.SOURCE ? "artifact" : "source";
         String wrong = "{\"kind\":\"" + wrongKind + "\",\"path\":\"/workspace/wrong\"}";
         String matching = "{\"kind\":\"" + kindName() + "\",\"path\":\"/workspace/right\"}";
-        for (String inputs : new String[] {"[]", "[" + wrong + "]",
-                "[" + matching + "," + wrong + "]", "[" + wrong + "," + matching + "]"}) {
-            JsonObject response = execute(action, "/workspace", "{\"inputs\":" + inputs + "}");
-            assertEquals(inputs, "INVALID_ARGUMENT", firstError(response).get("code").getAsString());
-            assertEquals(inputs, 0, response.getAsJsonArray("results").size());
-            assertFalse(inputs, response.has("stats"));
+        for (String request : new String[] {"{}", "{\"inputs\":[]}",
+                "{\"inputs\":[" + wrong + "]}", "{\"inputs\":[" + matching + "," + wrong + "]}",
+                "{\"inputs\":[" + wrong + "," + matching + "]}"}) {
+            JsonObject response = execute(action, "/workspace", request);
+            assertEquals(request, "INVALID_ARGUMENT", firstError(response).get("code").getAsString());
+            assertEquals(request, 0, response.getAsJsonArray("results").size());
+            assertFalse(request, response.has("stats"));
         }
         assertEquals(0, analyzerCreations.get());
     }
@@ -290,16 +300,7 @@ public class RunAnalysisActionTest {
                 return SpotBugsAnalysisResult.empty();
             }
         });
-        com.google.gson.JsonArray inputs = new com.google.gson.JsonArray();
-        for (String path : paths) {
-            JsonObject input = new JsonObject();
-            input.addProperty("kind", kindName());
-            input.addProperty("path", path);
-            inputs.add(input);
-        }
-        JsonObject payload = new JsonObject();
-        payload.add("inputs", inputs);
-        JsonObject response = execute(action, "/workspace", payload.toString());
+        JsonObject response = execute(action, "/workspace", validRequest(paths).toString());
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(1, executions.get());
         assertEquals("/workspace", response.getAsJsonObject("stats").get("target").getAsString());
@@ -309,8 +310,17 @@ public class RunAnalysisActionTest {
         return inputKind.name().toLowerCase(java.util.Locale.ROOT);
     }
 
-    private JsonObject executeDefault(RunAnalysisAction action) {
-        return execute(action, "/workspace/build/classes", "{}");
+    private JsonObject validRequest(String... paths) {
+        JsonArray inputs = new JsonArray();
+        for (String path : paths) {
+            JsonObject input = new JsonObject();
+            input.addProperty("kind", kindName());
+            input.addProperty("path", path);
+            inputs.add(input);
+        }
+        JsonObject request = new JsonObject();
+        request.add("inputs", inputs);
+        return request;
     }
 
     private JsonObject execute(RunAnalysisAction action, Object... args) {
@@ -318,30 +328,12 @@ public class RunAnalysisActionTest {
     }
 
     private JsonObject executeWithMonitor(RunAnalysisAction action, IProgressMonitor monitor, Object... args) {
-        if (args.length > 1 && args[0] instanceof String && args[1] instanceof String) {
-            try {
-                JsonObject payload = JsonParser.parseString((String) args[1]).getAsJsonObject();
-                if (!payload.has("inputs")) {
-                    JsonObject input = new JsonObject();
-                    input.addProperty("kind", kindName());
-                    input.addProperty("path", (String) args[0]);
-                    com.google.gson.JsonArray inputs = new com.google.gson.JsonArray();
-                    inputs.add(input);
-                    payload.add("inputs", inputs);
-                    args[1] = payload.toString();
-                }
-            } catch (RuntimeException invalidJson) { /* Exercise parser failures unchanged. */ }
-        }
         String json = action.execute(args, monitor);
         return JsonParser.parseString(json).getAsJsonObject();
     }
 
     private static JsonObject firstError(JsonObject response) {
         return response.getAsJsonArray("errors").get(0).getAsJsonObject();
-    }
-
-    private static String jsonString(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static AnalyzerService emptyAnalyzer() {
