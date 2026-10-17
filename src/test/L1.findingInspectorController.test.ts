@@ -10,17 +10,12 @@ describe('findingInspectorController', () => {
   });
 
   it('selects finding leaves and retains on category selection', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import(
-      '../ui/findingTreeItem'
-    );
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
     const leaf = new findingTreeItem.FindingItem(finding);
     const pattern = new findingTreeItem.PatternGroupItem('NP_ALWAYS_NULL', [finding]);
     const category = new findingTreeItem.CategoryGroupItem('CORRECTNESS', [pattern], 1);
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
 
     bindFindingInspectorToTree(tree.view, state);
     await tree.fireSelection(leaf);
@@ -32,13 +27,10 @@ describe('findingInspectorController', () => {
   });
 
   it('selects finding leaves then previews the finding source when enabled', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
     const leaf = new findingTreeItem.FindingItem(finding);
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
     const previews: Array<{
       finding: Finding;
       preserveFocus?: boolean;
@@ -64,13 +56,10 @@ describe('findingInspectorController', () => {
   });
 
   it('marks older finding source previews stale after a newer finding selection', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const firstFinding = makeFinding({ patternId: 'FIRST' });
     const secondFinding = makeFinding({ patternId: 'SECOND' });
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
     const previews: Array<{ finding: Finding; isCurrentRequest: () => boolean }> = [];
 
     bindFindingInspectorToTree(tree.view, state, {
@@ -95,13 +84,10 @@ describe('findingInspectorController', () => {
   });
 
   it('marks pending finding source previews stale after group selection', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
     const pattern = new findingTreeItem.PatternGroupItem('NP_ALWAYS_NULL', [finding]);
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
     let isCurrentRequest: (() => boolean) | undefined;
 
     bindFindingInspectorToTree(tree.view, state, {
@@ -120,13 +106,10 @@ describe('findingInspectorController', () => {
   });
 
   it('only previews findings with source locations when selection reveal is enabled', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
     const findingWithoutSource = makeFinding({ location: {} });
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
     let revealOnSelection = false;
     let previewCount = 0;
 
@@ -151,14 +134,11 @@ describe('findingInspectorController', () => {
   });
 
   it('retains current finding on pattern selection', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
     const leaf = new findingTreeItem.FindingItem(finding);
     const pattern = new findingTreeItem.PatternGroupItem('NP_ALWAYS_NULL', [finding]);
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
 
     bindFindingInspectorToTree(tree.view, state);
     await tree.fireSelection(leaf);
@@ -169,12 +149,9 @@ describe('findingInspectorController', () => {
   });
 
   it('retains current finding and stales preview on generic group selection', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
     let isCurrentRequest: (() => boolean) | undefined;
 
     bindFindingInspectorToTree(tree.view, state, {
@@ -197,12 +174,9 @@ describe('findingInspectorController', () => {
   });
 
   it('ignores unknown and status selections', async () => {
-    const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const findingTreeItem = await import('../ui/findingTreeItem');
+    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+      await createInspectorHarness();
     const finding = makeFinding();
-    const state = new findingInspectorState.FindingInspectorState();
-    const tree = createTreeHarness();
 
     bindFindingInspectorToTree(tree.view, state);
     await tree.fireSelection(
@@ -220,6 +194,18 @@ describe('findingInspectorController', () => {
     assertInspectorFinding(state.current, 'selected', finding);
   });
 });
+
+async function createInspectorHarness() {
+  const { bindFindingInspectorToTree } = await import('../ui/findingInspectorController');
+  const findingInspectorState = await import('../ui/findingInspectorState');
+  const findingTreeItem = await import('../ui/findingTreeItem');
+  return {
+    state: new findingInspectorState.FindingInspectorState(),
+    tree: createTreeHarness(),
+    findingTreeItem,
+    bindFindingInspectorToTree,
+  };
+}
 
 function assertInspectorFinding(
   snapshot: { status: string; finding?: Finding },

@@ -23,17 +23,7 @@ describe('findingInspectorViewProvider', () => {
   });
 
   it('copies the full rule type', async () => {
-    const clipboardWrites: string[] = [];
-    resetVscodeMock({
-      env: {
-        clipboard: {
-          writeText: async (value: string) => {
-            clipboardWrites.push(value);
-          },
-        },
-      },
-    } as never);
-    const { state, provider, webview } = await createInspectorHarness();
+    const { state, provider, webview, clipboardWrites } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(makeFinding({ patternId: 'NP' }));
@@ -43,18 +33,9 @@ describe('findingInspectorViewProvider', () => {
   });
 
   it('delegates source and details actions to split commands', async () => {
-    const executed: Array<{ command: string; arg: unknown }> = [];
-    resetVscodeMock({
-      commands: {
-        executeCommand: async (command: string, arg: unknown) => {
-          executed.push({ command, arg });
-          return undefined;
-        },
-      },
-    } as never);
     const spotbugsCommands = await import('../constants/commands');
     const finding = makeFinding({ patternId: 'NP_ALWAYS_NULL' });
-    const { state, provider, webview } = await createInspectorHarness();
+    const { state, provider, webview, executed } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(finding);
@@ -73,16 +54,7 @@ describe('findingInspectorViewProvider', () => {
   });
 
   it('opens docs with vscode.open when a docs target exists', async () => {
-    const executed: Array<{ command: string; arg: { toString(): string } }> = [];
-    resetVscodeMock({
-      commands: {
-        executeCommand: async (command: string, arg: { toString(): string }) => {
-          executed.push({ command, arg });
-          return undefined;
-        },
-      },
-    } as never);
-    const { state, provider, webview } = await createInspectorHarness();
+    const { state, provider, webview, executed } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(
@@ -96,29 +68,13 @@ describe('findingInspectorViewProvider', () => {
     assert.strictEqual(executed.length, 1);
     assert.strictEqual(executed[0].command, 'vscode.open');
     assert.strictEqual(
-      executed[0].arg.toString(),
+      (executed[0].arg as { toString(): string }).toString(),
       'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null'
     );
   });
 
   it('does not open non-web docs targets from finding metadata', async () => {
-    const executed: Array<{ command: string; arg: { toString(): string } }> = [];
-    const messages: string[] = [];
-    resetVscodeMock({
-      commands: {
-        executeCommand: async (command: string, arg: { toString(): string }) => {
-          executed.push({ command, arg });
-          return undefined;
-        },
-      },
-      window: {
-        showInformationMessage: async (message: string) => {
-          messages.push(message);
-          return undefined;
-        },
-      },
-    } as never);
-    const { state, provider, webview } = await createInspectorHarness();
+    const { state, provider, webview, executed, messages } = await createInspectorHarness();
 
     provider.resolveWebviewView({ webview } as never);
     state.select(
@@ -138,11 +94,35 @@ describe('findingInspectorViewProvider', () => {
 });
 
 async function createInspectorHarness() {
+  const executed: Array<{ command: string; arg: unknown }> = [];
+  const clipboardWrites: string[] = [];
+  const messages: string[] = [];
+  resetVscodeMock({
+    commands: {
+      executeCommand: async (command: string, arg: unknown) => {
+        executed.push({ command, arg });
+        return undefined;
+      },
+    },
+    env: {
+      clipboard: {
+        writeText: async (value: string) => {
+          clipboardWrites.push(value);
+        },
+      },
+    },
+    window: {
+      showInformationMessage: async (message: string) => {
+        messages.push(message);
+        return undefined;
+      },
+    },
+  } as never);
   const findingInspectorState = await import('../ui/findingInspectorState');
   const findingInspectorProvider = await import('../ui/findingInspectorViewProvider');
   const state = new findingInspectorState.FindingInspectorState();
   const provider = new findingInspectorProvider.FindingInspectorViewProvider(state);
-  return { state, provider, webview: createWebview() };
+  return { state, provider, webview: createWebview(), executed, clipboardWrites, messages };
 }
 
 function createWebview(): {

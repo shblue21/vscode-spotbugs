@@ -33,43 +33,44 @@ function analysisTarget(
 }
 
 describe('analysisService', () => {
+  let vscode: ReturnType<typeof installVscodeMock>;
+  let resolverModule: typeof import('../workspace/analysisTargetResolver');
+  let spotbugsClient: typeof import('../lsp/spotbugsClient');
+  let service: typeof import('../services/analysisService');
   let restoreMocks: () => void;
 
   beforeEach(() => {
-    installVscodeMock();
+    vscode = installVscodeMock();
     resetVscodeMock();
-    const resolver = require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const client = require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const originalResolver = { ...resolver };
-    const originalClient = { ...client };
+    resolverModule = require('../workspace/analysisTargetResolver');
+    spotbugsClient = require('../lsp/spotbugsClient');
+    const originalResolver = { ...resolverModule };
+    const originalClient = { ...spotbugsClient };
     restoreMocks = () => {
-      Object.assign(resolver, originalResolver);
-      Object.assign(client, originalClient);
+      Object.assign(resolverModule, originalResolver);
+      Object.assign(spotbugsClient, originalClient);
     };
+    service = require('../services/analysisService');
   });
 
   afterEach(() => restoreMocks());
 
   it('preserves every source input for a project instead of inferring artifacts from paths', async () => {
-    const vscode = installVscodeMock();
-    const resolver = require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const client = require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
     const resource = vscode.Uri.file('/workspace') as any;
     const inputs = [
       { kind: 'source' as const, path: '/workspace/src/A.java' },
       { kind: 'source' as const, path: '/workspace/src/B.java' },
     ];
-    resolver.resolveProjectAnalysisTargetDetailed = async () => ({
+    resolverModule.resolveProjectAnalysisTargetDetailed = async () => ({
       resolution: { status: 'ok', target: {
         unit: { inputs, environment: {}, sourceLookup: {} },
       } }, issues: [],
     });
     const requests: unknown[] = [];
-    client.runSpotBugsAnalysis = async (request) => {
+    spotbugsClient.runSpotBugsAnalysis = async (request) => {
       requests.push(request.payload.inputs);
       return undefined;
     };
-    const service = require('../services/analysisService') as typeof import('../services/analysisService');
     await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       resource, [resource.toString()],
@@ -78,12 +79,6 @@ describe('analysisService', () => {
   });
 
   it('returns resolution issues through analyzeFileDetailed', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
         status: 'no-class-targets',
@@ -114,12 +109,7 @@ describe('analysisService', () => {
   });
 
   it('carries file-analysis diagnostic scope into detailed analysis context', async () => {
-    const vscode = installVscodeMock();
     const folderUri = vscode.Uri.file('/workspace/src') as any;
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
     const token = { isCancellationRequested: false } as any;
     let receivedToken: unknown;
 
@@ -144,8 +134,6 @@ describe('analysisService', () => {
       return undefined;
     }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
     const result = await service.analyzeFileDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
       folderUri,
@@ -158,11 +146,6 @@ describe('analysisService', () => {
   });
 
   it('aggregates per-project resolution issues in analyzeWorkspaceFromProjectsDetailed', async () => {
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'no-class-targets',
@@ -184,7 +167,7 @@ describe('analysisService', () => {
 
     const detailed = await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      installVscodeMock().Uri.file('/workspace') as any,
+      vscode.Uri.file('/workspace') as any,
       ['file:///workspace/project-a', 'file:///workspace/project-b'],
     );
     assert.deepStrictEqual(
@@ -195,14 +178,6 @@ describe('analysisService', () => {
   });
 
   it('aggregates backend cleanup warnings in workspace context without adding project result state', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
@@ -258,13 +233,6 @@ describe('analysisService', () => {
   });
 
   it('snapshots analysis settings for every project before a workspace run', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
     const receivedEfforts: string[] = [];
     const settingsResources: string[] = [];
     const events: string[] = [];
@@ -328,14 +296,6 @@ describe('analysisService', () => {
   });
 
   it('preserves file resolution issues when analysis execution throws after target resolution', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-
     resolverModule.resolveFileAnalysisTargetDetailed = (async () => ({
       resolution: {
         status: 'ok',
@@ -381,14 +341,6 @@ describe('analysisService', () => {
   });
 
   it('preserves workspace/project resolution issues when analysis execution throws after target resolution', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
       resolution: {
         status: 'ok',
@@ -435,13 +387,6 @@ describe('analysisService', () => {
   });
 
   it('stops workspace analysis when backend returns ANALYSIS_CANCELLED envelopes', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
     const analyzedTargets: string[] = [];
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => ({
@@ -492,13 +437,6 @@ describe('analysisService', () => {
   });
 
   it('treats a rejected backend request as cancellation when the token is cancelled', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
     const token = { isCancellationRequested: false } as any;
     const analyzedTargets: string[] = [];
     const failedProjects: string[] = [];
@@ -535,13 +473,6 @@ describe('analysisService', () => {
   });
 
   it('stops after project resolution when the token becomes cancelled', async () => {
-    const vscode = installVscodeMock();
-    const resolverModule =
-      require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
-    const spotbugsClient =
-      require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
-    const service =
-      require('../services/analysisService') as typeof import('../services/analysisService');
     const token = { isCancellationRequested: false } as any;
     const events: string[] = [];
 

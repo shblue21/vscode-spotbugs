@@ -7,6 +7,7 @@ import {
 import type {
   AnalysisProgressRunner,
   AnalysisSessionDependencies,
+  RunFileAnalysisSessionArgs,
   RunWorkspaceAnalysisSessionArgs,
 } from '../orchestration/analysisRunSession';
 import {
@@ -88,33 +89,45 @@ function createBaseDependencies(
   };
 }
 
-function runObservedFileAnalysis(
-  uri: Uri,
-  lease: AnalysisRunLease,
-  dependencies: AnalysisSessionDependencies,
-  calls: string[],
-): Promise<void> {
-  return runFileAnalysisSession({
-    config: { getAnalysisSettings: () => ({}) } as any,
-    tree: {
-      showLoading: () => calls.push('loading'),
-      showResults: () => calls.push('results'),
-      showAnalysisFailure: () => calls.push('failure'),
-    },
-    diagnostics: {
-      replaceForScope: () => calls.push('diagnostics'),
-      replaceAll: () => calls.push('replaceAll'),
-    },
-    notifier: {
-      info: () => calls.push('notice'),
-      warn: () => calls.push('notice'),
-      error: () => calls.push('notice'),
-    },
-    uri,
-    startedAtMs: 1000,
-    lease,
-    dependencies,
-  });
+function createFileHarness() {
+  const vscode = installVscodeMock();
+  const calls: string[] = [];
+  const infos: string[] = [];
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const shownResults: Parameters<RunFileAnalysisSessionArgs['tree']['showResults']>[] = [];
+  const diagnosticUpdates: Parameters<RunFileAnalysisSessionArgs['diagnostics']['replaceForScope']>[] = [];
+
+  return {
+    calls, infos, warnings, errors, shownResults, diagnosticUpdates,
+    args: {
+      config: { getAnalysisSettings: () => ({}) } as any,
+      tree: {
+        showLoading: () => calls.push('loading'),
+        showResults: (...args) => {
+          shownResults.push(args);
+          calls.push(`results:${args[0].length}`);
+        },
+        showAnalysisFailure: (message, code) => calls.push(`failure:${code ?? ''}:${message}`),
+      },
+      diagnostics: {
+        replaceForScope: (...args) => {
+          diagnosticUpdates.push(args);
+          calls.push(`diagnostics:${args[1].length}`);
+        },
+        replaceAll: () => calls.push('replaceAll'),
+      },
+      notifier: {
+        info: (message) => infos.push(message),
+        warn: (message) => warnings.push(message),
+        error: (message) => errors.push(message),
+      },
+      uri: vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri,
+      startedAtMs: 1000,
+      lease: createCurrentLease(),
+      dependencies: createBaseDependencies(vscode),
+    } satisfies RunFileAnalysisSessionArgs,
+  };
 }
 
 describe('analysisRunSession file analysis', () => {
@@ -123,20 +136,16 @@ describe('analysisRunSession file analysis', () => {
   });
 
   it('applies successful file analysis results and diagnostics', async () => {
-    const vscode = installVscodeMock();
-    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+    const { args, calls, infos, shownResults, diagnosticUpdates } = createFileHarness();
+    const originalConfig = args.config;
+    const uri = args.uri;
     const finding = createFinding();
-    const calls: string[] = [];
-    const infos: string[] = [];
-    const config = { getAnalysisSettings: () => ({}) } as any;
     let receivedConfig: unknown;
     let receivedUri: unknown;
     let receivedToken: unknown;
-    let resultResource: unknown;
-    let reportNativeSarif: string | undefined;
     const token = { isCancellationRequested: false } as CancellationToken;
-    const lease = createCurrentLease(token);
-    const deps = createBaseDependencies(vscode);
+    args.lease = createCurrentLease(token);
+    const deps = args.dependencies;
     deps.analyzeFileDetailed = async (actualConfig, actualUri, actualToken) => {
       receivedConfig = actualConfig;
       receivedUri = actualUri;
@@ -161,48 +170,22 @@ describe('analysisRunSession file analysis', () => {
       error: () => undefined,
     };
 
-    await runFileAnalysisSession({
-      config,
-      tree: {
-        showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[], resource, reportRun) => {
-          calls.push(`results:${findings.length}`);
-          resultResource = resource;
-          assert.ok(Array.isArray(reportRun));
-          assert.deepStrictEqual(reportRun[0].findings, [finding]);
-          assert.strictEqual(reportRun[0].baselineXml, '<BugCollection/>');
-          reportNativeSarif = reportRun[0].nativeSarif;
-        },
-        showAnalysisFailure: (message: string, code?: string) =>
-          calls.push(`failure:${code ?? ''}:${message}`),
-      },
-      diagnostics: {
-        replaceForScope: (scope, findings: Finding[]) =>
-          calls.push(
-            `diagnostics:${scope.kind}:${scope.kind === 'source-roots' ? scope.uris.map((uri) => uri.fsPath).join(',') : scope.uri.fsPath}:${findings.length}`,
-          ),
-        replaceAll: () => calls.push('replaceAll'),
-      },
-      notifier: {
-        info: (message: string) => infos.push(message),
-        warn: () => undefined,
-        error: () => undefined,
-      },
-      uri,
-      startedAtMs: 1000,
-      lease,
-      dependencies: deps,
-    });
+    await runFileAnalysisSession(args);
 
-    assert.strictEqual(receivedConfig, config);
+    assert.strictEqual(receivedConfig, originalConfig);
     assert.strictEqual(receivedUri, uri);
     assert.strictEqual(receivedToken, token);
-    assert.strictEqual(resultResource, uri);
-    assert.strictEqual(reportNativeSarif, '{"version":"2.1.0","runs":[]}');
+    const [, resource, reports] = shownResults[0];
+    assert.strictEqual(resource, uri);
+    assert.ok(Array.isArray(reports));
+    assert.deepStrictEqual(reports[0].findings, [finding]);
+    assert.strictEqual(reports[0].baselineXml, '<BugCollection/>');
+    assert.strictEqual(reports[0].nativeSarif, '{"version":"2.1.0","runs":[]}');
+    assert.deepStrictEqual(diagnosticUpdates, [[{ kind: 'file', uri }, [finding]]]);
     assert.deepStrictEqual(calls, [
       'loading',
       'results:1',
-      'diagnostics:file:/workspace/src/Foo.java:1',
+      'diagnostics:1',
       'log:File analysis finished: elapsedMs=125, file=/workspace/src/Foo.java, findings=1',
     ]);
     assert.deepStrictEqual(infos, []);
@@ -212,8 +195,9 @@ describe('analysisRunSession file analysis', () => {
     const vscode = installVscodeMock();
     const folderUri = vscode.Uri.file('/workspace/src') as unknown as Uri;
     const finding = createFinding('/workspace/src/Foo.java');
-    const calls: string[] = [];
-    const deps = createBaseDependencies(vscode);
+    const { args, calls, diagnosticUpdates } = createFileHarness();
+    args.uri = folderUri;
+    const deps = args.dependencies;
 
     deps.analyzeFileDetailed = async () => ({
       reportRuns: [{ projectUri: folderUri.toString(), findings: [finding] }],
@@ -227,42 +211,16 @@ describe('analysisRunSession file analysis', () => {
       },
     });
 
-    await runFileAnalysisSession({
-      config: { getAnalysisSettings: () => ({}) } as any,
-      tree: {
-        showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
-        showAnalysisFailure: (message: string, code?: string) =>
-          calls.push(`failure:${code ?? ''}:${message}`),
-      },
-      diagnostics: {
-        replaceForScope: (scope, findings: Finding[]) =>
-          calls.push(
-            `diagnostics:${scope.kind}:${scope.kind === 'source-roots' ? scope.uris.map((uri) => uri.fsPath).join(',') : scope.uri.fsPath}:${findings.length}`,
-          ),
-        replaceAll: () => calls.push('replaceAll'),
-      },
-      notifier: {
-        info: () => undefined,
-        warn: () => undefined,
-        error: () => undefined,
-      },
-      uri: folderUri,
-      startedAtMs: 1000,
-      lease: createCurrentLease(),
-      dependencies: deps,
-    });
+    await runFileAnalysisSession(args);
 
-    assert.deepStrictEqual(calls, ['loading', 'results:1', 'diagnostics:folder:/workspace/src:1']);
+    assert.deepStrictEqual(calls, ['loading', 'results:1', 'diagnostics:1']);
+    assert.deepStrictEqual(diagnosticUpdates, [[{ kind: 'folder', uri: folderUri }, [finding]]]);
   });
 
   it('renders warning-only file outcomes as successful empty results', async () => {
-    const vscode = installVscodeMock();
-    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
-    const calls: string[] = [];
-    const warnings: string[] = [];
-    const errors: string[] = [];
-    const deps = createBaseDependencies(vscode);
+    const { args, calls, warnings, errors } = createFileHarness();
+    const uri = args.uri;
+    const deps = args.dependencies;
 
     deps.analyzeFileDetailed = async () => ({
       reportRuns: [{ projectUri: uri.toString(), findings: [] }],
@@ -281,29 +239,7 @@ describe('analysisRunSession file analysis', () => {
       },
     });
 
-    await runFileAnalysisSession({
-      config: { getAnalysisSettings: () => ({}) } as any,
-      tree: {
-        showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
-        showAnalysisFailure: (message: string, code?: string) =>
-          calls.push(`failure:${code ?? ''}:${message}`),
-      },
-      diagnostics: {
-        replaceForScope: (_scope, findings: Finding[]) =>
-          calls.push(`diagnostics:${findings.length}`),
-        replaceAll: () => calls.push('replaceAll'),
-      },
-      notifier: {
-        info: () => undefined,
-        warn: (message: string) => warnings.push(message),
-        error: (message: string) => errors.push(message),
-      },
-      uri,
-      startedAtMs: 1000,
-      lease: createCurrentLease(),
-      dependencies: deps,
-    });
+    await runFileAnalysisSession(args);
 
     assert.deepStrictEqual(calls, ['loading', 'results:0', 'diagnostics:0']);
     assert.deepStrictEqual(warnings, [
@@ -313,11 +249,9 @@ describe('analysisRunSession file analysis', () => {
   });
 
   it('renders file analysis failures without updating diagnostics', async () => {
-    const vscode = installVscodeMock();
-    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
-    const calls: string[] = [];
-    const errors: string[] = [];
-    const deps = createBaseDependencies(vscode);
+    const { args, calls, errors } = createFileHarness();
+    const uri = args.uri;
+    const deps = args.dependencies;
     deps.now = () => 1125;
     deps.logger = {
       log: (message) => calls.push(`log:${message}`),
@@ -340,28 +274,7 @@ describe('analysisRunSession file analysis', () => {
       },
     });
 
-    await runFileAnalysisSession({
-      config: { getAnalysisSettings: () => ({}) } as any,
-      tree: {
-        showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
-        showAnalysisFailure: (message: string, code?: string) =>
-          calls.push(`failure:${code ?? ''}:${message}`),
-      },
-      diagnostics: {
-        replaceForScope: () => calls.push('diagnostics:update'),
-        replaceAll: () => calls.push('replaceAll'),
-      },
-      notifier: {
-        info: () => undefined,
-        warn: () => undefined,
-        error: (message: string) => errors.push(message),
-      },
-      uri,
-      startedAtMs: 1000,
-      lease: createCurrentLease(),
-      dependencies: deps,
-    });
+    await runFileAnalysisSession(args);
 
     assert.deepStrictEqual(calls, [
       'loading',
@@ -372,12 +285,9 @@ describe('analysisRunSession file analysis', () => {
   });
 
   it('renders unexpected file analysis exceptions as failure state', async () => {
-    const vscode = installVscodeMock();
-    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
-    const calls: string[] = [];
-    const errors: string[] = [];
+    const { args, calls, errors } = createFileHarness();
     const loggedErrors: string[] = [];
-    const deps = createBaseDependencies(vscode);
+    const deps = args.dependencies;
     deps.analyzeFileDetailed = async () => {
       throw new Error('transport boom');
     };
@@ -386,28 +296,7 @@ describe('analysisRunSession file analysis', () => {
       error: (message) => loggedErrors.push(message),
     };
 
-    await runFileAnalysisSession({
-      config: { getAnalysisSettings: () => ({}) } as any,
-      tree: {
-        showLoading: () => calls.push('loading'),
-        showResults: (findings: Finding[]) => calls.push(`results:${findings.length}`),
-        showAnalysisFailure: (message: string, code?: string) =>
-          calls.push(`failure:${code ?? ''}:${message}`),
-      },
-      diagnostics: {
-        replaceForScope: () => calls.push('diagnostics:update'),
-        replaceAll: () => calls.push('replaceAll'),
-      },
-      notifier: {
-        info: () => undefined,
-        warn: () => undefined,
-        error: (message: string) => errors.push(message),
-      },
-      uri,
-      startedAtMs: 1000,
-      lease: createCurrentLease(),
-      dependencies: deps,
-    });
+    await runFileAnalysisSession(args);
 
     assert.deepStrictEqual(calls, [
       'loading',
@@ -418,15 +307,15 @@ describe('analysisRunSession file analysis', () => {
   });
 
   it('does not apply a file result after a newer run begins', async () => {
-    const vscode = installVscodeMock();
-    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+    const { args, calls, infos, warnings, errors } = createFileHarness();
+    const uri = args.uri;
     const result = createDeferred<AnalysisExecutionResult>();
     const coordinator = new AnalysisRunCoordinator();
-    const calls: string[] = [];
-    const deps = createBaseDependencies(vscode);
+    const deps = args.dependencies;
     deps.analyzeFileDetailed = async () => result.promise;
 
-    const run = runObservedFileAnalysis(uri, coordinator.begin(), deps, calls);
+    args.lease = coordinator.begin();
+    const run = runFileAnalysisSession(args);
     coordinator.begin();
     result.resolve({
       reportRuns: [{ projectUri: uri.toString(), findings: [createFinding(uri.fsPath)] }],
@@ -439,24 +328,25 @@ describe('analysisRunSession file analysis', () => {
     await run;
 
     assert.deepStrictEqual(calls, ['loading']);
+    assert.deepStrictEqual([...infos, ...warnings, ...errors], []);
   });
 
   it('does not render a stale exception after its lease is invalidated', async () => {
-    const vscode = installVscodeMock();
-    const uri = vscode.Uri.file('/workspace/src/Foo.java') as unknown as Uri;
+    const { args, calls, infos, warnings, errors } = createFileHarness();
     const result = createDeferred<AnalysisExecutionResult>();
     const coordinator = new AnalysisRunCoordinator();
-    const calls: string[] = [];
-    const deps = createBaseDependencies(vscode);
+    const deps = args.dependencies;
     deps.analyzeFileDetailed = async () => result.promise;
 
-    const run = runObservedFileAnalysis(uri, coordinator.begin(), deps, calls);
+    args.lease = coordinator.begin();
+    const run = runFileAnalysisSession(args);
 
     coordinator.invalidate();
     result.reject(new Error('late failure'));
     await run;
 
     assert.deepStrictEqual(calls, ['loading']);
+    assert.deepStrictEqual([...infos, ...warnings, ...errors], []);
   });
 });
 

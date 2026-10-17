@@ -16,17 +16,18 @@ function makeSettings(overrides: Partial<AnalysisSettings> = {}): AnalysisSettin
   };
 }
 
-async function makeTempDir(): Promise<string> {
-  return fs.promises.mkdtemp(path.join(os.tmpdir(), 'spotbugs-filter-test-'));
+async function withTempDir(run: (dir: string) => Promise<void>): Promise<void> {
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'spotbugs-filter-test-'));
+  try {
+    await run(dir);
+  } finally {
+    await fs.promises.rm(dir, { recursive: true, force: true });
+  }
 }
 
 async function writeFile(filePath: string, content: string): Promise<void> {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   await fs.promises.writeFile(filePath, content);
-}
-
-async function cleanup(dir: string): Promise<void> {
-  await fs.promises.rm(dir, { recursive: true, force: true });
 }
 
 describe('filterFileValidation', () => {
@@ -45,8 +46,7 @@ describe('filterFileValidation', () => {
   });
 
   it('returns CFG_FILTER_NOT_FILE when filter path points to a directory', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const error = await validateFilterFilesPreflight(
         makeSettings({ excludeFilterPaths: [dir] })
       );
@@ -54,14 +54,11 @@ describe('filterFileValidation', () => {
       assert.ok(error);
       assert.strictEqual(error?.code, 'CFG_FILTER_NOT_FILE');
       assert.ok((error?.message ?? '').includes('exclude filter file is not a regular file'));
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 
   it('passes when configured filter files are readable regular files', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const includePath = path.join(dir, 'include.xml');
       const excludePath = path.join(dir, 'exclude.xml');
       const baselinePath = path.join(dir, 'baseline.xml');
@@ -78,9 +75,7 @@ describe('filterFileValidation', () => {
       );
 
       assert.strictEqual(error, undefined);
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 
   it('returns CFG_AUX_CLASSPATH_NOT_FOUND when an extra aux classpath entry is missing', async () => {
@@ -98,8 +93,7 @@ describe('filterFileValidation', () => {
   });
 
   it('returns CFG_AUX_CLASSPATH_INVALID_ENTRY when an extra aux classpath entry is not a jar/zip or directory', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const invalidPath = path.join(dir, 'not-a-classpath.txt');
       await writeFile(invalidPath, 'plain text');
 
@@ -114,14 +108,11 @@ describe('filterFileValidation', () => {
           'extra aux classpath entry must be a directory or .jar/.zip file'
         )
       );
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 
   it('passes when extra aux classpath entries are readable jars or directories', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const jarPath = path.join(dir, 'lib', 'helper.jar');
       const classesDir = path.join(dir, 'classes');
       await writeFile(jarPath, '');
@@ -132,9 +123,7 @@ describe('filterFileValidation', () => {
       );
 
       assert.strictEqual(error, undefined);
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 
   it('returns CFG_PLUGIN_NOT_FOUND when a plugin jar is missing', async () => {
@@ -152,8 +141,7 @@ describe('filterFileValidation', () => {
   });
 
   it('returns CFG_PLUGIN_NOT_FILE when a plugin path points to a directory', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const error = await validatePluginJarsPreflight(
         makeSettings({ plugins: [dir] })
       );
@@ -165,14 +153,11 @@ describe('filterFileValidation', () => {
           'SpotBugs plugin path is not a regular file'
         )
       );
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 
   it('returns CFG_PLUGIN_NOT_JAR when a plugin path is not a lowercase jar file', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const pluginPath = path.join(dir, 'findsecbugs.JAR');
       await writeFile(pluginPath, '');
 
@@ -187,42 +172,39 @@ describe('filterFileValidation', () => {
           'SpotBugs plugin path must be a .jar file'
         )
       );
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 
   it('returns CFG_PLUGIN_UNREADABLE when a plugin jar cannot be opened for reading', async () => {
-    const dir = await makeTempDir();
-    const originalOpen = fs.promises.open;
-    try {
-      const pluginPath = path.join(dir, 'unreadable.jar');
-      await writeFile(pluginPath, '');
-      fs.promises.open = (async (filePath, flags, mode) => {
-        if (filePath === pluginPath) {
-          throw new Error('permission denied');
-        }
-        return originalOpen.call(fs.promises, filePath, flags, mode);
-      }) as typeof fs.promises.open;
+    await withTempDir(async (dir) => {
+      const originalOpen = fs.promises.open;
+      try {
+        const pluginPath = path.join(dir, 'unreadable.jar');
+        await writeFile(pluginPath, '');
+        fs.promises.open = (async (filePath, flags, mode) => {
+          if (filePath === pluginPath) {
+            throw new Error('permission denied');
+          }
+          return originalOpen.call(fs.promises, filePath, flags, mode);
+        }) as typeof fs.promises.open;
 
-      const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [pluginPath] })
-      );
+        const error = await validatePluginJarsPreflight(
+          makeSettings({ plugins: [pluginPath] })
+        );
 
-      assert.ok(error);
-      assert.strictEqual(error?.code, 'CFG_PLUGIN_UNREADABLE');
-      assert.ok(
-        (error?.message ?? '').includes('SpotBugs plugin jar is not readable')
-      );
-    } finally {
-      fs.promises.open = originalOpen;
-      await cleanup(dir);
-    }
+        assert.ok(error);
+        assert.strictEqual(error?.code, 'CFG_PLUGIN_UNREADABLE');
+        assert.ok(
+          (error?.message ?? '').includes('SpotBugs plugin jar is not readable')
+        );
+      } finally {
+        fs.promises.open = originalOpen;
+      }
+    });
   });
 
   it('passes when configured plugin jars are readable files', async () => {
-    const dir = await makeTempDir();
-    try {
+    await withTempDir(async (dir) => {
       const pluginPath = path.join(dir, 'findsecbugs.jar');
       await writeFile(pluginPath, '');
 
@@ -231,8 +213,6 @@ describe('filterFileValidation', () => {
       );
 
       assert.strictEqual(error, undefined);
-    } finally {
-      await cleanup(dir);
-    }
+    });
   });
 });
