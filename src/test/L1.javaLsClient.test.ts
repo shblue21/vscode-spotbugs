@@ -1,18 +1,18 @@
 import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
-function clearModule(moduleId: string): void {
-  delete require.cache[require.resolve(moduleId)];
-}
-
 describe('javaLsClient', () => {
+  let restoreMocks: () => void;
+
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    clearModule('../services/javaLsClient');
-    clearModule('../lsp/javaLsGateway');
-    clearModule('../services/workspaceBuildService');
+    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const original = gateway.requestAllJavaProjects;
+    restoreMocks = () => { gateway.requestAllJavaProjects = original; };
   });
+
+  afterEach(() => restoreMocks());
 
   it('returns unavailable with JAVA_LS_REQUEST_FAILED when project discovery throws', async () => {
     const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');

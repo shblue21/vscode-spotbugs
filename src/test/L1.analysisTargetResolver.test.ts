@@ -8,7 +8,6 @@ describe('analysisTargetResolver', () => {
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    delete require.cache[require.resolve('../workspace/analysisTargetResolver')];
   });
 
   it('propagates classpath issues and emits OUTPUT_FALLBACK_USED when output fallback succeeds', async () => {

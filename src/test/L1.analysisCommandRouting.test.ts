@@ -6,8 +6,6 @@ describe('analysis command boundaries', () => {
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    delete require.cache[require.resolve('../lsp/spotbugsClient')];
-    delete require.cache[require.resolve('../lsp/javaLsGateway')];
   });
 
   for (const kind of ['source', 'artifact'] as const) {

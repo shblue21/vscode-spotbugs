@@ -6,8 +6,6 @@ describe('Java project settings snapshot transport', () => {
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    delete require.cache[require.resolve('../lsp/javaLsGateway')];
-    delete require.cache[require.resolve('../workspace/classpathCommandRunner')];
   });
 
   it('retains runtime metadata and the existing warning when the replacement settings command fails', async () => {

@@ -6,11 +6,6 @@ import {
 } from '../constants/commands';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
-function clearModules(): void {
-  delete require.cache[require.resolve('../lsp/javaLsGateway')];
-  delete require.cache[require.resolve('../services/workspaceBuildService')];
-}
-
 async function invokeBuild(
   execute: (...args: unknown[]) => unknown,
   token?: CancellationToken
@@ -25,7 +20,6 @@ async function invokeBuild(
       },
     },
   });
-  clearModules();
   const service =
     require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
   const result = await service.buildWorkspace(
@@ -39,7 +33,6 @@ describe('workspaceBuildService', () => {
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    clearModules();
   });
 
   it('passes the token to workspace compilation and does not retry a cancelled build', async () => {
