@@ -229,7 +229,7 @@ type TelemetryWrapperMock = {
 const originalLoad = Module._load;
 let installed = false;
 let currentMock = createVscodeMock();
-let currentTelemetryWrapperMock = createTelemetryWrapperMock();
+const currentTelemetryWrapperMock = createTelemetryWrapperMock();
 
 export function installVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
   const nextMock = createVscodeMock(overrides);
@@ -262,7 +262,7 @@ export function resetVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock
 export function resetTelemetryWrapperMock(
   overrides: Partial<TelemetryWrapperMock> = {}
 ): TelemetryWrapperMock {
-  currentTelemetryWrapperMock = createTelemetryWrapperMock(overrides);
+  Object.assign(currentTelemetryWrapperMock, createTelemetryWrapperMock(overrides));
   return currentTelemetryWrapperMock;
 }
 

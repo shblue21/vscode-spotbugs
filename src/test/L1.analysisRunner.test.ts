@@ -222,21 +222,16 @@ describe('analysisRunner', () => {
     const commandCalls: unknown[][] = [];
     const vscode = resetVscodeMock({
       commands: {
+        getCommands: async () => ['java.workspace.compile'],
         executeCommand: async (...args: unknown[]) => {
           commandCalls.push(args);
+          if (args[0] === 'java.workspace.compile') return JavaCompileWorkspaceStatus.cancelled;
         },
       } as any,
     });
-    const buildService = require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-    const originalBuild = buildService.buildWorkspaceAuto;
-    const buildTokens: unknown[] = [];
     const { delegated, restore } = captureFileAnalysisSessions();
 
     try {
-      buildService.buildWorkspaceAuto = async (token) => {
-        buildTokens.push(token);
-        return JavaCompileWorkspaceStatus.cancelled;
-      };
       const runner =
         require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
       const uri = vscode.Uri.file('/workspace/src/Foo.java') as any;
@@ -277,10 +272,10 @@ describe('analysisRunner', () => {
       assert.ok(now >= args.startedAtMs && now <= Date.now());
       const token = { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => undefined }) };
       assert.strictEqual(await args.dependencies.buildWorkspaceAuto(token), JavaCompileWorkspaceStatus.cancelled);
-      assert.strictEqual(buildTokens.length, 1);
-      assert.strictEqual(buildTokens[0], token);
+      const builds = commandCalls.filter(([command]) => command === 'java.workspace.compile');
+      assert.deepStrictEqual(builds, [['java.workspace.compile', false, token]]);
+      assert.strictEqual(builds[0][2], token);
     } finally {
-      buildService.buildWorkspaceAuto = originalBuild;
       restore();
     }
   });

@@ -96,9 +96,6 @@ describe('analysis plan execution', () => {
     const vscode = installVscodeMock();
     const service =
       require('../services/analysisService') as typeof import('../services/analysisService');
-    const execution =
-      require('../services/analysisExecution') as typeof import('../services/analysisExecution');
-    const original = execution.runAnalysisTarget;
     const resource = vscode.Uri.file('/workspace/A.java') as any;
     const other = vscode.Uri.file('/workspace/B.java') as any;
     const unit = (path: string): PlannedAnalysisUnit => ({
@@ -133,18 +130,21 @@ describe('analysis plan execution', () => {
       resolutionIssues: [],
       cancelled: false,
     };
-    const calls: string[] = [];
-    execution.runAnalysisTarget = async (_config, item) => {
-      calls.push(item.inputs[0].path);
-      return { findings: [] };
+    const calls: unknown[][] = [];
+    vscode.commands.executeCommand = async (...args: unknown[]) => {
+      calls.push(args);
+      return JSON.stringify({ schemaVersion: 2, results: [], errors: [] });
     };
-    try {
-      const result = await service.executeAnalysisPlan(plan);
-      assert.deepStrictEqual(calls, ['/out/main/A.class', '/out/test/A.class']);
-      assert.strictEqual(result.results.length, 3);
-      assert.strictEqual(result.results[2].errorCode, 'NO_CLASS_TARGETS');
-    } finally {
-      execution.runAnalysisTarget = original;
-    }
+
+    const result = await service.executeAnalysisPlan(plan);
+    assert.deepStrictEqual(calls.map(([command, operation, target, payload]) => [
+      command, operation, target, JSON.parse(payload as string).inputs,
+    ]), ['/out/main/A.class', '/out/test/A.class'].map(target => [
+      'java.execute.workspaceCommand', 'java.spotbugs.analyzeSources', target,
+      [{ kind: 'source', path: target }],
+    ]));
+    assert.strictEqual(result.results.length, 3);
+    assert.ok(result.results.slice(0, 2).every(project => !project.error));
+    assert.strictEqual(result.results[2].errorCode, 'NO_CLASS_TARGETS');
   });
 });

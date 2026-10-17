@@ -1,26 +1,23 @@
 import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
-describe('javaLsClient', () => {
-  let restoreMocks: () => void;
+const projectRequest = ['java.execute.workspaceCommand', 'java.project.getAll'];
 
+describe('javaLsClient', () => {
   beforeEach(() => {
     installVscodeMock();
     resetVscodeMock();
-    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
-    const original = gateway.requestAllJavaProjects;
-    restoreMocks = () => { gateway.requestAllJavaProjects = original; };
   });
 
-  afterEach(() => restoreMocks());
-
   it('returns unavailable with JAVA_LS_REQUEST_FAILED when project discovery throws', async () => {
-    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const vscode = installVscodeMock();
     const client = require('../services/javaLsClient') as typeof import('../services/javaLsClient');
 
-    gateway.requestAllJavaProjects = (async () => {
+    const calls: unknown[][] = [];
+    vscode.commands.executeCommand = async (...args: unknown[]) => {
+      calls.push(args);
       throw new Error('request failed');
-    }) as typeof gateway.requestAllJavaProjects;
+    };
 
     const outcome = await client.JavaLsClient.getAllProjectsOutcome();
 
@@ -39,13 +36,18 @@ describe('javaLsClient', () => {
       ],
     });
     assert.deepStrictEqual(await client.JavaLsClient.getAllProjects(), []);
+    assert.deepStrictEqual(calls, [projectRequest, projectRequest]);
   });
 
   it('treats undefined responses as unavailable with JAVA_LS_NO_RESULT', async () => {
-    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const vscode = installVscodeMock();
     const client = require('../services/javaLsClient') as typeof import('../services/javaLsClient');
 
-    gateway.requestAllJavaProjects = (async () => undefined) as typeof gateway.requestAllJavaProjects;
+    const calls: unknown[][] = [];
+    vscode.commands.executeCommand = async (...args: unknown[]) => {
+      calls.push(args);
+      return undefined;
+    };
 
     const outcome = await client.JavaLsClient.getAllProjectsOutcome();
 
@@ -62,15 +64,18 @@ describe('javaLsClient', () => {
         },
       ],
     });
+    assert.deepStrictEqual(calls, [projectRequest]);
   });
 
   it('returns empty only when normalized projects are empty after pseudo-project filtering', async () => {
-    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const vscode = installVscodeMock();
     const client = require('../services/javaLsClient') as typeof import('../services/javaLsClient');
 
-    gateway.requestAllJavaProjects = (async () => [
-      'file:///tmp/jdt.ls-java-project',
-    ]) as typeof gateway.requestAllJavaProjects;
+    const calls: unknown[][] = [];
+    vscode.commands.executeCommand = async (...args: unknown[]) => {
+      calls.push(args);
+      return ['file:///tmp/jdt.ls-java-project'];
+    };
 
     const outcome = await client.JavaLsClient.getAllProjectsOutcome();
 
@@ -87,17 +92,22 @@ describe('javaLsClient', () => {
         },
       ],
     });
+    assert.deepStrictEqual(calls, [projectRequest]);
   });
 
   it('returns resolved project URIs after filtering pseudo-project entries', async () => {
-    const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
+    const vscode = installVscodeMock();
     const client = require('../services/javaLsClient') as typeof import('../services/javaLsClient');
 
-    gateway.requestAllJavaProjects = (async () => [
-      'file:///workspace/project-a',
-      'file:///workspace/jdt.ls-java-project',
-      'file:///workspace/project-b',
-    ]) as typeof gateway.requestAllJavaProjects;
+    const calls: unknown[][] = [];
+    vscode.commands.executeCommand = async (...args: unknown[]) => {
+      calls.push(args);
+      return [
+        'file:///workspace/project-a',
+        'file:///workspace/jdt.ls-java-project',
+        'file:///workspace/project-b',
+      ];
+    };
 
     const outcome = await client.JavaLsClient.getAllProjectsOutcome();
 
@@ -110,5 +120,6 @@ describe('javaLsClient', () => {
       'file:///workspace/project-a',
       'file:///workspace/project-b',
     ]);
+    assert.deepStrictEqual(calls, [projectRequest, projectRequest]);
   });
 });

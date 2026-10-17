@@ -14,7 +14,6 @@ const resultResource = vscode.Uri.file('/workspace/src/Foo.java') as unknown as 
 describe('resultsExplorerCommands', () => {
   beforeEach(() => {
     resetVscodeMock();
-    resetTelemetryWrapperMock();
   });
 
   it('invalidates pending analysis before clearing results', async () => {
@@ -197,62 +196,61 @@ describe('resultsExplorerCommands', () => {
     ]);
   });
 
-  it('wraps result exploration command callbacks with inspector reconciliation', async () => {
-    const lifecycle =
-      require('../commands/findingInspectorLifecycle') as typeof import('../commands/findingInspectorLifecycle');
-    const mutableLifecycle = lifecycle as unknown as {
-      reconcileInspectorAfterOperation: typeof lifecycle.reconcileInspectorAfterOperation;
-    };
-    const originalReconcile = lifecycle.reconcileInspectorAfterOperation;
-    const reconciled: string[] = [];
+  it('reconciles the displayed inspector after each registered exploration command', async () => {
+    let informationCount = 0;
     const registeredCommands = new Map<string, (...args: unknown[]) => unknown>();
-
-    mutableLifecycle.reconcileInspectorAfterOperation = (async (
-      _state,
-      operation,
-      getVisibleFindings
-    ) => {
-      await operation();
-      reconciled.push(`visible:${getVisibleFindings().length}`);
-    }) as typeof lifecycle.reconcileInspectorAfterOperation;
-
+    const subscriptions: Array<{ dispose(): void }> = [];
+    let tree!: import('../ui/spotbugsTreeDataProvider').SpotBugsTreeDataProvider;
+    let select!: (event: { selection: unknown[] }) => unknown;
+    const webview = { html: '', onDidReceiveMessage: () => ({ dispose() {} }) };
+    resetVscodeMock({ window: {
+      showInformationMessage: async () => { informationCount++; return undefined; },
+      createTreeView: (id: string, options: { treeDataProvider: typeof tree }) => {
+        if (id === 'spotbugs-view') tree = options.treeDataProvider;
+        return {
+          onDidChangeSelection: (listener: typeof select) => {
+            select = listener;
+            return { dispose() {} };
+          },
+          dispose() {},
+        };
+      },
+      registerWebviewViewProvider: (_id: string, provider: import('../ui/findingInspectorViewProvider').FindingInspectorViewProvider) => {
+        provider.resolveWebviewView({ webview } as never);
+        return { dispose() {} };
+      },
+    } as never });
     resetTelemetryWrapperMock({
-      instrumentOperationAsVsCodeCommand: (
-        commandId: string,
-        callback: (...args: unknown[]) => unknown
-      ) => {
+      instrumentOperationAsVsCodeCommand: (commandId, callback) => {
         registeredCommands.set(commandId, callback);
-        return { dispose: () => undefined };
+        return { dispose() {} };
       },
     });
-
+    const { activate } = await import('../extension');
+    const findingTreeItem = await import('../ui/findingTreeItem');
     try {
-      delete require.cache[require.resolve('../extension')];
-      const { activate } = require('../extension') as typeof import('../extension');
-
       await activate({
         asAbsolutePath: (relativePath: string) => `/extension/${relativePath}`,
-        subscriptions: [],
+        subscriptions,
       } as never);
-
+      const finding = makeFinding();
       for (const commandId of [
-        'spotbugs.searchResults',
-        'spotbugs.clearSearch',
-        'spotbugs.groupResultsBy',
-        'spotbugs.sortResultsBy',
+        'spotbugs.searchResults', 'spotbugs.clearSearch',
+        'spotbugs.groupResultsBy', 'spotbugs.sortResultsBy',
       ]) {
-        await registeredCommands.get(commandId)?.();
+        tree.showResults([finding], resultResource, []);
+        await select({ selection: [new findingTreeItem.FindingItem(finding)] });
+        assert.ok(webview.html.includes('NP_ALWAYS_NULL'), commandId);
+        tree.showResults([], resultResource, []);
+        const command = registeredCommands.get(commandId);
+        assert.ok(command, commandId);
+        const previousInformationCount = informationCount;
+        await command();
+        assert.strictEqual(informationCount, previousInformationCount + 1, commandId);
+        assert.ok(!webview.html.includes('NP_ALWAYS_NULL'), commandId);
       }
-
-      assert.deepStrictEqual(reconciled, [
-        'visible:0',
-        'visible:0',
-        'visible:0',
-        'visible:0',
-      ]);
     } finally {
-      mutableLifecycle.reconcileInspectorAfterOperation = originalReconcile;
-      delete require.cache[require.resolve('../extension')];
+      for (const subscription of subscriptions.reverse()) subscription.dispose();
     }
   });
 });
