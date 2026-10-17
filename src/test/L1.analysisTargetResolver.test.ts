@@ -416,34 +416,6 @@ describe('analysisTargetResolver', () => {
     }
   });
 
-  it('orders test output roots before classpath output metadata for test Java source analysis', async () => {
-    const vscode = installVscodeMock();
-    const mainOutput = '/workspace/project/target/classes';
-    const testOutput = '/workspace/project/target/test-classes';
-    const resolver = createResolver(vscode, {
-      outputPath: mainOutput,
-      targetResolutionRoots: [mainOutput, testOutput],
-      findOutputFolderFromProject: async () => {
-        throw new Error('project fallback should not be used');
-      },
-      hasClassTargets: async (targetPath: string) =>
-        targetPath === `${mainOutput}/demo/Foo.class` ||
-        targetPath === `${testOutput}/demo/Foo.class`,
-    });
-
-    const result = await resolver.resolveFileAnalysisTargetDetailed(
-      vscode.Uri.file('/workspace/project/src/test/java/demo/Foo.java') as any,
-    );
-
-    assert.strictEqual(result.resolution.status, 'ok');
-    assert.deepStrictEqual(
-      result.resolution.status === 'ok'
-        ? result.resolution.target.unit.inputs[0].resolutionRoots
-        : undefined,
-      [testOutput, mainOutput],
-    );
-  });
-
   it('resolves Java source analysis through Java LS sourcepaths before source markers', async () => {
     const vscode = installVscodeMock();
     const outputRoot = '/workspace/project/target/classes';

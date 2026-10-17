@@ -2,7 +2,6 @@ package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -14,14 +13,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
-import com.spotbugs.vscode.runner.api.CommandResponse;
-import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
 import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
@@ -90,7 +86,7 @@ public class RunAnalysisActionTest {
     }
 
     @Test
-    public void executeReportsNonzeroFindingCountFromResults() {
+    public void executeReportsFindingsAndReportMetadata() {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
@@ -99,10 +95,10 @@ public class RunAnalysisActionTest {
                 return new SpotBugsAnalysisResult(
                         Collections.nCopies(2, (BugInfo) null),
                         Collections.emptyList(),
-                        null,
+                        new AnalysisReportSummary(1200, 4, 2),
                         "{\"version\":\"2.1.0\",\"runs\":[]}",
                         "<?xml version=\"1.0\"?><BugCollection/>",
-                        Collections.emptyList()
+                        Collections.singletonList("com.example.Missing")
                 );
             }
         });
@@ -110,6 +106,9 @@ public class RunAnalysisActionTest {
         JsonObject response = execute(action, "/workspace/build/classes", "{\"includeBaselineXml\":true}");
 
         assertEquals(2, response.get("schemaVersion").getAsInt());
+        assertEquals("com.example.Missing", response.getAsJsonArray("missingClasses").get(0).getAsString());
+        assertFalse(response.has("warnings"));
+        assertEquals(1200, response.getAsJsonObject("reportSummary").get("analyzedCodeSize").getAsInt());
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertEquals(2, response.getAsJsonArray("results").size());
         assertEquals(2, response.getAsJsonObject("stats").get("findingCount").getAsInt());
@@ -245,51 +244,6 @@ public class RunAnalysisActionTest {
         assertEquals(4, stats.get("auxClasspathCount").getAsInt());
         assertEquals(5, stats.get("targetCount").getAsInt());
         assertEquals(2, stats.get("pluginCount").getAsInt());
-    }
-
-    @Test
-    public void commandResponseKeepsStatsJsonFieldForTypedRunAnalysisSummary() {
-        RunAnalysisSummary summary = new RunAnalysisSummary(
-                "/workspace/build/classes",
-                42L,
-                3,
-                "4.9.8",
-                7,
-                2,
-                1,
-                4,
-                5,
-                2
-        );
-        AnalysisReportSummary reportSummary = new AnalysisReportSummary(1200, 4, 2);
-
-        CommandResponse response = CommandResponse.success(
-                Collections.emptyList(),
-                summary,
-                reportSummary,
-                Collections.emptyList(),
-                null,
-                null,
-                Collections.singletonList("com.example.Missing")
-        );
-        JsonObject json = JsonParser.parseString(new Gson().toJson(response)).getAsJsonObject();
-        JsonObject stats = json.getAsJsonObject("stats");
-
-        assertEquals("com.example.Missing", json.getAsJsonArray("missingClasses").get(0).getAsString());
-        assertSame(summary, response.getStats());
-        assertSame(reportSummary, response.getReportSummary());
-        assertFalse(json.has("warnings"));
-        assertEquals("/workspace/build/classes", stats.get("target").getAsString());
-        assertEquals(42L, stats.get("durationMs").getAsLong());
-        assertEquals(3, stats.get("findingCount").getAsInt());
-        assertEquals("4.9.8", stats.get("spotbugsVersion").getAsString());
-        assertEquals(7, stats.get("targetResolutionRootCount").getAsInt());
-        assertEquals(2, stats.get("runtimeClasspathCount").getAsInt());
-        assertEquals(1, stats.get("extraAuxClasspathCount").getAsInt());
-        assertEquals(4, stats.get("auxClasspathCount").getAsInt());
-        assertEquals(5, stats.get("targetCount").getAsInt());
-        assertEquals(2, stats.get("pluginCount").getAsInt());
-        assertEquals(1200, json.getAsJsonObject("reportSummary").get("analyzedCodeSize").getAsInt());
     }
 
     @Test

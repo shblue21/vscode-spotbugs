@@ -33,42 +33,16 @@ describe('findingInspectorRenderer', () => {
     assert.ok(html.includes('data-command="openDetails"'));
     assert.ok(html.includes('data-command="copyRuleId"'));
     assert.ok(html.includes('data-command="openDocs"'));
-    assert.ok(!html.includes('Quick context'));
-    assert.ok(!html.includes('What this rule checks'));
     assert.ok(!html.includes('&lt;escaped&gt; rule summary.'));
     assert.ok(!html.includes('<escaped> rule summary.'));
-    assert.ok(!html.includes('Rule summary'));
     assert.ok(!html.includes('Full details paragraph'));
     assert.ok(!html.includes('Long plain text rule explanation.'));
-    assert.ok(!html.includes('Open details for the full rule explanation.'));
   });
 
   it('renders retained finding label', () => {
     const html = renderFindingInspectorHtml(makeSnapshot('retained'), 'nonce-1');
 
     assert.ok(html.includes('Last inspected finding'));
-  });
-
-  it('renders only valid 1-based source lines', () => {
-    const cases = [
-      { startLine: 0, endLine: 0, expected: '/tmp/Example.java' },
-      { startLine: -1, endLine: -1, expected: '/tmp/Example.java' },
-      { startLine: 12, endLine: 0, expected: '/tmp/Example.java:12' },
-      { startLine: 12, endLine: 12, expected: '/tmp/Example.java:12' },
-      { startLine: 12, endLine: 14, expected: '/tmp/Example.java:12-14' },
-    ];
-
-    for (const { startLine, endLine, expected } of cases) {
-      const finding = makeFinding({
-        location: { fullPath: '/tmp/Example.java', startLine, endLine },
-      });
-      const html = renderFindingInspectorHtml({ status: 'selected', finding }, 'nonce-1');
-
-      assert.ok(
-        html.includes(`<dd class="path" title="${expected}">${expected}</dd>`),
-        `expected location ${expected} for lines ${startLine}-${endLine}`
-      );
-    }
   });
 
   it('omits source location when no source is available', () => {

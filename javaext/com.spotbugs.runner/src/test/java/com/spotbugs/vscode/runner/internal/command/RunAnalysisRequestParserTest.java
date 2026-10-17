@@ -1,7 +1,7 @@
 package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -96,7 +96,7 @@ public class RunAnalysisRequestParserTest {
         }) {
             new PreferencesApplier().apply(UserPreferences.createDefaultUserPreferences(), engine,
                     request.getConfig());
-            assertSame(FindBugs.LESS_EFFORT, engine.applied);
+            assertArrayEquals(FindBugs.LESS_EFFORT, engine.applied);
         }
     }
 

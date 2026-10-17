@@ -37,17 +37,17 @@ public class AnalyzerServiceRankThresholdTest {
     private static final String BUG_TYPE = "ICAST_BAD_SHIFT_AMOUNT";
 
     @Test
-    public void structuredResultsUseExactRankThreshold() throws Exception {
-        assertStructuredPresence(5, false);
-        assertStructuredPresence(6, true);
-        assertStructuredPresence(9, true);
+    public void structuredAndNativeSarifUseExactRankThreshold() throws Exception {
+        assertReportPresence(5, false);
+        assertReportPresence(6, true);
+        assertReportPresence(9, true);
 
-        List<BugInfo> thresholdTwenty = analyzeBugs(20);
+        List<BugInfo> thresholdTwenty = assertReportPresence(20, true).getBugs();
         BugInfo fixtureBug = onlyFixtureBug(thresholdTwenty);
         assertEquals(6, fixtureBug.getRank());
         assertEquals("Low", fixtureBug.getPriority());
 
-        assertStructuredPresence(null, false);
+        assertReportPresence(null, false);
     }
 
     @Test
@@ -64,15 +64,6 @@ public class AnalyzerServiceRankThresholdTest {
                     .getAsJsonArray("runs").get(0).getAsJsonObject().getAsJsonArray("results").size());
             assertEquals(counts[i] != 0, result.getBaselineXml().contains("type=\"" + BUG_TYPE + "\""));
         }
-    }
-
-    @Test
-    public void nativeSarifUsesExactRankThreshold() throws Exception {
-        assertNativeSarifPresence(5, false);
-        assertNativeSarifPresence(6, true);
-        assertNativeSarifPresence(9, true);
-        assertNativeSarifPresence(20, true);
-        assertNativeSarifPresence(null, false);
     }
 
     @Test
@@ -116,16 +107,13 @@ public class AnalyzerServiceRankThresholdTest {
         }
     }
 
-    private void assertStructuredPresence(Integer threshold, boolean expected) throws Exception {
-        long count = analyzeBugs(threshold).stream()
-                .filter(bug -> BUG_TYPE.equals(bug.getType()))
-                .count();
-        assertEquals(message("structured results", threshold), expected ? 1L : 0L, count);
-    }
-
-    private void assertNativeSarifPresence(Integer threshold, boolean expected) throws Exception {
+    private SpotBugsAnalysisResult assertReportPresence(Integer threshold, boolean expected) throws Exception {
         AnalyzerService analyzer = configuredAnalyzer(threshold);
         SpotBugsAnalysisResult analysis = analyzer.analyzeToBugsWithWarnings(null, false, fixtureInputs());
+        long structuredCount = analysis.getBugs().stream()
+                .filter(bug -> BUG_TYPE.equals(bug.getType()))
+                .count();
+        assertEquals(message("structured results", threshold), expected ? 1L : 0L, structuredCount);
         String sarif = analysis.getNativeSarif();
         assertNull(analysis.getBaselineXml());
         assertNotNull(message("native SARIF", threshold), sarif);
@@ -158,10 +146,7 @@ public class AnalyzerServiceRankThresholdTest {
                     .getAsJsonObject(baseId).get("uri").getAsString();
             assertEquals(fixtureSourceRoot().toURI().toString(), baseUri);
         }
-    }
-
-    private List<BugInfo> analyzeBugs(Integer threshold) throws Exception {
-        return configuredAnalyzer(threshold).analyzeToBugsWithWarnings(null, false, fixtureInputs()).getBugs();
+        return analysis;
     }
 
     private AnalysisInput[] fixtureInputs() throws Exception {

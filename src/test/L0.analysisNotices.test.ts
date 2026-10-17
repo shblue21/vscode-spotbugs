@@ -181,11 +181,6 @@ describe('analysisNotices', () => {
       }
     );
 
-    const terminalNotices = notices.filter(
-      (notice) => notice.message === 'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid'
-    );
-
-    assert.strictEqual(terminalNotices.length, 1);
     assert.deepStrictEqual(notices, [
       {
         level: 'error',
@@ -194,20 +189,6 @@ describe('analysisNotices', () => {
           'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
       },
     ]);
-    assert.ok(
-      notices.every(
-        (notice) =>
-          notice.message !==
-          'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.'
-      )
-    );
-    assert.ok(
-      notices.every(
-        (notice) =>
-          notice.message !==
-          'SpotBugs: No compiled classes found (target-resolution roots unavailable). Make sure the target is inside a Java project and build the workspace.'
-      )
-    );
   });
 
   for (const includeLookupFailure of [false, true]) {
@@ -259,13 +240,6 @@ describe('analysisNotices', () => {
         message: 'No compiled classes found.',
       },
     ]);
-    assert.ok(
-      notices.every(
-        (notice) =>
-          notice.message !==
-          'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.'
-      )
-    );
   });
 
   it('emits cleanup warning notices without converting zero-finding outcomes into failures', () => {
@@ -367,13 +341,6 @@ describe('analysisNotices', () => {
       },
       OUTPUT_FALLBACK_NOTICE,
     ]);
-    assert.ok(
-      notices.every(
-        (notice) =>
-          notice.message !==
-          'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.'
-      )
-    );
   });
 
   it('still surfaces JAVA_LS_NO_RESULT on non-terminal analysis outcomes when behavior changed', () => {

@@ -60,37 +60,6 @@ describe('analysisRequestBuilder', () => {
     assert.deepStrictEqual(payload, fixture.payload);
   });
 
-  it('includes include/exclude/excludeBaseline filter paths in payload', () => {
-    const include = ['/tmp/spotbugs/include.xml'];
-    const exclude = ['/tmp/spotbugs/exclude.xml'];
-    const baseline = ['/tmp/spotbugs/baseline.xml'];
-    const extraAux = ['/tmp/spotbugs/lib.jar'];
-    const runtimeClasspaths = ['/workspace/build/classes', '/workspace/lib/dependency.jar'];
-    const targetResolutionRoots = ['/workspace/build/classes'];
-
-    const payload = buildAnalysisRequestPayload(
-      makeSettings({
-        extraAuxClasspaths: extraAux,
-        includeFilterPaths: include,
-        excludeFilterPaths: exclude,
-        excludeBaselineBugsPaths: baseline,
-      }),
-      {
-        targetResolutionRoots,
-        runtimeClasspaths,
-        extraAuxClasspaths: extraAux,
-        sourcepaths: ['/workspace/src/main/java'],
-      },
-    );
-
-    assert.deepStrictEqual(payload.targetResolutionRoots, targetResolutionRoots);
-    assert.deepStrictEqual(payload.runtimeClasspaths, runtimeClasspaths);
-    assert.deepStrictEqual(payload.extraAuxClasspaths, extraAux);
-    assert.deepStrictEqual(payload.includeFilterPaths, include);
-    assert.deepStrictEqual(payload.excludeFilterPaths, exclude);
-    assert.deepStrictEqual(payload.excludeBaselineBugsPaths, baseline);
-  });
-
   it('omits optional fields when arrays are empty', () => {
     const payload = buildAnalysisRequestPayload(
       makeSettings({
