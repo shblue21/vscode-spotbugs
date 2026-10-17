@@ -6,19 +6,8 @@ installVscodeMock();
 
 describe('findingCommandTarget', () => {
   it('uses explicit finding payload without user messaging', async () => {
-    const messages: string[] = [];
-    resetVscodeMock({
-      window: {
-        showInformationMessage: async (message: string) => {
-          messages.push(message);
-          return undefined;
-        },
-      } as never,
-    });
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const { resolveFindingCommandTarget } = await import('../commands/findingCommandTarget');
+    const { state, messages, resolveFindingCommandTarget } = await createCommandTargetHarness();
     const explicit = makeFinding('NP_ALWAYS_NULL');
-    const state = new findingInspectorState.FindingInspectorState();
 
     const target = await resolveFindingCommandTarget(explicit, state, 'open details');
 
@@ -27,19 +16,8 @@ describe('findingCommandTarget', () => {
   });
 
   it('uses a FindingItem-style payload as the explicit target', async () => {
-    const messages: string[] = [];
-    resetVscodeMock({
-      window: {
-        showInformationMessage: async (message: string) => {
-          messages.push(message);
-          return undefined;
-        },
-      } as never,
-    });
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const { resolveFindingCommandTarget } = await import('../commands/findingCommandTarget');
+    const { state, messages, resolveFindingCommandTarget } = await createCommandTargetHarness();
     const finding = makeFinding('NP_ALWAYS_NULL');
-    const state = new findingInspectorState.FindingInspectorState();
 
     const target = await resolveFindingCommandTarget({ finding }, state, 'open details');
 
@@ -48,19 +26,8 @@ describe('findingCommandTarget', () => {
   });
 
   it('uses retained inspected finding and explains the target', async () => {
-    const messages: string[] = [];
-    resetVscodeMock({
-      window: {
-        showInformationMessage: async (message: string) => {
-          messages.push(message);
-          return undefined;
-        },
-      } as never,
-    });
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const { resolveFindingCommandTarget } = await import('../commands/findingCommandTarget');
+    const { state, messages, resolveFindingCommandTarget } = await createCommandTargetHarness();
     const finding = makeFinding('NP_ALWAYS_NULL');
-    const state = new findingInspectorState.FindingInspectorState();
     state.select(finding);
     state.retainCurrent();
 
@@ -71,18 +38,7 @@ describe('findingCommandTarget', () => {
   });
 
   it('shows a message and returns undefined when no finding is available', async () => {
-    const messages: string[] = [];
-    resetVscodeMock({
-      window: {
-        showInformationMessage: async (message: string) => {
-          messages.push(message);
-          return undefined;
-        },
-      } as never,
-    });
-    const findingInspectorState = await import('../ui/findingInspectorState');
-    const { resolveFindingCommandTarget } = await import('../commands/findingCommandTarget');
-    const state = new findingInspectorState.FindingInspectorState();
+    const { state, messages, resolveFindingCommandTarget } = await createCommandTargetHarness();
 
     const target = await resolveFindingCommandTarget(undefined, state, 'go to code');
 
@@ -99,6 +55,25 @@ describe('findingCommandTarget', () => {
     assert.strictEqual(isFindingPayload({ patternId: 'NP_ALWAYS_NULL', location: {} }), true);
   });
 });
+
+async function createCommandTargetHarness() {
+  const messages: string[] = [];
+  resetVscodeMock({
+    window: {
+      showInformationMessage: async (message: string) => {
+        messages.push(message);
+        return undefined;
+      },
+    } as never,
+  });
+  const findingInspectorState = await import('../ui/findingInspectorState');
+  const { resolveFindingCommandTarget } = await import('../commands/findingCommandTarget');
+  return {
+    state: new findingInspectorState.FindingInspectorState(),
+    messages,
+    resolveFindingCommandTarget,
+  };
+}
 
 function makeFinding(patternId: string): Finding {
   return {
