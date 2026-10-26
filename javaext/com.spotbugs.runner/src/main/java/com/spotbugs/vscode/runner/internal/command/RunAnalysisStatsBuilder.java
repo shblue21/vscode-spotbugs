@@ -1,7 +1,7 @@
 package com.spotbugs.vscode.runner.internal.command;
 
 import com.spotbugs.vscode.runner.api.RunAnalysisSummary;
-import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.AnalysisPreparationStats;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 
 import edu.umd.cs.findbugs.Version;
@@ -12,7 +12,7 @@ final class RunAnalysisStatsBuilder {
             String targetPath,
             long startMillis,
             AnalysisConfig config,
-            AnalyzerService analyzer,
+            AnalysisPreparationStats preparationStats,
             int findingCount
     ) {
         long elapsed = System.currentTimeMillis() - startMillis;
@@ -21,11 +21,11 @@ final class RunAnalysisStatsBuilder {
                 elapsed,
                 findingCount,
                 Version.VERSION_STRING,
-                analyzer.getLastTargetResolutionRootCount(),
+                preparationStats.getTargetResolutionRootCount(),
                 config.getRuntimeClasspaths().size(),
                 config.getExtraAuxClasspaths().size(),
-                analyzer.getLastAuxClasspathCount(),
-                analyzer.getLastTargetCount(),
+                preparationStats.getAuxClasspathCount(),
+                preparationStats.getTargetCount(),
                 config.getPlugins().size()
         );
     }

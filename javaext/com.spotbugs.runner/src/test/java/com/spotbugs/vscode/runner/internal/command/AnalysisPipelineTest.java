@@ -31,7 +31,7 @@ public class AnalysisPipelineTest {
         AnalysisPipelineResult result = pipeline.run(new NullProgressMonitor(), request);
 
         assertEquals(AnalysisPipelineResult.Status.SUCCESS, result.getStatus());
-        assertSame(analyzer, result.getAnalyzer());
+        assertEquals(0, result.getPreparationStats().getTargetCount());
         assertSame(request.getConfig(), analyzer.config);
         assertEquals("/workspace/build/classes", analyzer.targetPath);
         assertEquals(2, result.getResults().size());
@@ -144,6 +144,34 @@ public class AnalysisPipelineTest {
         assertEquals(0, result.getResults().size());
         assertEquals(0, result.getWarnings().size());
         assertEquals(0, result.getFindingCount());
+    }
+
+    @Test
+    public void failureAndCancellationKeepPreparationStatsAsDetachedValues() throws Exception {
+        for (boolean cancel : new boolean[] { false, true }) {
+            final int[] completedTargets = { 3 };
+            AnalyzerService analyzer = new AnalyzerService() {
+                @Override
+                public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
+                        boolean baseline, AnalysisInput[] inputs) throws IOException {
+                    if (cancel) throw new CancellationException("stop");
+                    throw new IOException("execution failed");
+                }
+
+                @Override
+                public com.spotbugs.vscode.runner.internal.AnalysisPreparationStats getPreparationStats() {
+                    return new com.spotbugs.vscode.runner.internal.AnalysisPreparationStats(completedTargets[0], 2, 4);
+                }
+            };
+            AnalysisPipelineResult result = new AnalysisPipeline(() -> analyzer)
+                    .run(new NullProgressMonitor(), request("/workspace/build/classes"));
+            completedTargets[0] = 99;
+            assertEquals(cancel ? AnalysisPipelineResult.Status.CANCELLED : AnalysisPipelineResult.Status.FAILED,
+                    result.getStatus());
+            assertEquals(3, result.getPreparationStats().getTargetCount());
+            assertEquals(2, result.getPreparationStats().getTargetResolutionRootCount());
+            assertEquals(4, result.getPreparationStats().getAuxClasspathCount());
+        }
     }
 
     private static RunAnalysisRequest request(String targetPath) throws Exception {

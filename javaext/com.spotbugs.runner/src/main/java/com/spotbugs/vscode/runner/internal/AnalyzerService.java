@@ -46,16 +46,8 @@ public class AnalyzerService {
                 : java.util.Collections.emptyList();
     }
 
-    public int getLastTargetCount() {
-        return lastTargetCount;
-    }
-
-    public int getLastTargetResolutionRootCount() {
-        return lastTargetResolutionRootCount;
-    }
-
-    public int getLastAuxClasspathCount() {
-        return lastAuxClasspathCount;
+    public AnalysisPreparationStats getPreparationStats() {
+        return new AnalysisPreparationStats(lastTargetCount, lastTargetResolutionRootCount, lastAuxClasspathCount);
     }
 
     public SpotBugsAnalysisResult analyzeToBugsWithWarnings(

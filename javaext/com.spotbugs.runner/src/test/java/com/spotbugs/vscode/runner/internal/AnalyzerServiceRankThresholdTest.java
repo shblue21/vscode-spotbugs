@@ -78,7 +78,7 @@ public class AnalyzerServiceRankThresholdTest {
                         return false;
                     }
                 }, true, inputs);
-        assertEquals(1, analyzer.getLastTargetCount());
+        assertEquals(1, analyzer.getPreparationStats().getTargetCount());
         AnalysisReportSummary summary = result.getReportSummary();
         BugInfo fixtureBug = onlyFixtureBug(result.getBugs());
 

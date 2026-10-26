@@ -27,19 +27,19 @@ final class AnalysisPipeline {
             SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(
                     monitor, request.isIncludeBaselineXml(), request.getInputs());
             if (monitor != null && monitor.isCanceled()) {
-                return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+                return AnalysisPipelineResult.cancelled(analyzer.getPreparationStats(), startMillis);
             }
-            return AnalysisPipelineResult.success(analyzer, startMillis, result);
+            return AnalysisPipelineResult.success(analyzer.getPreparationStats(), startMillis, result);
         } catch (CancellationException cancellation) {
-            return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+            return AnalysisPipelineResult.cancelled(analyzer.getPreparationStats(), startMillis);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+            return AnalysisPipelineResult.cancelled(analyzer.getPreparationStats(), startMillis);
         } catch (Exception | LinkageError analysisFailure) {
             if (monitor != null && monitor.isCanceled()) {
-                return AnalysisPipelineResult.cancelled(analyzer, startMillis);
+                return AnalysisPipelineResult.cancelled(analyzer.getPreparationStats(), startMillis);
             }
-            return AnalysisPipelineResult.failed(analyzer, startMillis, analysisFailure);
+            return AnalysisPipelineResult.failed(analyzer.getPreparationStats(), startMillis, analysisFailure);
         }
     }
 }

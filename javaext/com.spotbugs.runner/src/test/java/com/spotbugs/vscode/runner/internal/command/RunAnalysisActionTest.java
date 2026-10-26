@@ -352,18 +352,8 @@ public class RunAnalysisActionTest {
         }
 
         @Override
-        public int getLastTargetCount() {
-            return 5;
-        }
-
-        @Override
-        public int getLastTargetResolutionRootCount() {
-            return 7;
-        }
-
-        @Override
-        public int getLastAuxClasspathCount() {
-            return 4;
+        public com.spotbugs.vscode.runner.internal.AnalysisPreparationStats getPreparationStats() {
+            return new com.spotbugs.vscode.runner.internal.AnalysisPreparationStats(5, 7, 4);
         }
     }
 }
