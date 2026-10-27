@@ -10,6 +10,9 @@ import java.util.Set;
 import com.spotbugs.vscode.runner.api.ConfigError;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 
+import edu.umd.cs.findbugs.BugRanker;
+import edu.umd.cs.findbugs.Priorities;
+
 /** Validates a wire schema and maps to a domain AnalysisConfig. */
 public class ConfigValidator {
 
@@ -23,9 +26,9 @@ public class ConfigValidator {
         if (confidence != null) {
             switch (confidence) {
                 case "default": break;
-                case "high": confidenceThreshold = edu.umd.cs.findbugs.Priorities.HIGH_PRIORITY; break;
-                case "medium": confidenceThreshold = edu.umd.cs.findbugs.Priorities.NORMAL_PRIORITY; break;
-                case "low": confidenceThreshold = edu.umd.cs.findbugs.Priorities.LOW_PRIORITY; break;
+                case "high": confidenceThreshold = Priorities.HIGH_PRIORITY; break;
+                case "medium": confidenceThreshold = Priorities.NORMAL_PRIORITY; break;
+                case "low": confidenceThreshold = Priorities.LOW_PRIORITY; break;
                 default: return ConfigValidationResult.error("CFG_CONFIDENCE_INVALID",
                         "minimumConfidence must be default, high, medium, or low");
             }
@@ -40,8 +43,13 @@ public class ConfigValidator {
         List<String> sps = normalizeList(schema.getSourcepaths());
         Map<String, String> sourceOutputs = normalizeMap(schema.getSourceOutputs());
 
-        // Optional fields: normalize empties to null
         Integer priorityThreshold = schema.getPriorityThreshold();
+        // Resolve confidence before defaulting rank: omitted rank historically means HIGH confidence.
+        if (confidenceThreshold == null) {
+            confidenceThreshold = priorityThreshold == null ? Priorities.HIGH_PRIORITY : Priorities.LOW_PRIORITY;
+        }
+        priorityThreshold = priorityThreshold == null ? BugRanker.VISIBLE_RANK_MAX
+                : Math.max(BugRanker.VISIBLE_RANK_MIN, Math.min(BugRanker.VISIBLE_RANK_MAX, priorityThreshold));
         List<String> includeFilterPaths = normalizeList(schema.getIncludeFilterPaths());
         List<String> excludeFilterPaths = normalizeList(schema.getExcludeFilterPaths());
         List<String> excludeBaselineBugsPaths = normalizeList(schema.getExcludeBaselineBugsPaths());

@@ -19,7 +19,7 @@ public class AnalysisConfig {
     private final List<String> sourcepaths;
     private final Map<String, String> sourceOutputs;
     private final Integer confidenceThreshold;
-    private final Integer priorityThreshold; // optional
+    private final Integer priorityThreshold; // resolved rank threshold
     private final List<String> includeFilterPaths; // optional
     private final List<String> excludeFilterPaths; // optional
     private final List<String> excludeBaselineBugsPaths; // optional

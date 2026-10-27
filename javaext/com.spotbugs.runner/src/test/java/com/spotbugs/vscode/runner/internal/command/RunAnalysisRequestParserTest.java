@@ -19,6 +19,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spotbugs.vscode.runner.internal.config.Effort;
 import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
+import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import edu.umd.cs.findbugs.FindBugs;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.config.AnalysisFeatureSetting;
@@ -103,7 +104,7 @@ public class RunAnalysisRequestParserTest {
     @Test
     public void validatesMinimumConfidence() throws Exception {
         String[] values = { "null", "\"default\"", "\"high\"", "\"medium\"", "\"low\"" };
-        Integer[] expected = { null, null, 1, 2, 3 };
+        Integer[] expected = { 1, 1, 1, 2, 3 };
         String inputs = ",\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}";
         for (int i = 0; i < values.length; i++) {
             assertEquals(expected[i], parser.parse(context("/project",
@@ -112,6 +113,20 @@ public class RunAnalysisRequestParserTest {
         for (String value : new String[] { "\"\"", "\"HIGH\"", "\"unknown\"", "1", "true" }) {
             assertEquals("CFG_CONFIDENCE_INVALID", expectFailure(() -> parser.parse(context("/project",
                     "{\"minimumConfidence\":" + value + inputs))).getCode());
+        }
+    }
+
+    @Test
+    public void resolvesThresholdsWithoutLosingWhetherRankWasSpecified() throws Exception {
+        String[] ranks = { "", "\"priorityThreshold\":null,", "\"priorityThreshold\":20,",
+                "\"priorityThreshold\":0,", "\"priorityThreshold\":99," };
+        Integer[] expectedRanks = { 20, 20, 20, 1, 20 };
+        Integer[] expectedConfidence = { 1, 1, 3, 3, 3 };
+        String inputs = "\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}";
+        for (int i = 0; i < ranks.length; i++) {
+            AnalysisConfig config = parser.parse(context("/project", "{" + ranks[i] + inputs)).getConfig();
+            assertEquals(expectedRanks[i], config.getPriorityThreshold());
+            assertEquals(expectedConfidence[i], config.getConfidenceThreshold());
         }
     }
 

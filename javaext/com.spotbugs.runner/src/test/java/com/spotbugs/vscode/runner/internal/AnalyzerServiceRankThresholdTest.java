@@ -54,6 +54,8 @@ public class AnalyzerServiceRankThresholdTest {
 
     @Test
     public void structuredAndNativeSarifUseExactRankThreshold() throws Exception {
+        assertReportPresence(0, false);
+        assertReportPresence(99, true);
         assertReportPresence(5, false);
         assertReportPresence(6, true);
         assertReportPresence(9, true);
