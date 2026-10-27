@@ -17,9 +17,6 @@ public class AnalyzerService {
 
     private final FindBugs2 findBugs;
     private final UserPreferences userPreferences;
-    private final List<String> targetResolutionRoots;
-    private final List<String> runtimeClasspaths;
-    private final List<String> extraAuxClasspaths;
     private final AnalysisConfig config;
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
@@ -32,9 +29,6 @@ public class AnalyzerService {
         this.findBugs.setUserPreferences(this.userPreferences);
         // Apply user preferences via dedicated applier
         new PreferencesApplier().apply(this.userPreferences, this.findBugs, config);
-        this.targetResolutionRoots = config.getTargetResolutionRoots();
-        this.runtimeClasspaths = config.getRuntimeClasspaths();
-        this.extraAuxClasspaths = config.getExtraAuxClasspaths();
     }
 
     public AnalysisPreparationStats getPreparationStats() {
@@ -76,7 +70,7 @@ public class AnalyzerService {
 
         Project project = new Project();
         ClasspathConfigurer cpCfg = new ClasspathConfigurer();
-        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.targetResolutionRoots);
+        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.config.getTargetResolutionRoots());
         List<String> sourcepaths = this.config != null
                 ? this.config.getSourcepaths()
                 : java.util.Collections.emptyList();
@@ -95,8 +89,8 @@ public class AnalyzerService {
         }
         ClasspathConfigurer.AppliedAuxClasspath appliedAuxClasspath = cpCfg.apply(
                 project,
-                this.runtimeClasspaths,
-                this.extraAuxClasspaths
+                this.config.getRuntimeClasspaths(),
+                this.config.getExtraAuxClasspaths()
         );
         this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
         int rankThreshold = this.config.getPriorityThreshold();
