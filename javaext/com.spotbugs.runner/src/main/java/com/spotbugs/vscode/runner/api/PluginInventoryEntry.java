@@ -4,6 +4,11 @@ import java.util.List;
 
 public final class PluginInventoryEntry {
 
+    private List<DetectorInventoryEntry> detectors;
+
+    public void setDetectors(List<DetectorInventoryEntry> detectors) { this.detectors = detectors; }
+    public List<DetectorInventoryEntry> getDetectors() { return detectors; }
+
     private final int index;
     private final String path;
     private final String canonicalPath;

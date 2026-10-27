@@ -83,6 +83,8 @@ Use the **Filters** and **Plugins** views to add or remove files, or configure p
 
 Paths can be absolute or workspace-relative. Right-click a plugin to enable or disable it for the next analysis. Disabled plugins stay listed in `spotbugs.plugins.paths`; `spotbugs.plugins.disabledPaths` records which ones to skip. Keep both settings at the same User or Workspace level.
 
+The Plugins view includes SpotBugs Core and uses the analysis runtime to inspect each active JAR. A failed or conflicting JAR is reported on its own row while healthy entries remain inspectable.
+
 ### Results and Diagnostics
 
 Set `spotbugs.results.revealSourceOnSelection` to `false` to turn off automatic source preview.

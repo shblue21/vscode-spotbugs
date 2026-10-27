@@ -10,6 +10,7 @@ import {
   l10n,
 } from 'vscode';
 import * as path from 'path';
+import { formatAnalysisErrors } from '../model/analysisErrors';
 import type {
   PluginInventoryItem,
   PluginInventoryResult,
@@ -21,7 +22,8 @@ class PluginInventoryTreeItem extends TreeItem {
     label: string,
     public readonly pluginPath?: string,
     public readonly rules: readonly string[] = [],
-    public readonly configurationTarget?: 'global' | 'workspace'
+    public readonly configurationTarget?: 'global' | 'workspace',
+    public readonly registrationId?: string
   ) {
     super(
       label,
@@ -66,7 +68,13 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
   }
 
   public showInventory(result: PluginInventoryResult): void {
-    if (result.items.length === 0) {
+    if (result.items.length === 0 && result.errors?.length) {
+      const message = formatAnalysisErrors(result.errors);
+      const item = this.createMessageItem(message);
+      item.tooltip = message;
+      item.iconPath = new ThemeIcon('error');
+      this.viewItems = [item];
+    } else if (result.items.length === 0) {
       this.viewItems = [
         this.createMessageItem(l10n.t('No SpotBugs plugin jars configured.')),
       ];
@@ -79,10 +87,11 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
   private createPluginItem(item: PluginInventoryItem): TreeItem {
     const itemPath = item.path || item.canonicalPath || l10n.t('Plugin {0}', item.index + 1);
     const treeItem = new PluginInventoryTreeItem(
-      path.basename(itemPath),
-      item.configuredPath ?? item.path,
+      item.index === -1 ? l10n.t('SpotBugs Core') : path.basename(itemPath),
+      item.index === -1 ? undefined : item.configuredPath ?? item.path,
       item.bugPatternTypes,
-      item.configurationTarget
+      item.configurationTarget,
+      item.registrationId
     );
     const statusLabel = item.enabled === false ? l10n.t('Disabled') : statusDescription(item.status);
     const statusAndId = item.pluginId
@@ -94,7 +103,7 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
       ? `${statusAndId} · ${declaredCounts}`
       : statusAndId;
     treeItem.tooltip = tooltip(item);
-    treeItem.contextValue = `spotbugs.plugin.${item.enabled === false ? 'disabled' : item.status ?? 'uninspected'}`;
+    treeItem.contextValue = item.index === -1 ? 'spotbugs.plugin.core' : `spotbugs.plugin.${item.enabled === false ? 'disabled' : item.status ?? 'uninspected'}`;
     treeItem.iconPath = item.enabled === false ? new ThemeIcon('circle-slash') : statusIcon(item.status);
     return treeItem;
   }
@@ -149,9 +158,6 @@ function tooltip(item: PluginInventoryItem): string {
     item.path,
     item.canonicalPath && item.canonicalPath !== item.path ? item.canonicalPath : undefined,
     item.errorMessage,
-    item.status === 'validated' || item.status === 'duplicate-plugin-id'
-      ? l10n.t('Runtime loading was not checked.')
-      : undefined,
   ]
     .filter((value): value is string => !!value)
     .join('\n');

@@ -174,5 +174,6 @@
   "Could not create the SpotBugs baseline: {0}": "Could not create the SpotBugs baseline: {0}",
   "The baseline file(s) were created but could not be added to the workspace settings: {0}": "The baseline file(s) were created but could not be added to the workspace settings: {0}",
   "Select a Java project to analyze": "Select a Java project to analyze",
-  "Select Java sources or use Analyze Artifacts for bytecode.": "Select Java sources or use Analyze Artifacts for bytecode."
+  "Select Java sources or use Analyze Artifacts for bytecode.": "Select Java sources or use Analyze Artifacts for bytecode.",
+  "SpotBugs Core": "SpotBugs Core"
 }
