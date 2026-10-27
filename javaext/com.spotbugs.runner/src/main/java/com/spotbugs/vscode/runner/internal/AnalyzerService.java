@@ -10,7 +10,6 @@ import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 import org.eclipse.core.runtime.IProgressMonitor;
 
 import edu.umd.cs.findbugs.FindBugs2;
-import edu.umd.cs.findbugs.Priorities;
 import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.config.UserPreferences;
 
@@ -53,14 +52,11 @@ public class AnalyzerService {
             return SpotBugsAnalysisResult.empty();
         }
         checkCanceled(monitor);
-        Integer confidenceThreshold = this.config != null ? this.config.getConfidenceThreshold() : null;
-        int effectiveConfidenceThreshold = confidenceThreshold != null ? confidenceThreshold
-                : prepared.rankThreshold == null ? Priorities.HIGH_PRIORITY : Priorities.LOW_PRIORITY;
         SpotBugsAnalysisResult result = new SpotBugsExecutor(
                 this.findBugs,
                 prepared.project,
                 prepared.rankThreshold,
-                effectiveConfidenceThreshold,
+                this.config.getConfidenceThreshold(),
                 prepared.plugins
         ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);
@@ -103,7 +99,7 @@ public class AnalyzerService {
                 this.extraAuxClasspaths
         );
         this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
-        Integer rankThreshold = this.config != null ? this.config.getPriorityThreshold() : null;
+        int rankThreshold = this.config.getPriorityThreshold();
         java.util.List<String> plugins = this.config != null
                 ? this.config.getPlugins()
                 : java.util.Collections.emptyList();
@@ -142,10 +138,10 @@ public class AnalyzerService {
 
     private static final class PreparedAnalysis {
         private final Project project;
-        private final Integer rankThreshold;
+        private final int rankThreshold;
         private final List<String> plugins;
 
-        private PreparedAnalysis(Project project, Integer rankThreshold, List<String> plugins) {
+        private PreparedAnalysis(Project project, int rankThreshold, List<String> plugins) {
             this.project = project;
             this.rankThreshold = rankThreshold;
             this.plugins = plugins;

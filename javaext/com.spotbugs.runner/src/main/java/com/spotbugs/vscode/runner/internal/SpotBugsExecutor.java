@@ -15,7 +15,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 
 import edu.umd.cs.findbugs.BugCollectionBugReporter;
 import edu.umd.cs.findbugs.BugInstance;
-import edu.umd.cs.findbugs.BugRanker;
 import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.NoOpFindBugsProgress;
@@ -34,14 +33,14 @@ public class SpotBugsExecutor {
     private final List<String> pluginJars; // optional
     private final PluginLifecycle pluginLifecycle;
 
-    public SpotBugsExecutor(FindBugs2 findBugs, Project project, Integer rankThreshold, int confidenceThreshold, List<String> pluginJars) {
+    public SpotBugsExecutor(FindBugs2 findBugs, Project project, int rankThreshold, int confidenceThreshold, List<String> pluginJars) {
         this(findBugs, project, rankThreshold, confidenceThreshold, pluginJars, PluginLifecycle.DEFAULT);
     }
 
     SpotBugsExecutor(
             FindBugs2 findBugs,
             Project project,
-            Integer rankThreshold,
+            int rankThreshold,
             int confidenceThreshold,
             List<String> pluginJars,
             PluginLifecycle pluginLifecycle
@@ -50,12 +49,7 @@ public class SpotBugsExecutor {
         this.project = project;
         this.defaultBugReporter = new DeferredSarifBugReporter(project);
         this.effectivePriorityThreshold = confidenceThreshold;
-        this.effectiveRankThreshold = rankThreshold == null
-                ? BugRanker.VISIBLE_RANK_MAX
-                : Math.max(
-                        BugRanker.VISIBLE_RANK_MIN,
-                        Math.min(BugRanker.VISIBLE_RANK_MAX, rankThreshold.intValue())
-                );
+        this.effectiveRankThreshold = rankThreshold;
         this.pluginJars = pluginJars;
         this.pluginLifecycle = pluginLifecycle != null ? pluginLifecycle : PluginLifecycle.DEFAULT;
         configureReporter(this.defaultBugReporter);
