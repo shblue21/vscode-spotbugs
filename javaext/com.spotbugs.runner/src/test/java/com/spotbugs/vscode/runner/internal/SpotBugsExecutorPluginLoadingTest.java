@@ -1,5 +1,8 @@
 package com.spotbugs.vscode.runner.internal;
 
+import static com.spotbugs.vscode.runner.internal.ExecutorTestSupport.input;
+import static com.spotbugs.vscode.runner.internal.ExecutorTestSupport.options;
+
 import static com.spotbugs.vscode.runner.api.BugInfo.LocationOrigin.PRIMARY_CLASS;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
@@ -30,12 +33,10 @@ import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.FindBugs2;
+import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.Plugin;
 import edu.umd.cs.findbugs.PluginException;
-import edu.umd.cs.findbugs.Priorities;
-import edu.umd.cs.findbugs.Project;
 import edu.umd.cs.findbugs.classfile.DescriptorFactory;
-import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class SpotBugsExecutorPluginLoadingTest {
 
@@ -63,17 +64,13 @@ public class SpotBugsExecutorPluginLoadingTest {
                 FINDSECBUGS_DETECTOR,
                 FINDSECBUGS_BUG_PATTERN
         );
-        Project project = new Project();
-        SpotBugsExecutor executor = new SpotBugsExecutor(
-                findBugs,
-                project,
-                3, Priorities.LOW_PRIORITY,
-                Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())
-        );
+        PreparedAnalysisInput prepared = input();
+        SpotBugsExecutor executor = new SpotBugsExecutor(() -> findBugs, PluginLifecycle.DEFAULT);
 
-        executor.executeBugs();
+        executor.execute(prepared, options(3, Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())), null, false).getBugs();
 
         assertTrue(findBugs.wasExecuted());
+        assertTrue(findBugs.closed);
         assertNull(
                 "FindSecBugs plugin should not leak after analysis completes",
                 Plugin.getByPluginId(FINDSECBUGS_PLUGIN_ID)
@@ -83,16 +80,9 @@ public class SpotBugsExecutorPluginLoadingTest {
     @Test
     public void findSecBugsStruts2EndpointKeepsPrimaryClassRange() throws Exception {
         FindBugs2 findBugs = new FindBugs2();
-        findBugs.setUserPreferences(UserPreferences.createDefaultUserPreferences());
-        Project project = new Project();
-        project.addFile(struts2FixtureClassPath());
+        PreparedAnalysisInput prepared = input(struts2FixtureClassPath());
 
-        List<BugInfo> bugs = new SpotBugsExecutor(
-                findBugs,
-                project,
-                20, Priorities.LOW_PRIORITY,
-                Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())
-        ).executeBugs();
+        List<BugInfo> bugs = new SpotBugsExecutor(() -> findBugs, PluginLifecycle.DEFAULT).execute(prepared, options(20, Collections.singletonList(findSecBugsPluginJar().getAbsolutePath())), null, false).getBugs();
         BugInfo finding = onlyBugOfType(bugs, "STRUTS2_ENDPOINT");
 
         assertEquals(PRIMARY_CLASS, finding.getLocationOrigin());
@@ -107,24 +97,14 @@ public class SpotBugsExecutorPluginLoadingTest {
         File validPlugin = createPluginJar(pluginId, "valid-plugin.jar", false);
 
         try {
-            new SpotBugsExecutor(
-                    new CapturingFindBugs(pluginId),
-                    new Project(),
-                    3, Priorities.LOW_PRIORITY,
-                    Collections.singletonList(invalidPlugin.getAbsolutePath())
-            ).executeBugs();
+            new SpotBugsExecutor(() -> new CapturingFindBugs(pluginId), PluginLifecycle.DEFAULT).execute(input(), options(3, Collections.singletonList(invalidPlugin.getAbsolutePath())), null, false).getBugs();
             fail("Expected invalid plugin jar to fail analysis");
         } catch (IOException expected) {
             assertNull("Failed plugin should not be globally registered", Plugin.getByPluginId(pluginId));
         }
 
         CapturingFindBugs retryFindBugs = new CapturingFindBugs(pluginId);
-        new SpotBugsExecutor(
-                retryFindBugs,
-                new Project(),
-                3, Priorities.LOW_PRIORITY,
-                Collections.singletonList(validPlugin.getAbsolutePath())
-        ).executeBugs();
+        new SpotBugsExecutor(() -> retryFindBugs, PluginLifecycle.DEFAULT).execute(input(), options(3, Collections.singletonList(validPlugin.getAbsolutePath())), null, false).getBugs();
 
         assertTrue(retryFindBugs.wasExecuted());
         assertNull("Retried plugin should not leak after analysis completes", Plugin.getByPluginId(pluginId));
@@ -136,13 +116,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         File pluginJar = createPluginJar(pluginId, "linkage-error-plugin.jar", false);
 
         try {
-            new SpotBugsExecutor(
-                    new CapturingFindBugs(pluginId),
-                    new Project(),
-                    3, Priorities.LOW_PRIORITY,
-                    Collections.singletonList(pluginJar.getAbsolutePath()),
-                    new LinkageFailingLifecycle()
-            ).executeBugs();
+            new SpotBugsExecutor(() -> new CapturingFindBugs(pluginId), new LinkageFailingLifecycle()).execute(input(), options(3, Collections.singletonList(pluginJar.getAbsolutePath())), null, false).getBugs();
             fail("Expected plugin linkage error to fail analysis");
         } catch (IOException expected) {
             assertTrue(expected.getCause() instanceof UnsupportedClassVersionError);
@@ -150,12 +124,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         }
 
         CapturingFindBugs retryFindBugs = new CapturingFindBugs(pluginId);
-        new SpotBugsExecutor(
-                retryFindBugs,
-                new Project(),
-                3, Priorities.LOW_PRIORITY,
-                Collections.singletonList(pluginJar.getAbsolutePath())
-        ).executeBugs();
+        new SpotBugsExecutor(() -> retryFindBugs, PluginLifecycle.DEFAULT).execute(input(), options(3, Collections.singletonList(pluginJar.getAbsolutePath())), null, false).getBugs();
 
         assertTrue(retryFindBugs.wasExecuted());
         assertNull("Retried plugin should not leak after analysis completes", Plugin.getByPluginId(pluginId));
@@ -164,15 +133,9 @@ public class SpotBugsExecutorPluginLoadingTest {
     @Test
     public void closeOnlyCleanupFailureReturnsWarningAndDoesNotBlockLaterPluginLoad() throws Exception {
         File pluginJar = findSecBugsPluginJar();
-        SpotBugsExecutor executor = new SpotBugsExecutor(
-                new CapturingFindBugs(FINDSECBUGS_PLUGIN_ID),
-                new Project(),
-                3, Priorities.LOW_PRIORITY,
-                Collections.singletonList(pluginJar.getAbsolutePath()),
-                new CloseFailingLifecycle()
-        );
+        SpotBugsExecutor executor = new SpotBugsExecutor(() -> new CapturingFindBugs(FINDSECBUGS_PLUGIN_ID), new CloseFailingLifecycle());
 
-        SpotBugsAnalysisResult result = executor.executeBugsWithWarnings();
+        SpotBugsAnalysisResult result = executor.execute(input(), options(3, Collections.singletonList(pluginJar.getAbsolutePath())), null, false);
 
         List<CommandWarning> warnings = result.getWarnings();
         assertEquals(1, warnings.size());
@@ -185,19 +148,14 @@ public class SpotBugsExecutorPluginLoadingTest {
 
     @Test
     public void missingClassesReturnIncompleteWarning() throws Exception {
-        SpotBugsAnalysisResult result = new SpotBugsExecutor(
-                new FindBugs2() {
+        SpotBugsAnalysisResult result = new SpotBugsExecutor(() -> new FindBugs2() {
                     @Override
                     public void execute() {
                         for (String name : new String[] { "com/example/Z", "com/example/A", "com/example/Z" }) {
                             getBugReporter().reportMissingClass(DescriptorFactory.createClassDescriptor(name));
                         }
                     }
-                },
-                new Project(),
-                3, Priorities.LOW_PRIORITY,
-                Collections.emptyList()
-        ).executeBugsWithWarnings(null, true);
+                }, PluginLifecycle.DEFAULT).execute(input(), options(3, Collections.emptyList()), null, true);
 
         assertEquals(1, result.getWarnings().size());
         assertEquals("ANALYSIS_INCOMPLETE", result.getWarnings().get(0).getCode());
@@ -215,16 +173,10 @@ public class SpotBugsExecutorPluginLoadingTest {
         IOException closeFailure = new IOException("close failed");
 
         try {
-            new SpotBugsExecutor(
-                    new CapturingFindBugs(removeFailurePluginId),
-                    new Project(),
-                    3, Priorities.LOW_PRIORITY,
-                    Arrays.asList(
+            new SpotBugsExecutor(() -> new CapturingFindBugs(removeFailurePluginId), new TargetedFailingLifecycle(removeFailurePluginId, removeFailure, closeFailurePluginId, closeFailure)).execute(input(), options(3, Arrays.asList(
                             removeFailurePlugin.getAbsolutePath(),
                             closeFailurePlugin.getAbsolutePath()
-                    ),
-                    new TargetedFailingLifecycle(removeFailurePluginId, removeFailure, closeFailurePluginId, closeFailure)
-            ).executeBugsWithWarnings();
+                    )), null, false);
             fail("Expected plugin removal failure to fail analysis");
         } catch (RuntimeException expected) {
             assertTrue("Terminal failure should be remove failure", expected == removeFailure);
@@ -389,6 +341,7 @@ public class SpotBugsExecutorPluginLoadingTest {
         private final String expectedBugPattern;
         private DetectorFactoryCollection detectorFactoryCollection;
         private boolean executed;
+        private boolean closed;
 
         private CapturingFindBugs(String expectedPluginId) {
             this(expectedPluginId, null, null);
@@ -426,6 +379,16 @@ public class SpotBugsExecutorPluginLoadingTest {
                         detectorFactoryCollection.lookupBugPattern(expectedBugPattern)
                 );
             }
+        }
+
+        @Override
+        public void close() {
+            if (executed) {
+                assertNotNull("Plugin classes must remain available until engine disposal",
+                        Plugin.getByPluginId(expectedPluginId));
+            }
+            closed = true;
+            super.close();
         }
 
         private boolean wasExecuted() {

@@ -26,7 +26,7 @@ final class RunAnalysisStatsBuilder {
                 config.getExtraAuxClasspaths().size(),
                 preparationStats.getAuxClasspathCount(),
                 preparationStats.getTargetCount(),
-                config.getPlugins().size()
+                config.getExecutionOptions().getPlugins().size()
         );
     }
 }

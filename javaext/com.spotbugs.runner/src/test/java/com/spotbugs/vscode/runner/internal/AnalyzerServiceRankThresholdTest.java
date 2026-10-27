@@ -124,6 +124,44 @@ public class AnalyzerServiceRankThresholdTest {
         }
     }
 
+    @Test
+    public void ownedEngineAppliesIncludeExcludeAndBaselineFiltersToAllReports() throws Exception {
+        String baselineXml = configuredAnalyzer(20)
+                .analyzeToBugsWithWarnings(null, true, fixtureInputs()).getBaselineXml();
+        Path directory = Files.createTempDirectory("spotbugs-owned-filters");
+        Path include = directory.resolve("include.xml");
+        Path exclude = directory.resolve("exclude.xml");
+        Path baseline = directory.resolve("baseline.xml");
+        try {
+            Files.writeString(include, "<FindBugsFilter><Match><Bug pattern=\"NP_ALWAYS_NULL\"/></Match></FindBugsFilter>");
+            Files.writeString(exclude, "<FindBugsFilter><Match><Bug pattern=\"" + BUG_TYPE
+                    + "\"/></Match></FindBugsFilter>");
+            Files.writeString(baseline, baselineXml);
+            String[] fields = { "includeFilterPaths", "excludeFilterPaths", "excludeBaselineBugsPaths" };
+            Path[] paths = { include, exclude, baseline };
+            for (int i = 0; i < fields.length; i++) {
+                JsonObject json = new JsonObject();
+                json.addProperty("priorityThreshold", 20);
+                JsonArray filters = new JsonArray();
+                filters.add(paths[i].toString());
+                json.add(fields[i], filters);
+                AnalysisConfig config = new ConfigValidator().validate(
+                        new ConfigParser().parse(json.toString()).getSchema()).getConfig();
+                SpotBugsAnalysisResult result = new AnalyzerService(config)
+                        .analyzeToBugsWithWarnings(null, true, fixtureInputs());
+                assertTrue(fields[i], result.getBugs().isEmpty());
+                assertEquals(fields[i], 0, JsonParser.parseString(result.getNativeSarif()).getAsJsonObject()
+                        .getAsJsonArray("runs").get(0).getAsJsonObject().getAsJsonArray("results").size());
+                assertFalse(fields[i], result.getBaselineXml().contains("type=\"" + BUG_TYPE + "\""));
+            }
+        } finally {
+            Files.deleteIfExists(include);
+            Files.deleteIfExists(exclude);
+            Files.deleteIfExists(baseline);
+            Files.deleteIfExists(directory);
+        }
+    }
+
     private SpotBugsAnalysisResult assertReportPresence(Integer threshold, boolean expected) throws Exception {
         AnalyzerService analyzer = configuredAnalyzer(threshold);
         SpotBugsAnalysisResult analysis = analyzer.analyzeToBugsWithWarnings(null, false, fixtureInputs());

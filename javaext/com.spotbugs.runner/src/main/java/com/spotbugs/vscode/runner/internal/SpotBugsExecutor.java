@@ -5,7 +5,12 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
+
+import com.spotbugs.vscode.runner.internal.config.AnalysisExecutionOptions;
+import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 
 import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
@@ -25,129 +30,123 @@ import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class SpotBugsExecutor {
 
-    private final FindBugs2 findBugs;
-    private final Project project;
-    private final DeferredSarifBugReporter defaultBugReporter;
-    private final int effectivePriorityThreshold;
-    private final int effectiveRankThreshold;
-    private final List<String> pluginJars; // optional
+    private final Supplier<FindBugs2> engineFactory;
     private final PluginLifecycle pluginLifecycle;
 
-    public SpotBugsExecutor(FindBugs2 findBugs, Project project, int rankThreshold, int confidenceThreshold, List<String> pluginJars) {
-        this(findBugs, project, rankThreshold, confidenceThreshold, pluginJars, PluginLifecycle.DEFAULT);
+    public SpotBugsExecutor() {
+        this(FindBugs2::new, PluginLifecycle.DEFAULT);
     }
 
-    SpotBugsExecutor(
-            FindBugs2 findBugs,
-            Project project,
-            int rankThreshold,
-            int confidenceThreshold,
-            List<String> pluginJars,
-            PluginLifecycle pluginLifecycle
-    ) {
-        this.findBugs = findBugs;
-        this.project = project;
-        this.defaultBugReporter = new DeferredSarifBugReporter(project);
-        this.effectivePriorityThreshold = confidenceThreshold;
-        this.effectiveRankThreshold = rankThreshold;
-        this.pluginJars = pluginJars;
-        this.pluginLifecycle = pluginLifecycle != null ? pluginLifecycle : PluginLifecycle.DEFAULT;
-        configureReporter(this.defaultBugReporter);
+    // A fresh engine is required for each call; the executor owns and closes it.
+    SpotBugsExecutor(Supplier<FindBugs2> engineFactory, PluginLifecycle pluginLifecycle) {
+        this.engineFactory = Objects.requireNonNull(engineFactory);
+        this.pluginLifecycle = Objects.requireNonNull(pluginLifecycle);
     }
 
-    public List<BugInfo> executeBugs() throws IOException, InterruptedException {
-        return executeBugsWithWarnings(null, false).getBugs();
-    }
-
-    public SpotBugsAnalysisResult executeBugsWithWarnings() throws IOException, InterruptedException {
-        return executeBugsWithWarnings(null, false);
-    }
-
-    public SpotBugsAnalysisResult executeBugsWithWarnings(
-            IProgressMonitor monitor,
-            boolean includeBaselineXml
-    ) throws IOException, InterruptedException {
+    public SpotBugsAnalysisResult execute(PreparedAnalysisInput input, AnalysisExecutionOptions options,
+            IProgressMonitor monitor, boolean includeBaselineXml) throws IOException, InterruptedException {
         synchronized (SpotBugsRuntime.LOCK) {
             checkCanceled(monitor);
-            SpotBugsRuntime.LoadedPlugins loadedPlugins = SpotBugsRuntime.LoadedPlugins.load(pluginJars, project, pluginLifecycle);
-            List<BugInfo> bugs;
-            AnalysisReportSummary reportSummary;
-            String nativeSarif = null;
-            String baselineXml = null;
-            CommandWarning sarifWarning = null;
-            CommandWarning baselineWarning = null;
-            boolean analysisIncomplete;
-            List<String> missingClasses = new ArrayList<>();
-            try {
-                execute(defaultBugReporter, monitor);
-                try {
-                    nativeSarif = defaultBugReporter.writeSarif();
-                } catch (RuntimeException | LinkageError e) {
-                    sarifWarning = new CommandWarning(
-                            "SARIF_REPORT_UNAVAILABLE",
-                            "Failed to generate the native SpotBugs SARIF report: " + failureMessage(e)
-                    );
-                }
-                bugs = collectBugs(defaultBugReporter);
-                reportSummary = collectReportSummary(defaultBugReporter);
-                ((SortedBugCollection) defaultBugReporter.getBugCollection())
-                        .missingClassIterator().forEachRemaining(missingClasses::add);
-                analysisIncomplete = !defaultBugReporter.getQueuedErrors().isEmpty() || !missingClasses.isEmpty();
-                if (includeBaselineXml && !analysisIncomplete) {
-                    try {
-                        checkCanceled(monitor);
-                        baselineXml = writeBaselineXml(defaultBugReporter.getBugCollection().getCollection());
-                        checkCanceled(monitor);
-                    } catch (CancellationException cancellation) {
-                        throw cancellation;
-                    } catch (IOException | RuntimeException | LinkageError e) {
-                        baselineWarning = new CommandWarning(
-                                "BASELINE_REPORT_UNAVAILABLE",
-                                "Failed to generate the native SpotBugs baseline report: " + failureMessage(e)
-                        );
-                    }
-                }
+            SpotBugsRuntime.LoadedPlugins loadedPlugins = null;
+            SpotBugsAnalysisResult result;
+            try (FindBugs2 findBugs = engineFactory.get()) {
+                // FindBugs2.close owns the attached Project, including exceptional exits.
+                Project project = new Project();
+                findBugs.setProject(project);
+                for (String target : input.getTargets()) project.addFile(target);
+                project.addSourceDirs(input.getSourcepaths());
+                for (String path : input.getAuxClasspaths()) project.addAuxClasspathEntry(path);
+                DeferredSarifBugReporter reporter = new DeferredSarifBugReporter(project);
+                reporter.setPriorityThreshold(options.getConfidenceThreshold());
+                reporter.setRankThreshold(options.getRankThreshold());
+                findBugs.setBugReporter(reporter);
+                UserPreferences preferences = UserPreferences.createDefaultUserPreferences();
+                new PreferencesApplier().apply(preferences, findBugs, options);
+                loadedPlugins = SpotBugsRuntime.LoadedPlugins.load(options.getPlugins(), project, pluginLifecycle);
+                // Bind filters after plugins are available and the reporter is attached.
+                findBugs.setUserPreferences(preferences);
+                result = runAndCollect(findBugs, reporter, monitor, includeBaselineXml);
             } catch (IOException | InterruptedException | RuntimeException | Error failure) {
-                loadedPlugins.closeAfterFailure(failure);
+                if (loadedPlugins != null) loadedPlugins.closeAfterFailure(failure);
                 throw failure;
             }
+            // Reports are detached before the engine closes; plugin classes remain loaded until then.
             List<CommandWarning> warnings = loadedPlugins.closeAfterSuccess();
-            if (sarifWarning != null) {
-                warnings.add(sarifWarning);
-            }
-            if (baselineWarning != null) {
-                warnings.add(baselineWarning);
-            }
-            if (analysisIncomplete) {
-                warnings.add(new CommandWarning(
-                        "ANALYSIS_INCOMPLETE",
-                        "SpotBugs analysis may be incomplete because classes were missing or recoverable errors occurred."
-                ));
-            }
-            return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif, baselineXml,
-                    missingClasses);
+            warnings.addAll(result.getWarnings());
+            return new SpotBugsAnalysisResult(result.getBugs(), warnings, result.getReportSummary(),
+                    result.getNativeSarif(), result.getBaselineXml(), result.getMissingClasses());
         }
+    }
+
+    private SpotBugsAnalysisResult runAndCollect(FindBugs2 findBugs, DeferredSarifBugReporter defaultBugReporter,
+            IProgressMonitor monitor, boolean includeBaselineXml) throws IOException, InterruptedException {
+        List<BugInfo> bugs;
+        AnalysisReportSummary reportSummary;
+        String nativeSarif = null;
+        String baselineXml = null;
+        CommandWarning sarifWarning = null;
+        CommandWarning baselineWarning = null;
+        boolean analysisIncomplete;
+        List<String> missingClasses = new ArrayList<>();
+        execute(findBugs, monitor);
+        try {
+            nativeSarif = defaultBugReporter.writeSarif();
+        } catch (RuntimeException | LinkageError e) {
+            sarifWarning = new CommandWarning(
+                    "SARIF_REPORT_UNAVAILABLE",
+                    "Failed to generate the native SpotBugs SARIF report: " + failureMessage(e)
+            );
+        }
+        bugs = collectBugs(defaultBugReporter);
+        reportSummary = collectReportSummary(defaultBugReporter);
+        ((SortedBugCollection) defaultBugReporter.getBugCollection())
+                .missingClassIterator().forEachRemaining(missingClasses::add);
+        analysisIncomplete = !defaultBugReporter.getQueuedErrors().isEmpty() || !missingClasses.isEmpty();
+        if (includeBaselineXml && !analysisIncomplete) {
+            try {
+                checkCanceled(monitor);
+                baselineXml = writeBaselineXml(defaultBugReporter.getBugCollection().getCollection());
+                checkCanceled(monitor);
+            } catch (CancellationException cancellation) {
+                throw cancellation;
+            } catch (IOException | RuntimeException | LinkageError e) {
+                baselineWarning = new CommandWarning(
+                        "BASELINE_REPORT_UNAVAILABLE",
+                        "Failed to generate the native SpotBugs baseline report: " + failureMessage(e)
+                );
+            }
+        }
+        List<CommandWarning> warnings = new ArrayList<>();
+        if (sarifWarning != null) {
+            warnings.add(sarifWarning);
+        }
+        if (baselineWarning != null) {
+            warnings.add(baselineWarning);
+        }
+        if (analysisIncomplete) {
+            warnings.add(new CommandWarning(
+                    "ANALYSIS_INCOMPLETE",
+                    "SpotBugs analysis may be incomplete because classes were missing or recoverable errors occurred."
+            ));
+        }
+        return new SpotBugsAnalysisResult(bugs, warnings, reportSummary, nativeSarif, baselineXml,
+                missingClasses);
     }
 
     private static String writeBaselineXml(Collection<BugInstance> source) throws IOException {
-        SortedBugCollection baseline = new SortedBugCollection(new Project());
-        baseline.addAll(source, false);
-        baseline.setWithMessages(false);
-        baseline.setMinimalXML(true);
-        StringWriter writer = new StringWriter();
-        baseline.writeXML(writer);
-        return writer.toString();
+        try (Project baselineProject = new Project()) {
+            SortedBugCollection baseline = new SortedBugCollection(baselineProject);
+            baseline.addAll(source, false);
+            baseline.setWithMessages(false);
+            baseline.setMinimalXML(true);
+            StringWriter writer = new StringWriter();
+            baseline.writeXML(writer);
+            return writer.toString();
+        }
     }
 
-    private void execute(BugCollectionBugReporter reporter, IProgressMonitor monitor)
+    private void execute(FindBugs2 findBugs, IProgressMonitor monitor)
             throws IOException, InterruptedException {
-        findBugs.setProject(project);
-        findBugs.setBugReporter(reporter);
-        UserPreferences currentPreferences = findBugs.getUserPreferences();
-        if (currentPreferences != null) {
-            // Re-apply current preferences so filter wrappers bind to the current bug reporter chain.
-            findBugs.setUserPreferences(currentPreferences);
-        }
         DetectorFactoryCollection dfc = DetectorFactoryCollection.instance();
         findBugs.setDetectorFactoryCollection(dfc);
         if (monitor == null) {
@@ -190,11 +189,6 @@ public class SpotBugsExecutor {
             Thread.interrupted();
             throw new CancellationException("Command cancelled");
         }
-    }
-
-    private void configureReporter(BugCollectionBugReporter reporter) {
-        reporter.setPriorityThreshold(this.effectivePriorityThreshold);
-        reporter.setRankThreshold(this.effectiveRankThreshold);
     }
 
     private List<BugInfo> collectBugs(BugCollectionBugReporter reporter) {

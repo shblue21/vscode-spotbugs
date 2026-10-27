@@ -5,21 +5,12 @@ import java.util.Objects;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
-import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 
-import edu.umd.cs.findbugs.FindBugs2;
-import edu.umd.cs.findbugs.Project;
-import edu.umd.cs.findbugs.config.UserPreferences;
-
+/** Coordinates input preparation, execution, and source location enrichment. */
 public class AnalyzerService {
 
-    private final FindBugs2 findBugs;
-    private final UserPreferences userPreferences;
-    private final List<String> targetResolutionRoots;
-    private final List<String> runtimeClasspaths;
-    private final List<String> extraAuxClasspaths;
     private final AnalysisConfig config;
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
@@ -27,14 +18,6 @@ public class AnalyzerService {
 
     public AnalyzerService(AnalysisConfig config) {
         this.config = Objects.requireNonNull(config, "config");
-        this.userPreferences = UserPreferences.createDefaultUserPreferences();
-        this.findBugs = new FindBugs2();
-        this.findBugs.setUserPreferences(this.userPreferences);
-        // Apply user preferences via dedicated applier
-        new PreferencesApplier().apply(this.userPreferences, this.findBugs, config);
-        this.targetResolutionRoots = config.getTargetResolutionRoots();
-        this.runtimeClasspaths = config.getRuntimeClasspaths();
-        this.extraAuxClasspaths = config.getExtraAuxClasspaths();
     }
 
     public AnalysisPreparationStats getPreparationStats() {
@@ -47,25 +30,20 @@ public class AnalyzerService {
             AnalysisInput[] inputs
     ) throws java.io.IOException, InterruptedException {
         AnalysisInput[] selectedInputs = inputs.clone();
-        PreparedAnalysis prepared = prepareAnalysis(monitor, selectedInputs);
+        PreparedAnalysisInput prepared = prepareAnalysis(monitor, selectedInputs);
         if (prepared == null) {
             return SpotBugsAnalysisResult.empty();
         }
         checkCanceled(monitor);
-        SpotBugsAnalysisResult result = new SpotBugsExecutor(
-                this.findBugs,
-                prepared.project,
-                prepared.rankThreshold,
-                this.config.getConfidenceThreshold(),
-                prepared.plugins
-        ).executeBugsWithWarnings(monitor, includeBaselineXml);
+        SpotBugsAnalysisResult result = new SpotBugsExecutor().execute(
+                prepared, config.getExecutionOptions(), monitor, includeBaselineXml);
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, selectedInputs);
         return result;
     }
 
-    private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
+    private PreparedAnalysisInput prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
         checkCanceled(monitor);
         this.lastTargetCount = 0;
         this.lastTargetResolutionRootCount = 0;
@@ -74,43 +52,29 @@ public class AnalyzerService {
             return null;
         }
 
-        Project project = new Project();
         ClasspathConfigurer cpCfg = new ClasspathConfigurer();
-        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.targetResolutionRoots);
-        List<String> sourcepaths = this.config != null
-                ? this.config.getSourcepaths()
-                : java.util.Collections.emptyList();
-        project.addSourceDirs(sourcepaths);
+        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(config.getTargetResolutionRoots());
+        List<String> sourcepaths = config.getSourcepaths();
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         List<String> targets = new InputMaterializer().resolveTargets(
                 inputs, targetResolutionRootDirs, sourcepaths,
-                this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(), monitor);
+                config.getSourceOutputs(), monitor);
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
         }
         checkCanceled(monitor);
-        for (String t : targets) {
-            project.addFile(t);
-        }
-        ClasspathConfigurer.AppliedAuxClasspath appliedAuxClasspath = cpCfg.apply(
-                project,
-                this.runtimeClasspaths,
-                this.extraAuxClasspaths
-        );
-        this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
-        int rankThreshold = this.config.getPriorityThreshold();
-        java.util.List<String> plugins = this.config != null
-                ? this.config.getPlugins()
-                : java.util.Collections.emptyList();
-        return new PreparedAnalysis(project, rankThreshold, plugins);
+        List<String> auxClasspaths = cpCfg.buildEffectiveAuxClasspath(
+                config.getRuntimeClasspaths(), config.getExtraAuxClasspaths());
+        this.lastAuxClasspathCount = auxClasspaths.size();
+        return new PreparedAnalysisInput(targets, sourcepaths, auxClasspaths);
     }
 
     private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, AnalysisInput[] inputs) {
         if (bugs == null || bugs.isEmpty()) {
             return;
         }
-        List<String> sourcepaths = this.config != null ? this.config.getSourcepaths() : java.util.Collections.emptyList();
+        List<String> sourcepaths = config.getSourcepaths();
         SourcePathResolver resolver = new SourcePathResolver();
         for (BugInfo bug : bugs) {
             checkCanceled(monitor);
@@ -133,18 +97,6 @@ public class AnalyzerService {
     private static void checkCanceled(IProgressMonitor monitor) {
         if (monitor != null && monitor.isCanceled()) {
             throw new java.util.concurrent.CancellationException("Command cancelled");
-        }
-    }
-
-    private static final class PreparedAnalysis {
-        private final Project project;
-        private final int rankThreshold;
-        private final List<String> plugins;
-
-        private PreparedAnalysis(Project project, int rankThreshold, List<String> plugins) {
-            this.project = project;
-            this.rankThreshold = rankThreshold;
-            this.plugins = plugins;
         }
     }
 

@@ -9,22 +9,19 @@ import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.FindBugs;
 import edu.umd.cs.findbugs.config.UserPreferences;
 
-/** Applies AnalysisConfig to SpotBugs user preferences and engine. */
+/** Applies AnalysisExecutionOptions to SpotBugs user preferences and engine. */
 public class PreferencesApplier {
 
-    public void apply(UserPreferences prefs, FindBugs2 engine, AnalysisConfig cfg) {
-        if (prefs == null || cfg == null) return;
+    public void apply(UserPreferences prefs, FindBugs2 engine, AnalysisExecutionOptions cfg) {
         // Map effort
         String effortString = toEffortString(cfg.getEffort());
         prefs.setEffort(effortString);
-        if (engine != null) {
-            // FindBugs2 executes whatever is currently stored in AnalysisOptions.
-            // Updating UserPreferences alone leaves the engine pinned to DEFAULT_EFFORT.
-            // UserPreferences only accepts min/default/max.
-            // LESS uses neutral default preferences and the explicit engine feature set.
-            engine.setAnalysisFeatureSettings(cfg.getEffort() == Effort.LESS
-                    ? FindBugs.LESS_EFFORT : prefs.getAnalysisFeatureSettings());
-        }
+        // FindBugs2 executes whatever is currently stored in AnalysisOptions.
+        // Updating UserPreferences alone leaves the engine pinned to DEFAULT_EFFORT.
+        // UserPreferences only accepts min/default/max.
+        // LESS uses neutral default preferences and the explicit engine feature set.
+        engine.setAnalysisFeatureSettings(cfg.getEffort() == Effort.LESS
+                ? FindBugs.LESS_EFFORT : prefs.getAnalysisFeatureSettings());
 
         // Filter files are applied by FindBugs2#setUserPreferences via configureFilters.
         prefs.setIncludeFilterFiles(toEnabledPathMap(cfg.getIncludeFilterPaths()));
@@ -36,7 +33,6 @@ public class PreferencesApplier {
     }
 
     private static String toEffortString(Effort e) {
-        if (e == null) return "default";
         switch (e) {
             case MIN: return "min";
             case MAX: return "max";
