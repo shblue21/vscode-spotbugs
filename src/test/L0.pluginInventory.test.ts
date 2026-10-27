@@ -22,7 +22,7 @@ function makeConfig(settings: AnalysisSettings, disabled: string[] = []) {
 }
 
 function inventoryResponse(results: object[]): string {
-  return JSON.stringify({ results, errors: [] });
+  return JSON.stringify({ results: [{ index: -1, path: '', status: 'VALIDATED', detectors: [] }, ...results], errors: [] });
 }
 
 describe('pluginInventoryCommands', () => {
@@ -207,11 +207,17 @@ describe('pluginInventoryTreeDataProvider', () => {
       'Refresh to inspect configured SpotBugs plugin jars.'
     );
 
+    provider.showInventory({ items: [], errors: [] });
+    const empty = (await provider.getChildren())[0];
+    assert.strictEqual(empty.label, 'No SpotBugs plugin jars configured.');
+    assert.strictEqual(empty.iconPath, undefined);
+
     provider.showInventory({
       items: [
         {
           index: 0,
           path: '/workspace/plugin-a.jar',
+          registrationId: 'plugin-a',
           canonicalPath: '/workspace/plugin-a.jar',
           status: 'validated',
           pluginId: 'com.example.a',
@@ -259,10 +265,10 @@ describe('pluginInventoryTreeDataProvider', () => {
         'https://example.com/plugin-a',
         'Declared: 2 detectors · 3 rules',
         '/workspace/plugin-a.jar',
-        'Runtime loading was not checked.',
       ].join('\n')
     );
-    const pluginItem = children[0] as { pluginPath?: string };
+    const pluginItem = children[0] as { pluginPath?: string; registrationId?: string };
+    assert.strictEqual(pluginItem.registrationId, 'plugin-a');
     assert.strictEqual(pluginItem.pluginPath, '/workspace/plugin-a.jar');
     assert.strictEqual(children[0].collapsibleState, 1);
     assert.deepStrictEqual(
@@ -332,6 +338,7 @@ describe('pluginInventoryParser', () => {
       website: 'https://example.com',
       version: '1.2.3',
       detectorCount: 2,
+      detectors: undefined,
       bugPatternCount: 3,
       bugPatternTypes: ['EXAMPLE_ONE', 'EXAMPLE_TWO'],
       errorMessage: undefined,
@@ -372,22 +379,22 @@ describe('pluginInventoryParser', () => {
 });
 
 describe('pluginInventoryService', () => {
-  it('keeps disabled plugins visible without calling the backend', async () => {
+  it('keeps disabled plugins visible while inspecting core without loading their paths', async () => {
     let backendCalled = false;
 
     const result = await getPluginInventory(makeConfig({ effort: 'default', plugins: ['/missing.jar'] }, ['/missing.jar']), undefined, {
       runPluginInventory: async () => {
         backendCalled = true;
-        return '{}';
+        return inventoryResponse([]);
       },
     });
 
-    assert.strictEqual(backendCalled, false);
-    assert.strictEqual(result.items[0].enabled, false);
+    assert.strictEqual(backendCalled, true);
+    assert.strictEqual(result.items[1].enabled, false);
     const providerModule = require('../ui/pluginInventoryTreeDataProvider') as typeof import('../ui/pluginInventoryTreeDataProvider');
     const view = new providerModule.PluginInventoryTreeDataProvider();
     view.showInventory(result);
-    assert.strictEqual((await view.getChildren())[0].contextValue, 'spotbugs.plugin.disabled');
+    assert.strictEqual((await view.getChildren())[1].contextValue, 'spotbugs.plugin.disabled');
   });
 
   it('inspects only active paths and maps rows back across disabled entries', async () => {
@@ -419,11 +426,11 @@ describe('pluginInventoryService', () => {
         plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
       },
     ]);
-    assert.strictEqual(result.items.length, 3);
-    assert.strictEqual(result.items[1].status, 'validated');
-    assert.strictEqual(result.items[1].path, '/workspace/plugin-a.jar');
-    assert.strictEqual(result.items[2].status, 'backend-error');
-    assert.strictEqual(result.items[2].path, '/workspace/plugin-b.jar');
+    assert.strictEqual(result.items.length, 4);
+    assert.strictEqual(result.items[2].status, 'validated');
+    assert.strictEqual(result.items[2].path, '/workspace/plugin-a.jar');
+    assert.strictEqual(result.items[3].status, 'backend-error');
+    assert.strictEqual(result.items[3].path, '/workspace/plugin-b.jar');
   });
 
   it('returns backend-error rows for each configured path when the command fails', async () => {
@@ -443,6 +450,7 @@ describe('pluginInventoryService', () => {
     assert.deepStrictEqual(
       result.items.map((item) => [item.path, item.status, item.errorMessage]),
       [
+        ['', 'backend-error', 'Java LS unavailable'],
         ['/workspace/plugin-a.jar', 'backend-error', 'Java LS unavailable'],
         ['/workspace/plugin-b.jar', 'backend-error', 'Java LS unavailable'],
       ]
@@ -451,7 +459,7 @@ describe('pluginInventoryService', () => {
 
   it('rejects invalid or duplicate backend indexes without reassigning plugins', async () => {
     for (const results of [
-      [{ index: -1, path: '/workspace/plugin-a.jar', status: 'VALIDATED' }],
+      [{ index: -2, path: '/workspace/plugin-a.jar', status: 'VALIDATED' }],
       [
         { index: 0, path: '/workspace/plugin-a.jar', status: 'VALIDATED' },
         { index: 0, path: '/workspace/plugin-b.jar', status: 'VALIDATED' },
@@ -469,6 +477,7 @@ describe('pluginInventoryService', () => {
       assert.deepStrictEqual(
         result.items.map((item) => [item.path, item.status]),
         [
+          ['', 'backend-error'],
           ['/workspace/plugin-a.jar', 'backend-error'],
           ['/workspace/plugin-b.jar', 'backend-error'],
         ]

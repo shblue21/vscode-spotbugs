@@ -2,218 +2,58 @@ package com.spotbugs.vscode.runner.internal;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
+import java.util.stream.Collectors;
+import com.spotbugs.vscode.runner.api.DetectorInventoryEntry;
 import com.spotbugs.vscode.runner.api.PluginInventoryEntry;
-
-import edu.umd.cs.findbugs.PluginLoader;
+import edu.umd.cs.findbugs.DetectorFactoryCollection;
+import edu.umd.cs.findbugs.Plugin;
+import edu.umd.cs.findbugs.Project;
 
 public class PluginInventoryService {
-
-    private static final String STATUS_VALIDATED = "VALIDATED";
-    private static final String STATUS_DUPLICATE_PLUGIN_ID = "DUPLICATE_PLUGIN_ID";
-    private static final String STATUS_VALIDATION_FAILED = "VALIDATION_FAILED";
-
     public List<PluginInventoryEntry> inspect(List<String> pluginPaths) {
-        List<String> paths = pluginPaths != null ? pluginPaths : java.util.Collections.emptyList();
-        Set<String> pluginIds = new HashSet<>();
-        Set<String> canonicalPaths = new HashSet<>();
-        List<PluginInventoryEntry> entries = new ArrayList<>();
-
-        for (int index = 0; index < paths.size(); index++) {
-            entries.add(inspectOne(index, paths.get(index), pluginIds, canonicalPaths));
-        }
-        return entries;
-    }
-
-    private PluginInventoryEntry inspectOne(
-            int index,
-            String configuredPath,
-            Set<String> pluginIds,
-            Set<String> canonicalPaths
-    ) {
-        String path = configuredPath != null ? configuredPath : "";
-        if (path.trim().isEmpty()) {
-            return failed(index, path, null, "Plugin path is empty.");
-        }
-
-        File canonicalFile;
-        try {
-            canonicalFile = new File(path).getCanonicalFile();
-        } catch (IOException e) {
-            return failed(index, path, null, message("Could not resolve plugin path", e));
-        }
-
-        String canonicalPath = canonicalFile.getAbsolutePath();
-        boolean firstCanonicalPath = canonicalPaths.add(canonicalPath);
-        if (!canonicalFile.exists()) {
-            return failed(index, path, canonicalPath, "Plugin jar not found: " + canonicalPath);
-        }
-        if (!canonicalFile.isFile()) {
-            return failed(index, path, canonicalPath, "Plugin path is not a file: " + canonicalPath);
-        }
-        if (!canonicalFile.getName().endsWith(".jar")) {
-            return failed(index, path, canonicalPath, "Plugin path is not a jar file: " + canonicalPath);
-        }
-
-        PluginLoader.Summary summary;
-        try {
-            synchronized (PluginLoader.class) {
-                summary = PluginLoader.validate(canonicalFile);
-            }
-        } catch (Exception e) {
-            return failed(index, path, canonicalPath, message("Plugin jar failed validation", e));
-        }
-
-        DescriptorInfo descriptor = DescriptorInfo.EMPTY;
-        try {
-            descriptor = inspectDescriptor(canonicalFile);
-        } catch (Exception ignored) {
-            // Descriptor metadata is optional and must not override SpotBugs validation.
-        }
-
-        String pluginId = trimToNull(summary != null ? summary.id : null);
-        String shortDescription = trimToNull(summary != null ? summary.description : null);
-        String provider = trimToNull(summary != null ? summary.provider : null);
-        String website = trimToNull(summary != null ? summary.webbsite : null);
-        boolean duplicate = pluginId != null && firstCanonicalPath && !pluginIds.add(pluginId);
-
-        return new PluginInventoryEntry(
-                index,
-                path,
-                canonicalPath,
-                duplicate ? STATUS_DUPLICATE_PLUGIN_ID : STATUS_VALIDATED,
-                pluginId,
-                shortDescription,
-                provider,
-                website,
-                descriptor.version,
-                descriptor.detectorCount,
-                descriptor.bugPatternCount,
-                descriptor.bugPatternTypes,
-                duplicate ? "Duplicate plugin id: " + pluginId : null
-        );
-    }
-
-    private static PluginInventoryEntry failed(
-            int index,
-            String path,
-            String canonicalPath,
-            String message
-    ) {
-        return new PluginInventoryEntry(
-                index,
-                path,
-                canonicalPath,
-                STATUS_VALIDATION_FAILED,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                message
-        );
-    }
-
-    private static DescriptorInfo inspectDescriptor(File pluginJar) throws Exception {
-        try (ZipFile zipFile = new ZipFile(pluginJar)) {
-            ZipEntry descriptorEntry = zipFile.getEntry("findbugs.xml");
-            if (descriptorEntry == null) {
-                throw new IllegalArgumentException("Plugin descriptor findbugs.xml was not found.");
-            }
-
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-            factory.setXIncludeAware(false);
-            factory.setExpandEntityReferences(false);
-            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-
-            try (InputStream input = zipFile.getInputStream(descriptorEntry)) {
-                Document document = factory.newDocumentBuilder().parse(input);
-                Element root = document.getDocumentElement();
-                if (root == null || !"FindbugsPlugin".equals(root.getTagName())) {
-                    throw new IllegalArgumentException("Plugin descriptor root must be FindbugsPlugin.");
+        List<String> paths = pluginPaths == null ? Collections.emptyList() : pluginPaths;
+        synchronized (SpotBugsRuntime.LOCK) {
+            SpotBugsRuntime.LoadedPlugins loaded = new SpotBugsRuntime.LoadedPlugins(PluginLifecycle.DEFAULT);
+            List<PluginInventoryEntry> entries = new ArrayList<>();
+            Project project = new Project();
+            try {
+                DetectorFactoryCollection.instance();
+                for (Plugin plugin : Plugin.getAllPlugins()) {
+                    if (plugin.isCorePlugin()) entries.add(entry(-1, "", null, plugin));
                 }
-
-                int detectorCount = 0;
-                List<String> bugPatternTypes = new ArrayList<>();
-                for (Node child = root.getFirstChild(); child != null; child = child.getNextSibling()) {
-                    if (child.getNodeType() != Node.ELEMENT_NODE) {
-                        continue;
-                    }
-                    if ("Detector".equals(child.getNodeName())) {
-                        detectorCount++;
-                    } else if ("BugPattern".equals(child.getNodeName())) {
-                        String type = trimToNull(((Element) child).getAttribute("type"));
-                        if (type != null) {
-                            bugPatternTypes.add(type);
-                        }
+                for (int index = 0; index < paths.size(); index++) {
+                    String path = paths.get(index);
+                    try {
+                        Plugin plugin = loaded.load(path, project);
+                        entries.add(entry(index, path, new File(path).getCanonicalPath(), plugin));
+                    } catch (SpotBugsRuntime.DuplicatePluginIdException failure) {
+                        entries.add(new PluginInventoryEntry(index, path, null, "DUPLICATE_PLUGIN_ID",
+                                failure.getPluginId(), null, null, null, null, null, null, null, failure.getMessage()));
+                    } catch (IOException | RuntimeException | LinkageError failure) {
+                        entries.add(new PluginInventoryEntry(index, path, null, "VALIDATION_FAILED",
+                                null, null, null, null, null, null, null, null, failure.getMessage()));
                     }
                 }
-                return new DescriptorInfo(
-                        trimToNull(root.getAttribute("version")),
-                        detectorCount,
-                        bugPatternTypes.size(),
-                        bugPatternTypes
-                );
+            } catch (RuntimeException | Error failure) {
+                loaded.closeAfterFailure(failure);
+                throw failure;
             }
+            if (!loaded.closeAfterSuccess().isEmpty()) {
+                throw new IllegalStateException("Plugin inventory cleanup failed");
+            }
+            return entries;
         }
     }
 
-    private static String message(String prefix, Exception exception) {
-        String detail = exception != null ? exception.getMessage() : null;
-        if (detail == null || detail.trim().isEmpty()) {
-            detail = exception != null ? exception.getClass().getSimpleName() : "Unknown error";
-        }
-        return prefix + ": " + detail;
-    }
-
-    private static String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private static final class DescriptorInfo {
-        private static final DescriptorInfo EMPTY = new DescriptorInfo(null, null, null, null);
-
-        private final String version;
-        private final Integer detectorCount;
-        private final Integer bugPatternCount;
-        private final List<String> bugPatternTypes;
-
-        private DescriptorInfo(
-                String version,
-                Integer detectorCount,
-                Integer bugPatternCount,
-                List<String> bugPatternTypes
-        ) {
-            this.version = version;
-            this.detectorCount = detectorCount;
-            this.bugPatternCount = bugPatternCount;
-            this.bugPatternTypes = bugPatternTypes;
-        }
+    private PluginInventoryEntry entry(int index, String path, String canonical, Plugin plugin) {
+        List<String> patterns = plugin.getBugPatterns().stream().map(pattern -> pattern.getType()).sorted().collect(Collectors.toList());
+        PluginInventoryEntry entry = new PluginInventoryEntry(index, path, canonical, "VALIDATED", plugin.getPluginId(),
+                plugin.getShortDescription(), plugin.getProvider(), plugin.getWebsite(), plugin.getVersion(),
+                plugin.getDetectorFactories().size(), patterns.size(), patterns, null);
+        entry.setDetectors(plugin.getDetectorFactories().stream().map(DetectorInventoryEntry::new).collect(Collectors.toList()));
+        return entry;
     }
 }

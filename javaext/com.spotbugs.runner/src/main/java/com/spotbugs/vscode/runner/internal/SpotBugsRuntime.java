@@ -6,7 +6,6 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,37 +18,37 @@ import edu.umd.cs.findbugs.Project;
 
 final class SpotBugsRuntime {
     static final Object LOCK = new Object();
-    private static List<File> pluginJarFiles(List<String> jars) throws IOException {
-        List<File> files = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>();
-        if (jars == null || jars.isEmpty()) {
-            return files;
+
+    static final class DuplicatePluginIdException extends IOException {
+        private static final long serialVersionUID = 1L;
+        private final String pluginId;
+
+        DuplicatePluginIdException(String pluginId) {
+            super("Duplicate plugin id: " + pluginId);
+            this.pluginId = pluginId;
         }
-        for (String p : jars) {
-            if (p == null) {
-                continue;
-            }
-            String path = p.trim();
-            if (path.isEmpty()) {
-                continue;
-            }
-            File f = new File(path).getCanonicalFile();
-            if (!f.isFile()) {
-                throw new IOException("SpotBugs plugin jar does not exist or is not a file: " + path);
-            }
-            if (seen.add(f.toURI().toString())) {
-                files.add(f);
-            }
+
+        String getPluginId() {
+            return pluginId;
         }
-        return files;
+    }
+
+    private static File pluginJarFile(String path) throws IOException {
+        if (path == null || path.trim().isEmpty()) throw new IOException("Plugin path is empty");
+        File file = new File(path).getCanonicalFile();
+        if (!file.isFile()) {
+            throw new IOException("SpotBugs plugin jar does not exist or is not a file: " + path);
+        }
+        return file;
     }
 
     static final class LoadedPlugins {
 
-        private final List<Plugin> loadedPlugins = new ArrayList<>();
         private final PluginLifecycle lifecycle;
+        // Preserve insertion order for reverse-order cleanup.
+        final Map<String, Plugin> byPath = new java.util.LinkedHashMap<>();
 
-        private LoadedPlugins(PluginLifecycle lifecycle) {
+        LoadedPlugins(PluginLifecycle lifecycle) {
             this.lifecycle = lifecycle;
         }
 
@@ -57,31 +56,39 @@ final class SpotBugsRuntime {
                 throws IOException {
             LoadedPlugins loaded = new LoadedPlugins(lifecycle);
             try {
-                for (File pluginJar : pluginJarFiles(pluginJars)) {
-                    loaded.load(pluginJar, project);
+                if (pluginJars != null) for (String path : pluginJars) {
+                    loaded.load(path, project);
                 }
                 return loaded;
-            } catch (IOException | RuntimeException e) {
+            } catch (IOException | RuntimeException | Error e) {
                 loaded.closeAfterFailure(e);
                 throw e;
             }
         }
 
-        private void load(File pluginJar, Project project) throws IOException {
+        Plugin load(String path, Project project) throws IOException {
+            File pluginJar = pluginJarFile(path);
+            if (byPath.containsKey(pluginJar.getPath())) {
+                throw new IOException("Duplicate plugin JAR registration: " + path);
+            }
             SpotBugsPluginState stateBeforeLoad = SpotBugsPluginState.snapshot();
             Plugin existing = stateBeforeLoad.pluginByUri(pluginJar.toURI());
             if (existing != null) {
-                if (project != null) {
-                    project.setPluginStatusTrinary(existing.getPluginId(), Boolean.TRUE);
+                throw new IOException("Plugin JAR is already loaded: " + pluginJar);
+            }
+            PluginLoader.Summary summary = PluginLoader.validate(pluginJar);
+            for (Plugin plugin : Plugin.getAllPlugins()) {
+                if (plugin.getPluginId().equals(summary.id)) {
+                    throw new DuplicatePluginIdException(summary.id);
                 }
-                return;
             }
 
             try {
                 Plugin plugin = lifecycle.loadCustomPlugin(pluginJar, project);
                 if (plugin != null) {
-                    loadedPlugins.add(plugin);
+                    byPath.put(pluginJar.getPath(), plugin);
                 }
+                return plugin;
             } catch (PluginException | LinkageError e) {
                 IOException failure = new IOException("Failed to load SpotBugs plugin jar " + pluginJar.getPath(), e);
                 cleanupAfterFailedLoad(stateBeforeLoad, failure);
@@ -93,6 +100,7 @@ final class SpotBugsRuntime {
         }
 
         List<CommandWarning> closeAfterSuccess() {
+            List<Plugin> loadedPlugins = new ArrayList<>(byPath.values());
             boolean resetDetectorFactories = !loadedPlugins.isEmpty();
             RuntimeException terminalFailure = null;
             List<CloseFailure> closeFailures = new ArrayList<>();
@@ -140,6 +148,7 @@ final class SpotBugsRuntime {
         }
 
         void closeAfterFailure(Throwable failure) {
+            List<Plugin> loadedPlugins = new ArrayList<>(byPath.values());
             boolean resetDetectorFactories = !loadedPlugins.isEmpty();
             try {
                 for (int i = loadedPlugins.size() - 1; i >= 0; i--) {
