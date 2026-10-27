@@ -6,25 +6,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import edu.umd.cs.findbugs.Project;
 
-/**
- * Applies aux classpath entries to a FindBugs Project and prepares directory roots
- * for source-to-bytecode target resolution.
- */
+/** Prepares directory roots and effective auxiliary classpath entries. */
 public class ClasspathConfigurer {
-
-    public AppliedAuxClasspath apply(
-            Project project,
-            List<String> runtimeClasspaths,
-            List<String> extraAuxClasspaths
-    ) {
-        List<String> auxEntries = buildEffectiveAuxClasspath(runtimeClasspaths, extraAuxClasspaths);
-        for (String entry : auxEntries) {
-            project.addAuxClasspathEntry(entry);
-        }
-        return new AppliedAuxClasspath(auxEntries.size());
-    }
 
     public List<File> directoriesFrom(List<String> targetResolutionRoots) {
         List<File> dirs = new ArrayList<>();
@@ -37,7 +21,7 @@ public class ClasspathConfigurer {
         return dirs;
     }
 
-    private List<String> buildEffectiveAuxClasspath(
+    public List<String> buildEffectiveAuxClasspath(
             List<String> runtimeClasspaths,
             List<String> extraAuxClasspaths
     ) {
@@ -94,15 +78,4 @@ public class ClasspathConfigurer {
         return new ArrayList<>(deduped);
     }
 
-    public static final class AppliedAuxClasspath {
-        private final int entryCount;
-
-        AppliedAuxClasspath(int entryCount) {
-            this.entryCount = entryCount;
-        }
-
-        public int getEntryCount() {
-            return entryCount;
-        }
-    }
 }

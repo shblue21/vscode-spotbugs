@@ -16,7 +16,6 @@ import edu.umd.cs.findbugs.config.UserPreferences;
 public class AnalyzerService {
 
     private final FindBugs2 findBugs;
-    private final UserPreferences userPreferences;
     private final AnalysisConfig config;
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
@@ -24,11 +23,11 @@ public class AnalyzerService {
 
     public AnalyzerService(AnalysisConfig config) {
         this.config = Objects.requireNonNull(config, "config");
-        this.userPreferences = UserPreferences.createDefaultUserPreferences();
+        UserPreferences userPreferences = UserPreferences.createDefaultUserPreferences();
         this.findBugs = new FindBugs2();
-        this.findBugs.setUserPreferences(this.userPreferences);
+        this.findBugs.setUserPreferences(userPreferences);
         // Apply user preferences via dedicated applier
-        new PreferencesApplier().apply(this.userPreferences, this.findBugs, config.getExecutionOptions());
+        new PreferencesApplier().apply(userPreferences, this.findBugs, config.getExecutionOptions());
     }
 
     public AnalysisPreparationStats getPreparationStats() {
@@ -41,17 +40,17 @@ public class AnalyzerService {
             AnalysisInput[] inputs
     ) throws java.io.IOException, InterruptedException {
         AnalysisInput[] selectedInputs = inputs.clone();
-        PreparedAnalysis prepared = prepareAnalysis(monitor, selectedInputs);
-        if (prepared == null) {
+        Project project = prepareAnalysis(monitor, selectedInputs);
+        if (project == null) {
             return SpotBugsAnalysisResult.empty();
         }
         checkCanceled(monitor);
         SpotBugsAnalysisResult result = new SpotBugsExecutor(
                 this.findBugs,
-                prepared.project,
-                prepared.rankThreshold,
+                project,
+                this.config.getExecutionOptions().getRankThreshold(),
                 this.config.getExecutionOptions().getConfidenceThreshold(),
-                prepared.plugins
+                this.config.getExecutionOptions().getPlugins()
         ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
@@ -59,7 +58,7 @@ public class AnalyzerService {
         return result;
     }
 
-    private PreparedAnalysis prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
+    private Project prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
         checkCanceled(monitor);
         this.lastTargetCount = 0;
         this.lastTargetResolutionRootCount = 0;
@@ -71,14 +70,12 @@ public class AnalyzerService {
         Project project = new Project();
         ClasspathConfigurer cpCfg = new ClasspathConfigurer();
         List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.config.getTargetResolutionRoots());
-        List<String> sourcepaths = this.config != null
-                ? this.config.getSourcepaths()
-                : java.util.Collections.emptyList();
+        List<String> sourcepaths = this.config.getSourcepaths();
         project.addSourceDirs(sourcepaths);
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         List<String> targets = new InputMaterializer().resolveTargets(
                 inputs, targetResolutionRootDirs, sourcepaths,
-                this.config != null ? this.config.getSourceOutputs() : java.util.Collections.emptyMap(), monitor);
+                this.config.getSourceOutputs(), monitor);
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
@@ -87,24 +84,20 @@ public class AnalyzerService {
         for (String t : targets) {
             project.addFile(t);
         }
-        ClasspathConfigurer.AppliedAuxClasspath appliedAuxClasspath = cpCfg.apply(
-                project,
-                this.config.getRuntimeClasspaths(),
-                this.config.getExtraAuxClasspaths()
-        );
-        this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
-        int rankThreshold = this.config.getExecutionOptions().getRankThreshold();
-        java.util.List<String> plugins = this.config != null
-                ? this.config.getExecutionOptions().getPlugins()
-                : java.util.Collections.emptyList();
-        return new PreparedAnalysis(project, rankThreshold, plugins);
+        List<String> auxClasspaths = cpCfg.buildEffectiveAuxClasspath(
+                this.config.getRuntimeClasspaths(), this.config.getExtraAuxClasspaths());
+        for (String entry : auxClasspaths) {
+            project.addAuxClasspathEntry(entry);
+        }
+        this.lastAuxClasspathCount = auxClasspaths.size();
+        return project;
     }
 
     private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, AnalysisInput[] inputs) {
         if (bugs == null || bugs.isEmpty()) {
             return;
         }
-        List<String> sourcepaths = this.config != null ? this.config.getSourcepaths() : java.util.Collections.emptyList();
+        List<String> sourcepaths = this.config.getSourcepaths();
         SourcePathResolver resolver = new SourcePathResolver();
         for (BugInfo bug : bugs) {
             checkCanceled(monitor);
@@ -127,18 +120,6 @@ public class AnalyzerService {
     private static void checkCanceled(IProgressMonitor monitor) {
         if (monitor != null && monitor.isCanceled()) {
             throw new java.util.concurrent.CancellationException("Command cancelled");
-        }
-    }
-
-    private static final class PreparedAnalysis {
-        private final Project project;
-        private final int rankThreshold;
-        private final List<String> plugins;
-
-        private PreparedAnalysis(Project project, int rankThreshold, List<String> plugins) {
-            this.project = project;
-            this.rankThreshold = rankThreshold;
-            this.plugins = plugins;
         }
     }
 
