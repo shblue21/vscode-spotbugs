@@ -11,10 +11,6 @@ final class AnalysisPipeline {
 
     private final AnalyzerServiceFactory analyzerFactory;
 
-    AnalysisPipeline() {
-        this(AnalyzerService::new);
-    }
-
     AnalysisPipeline(AnalyzerServiceFactory analyzerFactory) {
         this.analyzerFactory = analyzerFactory != null ? analyzerFactory : AnalyzerService::new;
     }
