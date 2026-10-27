@@ -1,5 +1,8 @@
 package com.spotbugs.vscode.runner.internal;
 
+import static com.spotbugs.vscode.runner.internal.ExecutorTestSupport.input;
+import static com.spotbugs.vscode.runner.internal.ExecutorTestSupport.options;
+
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -12,8 +15,6 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.FindBugsProgress;
-import edu.umd.cs.findbugs.Priorities;
-import edu.umd.cs.findbugs.Project;
 
 public class SpotBugsExecutorCancellationTest {
 
@@ -32,18 +33,14 @@ public class SpotBugsExecutorCancellationTest {
                 throw new InterruptedException("cancelled");
             }
         });
-        SpotBugsExecutor executor = new SpotBugsExecutor(
-                findBugs,
-                new Project(),
-                9, Priorities.LOW_PRIORITY,
-                Collections.emptyList()
-        );
+        SpotBugsExecutor executor = new SpotBugsExecutor(() -> findBugs, PluginLifecycle.DEFAULT);
 
         try {
-            executor.executeBugsWithWarnings(monitor, false);
+            executor.execute(input(), options(9, Collections.emptyList()), monitor, false);
             fail("Expected current SpotBugs execution to be interrupted");
         } catch (InterruptedException expected) {
             assertTrue(interrupted.get());
+            assertTrue(findBugs.closed);
         }
     }
 
@@ -51,6 +48,7 @@ public class SpotBugsExecutorCancellationTest {
 
         private final Execution execution;
         private FindBugsProgress progress;
+        private boolean closed;
 
         private StubFindBugs(Execution execution) {
             this.execution = execution;
@@ -59,6 +57,12 @@ public class SpotBugsExecutorCancellationTest {
         @Override
         public void setProgressCallback(FindBugsProgress progress) {
             this.progress = progress;
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+            super.close();
         }
 
         @Override

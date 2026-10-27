@@ -5,17 +5,12 @@ import java.util.Objects;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
-import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 
-import edu.umd.cs.findbugs.FindBugs2;
-import edu.umd.cs.findbugs.Project;
-import edu.umd.cs.findbugs.config.UserPreferences;
-
+/** Coordinates input preparation, execution, and source location enrichment. */
 public class AnalyzerService {
 
-    private final FindBugs2 findBugs;
     private final AnalysisConfig config;
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
@@ -23,11 +18,6 @@ public class AnalyzerService {
 
     public AnalyzerService(AnalysisConfig config) {
         this.config = Objects.requireNonNull(config, "config");
-        UserPreferences userPreferences = UserPreferences.createDefaultUserPreferences();
-        this.findBugs = new FindBugs2();
-        this.findBugs.setUserPreferences(userPreferences);
-        // Apply user preferences via dedicated applier
-        new PreferencesApplier().apply(userPreferences, this.findBugs, config.getExecutionOptions());
     }
 
     public AnalysisPreparationStats getPreparationStats() {
@@ -40,25 +30,20 @@ public class AnalyzerService {
             AnalysisInput[] inputs
     ) throws java.io.IOException, InterruptedException {
         AnalysisInput[] selectedInputs = inputs.clone();
-        Project project = prepareAnalysis(monitor, selectedInputs);
-        if (project == null) {
+        PreparedAnalysisInput prepared = prepareAnalysis(monitor, selectedInputs);
+        if (prepared == null) {
             return SpotBugsAnalysisResult.empty();
         }
         checkCanceled(monitor);
-        SpotBugsAnalysisResult result = new SpotBugsExecutor(
-                this.findBugs,
-                project,
-                this.config.getExecutionOptions().getRankThreshold(),
-                this.config.getExecutionOptions().getConfidenceThreshold(),
-                this.config.getExecutionOptions().getPlugins()
-        ).executeBugsWithWarnings(monitor, includeBaselineXml);
+        SpotBugsAnalysisResult result = new SpotBugsExecutor().execute(
+                prepared, config.getExecutionOptions(), monitor, includeBaselineXml);
         checkCanceled(monitor);
         List<BugInfo> bugs = result.getBugs();
         applyFullPaths(bugs, monitor, selectedInputs);
         return result;
     }
 
-    private Project prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
+    private PreparedAnalysisInput prepareAnalysis(IProgressMonitor monitor, AnalysisInput[] inputs) throws java.io.IOException {
         checkCanceled(monitor);
         this.lastTargetCount = 0;
         this.lastTargetResolutionRootCount = 0;
@@ -67,37 +52,29 @@ public class AnalyzerService {
             return null;
         }
 
-        Project project = new Project();
         ClasspathConfigurer cpCfg = new ClasspathConfigurer();
-        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(this.config.getTargetResolutionRoots());
-        List<String> sourcepaths = this.config.getSourcepaths();
-        project.addSourceDirs(sourcepaths);
+        List<java.io.File> targetResolutionRootDirs = cpCfg.directoriesFrom(config.getTargetResolutionRoots());
+        List<String> sourcepaths = config.getSourcepaths();
         this.lastTargetResolutionRootCount = targetResolutionRootDirs.size();
         List<String> targets = new InputMaterializer().resolveTargets(
                 inputs, targetResolutionRootDirs, sourcepaths,
-                this.config.getSourceOutputs(), monitor);
+                config.getSourceOutputs(), monitor);
         this.lastTargetCount = targets.size();
         if (targets.isEmpty()) {
             return null;
         }
         checkCanceled(monitor);
-        for (String t : targets) {
-            project.addFile(t);
-        }
         List<String> auxClasspaths = cpCfg.buildEffectiveAuxClasspath(
-                this.config.getRuntimeClasspaths(), this.config.getExtraAuxClasspaths());
-        for (String entry : auxClasspaths) {
-            project.addAuxClasspathEntry(entry);
-        }
+                config.getRuntimeClasspaths(), config.getExtraAuxClasspaths());
         this.lastAuxClasspathCount = auxClasspaths.size();
-        return project;
+        return new PreparedAnalysisInput(targets, sourcepaths, auxClasspaths);
     }
 
     private void applyFullPaths(List<BugInfo> bugs, IProgressMonitor monitor, AnalysisInput[] inputs) {
         if (bugs == null || bugs.isEmpty()) {
             return;
         }
-        List<String> sourcepaths = this.config.getSourcepaths();
+        List<String> sourcepaths = config.getSourcepaths();
         SourcePathResolver resolver = new SourcePathResolver();
         for (BugInfo bug : bugs) {
             checkCanceled(monitor);
