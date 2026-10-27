@@ -16,12 +16,11 @@ public class AnalyzerPreparationStatsTest {
     public void cancellationDuringTargetDiscoveryKeepsOnlyCompletedStages() throws Exception {
         Path root = Files.createTempDirectory("analysis-stats");
         try {
-            AnalyzerService analyzer = new AnalyzerService();
             JsonObject json = new JsonObject();
             JsonArray roots = new JsonArray();
             roots.add(root.toString());
             json.add("targetResolutionRoots", roots);
-            analyzer.setConfiguration(new ConfigValidator().validate(
+            AnalyzerService analyzer = new AnalyzerService(new ConfigValidator().validate(
                     new ConfigParser().parse(json.toString()).getSchema()).getConfig());
             NullProgressMonitor monitor = new NullProgressMonitor() {
                 @Override public boolean isCanceled() {

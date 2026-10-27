@@ -20,8 +20,7 @@ final class AnalysisPipeline {
     }
 
     AnalysisPipelineResult run(IProgressMonitor monitor, RunAnalysisRequest request) {
-        AnalyzerService analyzer = analyzerFactory.create();
-        analyzer.setConfiguration(request.getConfig());
+        AnalyzerService analyzer = analyzerFactory.create(request.getConfig());
         long startMillis = System.currentTimeMillis();
         try {
             SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(

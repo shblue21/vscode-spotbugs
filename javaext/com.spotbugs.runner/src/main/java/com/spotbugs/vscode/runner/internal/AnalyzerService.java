@@ -1,6 +1,7 @@
 package com.spotbugs.vscode.runner.internal;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
@@ -17,33 +18,24 @@ public class AnalyzerService {
 
     private final FindBugs2 findBugs;
     private final UserPreferences userPreferences;
-    private List<String> targetResolutionRoots;
-    private List<String> runtimeClasspaths;
-    private List<String> extraAuxClasspaths;
-    private AnalysisConfig config;
+    private final List<String> targetResolutionRoots;
+    private final List<String> runtimeClasspaths;
+    private final List<String> extraAuxClasspaths;
+    private final AnalysisConfig config;
     private int lastTargetCount = 0;
     private int lastTargetResolutionRootCount = 0;
     private int lastAuxClasspathCount = 0;
 
-    public AnalyzerService() {
+    public AnalyzerService(AnalysisConfig config) {
+        this.config = Objects.requireNonNull(config, "config");
         this.userPreferences = UserPreferences.createDefaultUserPreferences();
         this.findBugs = new FindBugs2();
         this.findBugs.setUserPreferences(this.userPreferences);
-    }
-
-    public void setConfiguration(AnalysisConfig cfg) {
-        this.config = cfg;
         // Apply user preferences via dedicated applier
-        new PreferencesApplier().apply(this.userPreferences, this.findBugs, cfg);
-        this.targetResolutionRoots = cfg != null
-                ? cfg.getTargetResolutionRoots()
-                : java.util.Collections.emptyList();
-        this.runtimeClasspaths = cfg != null
-                ? cfg.getRuntimeClasspaths()
-                : java.util.Collections.emptyList();
-        this.extraAuxClasspaths = cfg != null
-                ? cfg.getExtraAuxClasspaths()
-                : java.util.Collections.emptyList();
+        new PreferencesApplier().apply(this.userPreferences, this.findBugs, config);
+        this.targetResolutionRoots = config.getTargetResolutionRoots();
+        this.runtimeClasspaths = config.getRuntimeClasspaths();
+        this.extraAuxClasspaths = config.getExtraAuxClasspaths();
     }
 
     public AnalysisPreparationStats getPreparationStats() {
