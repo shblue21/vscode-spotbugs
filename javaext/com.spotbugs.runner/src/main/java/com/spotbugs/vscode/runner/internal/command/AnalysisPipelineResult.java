@@ -3,7 +3,7 @@ package com.spotbugs.vscode.runner.internal.command;
 import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
-import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.AnalysisPreparationStats;
 import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 
 final class AnalysisPipelineResult {
@@ -15,43 +15,43 @@ final class AnalysisPipelineResult {
     }
 
     private final Status status;
-    private final AnalyzerService analyzer;
+    private final AnalysisPreparationStats preparationStats;
     private final long startMillis;
     private final SpotBugsAnalysisResult result;
     private final Throwable failure;
 
     private AnalysisPipelineResult(
             Status status,
-            AnalyzerService analyzer,
+            AnalysisPreparationStats preparationStats,
             long startMillis,
             SpotBugsAnalysisResult result,
             Throwable failure
     ) {
         this.status = status;
-        this.analyzer = analyzer;
+        this.preparationStats = preparationStats;
         this.startMillis = startMillis;
         this.result = result != null ? result : SpotBugsAnalysisResult.empty();
         this.failure = failure;
     }
 
-    static AnalysisPipelineResult success(AnalyzerService analyzer, long startMillis, SpotBugsAnalysisResult result) {
-        return new AnalysisPipelineResult(Status.SUCCESS, analyzer, startMillis, result, null);
+    static AnalysisPipelineResult success(AnalysisPreparationStats preparationStats, long startMillis, SpotBugsAnalysisResult result) {
+        return new AnalysisPipelineResult(Status.SUCCESS, preparationStats, startMillis, result, null);
     }
 
-    static AnalysisPipelineResult cancelled(AnalyzerService analyzer, long startMillis) {
-        return new AnalysisPipelineResult(Status.CANCELLED, analyzer, startMillis, null, null);
+    static AnalysisPipelineResult cancelled(AnalysisPreparationStats preparationStats, long startMillis) {
+        return new AnalysisPipelineResult(Status.CANCELLED, preparationStats, startMillis, null, null);
     }
 
-    static AnalysisPipelineResult failed(AnalyzerService analyzer, long startMillis, Throwable failure) {
-        return new AnalysisPipelineResult(Status.FAILED, analyzer, startMillis, null, failure);
+    static AnalysisPipelineResult failed(AnalysisPreparationStats preparationStats, long startMillis, Throwable failure) {
+        return new AnalysisPipelineResult(Status.FAILED, preparationStats, startMillis, null, failure);
     }
 
     Status getStatus() {
         return status;
     }
 
-    AnalyzerService getAnalyzer() {
-        return analyzer;
+    AnalysisPreparationStats getPreparationStats() {
+        return preparationStats;
     }
 
     long getStartMillis() {

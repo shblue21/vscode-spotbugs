@@ -62,7 +62,7 @@ public final class RunAnalysisAction extends AbstractCommandAction {
                 targetPath,
                 pipelineResult.getStartMillis(),
                 config,
-                pipelineResult.getAnalyzer(),
+                pipelineResult.getPreparationStats(),
                 pipelineResult.getFindingCount()
         );
 
