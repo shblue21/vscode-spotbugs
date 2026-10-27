@@ -20,6 +20,7 @@ import com.spotbugs.vscode.runner.api.AnalysisReportSummary;
 import com.spotbugs.vscode.runner.api.BugInfo;
 import com.spotbugs.vscode.runner.api.CommandWarning;
 import com.spotbugs.vscode.runner.internal.AnalyzerService;
+import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 import com.spotbugs.vscode.runner.internal.AnalysisInput;
 import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 
@@ -40,7 +41,7 @@ public class RunAnalysisActionTest {
 
     @Test
     public void executeWrapsAnalyzerFailuresWithRootCauseAsAnalysisFailedEnvelope() throws Exception {
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 throw new RuntimeException("outer", new IllegalStateException("inner"));
@@ -69,7 +70,7 @@ public class RunAnalysisActionTest {
 
     @Test
     public void executeWrapsLinkageErrorsAsAnalysisFailedEnvelope() {
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 throw new NoClassDefFoundError("missing detector dependency");
@@ -90,7 +91,7 @@ public class RunAnalysisActionTest {
 
     @Test
     public void executeReportsFindingsAndReportMetadata() {
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
                     boolean includeBaselineXml, AnalysisInput[] inputs) {
@@ -124,7 +125,7 @@ public class RunAnalysisActionTest {
 
     @Test
     public void executeSerializesWarningsFromSuccessfulAnalysis() {
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 return new SpotBugsAnalysisResult(
@@ -153,9 +154,9 @@ public class RunAnalysisActionTest {
     @Test
     public void executeReturnsInvalidArgumentForMissingEmptyOrNonStringTargetPath() {
         AtomicInteger analyzerCreations = new AtomicInteger(0);
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> {
             analyzerCreations.incrementAndGet();
-            return emptyAnalyzer();
+            return emptyAnalyzer(config);
         });
 
         JsonObject missing = execute(action);
@@ -174,9 +175,9 @@ public class RunAnalysisActionTest {
     @Test
     public void executeReturnsConfigParseErrorsWithoutInvokingAnalyzer() {
         AtomicInteger analyzerCreations = new AtomicInteger(0);
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> {
             analyzerCreations.incrementAndGet();
-            return emptyAnalyzer();
+            return emptyAnalyzer(config);
         });
 
         JsonObject response = execute(action, "/workspace/build/classes", "{");
@@ -192,7 +193,7 @@ public class RunAnalysisActionTest {
     @Test
     public void executeReturnsCancelledEnvelopeWhenMonitorIsCancelledAfterAnalyzerReturns() {
         NullProgressMonitor monitor = new NullProgressMonitor();
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 progressMonitor.setCanceled(true);
@@ -215,9 +216,9 @@ public class RunAnalysisActionTest {
         NullProgressMonitor monitor = new NullProgressMonitor();
         monitor.setCanceled(true);
         AtomicInteger analyzerCreations = new AtomicInteger(0);
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> {
             analyzerCreations.incrementAndGet();
-            return emptyAnalyzer();
+            return emptyAnalyzer(config);
         });
 
         JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes",
@@ -229,8 +230,7 @@ public class RunAnalysisActionTest {
 
     @Test
     public void executeReportsAllCurrentStatsKeysAndCounts() {
-        CountingAnalyzerService analyzer = new CountingAnalyzerService();
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> analyzer);
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, CountingAnalyzerService::new);
         JsonObject request = validRequest("/workspace/build/classes");
         request.add("targetResolutionRoots", JsonParser.parseString(
                 "[\"/workspace/out-a\",\"/workspace/out-b\",\"/workspace/out-c\"]"));
@@ -265,9 +265,9 @@ public class RunAnalysisActionTest {
     @Test
     public void missingEmptyWrongAndMixedInputsAreRejectedBeforeAnalyzerCreation() {
         AtomicInteger analyzerCreations = new AtomicInteger();
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> {
             analyzerCreations.incrementAndGet();
-            return emptyAnalyzer();
+            return emptyAnalyzer(config);
         });
         String wrongKind = inputKind == AnalysisInput.Kind.SOURCE ? "artifact" : "source";
         String wrong = "{\"kind\":\"" + wrongKind + "\",\"path\":\"/workspace/wrong\"}";
@@ -287,7 +287,7 @@ public class RunAnalysisActionTest {
     public void multipleMatchingInputsReachSharedAnalyzerInOrderWithoutPathReclassification() {
         AtomicInteger executions = new AtomicInteger();
         String[] paths = {"/workspace/first.jar", "/workspace/second.java"};
-        RunAnalysisAction action = new RunAnalysisAction(inputKind, () -> new AnalyzerService() {
+        RunAnalysisAction action = new RunAnalysisAction(inputKind, config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
                     boolean includeBaselineXml, AnalysisInput[] inputs) {
@@ -336,8 +336,8 @@ public class RunAnalysisActionTest {
         return response.getAsJsonArray("errors").get(0).getAsJsonObject();
     }
 
-    private static AnalyzerService emptyAnalyzer() {
-        return new AnalyzerService() {
+    private static AnalyzerService emptyAnalyzer(AnalysisConfig config) {
+        return new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 return SpotBugsAnalysisResult.empty();
@@ -346,6 +346,10 @@ public class RunAnalysisActionTest {
     }
 
     private static final class CountingAnalyzerService extends AnalyzerService {
+        private CountingAnalyzerService(AnalysisConfig config) {
+            super(config);
+        }
+
         @Override
         public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
             return SpotBugsAnalysisResult.empty();

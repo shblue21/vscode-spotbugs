@@ -36,6 +36,22 @@ public class AnalyzerServiceRankThresholdTest {
 
     private static final String BUG_TYPE = "ICAST_BAD_SHIFT_AMOUNT";
 
+    @Test(expected = NullPointerException.class)
+    public void configurationIsRequiredAtConstruction() {
+        new AnalyzerService(null);
+    }
+
+    @Test
+    public void configuredServicesKeepIndependentThresholds() throws Exception {
+        AnalyzerService defaultAnalyzer = new AnalyzerService(config(null, null));
+        AnalyzerService customAnalyzer = new AnalyzerService(config(20, "low"));
+        assertTrue(defaultAnalyzer.analyzeToBugsWithWarnings(null, false, fixtureInputs()).getBugs().isEmpty());
+        assertEquals(BUG_TYPE, onlyFixtureBug(
+                customAnalyzer.analyzeToBugsWithWarnings(null, false, fixtureInputs()).getBugs()).getType());
+        assertTrue(defaultAnalyzer.analyzeToBugsWithWarnings(null, false, fixtureInputs()).getBugs().isEmpty());
+        assertEquals(1, defaultAnalyzer.getPreparationStats().getTargetCount());
+    }
+
     @Test
     public void structuredAndNativeSarifUseExactRankThreshold() throws Exception {
         assertReportPresence(5, false);
@@ -56,8 +72,7 @@ public class AnalyzerServiceRankThresholdTest {
         Integer[] ranks = { 6, 6, 6, 6, 5, null, null };
         int[] counts = { 1, 0, 0, 1, 0, 0, 1 };
         for (int i = 0; i < confidences.length; i++) {
-            AnalyzerService analyzer = new AnalyzerService();
-            analyzer.setConfiguration(config(ranks[i], confidences[i]));
+            AnalyzerService analyzer = new AnalyzerService(config(ranks[i], confidences[i]));
             SpotBugsAnalysisResult result = analyzer.analyzeToBugsWithWarnings(null, true, fixtureInputs());
             assertEquals(counts[i], result.getBugs().size());
             assertEquals(counts[i], JsonParser.parseString(result.getNativeSarif()).getAsJsonObject()
@@ -154,9 +169,7 @@ public class AnalyzerServiceRankThresholdTest {
     }
 
     private AnalyzerService configuredAnalyzer(Integer threshold) {
-        AnalyzerService analyzer = new AnalyzerService();
-        analyzer.setConfiguration(config(threshold, null));
-        return analyzer;
+        return new AnalyzerService(config(threshold, null));
     }
 
     private AnalysisConfig config(Integer threshold, String confidence) {

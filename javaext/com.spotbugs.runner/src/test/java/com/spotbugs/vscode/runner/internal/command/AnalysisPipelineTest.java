@@ -23,10 +23,13 @@ import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 public class AnalysisPipelineTest {
 
     @Test
-    public void runConfiguresAnalyzerAndReturnsSuccessResults() throws Exception {
-        CapturingAnalyzerService analyzer = new CapturingAnalyzerService(Collections.nCopies(2, (BugInfo) null));
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> analyzer);
+    public void runPassesValidatedConfigurationToFactoryAndReturnsSuccessResults() throws Exception {
         RunAnalysisRequest request = request("/workspace/build/classes");
+        CapturingAnalyzerService analyzer = new CapturingAnalyzerService(request.getConfig(), Collections.nCopies(2, (BugInfo) null));
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> {
+            assertSame(request.getConfig(), config);
+            return analyzer;
+        });
 
         AnalysisPipelineResult result = pipeline.run(new NullProgressMonitor(), request);
 
@@ -41,7 +44,7 @@ public class AnalysisPipelineTest {
 
     @Test
     public void runNormalizesNullAnalyzerResultsToEmptySuccessResults() throws Exception {
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new CapturingAnalyzerService(null));
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> new CapturingAnalyzerService(config, null));
 
         AnalysisPipelineResult result = pipeline.run(new NullProgressMonitor(), request("/workspace/build/classes"));
 
@@ -53,7 +56,7 @@ public class AnalysisPipelineTest {
     @Test
     public void runReturnsCancelledWhenMonitorIsCancelledAfterAnalyzerReturns() throws Exception {
         NullProgressMonitor monitor = new NullProgressMonitor();
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 progressMonitor.setCanceled(true);
@@ -70,7 +73,7 @@ public class AnalysisPipelineTest {
 
     @Test
     public void runReturnsCancelledForCancellationExceptions() throws Exception {
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs) {
                 throw new CancellationException("stop");
@@ -85,7 +88,7 @@ public class AnalysisPipelineTest {
 
     @Test
     public void runReturnsCancelledForInterruptedExceptionsAndRestoresInterruptStatus() throws Exception {
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs)
                     throws IOException, InterruptedException {
@@ -111,7 +114,7 @@ public class AnalysisPipelineTest {
     @Test
     public void runReturnsCancelledWhenAnalyzerFailureFollowsMonitorCancellation() throws Exception {
         NullProgressMonitor monitor = new NullProgressMonitor();
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor progressMonitor, boolean includeBaselineXml, AnalysisInput[] inputs)
                     throws IOException {
@@ -129,7 +132,7 @@ public class AnalysisPipelineTest {
     @Test
     public void runReturnsFailedResultWithOriginalException() throws Exception {
         IOException failure = new IOException("analysis boom");
-        AnalysisPipeline pipeline = new AnalysisPipeline(() -> new AnalyzerService() {
+        AnalysisPipeline pipeline = new AnalysisPipeline(config -> new AnalyzerService(config) {
             @Override
             public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor, boolean includeBaselineXml, AnalysisInput[] inputs)
                     throws IOException, InterruptedException {
@@ -150,7 +153,7 @@ public class AnalysisPipelineTest {
     public void failureAndCancellationKeepPreparationStatsAsDetachedValues() throws Exception {
         for (boolean cancel : new boolean[] { false, true }) {
             final int[] completedTargets = { 3 };
-            AnalyzerService analyzer = new AnalyzerService() {
+            AnalyzerService analyzer = new AnalyzerService(defaultConfig()) {
                 @Override
                 public SpotBugsAnalysisResult analyzeToBugsWithWarnings(IProgressMonitor monitor,
                         boolean baseline, AnalysisInput[] inputs) throws IOException {
@@ -163,7 +166,7 @@ public class AnalysisPipelineTest {
                     return new com.spotbugs.vscode.runner.internal.AnalysisPreparationStats(completedTargets[0], 2, 4);
                 }
             };
-            AnalysisPipelineResult result = new AnalysisPipeline(() -> analyzer)
+            AnalysisPipelineResult result = new AnalysisPipeline(config -> analyzer)
                     .run(new NullProgressMonitor(), request("/workspace/build/classes"));
             completedTargets[0] = 99;
             assertEquals(cancel ? AnalysisPipelineResult.Status.CANCELLED : AnalysisPipelineResult.Status.FAILED,
@@ -190,16 +193,13 @@ public class AnalysisPipelineTest {
 
     private static final class CapturingAnalyzerService extends AnalyzerService {
         private final List<BugInfo> bugs;
-        private AnalysisConfig config;
+        private final AnalysisConfig config;
         private String targetPath;
 
-        private CapturingAnalyzerService(List<BugInfo> bugs) {
+        private CapturingAnalyzerService(AnalysisConfig config, List<BugInfo> bugs) {
+            super(config);
+            this.config = config;
             this.bugs = bugs;
-        }
-
-        @Override
-        public void setConfiguration(AnalysisConfig cfg) {
-            this.config = cfg;
         }
 
         @Override
