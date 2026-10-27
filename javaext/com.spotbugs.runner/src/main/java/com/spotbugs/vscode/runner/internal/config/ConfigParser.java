@@ -1,6 +1,9 @@
 package com.spotbugs.vscode.runner.internal.config;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 
 /** Parses config JSON into a wire schema, capturing bad JSON as ConfigError. */
@@ -10,10 +13,17 @@ public class ConfigParser {
 
     public ConfigParseResult parse(String json) {
         try {
-            ConfigSchema schema = gson.fromJson(json, ConfigSchema.class);
-            if (schema == null) {
-                return ConfigParseResult.error("CFG_BAD_JSON", "Empty config JSON");
+            JsonObject object = JsonParser.parseString(json).getAsJsonObject();
+            if (object.has("plugins")) {
+                for (JsonElement value : object.getAsJsonArray("plugins")) {
+                    JsonObject plugin = value.getAsJsonObject();
+                    JsonElement path = plugin.get("path");
+                    if (path == null || !path.isJsonPrimitive() || !path.getAsJsonPrimitive().isString()) {
+                        return ConfigParseResult.error("CFG_PLUGINS_INVALID", "Each plugin requires a string path value");
+                    }
+                }
             }
+            ConfigSchema schema = gson.fromJson(object, ConfigSchema.class);
             return ConfigParseResult.ok(schema);
         } catch (Exception e) {
             return ConfigParseResult.error("CFG_BAD_JSON", "Invalid config JSON");

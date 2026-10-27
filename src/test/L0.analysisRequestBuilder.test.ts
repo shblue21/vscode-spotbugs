@@ -39,7 +39,7 @@ describe('analysisRequestBuilder', () => {
         includeFilterPaths,
         excludeFilterPaths,
         excludeBaselineBugsPaths,
-        plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'],
+        plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'].map((path) => ({ path })),
         priorityThreshold: 5,
       }),
       {

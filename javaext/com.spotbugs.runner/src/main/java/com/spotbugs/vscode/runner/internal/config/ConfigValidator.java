@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.spotbugs.vscode.runner.api.ConfigError;
+import com.spotbugs.vscode.runner.api.AnalysisPlugin;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 
 import edu.umd.cs.findbugs.BugRanker;
@@ -53,7 +54,13 @@ public class ConfigValidator {
         List<String> includeFilterPaths = normalizeList(schema.getIncludeFilterPaths());
         List<String> excludeFilterPaths = normalizeList(schema.getExcludeFilterPaths());
         List<String> excludeBaselineBugsPaths = normalizeList(schema.getExcludeBaselineBugsPaths());
-        List<String> plugins = normalizeList(schema.getPlugins());
+        List<AnalysisPlugin> plugins = new ArrayList<>();
+        if (schema.getPlugins() != null) for (AnalysisPlugin plugin : schema.getPlugins()) {
+            if (plugin == null || plugin.getPath() == null || plugin.getPath().trim().isEmpty()) {
+                return ConfigValidationResult.error("CFG_PLUGINS_INVALID", "Each plugin requires a nonempty path");
+            }
+            plugins.add(new AnalysisPlugin(plugin.getPath()));
+        }
 
         ConfigError includeFilterError = FilterFileValidator.validateIncludeFilters(includeFilterPaths);
         if (includeFilterError != null) {

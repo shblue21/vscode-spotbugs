@@ -1,4 +1,7 @@
 import * as assert from 'assert';
+import { mkdtemp, writeFile, rm } from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 function analysisTarget(
@@ -236,11 +239,16 @@ describe('analysisService', () => {
     const settingsResources: string[] = [];
     const events: string[] = [];
     let configuredEffort = 'min';
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'spotbugs-snapshot-'));
+    const pluginPath = path.join(directory, 'plugin.jar');
+    await writeFile(pluginPath, '');
+    const plugins = [{ path: pluginPath }];
     const baselineXml = '<BugCollection/>';
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => {
       const project = projectUri.toString().split('/').pop();
       events.push(`resolve:${project}`);
+      plugins[0].path = '/changed.jar';
       return {
         resolution: {
           status: 'ok',
@@ -252,6 +260,7 @@ describe('analysisService', () => {
     spotbugsClient.runSpotBugsAnalysis = (async (request) => {
       events.push(`execute:${request.targetPath}`);
       receivedEfforts.push(request.payload.effort);
+      assert.strictEqual(request.payload.plugins?.[0].path, pluginPath);
       assert.strictEqual(request.payload.includeBaselineXml, true);
       configuredEffort = 'max';
       return JSON.stringify({ results: [], baselineXml });
@@ -263,7 +272,7 @@ describe('analysisService', () => {
           const resourceString = resource?.toString() ?? '';
           settingsResources.push(resourceString);
           events.push(`settings:${resourceString.split('/').pop()}`);
-          return { effort: configuredEffort };
+          return { effort: configuredEffort, plugins };
         },
       } as any,
       vscode.Uri.file('/workspace') as any,
@@ -272,7 +281,7 @@ describe('analysisService', () => {
         onStart: (projectUri) => events.push(`start:${projectUri.split('/').pop()}`),
         onDone: (projectUri) => events.push(`done:${projectUri.split('/').pop()}`),
       },
-    );
+    ).finally(() => rm(directory, { recursive: true, force: true }));
 
     assert.deepStrictEqual(settingsResources, [
       'file:///workspace/project-a',

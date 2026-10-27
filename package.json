@@ -148,26 +148,35 @@
             "markdownDescription": "%contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription%",
             "scope": "window"
           },
-          "spotbugs.plugins.disabledPaths": {
+          "spotbugs.plugins.registrations": {
             "type": "array",
-            "items": {
-              "type": "string"
-            },
             "default": [],
-            "uniqueItems": true,
-            "markdownDescription": "%contributes.configuration.spotbugs.plugins.disabledPaths.markdownDescription%",
-            "scope": "window"
-          },
-          "spotbugs.plugins.paths": {
-            "type": "array",
+            "scope": "window",
             "items": {
-              "type": "string",
-              "pattern": "^.*\\.jar$"
+              "type": "object",
+              "required": [
+                "id",
+                "path",
+                "enabled"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "%contributes.configuration.spotbugs.plugins.registrationId.description%"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
             },
-            "default": [],
-            "uniqueItems": true,
-            "markdownDescription": "%contributes.configuration.spotbugs.plugins.paths.markdownDescription%",
-            "scope": "window"
+            "markdownDescription": "%contributes.configuration.spotbugs.plugins.registrations.markdownDescription%"
           }
         }
       },

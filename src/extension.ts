@@ -113,7 +113,7 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
       try {
         changed = await update();
       } catch (error) {
-        changed = true; // A multi-setting update may have partially succeeded.
+        changed = true; // Re-read settings after an update error.
         defaultNotifier.error(l10n.t('Could not update SpotBugs plugins: {0}',
           error instanceof Error ? error.message : String(error)));
         throw error;

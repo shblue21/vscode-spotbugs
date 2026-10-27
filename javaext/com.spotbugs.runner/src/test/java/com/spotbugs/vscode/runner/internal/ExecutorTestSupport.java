@@ -17,7 +17,11 @@ final class ExecutorTestSupport {
         json.addProperty("priorityThreshold", rank);
         json.addProperty("minimumConfidence", "low");
         JsonArray plugins = new JsonArray();
-        for (String path : paths) plugins.add(path);
+        for (String path : paths) {
+            JsonObject plugin = new JsonObject();
+            plugin.addProperty("path", path);
+            plugins.add(plugin);
+        }
         json.add("plugins", plugins);
         return new ConfigValidator().validate(new ConfigParser().parse(json.toString()).getSchema())
                 .getConfig().getExecutionOptions();

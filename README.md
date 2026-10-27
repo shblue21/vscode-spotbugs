@@ -79,11 +79,25 @@ Use the **Filters** and **Plugins** views to add or remove files, or configure p
 - `spotbugs.filters.includePaths`: XML include filters
 - `spotbugs.filters.excludePaths`: XML exclude filters
 - `spotbugs.filters.excludeBaselineBugsPaths`: XML baseline bug collections
-- `spotbugs.plugins.paths`: SpotBugs plugin JARs
+- `spotbugs.plugins.registrations`: SpotBugs plugin JAR registrations
 
-Paths can be absolute or workspace-relative. Right-click a plugin to enable or disable it for the next analysis. Disabled plugins stay listed in `spotbugs.plugins.paths`; `spotbugs.plugins.disabledPaths` records which ones to skip. Keep both settings at the same User or Workspace level.
+Paths can be absolute or workspace-relative. Right-click a plugin to enable or disable it for the next analysis. Each registration has a stable ID and owns its path and enabled state:
 
-The Plugins view includes SpotBugs Core and uses the analysis runtime to inspect each active JAR. A failed or conflicting JAR is reported on its own row while healthy entries remain inspectable.
+```json
+"spotbugs.plugins.registrations": [
+  { "id": "findsecbugs-main", "path": "plugins/findsecbugs.jar", "enabled": true }
+]
+```
+
+Adding a JAR generates an ID automatically. Keep the ID when editing its path; use a new ID for a separate registration. IDs must be nonempty and unique within a settings scope. Commands target the saved ID, so reordering or deleting another row does not change their target. Removing and re-adding a JAR creates a new registration.
+
+An explicit Workspace registration list replaces the User list, including `[]`. Removing the Workspace setting restores inheritance. Changes apply to the next analysis; a running analysis uses its original settings snapshot. Malformed registrations block analysis, including malformed disabled registrations.
+
+The Plugins view includes SpotBugs Core and uses the analysis runtime to inspect each active JAR. Failed or conflicting JARs are reported on their own rows. Disabled registrations remain listed without loading their JARs.
+
+The old `spotbugs.plugins.paths` and `spotbugs.plugins.disabledPaths` settings are ignored. After updating, re-add custom JARs in the Plugins view or configure `spotbugs.plugins.registrations` directly, then restore any disabled states. Old values are left untouched; custom plugins will not run until registered in the new setting.
+
+Changes in one window are saved in order. Concurrent edits from separate windows retain VS Code's usual last-write behavior.
 
 ### Results and Diagnostics
 

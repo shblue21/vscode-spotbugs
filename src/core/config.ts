@@ -3,6 +3,7 @@ import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Logger } from './logger';
 import { readPluginConfiguration, type ConfiguredPlugin, type PluginConfigurationState } from '../services/pluginConfiguration';
+import type { AnalysisPlugin } from '../model/analysisProtocol';
 
 export interface AnalysisSettings {
   effort: string;
@@ -12,7 +13,8 @@ export interface AnalysisSettings {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  plugins?: string[];
+  plugins?: AnalysisPlugin[];
+  configurationError?: string;
 }
 
 export class Config {
@@ -178,20 +180,25 @@ export class Config {
     if (excludeBaselineBugsPaths) {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }
-    const plugins = Array.from(new Set(this.getConfiguredPlugins(resource)
-      .filter((plugin) => plugin.enabled).map((plugin) => plugin.resolvedPath)));
+    const plugins = this.getConfiguredPlugins(resource).filter((plugin) => plugin.enabled).map((plugin) => ({
+      path: plugin.resolvedPath,
+    }));
+    settings.configurationError = this.pluginConfiguration.error;
     if (plugins.length > 0) {
       settings.plugins = plugins;
     }
     return settings;
   }
 
+  public getPluginConfigurationError(): string | undefined {
+    return this.pluginConfiguration.error;
+  }
+
   public getConfiguredPlugins(resource?: Uri): ConfiguredPlugin[] {
-    const { paths, disabledPaths, target } = this.pluginConfiguration;
-    return paths.map((pluginPath) => ({
-      path: pluginPath,
-      resolvedPath: this.resolveToAbsolute(pluginPath, resource)!,
-      enabled: !disabledPaths.includes(pluginPath),
+    const { registrations, target } = this.pluginConfiguration;
+    return registrations.map((plugin) => ({
+      ...plugin,
+      resolvedPath: this.resolveToAbsolute(plugin.path, resource)!,
       target,
     }));
   }

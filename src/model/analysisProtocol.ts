@@ -1,6 +1,10 @@
 import { Bug } from './bug';
 import type { AnalysisReportSummary } from './analysisReport';
 
+export interface AnalysisPlugin {
+  path: string;
+}
+
 export interface AnalysisRequestPayload {
   inputs: Array<{ kind: 'source' | 'artifact'; path: string }>;
   effort: string;
@@ -14,7 +18,7 @@ export interface AnalysisRequestPayload {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  plugins?: string[];
+  plugins?: AnalysisPlugin[];
   includeBaselineXml?: boolean;
 }
 
