@@ -34,10 +34,12 @@
     "includeBaselineXml": true,
     "plugins": [
       {
-        "path": "/workspace/plugin-a.jar"
+        "path": "/workspace/plugin-a.jar",
+        "detectors": {}
       },
       {
-        "path": "/workspace/plugin-b.jar"
+        "path": "/workspace/plugin-b.jar",
+        "detectors": {}
       }
     ],
     "inputs": [

@@ -63,6 +63,7 @@ public class SpotBugsExecutor {
                 UserPreferences preferences = UserPreferences.createDefaultUserPreferences();
                 new PreferencesApplier().apply(preferences, findBugs, options);
                 loadedPlugins = SpotBugsRuntime.LoadedPlugins.load(options.getPluginPaths(), project, pluginLifecycle);
+                DetectorSelection.apply(preferences, options, loadedPlugins.byPath);
                 // Bind filters after plugins are available and the reporter is attached.
                 findBugs.setUserPreferences(preferences);
                 result = runAndCollect(findBugs, reporter, monitor, includeBaselineXml);

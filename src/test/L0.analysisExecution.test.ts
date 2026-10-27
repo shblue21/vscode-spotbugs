@@ -135,7 +135,7 @@ describe('analysisExecution', () => {
         },
       }));
       const outcome = await executor.run(
-        { effort: 'default', ...(stage === 'plugin' ? { plugins: [{ path: '/workspace/missing-plugin.jar' }] } : {}) },
+        { effort: 'default', ...(stage === 'plugin' ? { plugins: [{ path: '/workspace/missing-plugin.jar', detectors: {} }] } : {}) },
         makeTarget(installVscodeMock()),
       );
 

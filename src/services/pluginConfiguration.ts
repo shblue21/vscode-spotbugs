@@ -1,10 +1,12 @@
 import { workspace } from 'vscode';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 
+export type DetectorOverrides = Record<string, boolean>;
 export interface PluginRegistration {
   id: string;
   path: string;
   enabled: boolean;
+  detectors: DetectorOverrides;
 }
 export interface ConfiguredPlugin extends PluginRegistration {
   resolvedPath: string;
@@ -26,6 +28,15 @@ export function readScopedSetting(key: string) {
   return { target, value: target === 'workspace' ? inspected?.workspaceValue : inspected?.globalValue } as const;
 }
 
+export function parseDetectorOverrides(value: unknown): DetectorOverrides {
+  if (value === undefined) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.entries(value).some(([key, enabled]) => !key.trim() || typeof enabled !== 'boolean')) {
+    throw new Error('Detector overrides must map fully qualified class names to booleans.');
+  }
+  return { ...value } as DetectorOverrides;
+}
+
 export function readPluginConfiguration(): PluginConfigurationState {
   const { target, value } = readScopedSetting(settingKeys.pluginsRegistrations);
   const state: PluginConfigurationState = {
@@ -45,7 +56,8 @@ export function readPluginConfiguration(): PluginConfigurationState {
       }
       if (ids.has(entry.id)) throw new Error('SpotBugs plugin registration IDs must be unique within a settings scope.');
       ids.add(entry.id);
-      return { id: entry.id, path: entry.path, enabled: entry.enabled };
+      return { id: entry.id, path: entry.path, enabled: entry.enabled,
+        detectors: parseDetectorOverrides('detectors' in entry ? entry.detectors : undefined) };
     });
   } catch (error) {
     state.error = error instanceof Error ? error.message : String(error);

@@ -56,6 +56,8 @@
   "contributes.submenus.spotbugs.context.label": "SpotBugs",
   "contributes.commands.spotbugs.analyzeArtifacts.title": "SpotBugs: 바이트코드 분석",
   "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Java 프로젝트 분석",
-  "contributes.configuration.spotbugs.plugins.registrations.markdownDescription": "신뢰하는 플러그인 JAR 등록 목록입니다. 각 항목에 경로와 활성 여부를 저장합니다. 워크스페이스 목록은 빈 목록을 포함하여 사용자 목록 전체를 대체합니다. 비활성 항목은 로드하지 않습니다.",
-  "contributes.configuration.spotbugs.plugins.registrationId.description": "등록을 식별하는 고유 ID입니다. 경로를 편집할 때 유지하고, 새 등록에는 다른 ID를 사용하세요."
+  "contributes.configuration.spotbugs.plugins.registrations.markdownDescription": "신뢰하는 플러그인 JAR 등록 목록입니다. 각 항목에 활성 여부와 detector 설정(클래스 전체 이름 → boolean)을 저장합니다. 워크스페이스 목록은 빈 목록을 포함하여 사용자 목록 전체를 대체합니다. 비활성 항목은 로드하지 않습니다.",
+  "contributes.configuration.spotbugs.analysis.detectors.markdownDescription": "기본 detector를 클래스 전체 이름으로 설정합니다. 키를 생략하면 SpotBugs 기본값을 사용합니다. 워크스페이스 객체는 빈 객체를 포함하여 사용자 객체 전체를 대체합니다. 비활성화는 SpotBugs preference이며 의존 규칙에 따라 실행될 수 있습니다.",
+  "contributes.commands.spotbugs.configureDetectors.title": "SpotBugs: Detector 설정",
+  "contributes.configuration.spotbugs.plugins.registrationId.description": "등록을 식별하는 고유 ID입니다. 경로나 detector 설정을 편집할 때 유지하고, 새 등록에는 다른 ID를 사용하세요."
 }

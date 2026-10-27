@@ -16,7 +16,7 @@ const { getPluginInventory, parsePluginInventoryResponse } = require(
 function makeConfig(settings: { effort: string; plugins?: string[] }, disabled: string[] = []) {
   return {
     getConfiguredPlugins: (_resource?: Uri) => (settings.plugins ?? []).map((pluginPath) => ({
-      id: pluginPath, path: pluginPath, resolvedPath: pluginPath, enabled: !disabled.includes(pluginPath), target: 'workspace' as const,
+      id: pluginPath, detectors: {}, path: pluginPath, resolvedPath: pluginPath, enabled: !disabled.includes(pluginPath), target: 'workspace' as const,
     })),
   };
 }
@@ -125,7 +125,7 @@ describe('pluginInventoryCommands', () => {
       assert.deepStrictEqual(writes, [{ key: 'plugins.registrations', global: false }]);
       assert.match(state.registrations[0].id, /^[0-9a-f-]{36}$/);
       assert.deepStrictEqual(state.registrations.map(({ id: _id, ...entry }) => entry), [
-        { path: 'a.jar', enabled: true },
+        { path: 'a.jar', enabled: true, detectors: {} },
       ]);
       assert.deepStrictEqual(values['plugins.paths'], ['a.jar']);
       assert.deepStrictEqual(values['plugins.disabledPaths'], ['a.jar']);
@@ -134,12 +134,12 @@ describe('pluginInventoryCommands', () => {
     }
   });
 
-  it('serializes registration toggles and removal', async () => {
+  it('serializes toggles, preserves child overrides, and removes them with the registration', async () => {
     const { setPluginEnabled, removePluginJar, addPluginJars } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const vscode = installVscodeMock();
     for (const target of ['global', 'workspace'] as const) {
       const state: PluginConfigurationState = { target, registrations: ['/a.jar', '/b.jar'].map((path) => ({
-        id: path, path, enabled: true,
+        id: path, path, enabled: true, detectors: { ['example.Check']: false },
       })), workspaceRoots: [] };
       const deps: PluginConfigurationDeps = {
         readConfiguration: () => state,
@@ -149,12 +149,13 @@ describe('pluginInventoryCommands', () => {
       };
       await Promise.all(['/a.jar', '/b.jar'].map((pluginPath) => setPluginEnabled({ registrationId: pluginPath, pluginPath, configurationTarget: target }, false, deps)));
       assert.deepStrictEqual(state.registrations.map((entry) => entry.enabled), [false, false]);
+      assert.deepStrictEqual(state.registrations[0].detectors, { ['example.Check']: false });
       await setPluginEnabled({ registrationId: '/a.jar', pluginPath: '/a.jar', configurationTarget: target }, true, deps);
       await removePluginJar({ registrationId: '/b.jar', pluginPath: '/b.jar', configurationTarget: target }, deps);
       await addPluginJars(deps);
       assert.match(state.registrations[1].id, /^[0-9a-f-]{36}$/);
       assert.notStrictEqual(state.registrations[1].id, '/b.jar');
-      assert.deepStrictEqual(state.registrations[1], { id: state.registrations[1].id, path: '/b.jar', enabled: true });
+      assert.deepStrictEqual(state.registrations[1], { id: state.registrations[1].id, path: '/b.jar', enabled: true, detectors: {} });
       await setPluginEnabled({ registrationId: '/a.jar', pluginPath: '/a.jar', configurationTarget: target === 'global' ? 'workspace' : 'global' }, false, deps);
       assert.strictEqual(state.registrations[0].enabled, true);
       const write = deps.writeConfiguration;
@@ -169,8 +170,8 @@ describe('pluginInventoryCommands', () => {
   it('updates only the selected row when manually configured paths are identical', async () => {
     const { setPluginEnabled } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const state: PluginConfigurationState = { target: 'workspace', workspaceRoots: [], registrations: [
-      { id: 'first', path: '/same.jar', enabled: true },
-      { id: 'second', path: '/same.jar', enabled: false },
+      { id: 'first', path: '/same.jar', enabled: true, detectors: {} },
+      { id: 'second', path: '/same.jar', enabled: false, detectors: { ['example.Check']: false } },
     ] };
     const deps: PluginConfigurationDeps = {
       readConfiguration: () => state, selectPluginJars: async () => [], validatePluginJars: async () => undefined,
@@ -178,7 +179,7 @@ describe('pluginInventoryCommands', () => {
     };
     await setPluginEnabled({ registrationId: 'second', pluginPath: '/same.jar', configurationTarget: 'workspace' }, true, deps);
     assert.strictEqual(state.registrations[0].enabled, true);
-    assert.deepStrictEqual(state.registrations[1], { id: 'second', path: '/same.jar', enabled: true });
+    assert.deepStrictEqual(state.registrations[1], { id: 'second', path: '/same.jar', enabled: true, detectors: { ['example.Check']: false } });
     await setPluginEnabled({ registrationId: 'first', pluginPath: '/same.jar', configurationTarget: 'workspace' }, false, deps);
     assert.strictEqual(state.registrations[1].enabled, true);
   });
@@ -186,7 +187,7 @@ describe('pluginInventoryCommands', () => {
   it('preserves consecutive removals when earlier writes shift row indexes', async () => {
     const { removePluginJar } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const state: PluginConfigurationState = { target: 'workspace', workspaceRoots: [], registrations:
-      ['/a.jar', '/b.jar'].map((path) => ({ id: path, path, enabled: true })) };
+      ['/a.jar', '/b.jar'].map((path) => ({ id: path, path, enabled: true, detectors: {} })) };
     const deps: PluginConfigurationDeps = {
       readConfiguration: () => state, selectPluginJars: async () => [], validatePluginJars: async () => undefined,
       writeConfiguration: async (registrations) => { state.registrations = registrations; },
@@ -199,10 +200,10 @@ describe('pluginInventoryCommands', () => {
   it('keeps duplicate-path registration ownership after queued deletion shifts the rows', async () => {
     const { removePluginJar, setPluginEnabled } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     for (const operation of ['delete', 'enable'] as const) {
-      const active = { id: 'active', path: '/same.jar', enabled: true };
+      const active = { id: 'active', path: '/same.jar', enabled: true, detectors: { ['active.Check']: true } };
       const state: PluginConfigurationState = { target: 'workspace', workspaceRoots: [], registrations: [
-        { id: 'other', path: '/other.jar', enabled: true },
-        { id: 'disabled', path: '/same.jar', enabled: false }, active,
+        { id: 'other', path: '/other.jar', enabled: true, detectors: {} },
+        { id: 'disabled', path: '/same.jar', enabled: false, detectors: { ['disabled.Check']: false } }, active,
       ] };
       const deps: PluginConfigurationDeps = {
         readConfiguration: () => state, selectPluginJars: async () => [], validatePluginJars: async () => undefined,
@@ -222,8 +223,8 @@ describe('pluginInventoryCommands', () => {
   it('uses the same ID across reorder and path edits, and rejects removed IDs and wrong scopes', async () => {
     const { removePluginJar, setPluginEnabled } = require('../commands/pluginInventory') as typeof import('../commands/pluginInventory');
     const state: PluginConfigurationState = { target: 'workspace', workspaceRoots: [], registrations: [
-      { id: 'original', path: '/old.jar', enabled: true },
-      { id: 'other', path: '/other.jar', enabled: true },
+      { id: 'original', path: '/old.jar', enabled: true, detectors: { ['example.Check']: false } },
+      { id: 'other', path: '/other.jar', enabled: true, detectors: {} },
     ] };
     const deps: PluginConfigurationDeps = {
       readConfiguration: () => state, selectPluginJars: async () => [], validatePluginJars: async () => undefined,
@@ -233,10 +234,10 @@ describe('pluginInventoryCommands', () => {
     state.registrations[0].path = '/renamed.jar';
     state.registrations.reverse();
     await setPluginEnabled(selected, false, deps);
-    assert.deepStrictEqual(state.registrations[1], { id: 'original', path: '/renamed.jar', enabled: false });
+    assert.deepStrictEqual(state.registrations[1], { id: 'original', path: '/renamed.jar', enabled: false, detectors: { ['example.Check']: false } });
     assert.strictEqual(await setPluginEnabled({ ...selected, configurationTarget: 'global' }, true, deps), false);
     await removePluginJar(selected, deps);
-    state.registrations.push({ id: 'replacement', path: '/old.jar', enabled: true });
+    state.registrations.push({ id: 'replacement', path: '/old.jar', enabled: true, detectors: {} });
     assert.strictEqual(await setPluginEnabled(selected, false, deps), false);
     assert.strictEqual(await removePluginJar(selected, deps), false);
     assert.strictEqual(state.registrations[1].enabled, true);
@@ -279,7 +280,7 @@ describe('pluginInventoryCommands', () => {
     };
     const deps = pluginConfigurationDeps(state, [], writes);
 
-    let registrations: PluginRegistration[] = state.paths.map((path) => ({ id: path, path, enabled: true }));
+    let registrations: PluginRegistration[] = state.paths.map((path) => ({ id: path, path, enabled: true, detectors: {} }));
     deps.readConfiguration = () => ({ ...state, registrations });
     deps.writeConfiguration = async (next, target) => { registrations = next; writes.push({ paths: next.map((entry) => entry.path), target }); };
     await setPluginEnabled({ registrationId: 'plugins/a.jar', pluginPath: 'plugins/a.jar', configurationTarget: 'workspace' }, false, deps);
@@ -298,7 +299,7 @@ function pluginConfigurationDeps(
 ): PluginConfigurationDeps {
   return {
     selectPluginJars: async () => selected,
-    readConfiguration: () => ({ ...state, registrations: state.paths.map((path) => ({ id: path, path, enabled: true })) }),
+    readConfiguration: () => ({ ...state, registrations: state.paths.map((path) => ({ id: path, path, enabled: true, detectors: {} })) }),
     writeConfiguration: async (paths, target) => {
       writes.push({ paths: paths.map((entry) => entry.path), target });
     },

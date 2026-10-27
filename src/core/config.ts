@@ -2,7 +2,7 @@ import { workspace, ExtensionContext, Uri } from 'vscode';
 import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Logger } from './logger';
-import { readPluginConfiguration, type ConfiguredPlugin, type PluginConfigurationState } from '../services/pluginConfiguration';
+import { readPluginConfiguration, type ConfiguredPlugin, readScopedSetting, parseDetectorOverrides, type DetectorOverrides, type PluginConfigurationState } from '../services/pluginConfiguration';
 import type { AnalysisPlugin } from '../model/analysisProtocol';
 
 export interface AnalysisSettings {
@@ -14,6 +14,7 @@ export interface AnalysisSettings {
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
   plugins?: AnalysisPlugin[];
+  detectors?: DetectorOverrides;
   configurationError?: string;
 }
 
@@ -181,9 +182,14 @@ export class Config {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }
     const plugins = this.getConfiguredPlugins(resource).filter((plugin) => plugin.enabled).map((plugin) => ({
-      path: plugin.resolvedPath,
+      path: plugin.resolvedPath, detectors: plugin.detectors,
     }));
     settings.configurationError = this.pluginConfiguration.error;
+    try {
+      settings.detectors = parseDetectorOverrides(readScopedSetting(settingKeys.analysisDetectors).value);
+    } catch (error) {
+      settings.configurationError = error instanceof Error ? error.message : String(error);
+    }
     if (plugins.length > 0) {
       settings.plugins = plugins;
     }
@@ -197,7 +203,7 @@ export class Config {
   public getConfiguredPlugins(resource?: Uri): ConfiguredPlugin[] {
     const { registrations, target } = this.pluginConfiguration;
     return registrations.map((plugin) => ({
-      ...plugin,
+      ...plugin, detectors: { ...plugin.detectors },
       resolvedPath: this.resolveToAbsolute(plugin.path, resource)!,
       target,
     }));

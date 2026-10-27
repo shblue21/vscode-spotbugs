@@ -81,21 +81,30 @@ Use the **Filters** and **Plugins** views to add or remove files, or configure p
 - `spotbugs.filters.excludeBaselineBugsPaths`: XML baseline bug collections
 - `spotbugs.plugins.registrations`: SpotBugs plugin JAR registrations
 
-Paths can be absolute or workspace-relative. Right-click a plugin to enable or disable it for the next analysis. Each registration has a stable ID and owns its path and enabled state:
+Paths can be absolute or workspace-relative. Right-click a plugin to enable or disable it for the next analysis. Each registration has a stable ID and owns its path, enabled state, and detector overrides:
 
 ```json
 "spotbugs.plugins.registrations": [
-  { "id": "findsecbugs-main", "path": "plugins/findsecbugs.jar", "enabled": true }
+  {
+    "id": "findsecbugs-main",
+    "path": "plugins/findsecbugs.jar",
+    "enabled": true,
+    "detectors": {
+      "com.h3xstream.findsecbugs.PredictableRandomDetector": false
+    }
+  }
 ]
 ```
 
-Adding a JAR generates an ID automatically. Keep the ID when editing its path; use a new ID for a separate registration. IDs must be nonempty and unique within a settings scope. Commands target the saved ID, so reordering or deleting another row does not change their target. Removing and re-adding a JAR creates a new registration.
+Adding a JAR generates an ID automatically. Keep the ID when editing the path or detector settings; use a new ID when adding a separate registration manually. IDs must be nonempty and unique within each settings scope. Commands target the saved ID, so reordering or deleting another row does not change their target. Removing and re-adding a JAR creates a new registration.
 
-An explicit Workspace registration list replaces the User list, including `[]`. Removing the Workspace setting restores inheritance. Changes apply to the next analysis; a running analysis uses its original settings snapshot. Malformed registrations block analysis, including malformed disabled registrations.
+Right-click **SpotBugs Core** or a plugin and choose **Configure Detectors**. Search by detector class or reported rule, then choose **Default**, **Enabled**, or **Disabled**. Core overrides are stored in `spotbugs.analysis.detectors`; plugin overrides stay inside their registration. Default removes the override. Disabling a plugin preserves its overrides without loading the JAR. Changing its path preserves them; removing the registration removes them.
 
-The Plugins view includes SpotBugs Core and uses the analysis runtime to inspect each active JAR. Failed or conflicting JARs are reported on their own rows. Disabled registrations remain listed without loading their JARs.
+An explicit Workspace registration list or core detector object replaces the corresponding User value, including `[]` and `{}`. Removing the Workspace setting restores inheritance. Changes apply to the next analysis; a running analysis uses its original settings snapshot.
 
-The old `spotbugs.plugins.paths` and `spotbugs.plugins.disabledPaths` settings are ignored. After updating, re-add custom JARs in the Plugins view or configure `spotbugs.plugins.registrations` directly, then restore any disabled states. Old values are left untouched; custom plugins will not run until registered in the new setting.
+The inventory uses the same runtime loader as analysis and lists actual detectors. It inspects each active registration once, displays failures on the affected rows, and keeps Core and successfully loaded plugin settings available. Analysis still fails for unknown active overrides, duplicate active JARs or plugin IDs, and overrides affected by SpotBugs short-name collisions. Configured detector names remain selectable for correction when unresolved. Detector switches are SpotBugs preferences: dependency, effort, and JRE rules still apply.
+
+The old `spotbugs.plugins.paths` and `spotbugs.plugins.disabledPaths` settings are ignored. After updating, re-add custom JARs in the **Plugins** view or configure `spotbugs.plugins.registrations` directly, then restore any disabled states. Old values are left untouched; custom plugins will not run until registered in the new setting.
 
 Changes in one window are saved in order. Concurrent edits from separate windows retain VS Code's usual last-write behavior.
 

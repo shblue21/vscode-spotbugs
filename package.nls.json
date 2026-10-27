@@ -56,6 +56,8 @@
   "contributes.submenus.spotbugs.context.label": "SpotBugs",
   "contributes.commands.spotbugs.analyzeArtifacts.title": "SpotBugs: Analyze Artifacts",
   "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Analyze Java Project",
-  "contributes.configuration.spotbugs.plugins.registrations.markdownDescription": "Trusted plugin JAR registrations. Each entry owns its path and enabled state. An explicit Workspace list replaces the User list, including an empty list. Disabled entries are not loaded.",
-  "contributes.configuration.spotbugs.plugins.registrationId.description": "Stable registration ID. Keep it when editing the path; use a new unique ID for a new registration."
+  "contributes.configuration.spotbugs.plugins.registrations.markdownDescription": "Trusted plugin JAR registrations. Each entry owns its enabled state and detector overrides (fully qualified class name → boolean). An explicit Workspace list replaces the User list, including an empty list. Disabled entries are not loaded.",
+  "contributes.configuration.spotbugs.analysis.detectors.markdownDescription": "Core detector overrides by fully qualified class name. Omit a key to use the SpotBugs default. An explicit Workspace object replaces the User object, including an empty object. Disabling is a SpotBugs preference; dependency rules may still require a detector.",
+  "contributes.commands.spotbugs.configureDetectors.title": "SpotBugs: Configure Detectors",
+  "contributes.configuration.spotbugs.plugins.registrationId.description": "Stable registration ID. Keep it when editing the path or detector settings; use a new unique ID for a new registration."
 }

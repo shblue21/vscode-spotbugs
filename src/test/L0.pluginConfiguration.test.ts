@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
-const { readPluginConfiguration } =
+const { readPluginConfiguration, readScopedSetting, parseDetectorOverrides } =
   require('../services/pluginConfiguration') as typeof import('../services/pluginConfiguration');
 
 type Scope = { globalValue?: unknown; workspaceValue?: unknown };
@@ -21,7 +21,7 @@ function configuration(settings: Record<string, Scope>) {
   } } as never);
   return writes;
 }
-const plugin = { id: 'check', path: 'check.jar', enabled: true };
+const plugin = { id: 'check', path: 'check.jar', enabled: true, detectors: { ['example.Check']: false } };
 
 describe('plugin configuration ownership', () => {
   afterEach(() => resetVscodeMock());
@@ -29,17 +29,19 @@ describe('plugin configuration ownership', () => {
   it('uses one explicit scope, with empty workspace values masking user settings', () => {
     configuration({
       ['plugins.registrations']: { globalValue: [plugin], workspaceValue: [] },
+      ['analysis.detectors']: { globalValue: { ['example.Check']: true }, workspaceValue: {} },
     });
     assert.deepStrictEqual(readPluginConfiguration().registrations, []);
     assert.strictEqual(readPluginConfiguration().target, 'workspace');
+    assert.deepStrictEqual(parseDetectorOverrides(readScopedSetting('analysis.detectors').value), {});
   });
 
-  it('inherits and copies the user registration', () => {
+  it('inherits the entire user registration and copies its child settings', () => {
     configuration({ ['plugins.registrations']: { globalValue: [plugin] } });
     const state = readPluginConfiguration();
     assert.strictEqual(state.target, 'global');
-    state.registrations[0].path = 'changed.jar';
-    assert.strictEqual(plugin.path, 'check.jar');
+    state.registrations[0].detectors['example.Check'] = true;
+    assert.strictEqual(plugin.detectors['example.Check'], false);
   });
 
   it('ignores old keys without changing new-setting scope or writing configuration', () => {
@@ -71,6 +73,8 @@ describe('plugin configuration ownership', () => {
   it('rejects malformed settings instead of silently dropping entries', () => {
     configuration({ ['plugins.registrations']: { globalValue: [{ path: 'check.jar', enabled: 'false' }] } });
     assert.ok(readPluginConfiguration().error);
+    assert.throws(() => parseDetectorOverrides({ ['example.Check']: 'false' }), /booleans/);
+    assert.throws(() => parseDetectorOverrides(null), /booleans/);
   });
 
   it('requires a persistent unique ID in the selected scope, including disabled registrations', () => {

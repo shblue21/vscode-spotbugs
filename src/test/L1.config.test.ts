@@ -38,9 +38,9 @@ describe('Config', () => {
     const workspaceA = vscode.Uri.file('/workspace-a');
     const workspaceB = vscode.Uri.file('/workspace-b');
     const registrations = [
-      { id: 'security', path: 'plugins/findsecbugs.jar', enabled: true },
-      { id: 'disabled', path: '/missing.jar', enabled: false },
-      { id: 'second', path: 'plugins/findsecbugs.jar', enabled: true },
+      { id: 'security', path: 'plugins/findsecbugs.jar', enabled: true, detectors: { ['example.Check']: false } },
+      { id: 'disabled', path: '/missing.jar', enabled: false, detectors: { ['missing.Check']: true } },
+      { id: 'second', path: 'plugins/findsecbugs.jar', enabled: true, detectors: {} },
     ];
     const original = structuredClone(registrations);
     resetVscodeMock({
@@ -69,8 +69,8 @@ describe('Config', () => {
 
     assert.deepStrictEqual(config.getConfiguredPlugins().map((plugin) => plugin.enabled), [true, false, true]);
     assert.deepStrictEqual(payload.plugins, [
-      { path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar') },
-      { path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar') },
+      { path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar'), detectors: { ['example.Check']: false } },
+      { path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar'), detectors: {} },
     ]);
     assert.deepStrictEqual(registrations, original);
 
@@ -85,7 +85,7 @@ describe('Config', () => {
     resetVscodeMock({ workspace: { getConfiguration: () => ({
       get: () => undefined,
       inspect: (key: string) => key === 'plugins.registrations'
-        ? { workspaceValue: [{ id: '', path: '/missing.jar', enabled: false }] } : undefined,
+        ? { workspaceValue: [{ id: '', path: '/missing.jar', enabled: false, detectors: {} }] } : undefined,
     }) } } as never);
     const config = new configModule.Config({} as never);
     let backendCalls = 0;

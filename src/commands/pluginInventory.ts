@@ -9,7 +9,7 @@ import {
   type PathSettingState,
   planPathAdditions,
 } from '../services/pathSetting';
-import { readPluginConfiguration, type PluginConfigurationState, type PluginRegistration } from '../services/pluginConfiguration';
+import { readPluginConfiguration, type PluginConfigurationState, type PluginRegistration, parseDetectorOverrides, readScopedSetting } from '../services/pluginConfiguration';
 import {
   getPluginInventory,
   type PluginInventoryResult,
@@ -107,7 +107,7 @@ export async function addPluginJars(
     const plan = planPathAdditions({ ...state, paths: state.registrations.map((entry) => entry.path) }, selectedPaths);
     additions = plan.additions.length;
     targetLabel = state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User');
-    return [...state.registrations, ...plan.additions.map((path) => ({ id: randomUUID(), path, enabled: true }))];
+    return [...state.registrations, ...plan.additions.map((path) => ({ id: randomUUID(), path, enabled: true, detectors: {} }))];
   });
   void window.showInformationMessage(changed
     ? l10n.t('Added {0} SpotBugs plugin JAR(s) to {1} settings.', additions,
@@ -186,6 +186,61 @@ function defaultPluginConfigurationDeps(): PluginConfigurationDeps {
         .update(settingKeys.pluginsRegistrations, registrations, target === 'global');
     },
     validatePluginJars: (paths) =>
-      validatePluginJarsPreflight({ effort: 'default', plugins: paths.map((path) => ({ path })) }),
+      validatePluginJarsPreflight({ effort: 'default', plugins: paths.map((path) => ({ path, detectors: {} })) }),
   };
+}
+
+export async function configureDetectors(config: PluginConfigurationReader,
+  target?: PluginJarCommandTarget): Promise<boolean> {
+  const core = !target?.registrationId && !target?.pluginPath;
+  const state = readPluginConfiguration();
+  if (state.error) throw new Error(state.error);
+  const index = target ? registrationIndex(state, target) : -1;
+  const registration = state.registrations[index];
+  if (!core && (!registration || (target?.configurationTarget !== state.target))) return false;
+  const inventory = await getPluginInventory(config);
+  const scoped = readScopedSetting(settingKeys.analysisDetectors);
+  const overrides = core ? parseDetectorOverrides(scoped.value) : registration!.detectors;
+  const item = inventory.items.find((entry) => core ? entry.index === -1 : entry.registrationId === target?.registrationId);
+  const detectors = item?.detectors ?? [];
+  const classes = [...new Set([...detectors.map((entry) => entry.className), ...Object.keys(overrides)])];
+  if (classes.length === 0) {
+    if (item?.errorMessage) throw new Error(item.errorMessage);
+    void window.showInformationMessage(l10n.t('No detectors available. Enable the plugin to inspect its detectors.'));
+    return false;
+  }
+  const selected = await window.showQuickPick(classes.map((className) => {
+    const detector = detectors.find((entry) => entry.className === className);
+    return { label: className, description: overrides[className] === undefined
+      ? l10n.t('Default') : overrides[className] ? l10n.t('Enabled') : l10n.t('Disabled'),
+      detail: detector ? [detector.defaultEnabled ? l10n.t('Enabled by default') : l10n.t('Disabled by default'),
+        detector.reports.join(', ')].filter(Boolean).join(' · ') : l10n.t('Unresolved configured detector'), className };
+  }), { title: l10n.t('Configure SpotBugs detectors'), matchOnDescription: true, matchOnDetail: true });
+  if (!selected) return false;
+  const choice = await window.showQuickPick([
+    { label: l10n.t('Default'), value: undefined },
+    { label: l10n.t('Enabled'), value: true },
+    { label: l10n.t('Disabled'), value: false },
+  ], { title: selected.className });
+  if (!choice) return false;
+  const change = (previous: Record<string, boolean>) => {
+    const next = { ...previous };
+    if (choice.value === undefined) delete next[selected.className];
+    else next[selected.className] = choice.value;
+    return next;
+  };
+  if (core) {
+    const operation = writes.then(async () => {
+      const current = readScopedSetting(settingKeys.analysisDetectors);
+      if (current.target !== scoped.target) throw new Error('Detector settings scope changed. Open the detector picker again.');
+      await workspace.getConfiguration(SETTINGS_SECTION).update(settingKeys.analysisDetectors,
+        change(parseDetectorOverrides(current.value)), current.target === 'global');
+      return true;
+    });
+    writes = operation.catch(() => undefined);
+    return operation;
+  }
+  return updateRegisteredPlugin(target, defaultPluginConfigurationDeps(), (current, pluginIndex) =>
+    current.registrations.map((entry, index) => index === pluginIndex
+      ? { ...entry, detectors: change(entry.detectors) } : entry));
 }

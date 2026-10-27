@@ -10,5 +10,6 @@ export const settingKeys = {
   filtersExcludePaths: 'filters.excludePaths',
   filtersExcludeBaselineBugsPaths: 'filters.excludeBaselineBugsPaths',
   pluginsRegistrations: 'plugins.registrations',
+  analysisDetectors: 'analysis.detectors',
   resultsRevealSourceOnSelection: 'results.revealSourceOnSelection',
 } as const;

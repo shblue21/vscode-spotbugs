@@ -132,7 +132,7 @@ describe('filterFileValidation', () => {
       `spotbugs-missing-${process.pid}-${Date.now()}-plugin.jar`
     );
     const error = await validatePluginJarsPreflight(
-      makeSettings({ plugins: [{ path: missingPath }] })
+      makeSettings({ plugins: [{ path: missingPath, detectors: {} }] })
     );
 
     assert.ok(error);
@@ -143,7 +143,7 @@ describe('filterFileValidation', () => {
   it('returns CFG_PLUGIN_NOT_FILE when a plugin path points to a directory', async () => {
     await withTempDir(async (dir) => {
       const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [{ path: dir }] })
+        makeSettings({ plugins: [{ path: dir, detectors: {} }] })
       );
 
       assert.ok(error);
@@ -162,7 +162,7 @@ describe('filterFileValidation', () => {
       await writeFile(pluginPath, '');
 
       const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [{ path: pluginPath }] })
+        makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] })
       );
 
       assert.ok(error);
@@ -189,7 +189,7 @@ describe('filterFileValidation', () => {
         }) as typeof fs.promises.open;
 
         const error = await validatePluginJarsPreflight(
-          makeSettings({ plugins: [{ path: pluginPath }] })
+          makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] })
         );
 
         assert.ok(error);
@@ -209,7 +209,7 @@ describe('filterFileValidation', () => {
       await writeFile(pluginPath, '');
 
       const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [{ path: pluginPath }] })
+        makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] })
       );
 
       assert.strictEqual(error, undefined);

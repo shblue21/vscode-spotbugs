@@ -30,6 +30,11 @@ describe('Extension activation', () => {
       SpotBugsCommands.SORT_RESULTS_BY,
       SpotBugsCommands.OPEN_SETTINGS,
       SpotBugsCommands.REFRESH_PLUGIN_INVENTORY,
+      SpotBugsCommands.ADD_PLUGIN_JARS,
+      SpotBugsCommands.REMOVE_PLUGIN_JAR,
+      SpotBugsCommands.ENABLE_PLUGIN,
+      SpotBugsCommands.DISABLE_PLUGIN,
+      SpotBugsCommands.CONFIGURE_DETECTORS,
       SpotBugsCommands.ADD_FILTER_FILES,
       SpotBugsCommands.REMOVE_FILTER_FILE,
     ];
@@ -37,6 +42,11 @@ describe('Extension activation', () => {
     for (const cmd of expected) {
       assert.ok(registered.includes(cmd), `Missing command: ${cmd}`);
     }
+
+    assert.ok(
+      !registered.includes('spotbugs.migratePluginSettings'),
+      'Removed migration command should not be registered',
+    );
 
     assert.ok(
       !registered.includes('spotbugs.openBugLocation'),

@@ -57,7 +57,8 @@ export function buildAnalysisRequestPayload(
     payload.excludeBaselineBugsPaths = settings.excludeBaselineBugsPaths.slice();
   }
   if (Array.isArray(settings.plugins) && settings.plugins.length > 0) {
-    payload.plugins = settings.plugins.map((plugin) => ({ ...plugin }));
+    payload.plugins = settings.plugins.map((plugin) => ({ ...plugin, detectors: { ...plugin.detectors } }));
   }
+  if (settings.detectors) payload.detectors = { ...settings.detectors };
   return payload;
 }

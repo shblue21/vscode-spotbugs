@@ -239,16 +239,18 @@ describe('analysisService', () => {
     const settingsResources: string[] = [];
     const events: string[] = [];
     let configuredEffort = 'min';
+    const detectors = { ['example.Core']: false };
     const directory = await mkdtemp(path.join(os.tmpdir(), 'spotbugs-snapshot-'));
     const pluginPath = path.join(directory, 'plugin.jar');
     await writeFile(pluginPath, '');
-    const plugins = [{ path: pluginPath }];
+    const plugins = [{ path: pluginPath, detectors: { ['example.Custom']: true } }];
     const baselineXml = '<BugCollection/>';
 
     resolverModule.resolveProjectAnalysisTargetDetailed = (async (projectUri) => {
       const project = projectUri.toString().split('/').pop();
       events.push(`resolve:${project}`);
-      plugins[0].path = '/changed.jar';
+      detectors['example.Core'] = true;
+      plugins[0].detectors['example.Custom'] = false;
       return {
         resolution: {
           status: 'ok',
@@ -260,7 +262,8 @@ describe('analysisService', () => {
     spotbugsClient.runSpotBugsAnalysis = (async (request) => {
       events.push(`execute:${request.targetPath}`);
       receivedEfforts.push(request.payload.effort);
-      assert.strictEqual(request.payload.plugins?.[0].path, pluginPath);
+      assert.deepStrictEqual(request.payload.detectors, { ['example.Core']: false });
+      assert.deepStrictEqual(request.payload.plugins?.[0].detectors, { ['example.Custom']: true });
       assert.strictEqual(request.payload.includeBaselineXml, true);
       configuredEffort = 'max';
       return JSON.stringify({ results: [], baselineXml });
@@ -272,7 +275,7 @@ describe('analysisService', () => {
           const resourceString = resource?.toString() ?? '';
           settingsResources.push(resourceString);
           events.push(`settings:${resourceString.split('/').pop()}`);
-          return { effort: configuredEffort, plugins };
+          return { effort: configuredEffort, detectors, plugins };
         },
       } as any,
       vscode.Uri.file('/workspace') as any,

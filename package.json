@@ -148,6 +148,15 @@
             "markdownDescription": "%contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription%",
             "scope": "window"
           },
+          "spotbugs.analysis.detectors": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "scope": "window",
+            "markdownDescription": "%contributes.configuration.spotbugs.analysis.detectors.markdownDescription%"
+          },
           "spotbugs.plugins.registrations": {
             "type": "array",
             "default": [],
@@ -173,6 +182,13 @@
                 "enabled": {
                   "type": "boolean",
                   "default": true
+                },
+                "detectors": {
+                  "type": "object",
+                  "default": {},
+                  "additionalProperties": {
+                    "type": "boolean"
+                  }
                 }
               }
             },
@@ -402,6 +418,10 @@
       {
         "command": "spotbugs.analyzeProject",
         "title": "%contributes.commands.spotbugs.analyzeProject.title%"
+      },
+      {
+        "command": "spotbugs.configureDetectors",
+        "title": "%contributes.commands.spotbugs.configureDetectors.title%"
       }
     ],
     "menus": {
@@ -560,6 +580,11 @@
           "command": "spotbugs.removeFilterFile",
           "when": "view == spotbugs-filters-view && viewItem == spotbugs.filter.file",
           "group": "1_manage@1"
+        },
+        {
+          "command": "spotbugs.configureDetectors",
+          "when": "view == spotbugs-plugins-view && viewItem =~ /^spotbugs\\.plugin\\.(core|validated|disabled|duplicate-plugin-id|validation-failed|backend-error)$/",
+          "group": "1_manage@2"
         }
       ],
       "spotbugs.context": [
