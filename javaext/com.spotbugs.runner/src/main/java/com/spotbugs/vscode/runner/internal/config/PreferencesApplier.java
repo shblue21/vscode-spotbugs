@@ -46,24 +46,13 @@ public class PreferencesApplier {
     }
 
     private static Map<String, Boolean> toEnabledPathMap(List<String> paths) {
-        if (paths == null || paths.isEmpty()) {
+        if (paths.isEmpty()) {
             return Collections.emptyMap();
         }
         Map<String, Boolean> files = new LinkedHashMap<>();
         for (String path : paths) {
-            String normalized = normalizePath(path);
-            if (normalized != null) {
-                files.put(normalized, Boolean.TRUE);
-            }
+            files.put(path, Boolean.TRUE);
         }
-        return files.isEmpty() ? Collections.emptyMap() : files;
-    }
-
-    private static String normalizePath(String path) {
-        if (path == null) {
-            return null;
-        }
-        String trimmed = path.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        return files;
     }
 }

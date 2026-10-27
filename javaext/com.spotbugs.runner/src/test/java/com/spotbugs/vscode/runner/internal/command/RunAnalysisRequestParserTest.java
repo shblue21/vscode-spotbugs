@@ -204,8 +204,12 @@ public class RunAnalysisRequestParserTest {
         JsonArray source = payload.getAsJsonArray(fieldName);
         JsonArray resolved = new JsonArray();
         for (int index = 0; index < source.size(); index++) {
-            resolved.add(AnalysisProtocolFixture.resolveRepositoryPath(source.get(index).getAsString()));
+            String path = AnalysisProtocolFixture.resolveRepositoryPath(source.get(index).getAsString());
+            resolved.add(" " + path + " ");
+            resolved.add(path);
         }
+        resolved.add("");
+        resolved.add((String) null);
         payload.add(fieldName, resolved);
     }
 
