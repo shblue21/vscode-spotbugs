@@ -45,7 +45,7 @@ public class RunAnalysisRequestParserTest {
 
         assertEquals("/workspace/build/classes", request.getTargetPath());
         assertNotNull(request.getConfig());
-        assertEquals(Effort.MAX, request.getConfig().getEffort());
+        assertEquals(Effort.MAX, request.getConfig().getExecutionOptions().getEffort());
         assertEquals(
                 Arrays.asList("/workspace/build/classes", "/workspace/build/generated"),
                 request.getConfig().getTargetResolutionRoots()
@@ -63,22 +63,22 @@ public class RunAnalysisRequestParserTest {
                 "/workspace/build/generated",
                 request.getConfig().getSourceOutputs().get("/workspace/generated/sources")
         );
-        assertEquals(Integer.valueOf(5), request.getConfig().getPriorityThreshold());
+        assertEquals(5, request.getConfig().getExecutionOptions().getRankThreshold());
         assertEquals(
                 resolvedFixturePathList(payload, "includeFilterPaths"),
-                request.getConfig().getIncludeFilterPaths()
+                request.getConfig().getExecutionOptions().getIncludeFilterPaths()
         );
         assertEquals(
                 resolvedFixturePathList(payload, "excludeFilterPaths"),
-                request.getConfig().getExcludeFilterPaths()
+                request.getConfig().getExecutionOptions().getExcludeFilterPaths()
         );
         assertEquals(
                 resolvedFixturePathList(payload, "excludeBaselineBugsPaths"),
-                request.getConfig().getExcludeBaselineBugsPaths()
+                request.getConfig().getExecutionOptions().getExcludeBaselineBugsPaths()
         );
         assertEquals(
                 Arrays.asList("/workspace/plugin-a.jar", "/workspace/plugin-b.jar"),
-                request.getConfig().getPlugins()
+                request.getConfig().getExecutionOptions().getPlugins()
         );
         assertTrue(request.isIncludeBaselineXml());
     }
@@ -96,7 +96,7 @@ public class RunAnalysisRequestParserTest {
             }
         }) {
             new PreferencesApplier().apply(UserPreferences.createDefaultUserPreferences(), engine,
-                    request.getConfig());
+                    request.getConfig().getExecutionOptions());
             assertArrayEquals(FindBugs.LESS_EFFORT, engine.applied);
         }
     }
@@ -104,11 +104,11 @@ public class RunAnalysisRequestParserTest {
     @Test
     public void validatesMinimumConfidence() throws Exception {
         String[] values = { "null", "\"default\"", "\"high\"", "\"medium\"", "\"low\"" };
-        Integer[] expected = { 1, 1, 1, 2, 3 };
+        int[] expected = { 1, 1, 1, 2, 3 };
         String inputs = ",\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}";
         for (int i = 0; i < values.length; i++) {
             assertEquals(expected[i], parser.parse(context("/project",
-                    "{\"minimumConfidence\":" + values[i] + inputs)).getConfig().getConfidenceThreshold());
+                    "{\"minimumConfidence\":" + values[i] + inputs)).getConfig().getExecutionOptions().getConfidenceThreshold());
         }
         for (String value : new String[] { "\"\"", "\"HIGH\"", "\"unknown\"", "1", "true" }) {
             assertEquals("CFG_CONFIDENCE_INVALID", expectFailure(() -> parser.parse(context("/project",
@@ -120,13 +120,13 @@ public class RunAnalysisRequestParserTest {
     public void resolvesThresholdsWithoutLosingWhetherRankWasSpecified() throws Exception {
         String[] ranks = { "", "\"priorityThreshold\":null,", "\"priorityThreshold\":20,",
                 "\"priorityThreshold\":0,", "\"priorityThreshold\":99," };
-        Integer[] expectedRanks = { 20, 20, 20, 1, 20 };
-        Integer[] expectedConfidence = { 1, 1, 3, 3, 3 };
+        int[] expectedRanks = { 20, 20, 20, 1, 20 };
+        int[] expectedConfidence = { 1, 1, 3, 3, 3 };
         String inputs = "\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}";
         for (int i = 0; i < ranks.length; i++) {
             AnalysisConfig config = parser.parse(context("/project", "{" + ranks[i] + inputs)).getConfig();
-            assertEquals(expectedRanks[i], config.getPriorityThreshold());
-            assertEquals(expectedConfidence[i], config.getConfidenceThreshold());
+            assertEquals(expectedRanks[i], config.getExecutionOptions().getRankThreshold());
+            assertEquals(expectedConfidence[i], config.getExecutionOptions().getConfidenceThreshold());
         }
     }
 

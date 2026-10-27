@@ -72,20 +72,18 @@ public class ConfigValidator {
             return ConfigValidationResult.error(extraAuxClasspathError.getCode(), extraAuxClasspathError.getMessage());
         }
 
+        AnalysisExecutionOptions executionOptions = new AnalysisExecutionOptions(
+                effort, priorityThreshold, confidenceThreshold, includeFilterPaths,
+                excludeFilterPaths, excludeBaselineBugsPaths, plugins);
+
         AnalysisConfig cfg = AnalysisConfig
             .newBuilder()
-            .effort(effort)
-            .confidenceThreshold(confidenceThreshold)
+            .executionOptions(executionOptions)
             .targetResolutionRoots(targetResolutionRoots)
             .runtimeClasspaths(runtimeClasspaths)
             .extraAuxClasspaths(extraAuxClasspaths)
             .sourcepaths(sps)
             .sourceOutputs(sourceOutputs)
-            .priorityThreshold(priorityThreshold)
-            .includeFilterPaths(includeFilterPaths)
-            .excludeFilterPaths(excludeFilterPaths)
-            .excludeBaselineBugsPaths(excludeBaselineBugsPaths)
-            .plugins(plugins)
             .build();
 
         return ConfigValidationResult.ok(cfg);

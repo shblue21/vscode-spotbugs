@@ -28,7 +28,7 @@ public class AnalyzerService {
         this.findBugs = new FindBugs2();
         this.findBugs.setUserPreferences(this.userPreferences);
         // Apply user preferences via dedicated applier
-        new PreferencesApplier().apply(this.userPreferences, this.findBugs, config);
+        new PreferencesApplier().apply(this.userPreferences, this.findBugs, config.getExecutionOptions());
     }
 
     public AnalysisPreparationStats getPreparationStats() {
@@ -50,7 +50,7 @@ public class AnalyzerService {
                 this.findBugs,
                 prepared.project,
                 prepared.rankThreshold,
-                this.config.getConfidenceThreshold(),
+                this.config.getExecutionOptions().getConfidenceThreshold(),
                 prepared.plugins
         ).executeBugsWithWarnings(monitor, includeBaselineXml);
         checkCanceled(monitor);
@@ -93,9 +93,9 @@ public class AnalyzerService {
                 this.config.getExtraAuxClasspaths()
         );
         this.lastAuxClasspathCount = appliedAuxClasspath.getEntryCount();
-        int rankThreshold = this.config.getPriorityThreshold();
+        int rankThreshold = this.config.getExecutionOptions().getRankThreshold();
         java.util.List<String> plugins = this.config != null
-                ? this.config.getPlugins()
+                ? this.config.getExecutionOptions().getPlugins()
                 : java.util.Collections.emptyList();
         return new PreparedAnalysis(project, rankThreshold, plugins);
     }
