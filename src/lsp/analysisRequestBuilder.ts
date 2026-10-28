@@ -13,6 +13,7 @@ export function buildAnalysisRequestPayload(
     includeBaselineXml?: boolean;
   },
 ): AnalysisRequestPayload {
+  if (settings.configurationError) throw new Error(settings.configurationError.message);
   const payload: AnalysisRequestPayload = {
     inputs: (options.inputs ?? []).map((input) => ({ ...input })),
     effort: settings.effort,
@@ -56,7 +57,8 @@ export function buildAnalysisRequestPayload(
     payload.excludeBaselineBugsPaths = settings.excludeBaselineBugsPaths.slice();
   }
   if (Array.isArray(settings.plugins) && settings.plugins.length > 0) {
-    payload.plugins = settings.plugins.slice();
+    payload.plugins = settings.plugins.map((plugin) => ({ ...plugin, detectors: { ...plugin.detectors } }));
   }
+  if (settings.detectors) payload.detectors = { ...settings.detectors };
   return payload;
 }

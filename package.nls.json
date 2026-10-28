@@ -1,7 +1,6 @@
 {
   "contributes.commands.spotbugs.enablePlugin.title": "Enable Plugin",
   "contributes.commands.spotbugs.disablePlugin.title": "Disable Plugin",
-  "contributes.configuration.spotbugs.plugins.disabledPaths.markdownDescription": "Plugin paths to leave out of the next analysis. Enable or disable plugins from the Plugins view. Store this list alongside the registered paths in User or Workspace settings.",
   "contributes.configuration.diagnostics.title": "SpotBugs: Diagnostics",
   "contributes.configuration.spotbugs.diagnostics.severity.scariest.markdownDescription": "Severity for rank 1–4 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
   "contributes.configuration.spotbugs.diagnostics.severity.scary.markdownDescription": "Severity for rank 5–9 findings in the editor and Problems view. Changes apply immediately to existing diagnostics.",
@@ -30,7 +29,6 @@
   "contributes.configuration.spotbugs.analysis.minimumConfidence.low": "Report High, Medium, and Low confidence.",
   "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "Report bugs with rank less than or equal to this value (1 most severe, 20 least), subject to minimum confidence. Experimental findings remain excluded.",
   "contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription": "Additional SpotBugs aux classpath entries appended after Java Language Server runtime classpath entries. Supports absolute paths and workspace-relative paths for jar files or directories.",
-  "contributes.configuration.spotbugs.plugins.paths.markdownDescription": "SpotBugs plugin jar paths loaded before analysis. Supports absolute paths and workspace-relative `.jar` paths. Invalid entries stop analysis with a configuration error.",
   "contributes.configuration.spotbugs.filters.includePaths.markdownDescription": "SpotBugs XML include filter file paths (`-include`). Supports absolute paths and workspace-relative paths.",
   "contributes.configuration.spotbugs.filters.excludePaths.markdownDescription": "SpotBugs XML exclude filter file paths (`-exclude`). Supports absolute paths and workspace-relative paths.",
   "contributes.configuration.spotbugs.filters.excludeBaselineBugsPaths.markdownDescription": "SpotBugs XML baseline bug collection file paths (`-excludeBugs`). Supports absolute paths and workspace-relative paths.",
@@ -57,5 +55,9 @@
   "contributes.commands.spotbugs.removeFilterFile.title": "SpotBugs: Remove Filter File",
   "contributes.submenus.spotbugs.context.label": "SpotBugs",
   "contributes.commands.spotbugs.analyzeArtifacts.title": "SpotBugs: Analyze Artifacts",
-  "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Analyze Java Project"
+  "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Analyze Java Project",
+  "contributes.configuration.spotbugs.plugins.registrations.markdownDescription": "Trusted plugin JAR registrations. Each entry owns its enabled state and detector overrides (fully qualified class name → boolean). An explicit Workspace list replaces the User list, including an empty list. Disabled entries are not loaded.",
+  "contributes.configuration.spotbugs.analysis.detectors.markdownDescription": "Core detector overrides by fully qualified class name. Omit a key to use the SpotBugs default. An explicit Workspace object replaces the User object, including an empty object. Disabling is a SpotBugs preference; dependency rules may still require a detector.",
+  "contributes.commands.spotbugs.configureDetectors.title": "SpotBugs: Configure Detectors",
+  "contributes.configuration.spotbugs.plugins.registrationId.description": "Stable registration ID. Keep it when editing the path or detector settings; use a new unique ID for a new registration."
 }

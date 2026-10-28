@@ -232,7 +232,9 @@ public class RunAnalysisActionTest {
         JsonArray extraAuxClasspaths = new JsonArray();
         extraAuxClasspaths.add(System.getProperty("java.io.tmpdir"));
         request.add("extraAuxClasspaths", extraAuxClasspaths);
-        request.add("plugins", JsonParser.parseString("[\"/workspace/plugin-a.jar\",\"/workspace/plugin-b.jar\"]"));
+        request.add("plugins", JsonParser.parseString(
+                "[{\"path\":\"/workspace/plugin-a.jar\"},"
+                        + "{\"path\":\"/workspace/plugin-b.jar\"}]"));
 
         JsonObject response = execute(action, "/workspace/build/classes", request.toString());
         JsonObject stats = response.getAsJsonObject("stats");

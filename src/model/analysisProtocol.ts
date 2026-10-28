@@ -1,5 +1,11 @@
+import type { DetectorOverrides } from '../services/pluginConfiguration';
 import { Bug } from './bug';
 import type { AnalysisReportSummary } from './analysisReport';
+
+export interface AnalysisPlugin {
+  path: string;
+  detectors: DetectorOverrides;
+}
 
 export interface AnalysisRequestPayload {
   inputs: Array<{ kind: 'source' | 'artifact'; path: string }>;
@@ -14,7 +20,8 @@ export interface AnalysisRequestPayload {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  plugins?: string[];
+  plugins?: AnalysisPlugin[];
+  detectors?: DetectorOverrides;
   includeBaselineXml?: boolean;
 }
 

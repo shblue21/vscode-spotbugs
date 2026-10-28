@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.spotbugs.vscode.runner.api.ConfigError;
+import com.spotbugs.vscode.runner.api.AnalysisPlugin;
 import com.spotbugs.vscode.runner.api.ConfigSchema;
 
 import edu.umd.cs.findbugs.BugRanker;
@@ -53,7 +54,16 @@ public class ConfigValidator {
         List<String> includeFilterPaths = normalizeList(schema.getIncludeFilterPaths());
         List<String> excludeFilterPaths = normalizeList(schema.getExcludeFilterPaths());
         List<String> excludeBaselineBugsPaths = normalizeList(schema.getExcludeBaselineBugsPaths());
-        List<String> plugins = normalizeList(schema.getPlugins());
+        List<AnalysisPlugin> plugins = new ArrayList<>();
+        Map<String, Boolean> detectors = schema.getDetectors() == null ? java.util.Collections.emptyMap() : schema.getDetectors();
+        if (!validDetectors(detectors)) return ConfigValidationResult.error("CFG_DETECTORS_INVALID", "Invalid core detector overrides");
+        if (schema.getPlugins() != null) for (AnalysisPlugin plugin : schema.getPlugins()) {
+            if (plugin == null || plugin.getPath() == null || plugin.getPath().trim().isEmpty()
+                    || !validDetectors(plugin.getDetectors())) {
+                return ConfigValidationResult.error("CFG_PLUGINS_INVALID", "Each plugin requires a nonempty path and boolean detector overrides");
+            }
+            plugins.add(new AnalysisPlugin(plugin.getPath(), plugin.getDetectors()));
+        }
 
         ConfigError includeFilterError = FilterFileValidator.validateIncludeFilters(includeFilterPaths);
         if (includeFilterError != null) {
@@ -74,7 +84,7 @@ public class ConfigValidator {
 
         AnalysisExecutionOptions executionOptions = new AnalysisExecutionOptions(
                 effort, priorityThreshold, confidenceThreshold, includeFilterPaths,
-                excludeFilterPaths, excludeBaselineBugsPaths, plugins);
+                excludeFilterPaths, excludeBaselineBugsPaths, plugins, detectors);
 
         AnalysisConfig cfg = AnalysisConfig
             .newBuilder()
@@ -87,6 +97,11 @@ public class ConfigValidator {
             .build();
 
         return ConfigValidationResult.ok(cfg);
+    }
+
+    private static boolean validDetectors(Map<String, Boolean> detectors) {
+        return detectors.entrySet().stream().allMatch(entry -> entry.getKey() != null
+                && !entry.getKey().trim().isEmpty() && entry.getValue() != null);
     }
 
     private static List<String> normalizeList(List<String> in) {

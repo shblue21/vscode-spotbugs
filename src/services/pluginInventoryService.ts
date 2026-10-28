@@ -5,7 +5,8 @@ import { decodeCommandResponseEnvelope } from '../lsp/commandResponseEnvelope';
 import { executeWorkspaceCommand } from '../lsp/javaLsGateway';
 import type { AnalysisError } from '../model/analysisProtocol';
 
-export type PluginConfigurationReader = Pick<Config, 'getConfiguredPlugins'>;
+export type PluginConfigurationReader = Pick<Config, 'getConfiguredPlugins'> &
+  Partial<Pick<Config, 'getPluginConfigurationError'>>;
 
 export interface PluginInventoryRequest {
   plugins: string[];
@@ -196,6 +197,13 @@ export async function getPluginInventory(
   resource?: Uri,
   deps: PluginInventoryServiceDeps = {}
 ): Promise<PluginInventoryResult> {
+  const configurationError = config.getPluginConfigurationError?.();
+  if (configurationError) {
+    return {
+      items: [],
+      errors: [{ code: 'CFG_PLUGINS_INVALID', message: configurationError }],
+    };
+  }
   const configured = config.getConfiguredPlugins(resource);
   const plugins = configured.filter((plugin) => plugin.enabled).map((plugin) => plugin.resolvedPath);
   const inspected = await inspectPlugins(plugins, deps);
@@ -207,6 +215,7 @@ export async function getPluginInventory(
       return {
       ...(plugin.enabled ? inspected.items.find((item) => item.index === inspectedIndex) : {}),
       index,
+      registrationId: plugin.id,
       path: plugin.resolvedPath,
       configuredPath: plugin.path,
       enabled: plugin.enabled,

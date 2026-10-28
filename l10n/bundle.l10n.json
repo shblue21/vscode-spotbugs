@@ -175,5 +175,13 @@
   "The baseline file(s) were created but could not be added to the workspace settings: {0}": "The baseline file(s) were created but could not be added to the workspace settings: {0}",
   "Select a Java project to analyze": "Select a Java project to analyze",
   "Select Java sources or use Analyze Artifacts for bytecode.": "Select Java sources or use Analyze Artifacts for bytecode.",
-  "SpotBugs Core": "SpotBugs Core"
+  "SpotBugs Core": "SpotBugs Core",
+  "No detectors available. Enable the plugin to inspect its detectors.": "No detectors available. Enable the plugin to inspect its detectors.",
+  "Default": "Default",
+  "Enabled": "Enabled",
+  "Enabled by default": "Enabled by default",
+  "Disabled by default": "Disabled by default",
+  "Unresolved configured detector": "Unresolved configured detector",
+  "Configure SpotBugs detectors": "Configure SpotBugs detectors",
+  "Analysis cancelled": "Analysis cancelled"
 }

@@ -1,7 +1,6 @@
 {
   "contributes.commands.spotbugs.enablePlugin.title": "플러그인 활성화",
   "contributes.commands.spotbugs.disablePlugin.title": "플러그인 비활성화",
-  "contributes.configuration.spotbugs.plugins.disabledPaths.markdownDescription": "다음 분석에서 사용하지 않을 플러그인 경로입니다. Plugins 보기에서 켜거나 끌 수 있습니다. 등록 경로와 같은 사용자 또는 워크스페이스 설정에 저장합니다.",
   "contributes.configuration.diagnostics.title": "SpotBugs: 문제 표시",
   "contributes.configuration.spotbugs.diagnostics.severity.scariest.markdownDescription": "Rank 1–4에 해당하는 분석 결과를 오류, 경고, 정보 중 어떤 수준으로 표시할지 선택합니다. 에디터와 문제 창에 바로 반영됩니다.",
   "contributes.configuration.spotbugs.diagnostics.severity.scary.markdownDescription": "Rank 5–9에 해당하는 분석 결과를 오류, 경고, 정보 중 어떤 수준으로 표시할지 선택합니다. 에디터와 문제 창에 바로 반영됩니다.",
@@ -30,7 +29,6 @@
   "contributes.configuration.spotbugs.analysis.minimumConfidence.low": "High·Medium·Low 신뢰도를 보고합니다.",
   "contributes.configuration.spotbugs.analysis.priorityThreshold.markdownDescription": "Rank가 이 값 이하이고 최소 신뢰도 조건을 만족하는 버그를 보고합니다(1이 가장 심각하고 20이 가장 낮습니다). 실험적 Finding은 제외됩니다.",
   "contributes.configuration.spotbugs.analysis.extraAuxClasspaths.markdownDescription": "Java Language Server의 런타임 클래스 경로 뒤에 추가할 SpotBugs 보조 클래스 경로입니다. JAR 파일 또는 디렉터리의 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
-  "contributes.configuration.spotbugs.plugins.paths.markdownDescription": "분석 전에 로드되는 SpotBugs 플러그인 JAR 경로입니다. 절대 경로와 워크스페이스 상대 `.jar` 경로를 지원합니다. 잘못된 경로가 있으면 설정 오류와 함께 분석이 중단됩니다.",
   "contributes.configuration.spotbugs.filters.includePaths.markdownDescription": "SpotBugs XML Include Filter 파일 경로(`-include`)입니다. 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
   "contributes.configuration.spotbugs.filters.excludePaths.markdownDescription": "SpotBugs XML Exclude Filter 파일 경로(`-exclude`)입니다. 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
   "contributes.configuration.spotbugs.filters.excludeBaselineBugsPaths.markdownDescription": "SpotBugs XML Baseline 버그 컬렉션 파일 경로(`-excludeBugs`)입니다. 절대 경로와 워크스페이스 상대 경로를 지원합니다.",
@@ -57,5 +55,9 @@
   "contributes.commands.spotbugs.removeFilterFile.title": "SpotBugs: 필터 파일 제거",
   "contributes.submenus.spotbugs.context.label": "SpotBugs",
   "contributes.commands.spotbugs.analyzeArtifacts.title": "SpotBugs: 바이트코드 분석",
-  "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Java 프로젝트 분석"
+  "contributes.commands.spotbugs.analyzeProject.title": "SpotBugs: Java 프로젝트 분석",
+  "contributes.configuration.spotbugs.plugins.registrations.markdownDescription": "신뢰하는 플러그인 JAR 등록 목록입니다. 각 항목에 활성 여부와 detector 설정(클래스 전체 이름 → boolean)을 저장합니다. 워크스페이스 목록은 빈 목록을 포함하여 사용자 목록 전체를 대체합니다. 비활성 항목은 로드하지 않습니다.",
+  "contributes.configuration.spotbugs.analysis.detectors.markdownDescription": "기본 detector를 클래스 전체 이름으로 설정합니다. 키를 생략하면 SpotBugs 기본값을 사용합니다. 워크스페이스 객체는 빈 객체를 포함하여 사용자 객체 전체를 대체합니다. 비활성화는 SpotBugs preference이며 의존 규칙에 따라 실행될 수 있습니다.",
+  "contributes.commands.spotbugs.configureDetectors.title": "SpotBugs: Detector 설정",
+  "contributes.configuration.spotbugs.plugins.registrationId.description": "등록을 식별하는 고유 ID입니다. 경로나 detector 설정을 편집할 때 유지하고, 새 등록에는 다른 ID를 사용하세요."
 }

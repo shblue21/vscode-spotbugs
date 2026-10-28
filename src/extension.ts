@@ -24,6 +24,7 @@ import { resetResults } from './commands/reset';
 import { openSettings } from './commands/settings';
 import {
   addPluginJars,
+  configureDetectors,
   invalidatePluginInventoryRefresh,
   type PluginJarCommandTarget,
   removePluginJar,
@@ -113,7 +114,7 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
       try {
         changed = await update();
       } catch (error) {
-        changed = true; // A multi-setting update may have partially succeeded.
+        changed = true; // Re-read settings after an update error.
         defaultNotifier.error(l10n.t('Could not update SpotBugs plugins: {0}',
           error instanceof Error ? error.message : String(error)));
         throw error;
@@ -148,7 +149,7 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
           filterTreeDataProvider.update(filterPaths(config));
-          if (e.affectsConfiguration(`${SETTINGS_SECTION}.plugins`)) {
+          if (e.affectsConfiguration(`${SETTINGS_SECTION}.plugins`) || e.affectsConfiguration(`${SETTINGS_SECTION}.analysis.detectors`)) {
             invalidatePluginInventoryRefresh();
             void refreshPluginInventory(config, pluginInventoryTreeDataProvider);
           }
@@ -243,6 +244,8 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
           refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri),
       ),
 
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.CONFIGURE_DETECTORS,
+        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => configureDetectors(config, item))),
       instrumentOperationAsVsCodeCommand(SpotBugsCommands.ADD_PLUGIN_JARS, () => updatePlugins(() => addPluginJars())),
 
       instrumentOperationAsVsCodeCommand(

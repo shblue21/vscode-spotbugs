@@ -1,7 +1,7 @@
-import { l10n, Uri, window, workspace } from 'vscode';
+import { l10n, Uri, window } from 'vscode';
 import * as path from 'path';
-import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
-import type { Config } from '../core/config';
+import { randomUUID } from 'crypto';
+import { settingKeys } from '../constants/settings';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import type { AnalysisError } from '../model/analysisProtocol';
 import { validatePluginJarsPreflight } from '../services/filterFileValidation';
@@ -9,10 +9,20 @@ import {
   type PathSettingState,
   planPathAdditions,
 } from '../services/pathSetting';
-import { readPluginConfiguration, type PluginConfigurationState } from '../services/pluginConfiguration';
+import {
+  readPluginConfiguration,
+  type PluginConfigurationState,
+  type PluginRegistration,
+  parseDetectorOverrides,
+  readScopedSetting,
+  updatePluginConfiguration as savePluginConfiguration,
+  writePluginConfiguration,
+  updateCoreDetectors,
+} from '../services/pluginConfiguration';
 import {
   getPluginInventory,
   type PluginInventoryResult,
+  type PluginConfigurationReader,
   type PluginInventoryServiceDeps,
 } from '../services/pluginInventoryService';
 
@@ -24,52 +34,37 @@ export interface PluginConfigurationDeps {
   selectPluginJars(): Thenable<readonly Uri[] | undefined>;
   readConfiguration(): PluginConfigurationState;
   writeConfiguration(
-    paths: string[],
+    registrations: PluginRegistration[],
     target: PathSettingState['target']
   ): Promise<void>;
-  writeDisabledPaths(paths: string[], target: PathSettingState['target']): Promise<void>;
   validatePluginJars(paths: string[]): Promise<AnalysisError | undefined>;
 }
 
 export interface PluginJarCommandTarget {
   pluginPath?: string;
+  registrationId?: string;
   configurationTarget?: PathSettingState['target'];
 }
 
 let refreshGeneration = 0;
 let writingConfiguration = false;
-let writes: Promise<unknown> = Promise.resolve();
 
 function updatePluginConfiguration(
   deps: PluginConfigurationDeps,
-  change: (state: PluginConfigurationState) => PluginConfigurationState,
+  change: (state: PluginConfigurationState) => PluginRegistration[],
 ): Promise<boolean> {
-  const operation = writes.then(async () => {
-    const state = deps.readConfiguration();
-    const next = change(state);
-    const pathsChanged = !samePaths(state.paths, next.paths);
-    const disabledChanged = !samePaths(state.disabledPaths, next.disabledPaths);
-    if (!pathsChanged && !disabledChanged) return false;
-
-    writingConfiguration = true;
-    invalidatePluginInventoryRefresh();
-    try {
-      // Remove registrations before cleanup; enable new registrations before adding them.
-      const removing = next.paths.length < state.paths.length;
-      if (pathsChanged && removing) await deps.writeConfiguration(next.paths, state.target);
-      if (disabledChanged) await deps.writeDisabledPaths(next.disabledPaths, state.target);
-      if (pathsChanged && !removing) await deps.writeConfiguration(next.paths, state.target);
-      return true;
-    } finally {
-      writingConfiguration = false;
-    }
-  });
-  writes = operation.catch(() => undefined);
-  return operation;
-}
-
-function samePaths(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+  return savePluginConfiguration({
+    readConfiguration: deps.readConfiguration,
+    writeConfiguration: async (registrations, target) => {
+      writingConfiguration = true;
+      invalidatePluginInventoryRefresh();
+      try {
+        await deps.writeConfiguration(registrations, target);
+      } finally {
+        writingConfiguration = false;
+      }
+    },
+  }, change);
 }
 
 export function invalidatePluginInventoryRefresh(): void {
@@ -77,7 +72,7 @@ export function invalidatePluginInventoryRefresh(): void {
 }
 
 export async function refreshPluginInventory(
-  config: Pick<Config, 'getConfiguredPlugins'>,
+  config: PluginConfigurationReader,
   view: PluginInventoryView,
   resource?: Uri,
   deps?: PluginInventoryServiceDeps
@@ -86,9 +81,11 @@ export async function refreshPluginInventory(
   const generation = ++refreshGeneration;
   const plugins = config.getConfiguredPlugins(resource);
   view.showInventory({ items: plugins.map((plugin, index) => ({
-    index, path: plugin.resolvedPath, configuredPath: plugin.path, enabled: plugin.enabled, configurationTarget: plugin.target,
+    index, registrationId: plugin.id, path: plugin.resolvedPath, configuredPath: plugin.path, enabled: plugin.enabled, configurationTarget: plugin.target,
   })) });
-  const result = await getPluginInventory({ getConfiguredPlugins: () => plugins }, resource, deps);
+  const configurationError = config.getPluginConfigurationError?.();
+  const result = await getPluginInventory({ getConfiguredPlugins: () => plugins,
+    getPluginConfigurationError: () => configurationError }, resource, deps);
   if (generation === refreshGeneration) {
     view.showInventory(result);
   }
@@ -111,11 +108,10 @@ export async function addPluginJars(
   let additions = 0;
   let targetLabel = '';
   const changed = await updatePluginConfiguration(deps, (state) => {
-    const plan = planPathAdditions(state, selectedPaths);
+    const plan = planPathAdditions({ ...state, paths: state.registrations.map((entry) => entry.path) }, selectedPaths);
     additions = plan.additions.length;
     targetLabel = state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User');
-    return { ...state, paths: plan.paths,
-      disabledPaths: state.disabledPaths.filter((entry) => !plan.additions.includes(entry)) };
+    return [...state.registrations, ...plan.additions.map((path) => ({ id: randomUUID(), path, enabled: true, detectors: {} }))];
   });
   void window.showInformationMessage(changed
     ? l10n.t('Added {0} SpotBugs plugin JAR(s) to {1} settings.', additions,
@@ -127,34 +123,38 @@ export async function addPluginJars(
 function updateRegisteredPlugin(
   target: PluginJarCommandTarget | undefined,
   deps: PluginConfigurationDeps,
-  change: (state: PluginConfigurationState, pluginPath: string) => PluginConfigurationState,
+  change: (state: PluginConfigurationState, pluginIndex: number) => PluginRegistration[],
 ): Promise<boolean> {
-  if (!target?.pluginPath) return Promise.resolve(false);
-  const pluginPath = target.pluginPath;
+  if (!target?.registrationId) return Promise.resolve(false);
   return updatePluginConfiguration(deps, (state) => {
-    if ((target.configurationTarget && target.configurationTarget !== state.target)
-        || !state.paths.includes(pluginPath)) {
+    const index = registrationIndex(state, target);
+    if ((target.configurationTarget !== state.target)
+        || index < 0) {
       void window.showInformationMessage(l10n.t(
         'The plugin configuration changed. Refresh the Plugins view and try again.',
       ));
-      return state;
+      return state.registrations;
     }
-    return change(state, pluginPath);
+    return change(state, index);
   });
+}
+
+function registrationIndex(state: PluginConfigurationState, target: PluginJarCommandTarget): number {
+  return state.registrations.findIndex((entry) => entry.id === target.registrationId);
 }
 
 export async function removePluginJar(
   target: PluginJarCommandTarget | undefined,
   deps: PluginConfigurationDeps = defaultPluginConfigurationDeps(),
 ): Promise<boolean> {
-  const changed = await updateRegisteredPlugin(target, deps, (state, pluginPath) => ({
-    ...state,
-    paths: state.paths.filter((entry) => entry !== pluginPath),
-    disabledPaths: state.disabledPaths.filter((entry) => entry !== pluginPath),
-  }));
+  let removedPath = '';
+  const changed = await updateRegisteredPlugin(target, deps, (state, pluginIndex) => {
+    removedPath = state.registrations[pluginIndex].path;
+    return state.registrations.filter((_entry, index) => index !== pluginIndex);
+  });
   if (changed) {
     void window.showInformationMessage(l10n.t(
-      'Removed SpotBugs plugin JAR: {0}', path.basename(target!.pluginPath!),
+      'Removed SpotBugs plugin JAR: {0}', path.basename(removedPath),
     ));
   }
   return changed;
@@ -165,11 +165,9 @@ export function setPluginEnabled(
   enabled: boolean,
   deps: PluginConfigurationDeps = defaultPluginConfigurationDeps(),
 ): Promise<boolean> {
-  return updateRegisteredPlugin(target, deps, (state, pluginPath) => {
-    if (state.disabledPaths.includes(pluginPath) === !enabled) return state;
-    return { ...state, disabledPaths: enabled
-      ? state.disabledPaths.filter((entry) => entry !== pluginPath)
-      : [...state.disabledPaths, pluginPath] };
+  return updateRegisteredPlugin(target, deps, (state, pluginIndex) => {
+    return state.registrations.map((entry, index) =>
+      index === pluginIndex ? { ...entry, enabled } : entry);
   });
 }
 
@@ -186,16 +184,55 @@ function defaultPluginConfigurationDeps(): PluginConfigurationDeps {
         filters: { [jarFilesLabel]: ['jar'] },
       }),
     readConfiguration: readPluginConfiguration,
-    writeConfiguration: async (paths, target) => {
-      await workspace
-        .getConfiguration(SETTINGS_SECTION)
-        .update(settingKeys.pluginsPaths, paths, target === 'global');
-    },
-    writeDisabledPaths: async (paths, target) => {
-      await workspace.getConfiguration(SETTINGS_SECTION)
-        .update(settingKeys.pluginsDisabledPaths, paths, target === 'global');
-    },
+    writeConfiguration: writePluginConfiguration,
     validatePluginJars: (paths) =>
-      validatePluginJarsPreflight({ effort: 'default', plugins: paths }),
+      validatePluginJarsPreflight({ effort: 'default', plugins: paths.map((path) => ({ path, detectors: {} })) }),
   };
+}
+
+export async function configureDetectors(config: PluginConfigurationReader,
+  target?: PluginJarCommandTarget): Promise<boolean> {
+  const core = !target?.registrationId && !target?.pluginPath;
+  const state = readPluginConfiguration();
+  if (state.error) throw new Error(state.error);
+  const index = target ? registrationIndex(state, target) : -1;
+  const registration = state.registrations[index];
+  if (!core && (!registration || (target?.configurationTarget !== state.target))) return false;
+  const inventory = await getPluginInventory(config);
+  const scoped = readScopedSetting(settingKeys.analysisDetectors);
+  const overrides = core ? parseDetectorOverrides(scoped.value) : registration!.detectors;
+  const item = inventory.items.find((entry) => core ? entry.index === -1 : entry.registrationId === target?.registrationId);
+  const detectors = item?.detectors ?? [];
+  const classes = [...new Set([...detectors.map((entry) => entry.className), ...Object.keys(overrides)])];
+  if (classes.length === 0) {
+    if (item?.errorMessage) throw new Error(item.errorMessage);
+    void window.showInformationMessage(l10n.t('No detectors available. Enable the plugin to inspect its detectors.'));
+    return false;
+  }
+  const selected = await window.showQuickPick(classes.map((className) => {
+    const detector = detectors.find((entry) => entry.className === className);
+    return { label: className, description: overrides[className] === undefined
+      ? l10n.t('Default') : overrides[className] ? l10n.t('Enabled') : l10n.t('Disabled'),
+      detail: detector ? [detector.defaultEnabled ? l10n.t('Enabled by default') : l10n.t('Disabled by default'),
+        detector.reports.join(', ')].filter(Boolean).join(' · ') : l10n.t('Unresolved configured detector'), className };
+  }), { title: l10n.t('Configure SpotBugs detectors'), matchOnDescription: true, matchOnDetail: true });
+  if (!selected) return false;
+  const choice = await window.showQuickPick([
+    { label: l10n.t('Default'), value: undefined },
+    { label: l10n.t('Enabled'), value: true },
+    { label: l10n.t('Disabled'), value: false },
+  ], { title: selected.className });
+  if (!choice) return false;
+  const change = (previous: Record<string, boolean>) => {
+    const next = { ...previous };
+    if (choice.value === undefined) delete next[selected.className];
+    else next[selected.className] = choice.value;
+    return next;
+  };
+  if (core) {
+    return updateCoreDetectors(scoped.target, change);
+  }
+  return updateRegisteredPlugin(target, defaultPluginConfigurationDeps(), (current, pluginIndex) =>
+    current.registrations.map((entry, index) => index === pluginIndex
+      ? { ...entry, detectors: change(entry.detectors) } : entry));
 }

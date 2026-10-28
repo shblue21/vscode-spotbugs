@@ -2,7 +2,8 @@ import { workspace, ExtensionContext, Uri } from 'vscode';
 import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Logger } from './logger';
-import { readPluginConfiguration, type ConfiguredPlugin, type PluginConfigurationState } from '../services/pluginConfiguration';
+import { readPluginConfiguration, type ConfiguredPlugin, readScopedSetting, parseDetectorOverrides, type DetectorOverrides, type PluginConfigurationState } from '../services/pluginConfiguration';
+import type { AnalysisError, AnalysisPlugin } from '../model/analysisProtocol';
 
 export interface AnalysisSettings {
   effort: string;
@@ -12,7 +13,9 @@ export interface AnalysisSettings {
   includeFilterPaths?: string[];
   excludeFilterPaths?: string[];
   excludeBaselineBugsPaths?: string[];
-  plugins?: string[];
+  plugins?: AnalysisPlugin[];
+  detectors?: DetectorOverrides;
+  configurationError?: AnalysisError;
 }
 
 export class Config {
@@ -178,20 +181,35 @@ export class Config {
     if (excludeBaselineBugsPaths) {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }
-    const plugins = Array.from(new Set(this.getConfiguredPlugins(resource)
-      .filter((plugin) => plugin.enabled).map((plugin) => plugin.resolvedPath)));
+    const plugins = this.getConfiguredPlugins(resource).filter((plugin) => plugin.enabled).map((plugin) => ({
+      path: plugin.resolvedPath, detectors: plugin.detectors,
+    }));
+    if (this.pluginConfiguration.error) {
+      settings.configurationError = { code: 'CFG_PLUGINS_INVALID', message: this.pluginConfiguration.error };
+    }
+    try {
+      settings.detectors = parseDetectorOverrides(readScopedSetting(settingKeys.analysisDetectors).value);
+    } catch (error) {
+      settings.configurationError ??= {
+        code: 'CFG_DETECTORS_INVALID',
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
     if (plugins.length > 0) {
       settings.plugins = plugins;
     }
     return settings;
   }
 
+  public getPluginConfigurationError(): string | undefined {
+    return this.pluginConfiguration.error;
+  }
+
   public getConfiguredPlugins(resource?: Uri): ConfiguredPlugin[] {
-    const { paths, disabledPaths, target } = this.pluginConfiguration;
-    return paths.map((pluginPath) => ({
-      path: pluginPath,
-      resolvedPath: this.resolveToAbsolute(pluginPath, resource)!,
-      enabled: !disabledPaths.includes(pluginPath),
+    const { registrations, target } = this.pluginConfiguration;
+    return registrations.map((plugin) => ({
+      ...plugin, detectors: { ...plugin.detectors },
+      resolvedPath: this.resolveToAbsolute(plugin.path, resource)!,
       target,
     }));
   }

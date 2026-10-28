@@ -9,7 +9,7 @@ export const settingKeys = {
   filtersIncludePaths: 'filters.includePaths',
   filtersExcludePaths: 'filters.excludePaths',
   filtersExcludeBaselineBugsPaths: 'filters.excludeBaselineBugsPaths',
-  pluginsPaths: 'plugins.paths',
-  pluginsDisabledPaths: 'plugins.disabledPaths',
+  pluginsRegistrations: 'plugins.registrations',
+  analysisDetectors: 'analysis.detectors',
   resultsRevealSourceOnSelection: 'results.revealSourceOnSelection',
 } as const;

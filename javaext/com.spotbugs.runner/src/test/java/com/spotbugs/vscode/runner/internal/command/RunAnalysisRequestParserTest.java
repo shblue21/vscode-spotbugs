@@ -78,7 +78,7 @@ public class RunAnalysisRequestParserTest {
         );
         assertEquals(
                 Arrays.asList("/workspace/plugin-a.jar", "/workspace/plugin-b.jar"),
-                request.getConfig().getExecutionOptions().getPlugins()
+                request.getConfig().getExecutionOptions().getPluginPaths()
         );
         assertTrue(request.isIncludeBaselineXml());
     }
