@@ -108,6 +108,24 @@ describe('analysisExecution', () => {
     ]);
   });
 
+  for (const code of ['CFG_PLUGINS_INVALID', 'CFG_DETECTORS_INVALID']) {
+    it(`preserves ${code} before file checks or backend execution`, async () => {
+      const { createAnalysisExecutor } = loadAnalysisExecution();
+      const unexpected = () => { throw new Error('File checks and backend must not run'); };
+      const executor = createAnalysisExecutor(makeDeps({
+        validateFilterFilesPreflight: unexpected,
+        validateExtraAuxClasspathPreflight: unexpected,
+        validatePluginJarsPreflight: unexpected,
+        buildAnalysisRequestPayload: unexpected,
+        runSpotBugsAnalysis: unexpected,
+      }));
+      const error = { code, message: 'Invalid setting' };
+      const outcome = await executor.run({ effort: 'default', configurationError: error }, makeTarget(installVscodeMock()));
+      assert.deepStrictEqual(outcome.errors, [error]);
+      assert.strictEqual(outcome.failure?.code, code);
+    });
+  }
+
   const preflightCases = [
     ['filter', 'CFG_INCLUDE_FILTER_NOT_FOUND', 'Include filter not found'],
     ['aux', 'CFG_AUX_CLASSPATH_NOT_FOUND', 'Extra aux classpath not found'],

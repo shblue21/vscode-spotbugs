@@ -94,6 +94,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     targetPath: string,
   ): Promise<AnalysisOutcome | undefined> {
     const checks = [
+      ['settings', () => settings.configurationError],
       ['filter', () => deps.validateFilterFilesPreflight(settings)],
       ['extra aux classpath', () => deps.validateExtraAuxClasspathPreflight(settings)],
       ['plugin', () => deps.validatePluginJarsPreflight(settings)],

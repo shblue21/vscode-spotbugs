@@ -79,6 +79,20 @@ describe('Config', () => {
     assert.strictEqual(buildAnalysisRequestPayload(config.getAnalysisSettings(resource), {}).plugins, undefined);
   });
 
+  it('classifies invalid core overrides without replacing an existing registration error', async () => {
+    const configModule = await import('../core/config');
+    for (const invalidPlugin of [false, true]) {
+      resetVscodeMock({ workspace: { getConfiguration: () => ({
+        get: () => undefined,
+        inspect: (key: string) => key === 'analysis.detectors'
+          ? { workspaceValue: { ['example.Check']: 'false' } }
+          : key === 'plugins.registrations' && invalidPlugin ? { workspaceValue: 'invalid' } : undefined,
+      }) } } as never);
+      const settings = new configModule.Config({} as never).getAnalysisSettings();
+      assert.strictEqual(settings.configurationError?.code, invalidPlugin ? 'CFG_PLUGINS_INVALID' : 'CFG_DETECTORS_INVALID');
+    }
+  });
+
   it('blocks analysis when a disabled registration has an invalid ID', async () => {
     const configModule = await import('../core/config');
     const { createAnalysisExecutor } = await import('../services/analysisExecution');

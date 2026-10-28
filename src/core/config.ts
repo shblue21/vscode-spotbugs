@@ -3,7 +3,7 @@ import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Logger } from './logger';
 import { readPluginConfiguration, type ConfiguredPlugin, readScopedSetting, parseDetectorOverrides, type DetectorOverrides, type PluginConfigurationState } from '../services/pluginConfiguration';
-import type { AnalysisPlugin } from '../model/analysisProtocol';
+import type { AnalysisError, AnalysisPlugin } from '../model/analysisProtocol';
 
 export interface AnalysisSettings {
   effort: string;
@@ -15,7 +15,7 @@ export interface AnalysisSettings {
   excludeBaselineBugsPaths?: string[];
   plugins?: AnalysisPlugin[];
   detectors?: DetectorOverrides;
-  configurationError?: string;
+  configurationError?: AnalysisError;
 }
 
 export class Config {
@@ -184,11 +184,16 @@ export class Config {
     const plugins = this.getConfiguredPlugins(resource).filter((plugin) => plugin.enabled).map((plugin) => ({
       path: plugin.resolvedPath, detectors: plugin.detectors,
     }));
-    settings.configurationError = this.pluginConfiguration.error;
+    if (this.pluginConfiguration.error) {
+      settings.configurationError = { code: 'CFG_PLUGINS_INVALID', message: this.pluginConfiguration.error };
+    }
     try {
       settings.detectors = parseDetectorOverrides(readScopedSetting(settingKeys.analysisDetectors).value);
     } catch (error) {
-      settings.configurationError = error instanceof Error ? error.message : String(error);
+      settings.configurationError ??= {
+        code: 'CFG_DETECTORS_INVALID',
+        message: error instanceof Error ? error.message : String(error),
+      };
     }
     if (plugins.length > 0) {
       settings.plugins = plugins;

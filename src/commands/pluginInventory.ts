@@ -1,7 +1,7 @@
-import { l10n, Uri, window, workspace } from 'vscode';
+import { l10n, Uri, window } from 'vscode';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
+import { settingKeys } from '../constants/settings';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import type { AnalysisError } from '../model/analysisProtocol';
 import { validatePluginJarsPreflight } from '../services/filterFileValidation';
@@ -9,7 +9,16 @@ import {
   type PathSettingState,
   planPathAdditions,
 } from '../services/pathSetting';
-import { readPluginConfiguration, type PluginConfigurationState, type PluginRegistration, parseDetectorOverrides, readScopedSetting } from '../services/pluginConfiguration';
+import {
+  readPluginConfiguration,
+  type PluginConfigurationState,
+  type PluginRegistration,
+  parseDetectorOverrides,
+  readScopedSetting,
+  updatePluginConfiguration as savePluginConfiguration,
+  writePluginConfiguration,
+  updateCoreDetectors,
+} from '../services/pluginConfiguration';
 import {
   getPluginInventory,
   type PluginInventoryResult,
@@ -39,28 +48,23 @@ export interface PluginJarCommandTarget {
 
 let refreshGeneration = 0;
 let writingConfiguration = false;
-let writes: Promise<unknown> = Promise.resolve();
 
 function updatePluginConfiguration(
   deps: PluginConfigurationDeps,
   change: (state: PluginConfigurationState) => PluginRegistration[],
 ): Promise<boolean> {
-  const operation = writes.then(async () => {
-    const state = deps.readConfiguration();
-    if (state.error) throw new Error(state.error);
-    const next = change(state);
-    if (JSON.stringify(state.registrations) === JSON.stringify(next)) return false;
-    writingConfiguration = true;
-    invalidatePluginInventoryRefresh();
-    try {
-      await deps.writeConfiguration(next, state.target);
-      return true;
-    } finally {
-      writingConfiguration = false;
-    }
-  });
-  writes = operation.catch(() => undefined);
-  return operation;
+  return savePluginConfiguration({
+    readConfiguration: deps.readConfiguration,
+    writeConfiguration: async (registrations, target) => {
+      writingConfiguration = true;
+      invalidatePluginInventoryRefresh();
+      try {
+        await deps.writeConfiguration(registrations, target);
+      } finally {
+        writingConfiguration = false;
+      }
+    },
+  }, change);
 }
 
 export function invalidatePluginInventoryRefresh(): void {
@@ -180,11 +184,7 @@ function defaultPluginConfigurationDeps(): PluginConfigurationDeps {
         filters: { [jarFilesLabel]: ['jar'] },
       }),
     readConfiguration: readPluginConfiguration,
-    writeConfiguration: async (registrations, target) => {
-      await workspace
-        .getConfiguration(SETTINGS_SECTION)
-        .update(settingKeys.pluginsRegistrations, registrations, target === 'global');
-    },
+    writeConfiguration: writePluginConfiguration,
     validatePluginJars: (paths) =>
       validatePluginJarsPreflight({ effort: 'default', plugins: paths.map((path) => ({ path, detectors: {} })) }),
   };
@@ -230,15 +230,7 @@ export async function configureDetectors(config: PluginConfigurationReader,
     return next;
   };
   if (core) {
-    const operation = writes.then(async () => {
-      const current = readScopedSetting(settingKeys.analysisDetectors);
-      if (current.target !== scoped.target) throw new Error('Detector settings scope changed. Open the detector picker again.');
-      await workspace.getConfiguration(SETTINGS_SECTION).update(settingKeys.analysisDetectors,
-        change(parseDetectorOverrides(current.value)), current.target === 'global');
-      return true;
-    });
-    writes = operation.catch(() => undefined);
-    return operation;
+    return updateCoreDetectors(scoped.target, change);
   }
   return updateRegisteredPlugin(target, defaultPluginConfigurationDeps(), (current, pluginIndex) =>
     current.registrations.map((entry, index) => index === pluginIndex

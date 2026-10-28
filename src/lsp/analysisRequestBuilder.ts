@@ -13,7 +13,7 @@ export function buildAnalysisRequestPayload(
     includeBaselineXml?: boolean;
   },
 ): AnalysisRequestPayload {
-  if (settings.configurationError) throw new Error(settings.configurationError);
+  if (settings.configurationError) throw new Error(settings.configurationError.message);
   const payload: AnalysisRequestPayload = {
     inputs: (options.inputs ?? []).map((input) => ({ ...input })),
     effort: settings.effort,

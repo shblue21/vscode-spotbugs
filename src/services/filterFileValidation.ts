@@ -75,7 +75,6 @@ export async function validateExtraAuxClasspathPreflight(
 export async function validatePluginJarsPreflight(
   settings: AnalysisSettings
 ): Promise<AnalysisError | undefined> {
-  if (settings.configurationError) return { code: 'CFG_PLUGINS_INVALID', message: settings.configurationError };
   const paths = settings.plugins?.map((plugin) => plugin.path);
   if (!Array.isArray(paths) || paths.length === 0) {
     return undefined;

@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
-const { readPluginConfiguration, readScopedSetting, parseDetectorOverrides } =
+const { readPluginConfiguration, readScopedSetting, parseDetectorOverrides, updateCoreDetectors, updatePluginConfiguration } =
   require('../services/pluginConfiguration') as typeof import('../services/pluginConfiguration');
 
 type Scope = { globalValue?: unknown; workspaceValue?: unknown };
@@ -25,6 +25,41 @@ const plugin = { id: 'check', path: 'check.jar', enabled: true, detectors: { ['e
 
 describe('plugin configuration ownership', () => {
   afterEach(() => resetVscodeMock());
+
+  it('does not write unchanged core overrides, including an absent default', async () => {
+    for (const scope of [undefined, { workspaceValue: {} }, { globalValue: { ['example.Check']: false } }]) {
+      const writes = configuration(scope ? { ['analysis.detectors']: scope } : {});
+      const { target } = readScopedSetting('analysis.detectors');
+      assert.strictEqual(await updateCoreDetectors(target, (previous) => ({ ...previous })), false);
+      assert.strictEqual(writes.length, 0);
+    }
+  });
+
+  it('serializes core changes after plugin writes and reads the latest overrides', async () => {
+    const settings = { ['analysis.detectors']: { workspaceValue: {} as Record<string, boolean> } };
+    const writes = configuration(settings);
+    let finishWrite!: () => void;
+    const pendingWrite = new Promise<void>((resolve) => { finishWrite = resolve; });
+    const pluginUpdate = updatePluginConfiguration({
+      readConfiguration: () => ({ target: 'workspace', registrations: [], workspaceRoots: [] }),
+      writeConfiguration: () => pendingWrite,
+    }, () => [plugin]);
+    const coreUpdate = updateCoreDetectors('workspace', (previous) => ({ ...previous, ['example.Second']: true }));
+    await Promise.resolve();
+    assert.strictEqual(writes.length, 0);
+    settings['analysis.detectors'].workspaceValue = { ['example.First']: false };
+    finishWrite();
+    await Promise.all([pluginUpdate, coreUpdate]);
+    assert.deepStrictEqual(writes[0].value, { ['example.First']: false, ['example.Second']: true });
+  });
+
+  it('rejects a changed core scope and allows the next queued write', async () => {
+    const writes = configuration({ ['analysis.detectors']: { globalValue: {} } });
+    await assert.rejects(updateCoreDetectors('workspace', () => ({ ['example.Check']: true })), /scope changed/);
+    assert.strictEqual(writes.length, 0);
+    assert.strictEqual(await updateCoreDetectors('global', () => ({ ['example.Check']: true })), true);
+    assert.strictEqual(writes.length, 1);
+  });
 
   it('uses one explicit scope, with empty workspace values masking user settings', () => {
     configuration({

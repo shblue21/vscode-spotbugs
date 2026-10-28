@@ -64,3 +64,51 @@ export function readPluginConfiguration(): PluginConfigurationState {
   }
   return state;
 }
+
+// Serialize read-modify-write operations within this extension host.
+let writes: Promise<unknown> = Promise.resolve();
+
+export async function writePluginConfiguration(
+  registrations: PluginRegistration[],
+  target: PluginConfigurationState['target'],
+): Promise<void> {
+  await workspace.getConfiguration(SETTINGS_SECTION)
+    .update(settingKeys.pluginsRegistrations, registrations, target === 'global');
+}
+
+export function updatePluginConfiguration(
+  deps: {
+    readConfiguration(): PluginConfigurationState;
+    writeConfiguration(registrations: PluginRegistration[], target: PluginConfigurationState['target']): Promise<void>;
+  },
+  change: (state: PluginConfigurationState) => PluginRegistration[],
+): Promise<boolean> {
+  const operation = writes.then(async () => {
+    const state = deps.readConfiguration();
+    if (state.error) throw new Error(state.error);
+    const next = change(state);
+    if (JSON.stringify(state.registrations) === JSON.stringify(next)) return false;
+    await deps.writeConfiguration(next, state.target);
+    return true;
+  });
+  writes = operation.catch(() => undefined);
+  return operation;
+}
+
+export function updateCoreDetectors(
+  target: PluginConfigurationState['target'],
+  change: (previous: DetectorOverrides) => DetectorOverrides,
+): Promise<boolean> {
+  const operation = writes.then(async () => {
+    const current = readScopedSetting(settingKeys.analysisDetectors);
+    if (current.target !== target) throw new Error('Detector settings scope changed. Open the detector picker again.');
+    const previous = parseDetectorOverrides(current.value);
+    const next = change(previous);
+    if (JSON.stringify(previous) === JSON.stringify(next)) return false;
+    await workspace.getConfiguration(SETTINGS_SECTION)
+      .update(settingKeys.analysisDetectors, next, current.target === 'global');
+    return true;
+  });
+  writes = operation.catch(() => undefined);
+  return operation;
+}
