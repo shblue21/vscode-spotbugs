@@ -4,7 +4,7 @@ import type { AnalysisSettings } from '../core/config';
 import type { AnalysisExecutionUnit } from '../model/analysisExecutionUnit';
 import type { AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
-import { ANALYSIS_PROTOCOL_SCHEMA_VERSION, type AnalysisStats } from '../model/analysisProtocol';
+import type { AnalysisStats } from '../model/analysisProtocol';
 import * as pathResolver from '../workspace/pathResolver';
 import * as spotbugsClient from '../lsp/spotbugsClient';
 import type { ParsedAnalysis, ParseResult } from '../lsp/spotbugsParser';
@@ -223,16 +223,12 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
       stats,
       reportSummary,
       nativeSarif,
-      schemaVersion,
     } = parsed;
     const hasErrors = Array.isArray(errors) && errors.length > 0;
     const hasTerminalErrors = hasErrors && bugs.length === 0;
     const reportableWarnings =
       !hasTerminalErrors && Array.isArray(warnings) && warnings.length > 0 ? warnings : undefined;
 
-    if (typeof schemaVersion === 'number' && schemaVersion !== ANALYSIS_PROTOCOL_SCHEMA_VERSION) {
-      deps.logger.log(`Unexpected analysis response schemaVersion=${schemaVersion}`);
-    }
     if (ignoredMalformedWarnings && !hasTerminalErrors) {
       deps.logger.log(
         'SpotBugs analysis warning: Ignored malformed warnings field in analysis response.',

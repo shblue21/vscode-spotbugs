@@ -302,7 +302,7 @@ def main():
             for kind in ("source", "artifact"):
                 paths = [source / ("demo/" + name + ".java") if kind == "source"
                          else output / ("demo/" + name + ".class") for name in ("EntryPointBug", "Main")]
-                payload = {"schemaVersion": 2, "effort": "default", "inputs": [{"kind": kind, "path": str(p)} for p in paths],
+                payload = {"effort": "default", "inputs": [{"kind": kind, "path": str(p)} for p in paths],
                            "sourcepaths": [str(source)], "sourceOutputs": {str(source): str(output)},
                            "targetResolutionRoots": [str(output)], "runtimeClasspaths": [str(output)], "includeBaselineXml": True}
                 command_id = (

@@ -57,7 +57,6 @@ describe('spotbugsParser', () => {
       JSON.stringify({ errors: [] }),
       JSON.stringify({ errors: [null, 'bad', {}] }),
       JSON.stringify({
-        schemaVersion: 2,
         warnings: [{ code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' }],
       }),
       JSON.stringify(null),
@@ -77,7 +76,6 @@ describe('spotbugsParser', () => {
   it('parses envelope responses with normalized errors and stats', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
-        schemaVersion: 2,
         results: [{ type: 'UR' }],
         errors: [null, { code: 'X', message: 'warn' }],
         stats: { target: '/tmp/Foo', durationMs: 12 },
@@ -86,7 +84,6 @@ describe('spotbugsParser', () => {
     );
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.schemaVersion, 2);
       assert.strictEqual(result.value.bugs.length, 1);
       assert.strictEqual(result.value.errors?.length, 1);
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');
@@ -118,7 +115,6 @@ describe('spotbugsParser', () => {
   it('parses empty results with warnings as a successful response', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
-        schemaVersion: 2,
         results: [],
         warnings: [
           { code: 'PLUGIN_CLEANUP_FAILED', message: 'Could not delete plugin' },
@@ -160,9 +156,9 @@ describe('spotbugsParser', () => {
 
   it('rejects envelope result arrays with non-object entries', () => {
     const samples = [
-      JSON.stringify({ schemaVersion: 2, results: [null] }),
-      JSON.stringify({ schemaVersion: 2, results: ['NP'] }),
-      JSON.stringify({ schemaVersion: 2, results: [[]] }),
+      JSON.stringify({ results: [null] }),
+      JSON.stringify({ results: ['NP'] }),
+      JSON.stringify({ results: [[]] }),
     ];
 
     for (const sample of samples) {
@@ -175,10 +171,9 @@ describe('spotbugsParser', () => {
     }
   });
 
-  it('normalizes envelope stats and schemaVersion without failing usable results', () => {
+  it('normalizes envelope stats without failing usable results', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
-        schemaVersion: '2',
         results: [{ type: 'UR' }],
         stats: {
           target: '/tmp/Foo',
@@ -203,7 +198,6 @@ describe('spotbugsParser', () => {
 
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.schemaVersion, undefined);
       assert.deepStrictEqual(result.value.stats, {
         target: '/tmp/Foo',
         findingCount: 1,
@@ -224,13 +218,11 @@ describe('spotbugsParser', () => {
   it('ignores malformed stats values without rejecting the envelope', () => {
     const samples = [
       JSON.stringify({
-        schemaVersion: 2,
         results: [],
         errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
         stats: 'bad',
       }),
       JSON.stringify({
-        schemaVersion: 2,
         results: [],
         errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
         stats: { ignored: 'value', durationMs: '12' },
@@ -255,7 +247,6 @@ describe('spotbugsParser', () => {
 
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.schemaVersion, fixture.schemaVersion);
       assert.deepStrictEqual(result.value.bugs, fixture.results);
       assert.deepStrictEqual(result.value.errors, fixture.errors);
       assert.deepStrictEqual(result.value.stats, fixture.stats);
@@ -265,7 +256,6 @@ describe('spotbugsParser', () => {
   it('parses terminal analysis cancellation envelopes with stats', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
-        schemaVersion: 2,
         results: [],
         errors: [
           {
@@ -283,7 +273,6 @@ describe('spotbugsParser', () => {
 
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.schemaVersion, 2);
       assert.deepStrictEqual(result.value.bugs, []);
       assert.strictEqual(result.value.errors?.[0]?.code, 'ANALYSIS_CANCELLED');
       assert.strictEqual(result.value.errors?.[0]?.message, 'Command cancelled');

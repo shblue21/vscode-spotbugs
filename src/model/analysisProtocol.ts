@@ -1,11 +1,8 @@
 import { Bug } from './bug';
 import type { AnalysisReportSummary } from './analysisReport';
 
-export const ANALYSIS_PROTOCOL_SCHEMA_VERSION = 2;
-
 export interface AnalysisRequestPayload {
   inputs: Array<{ kind: 'source' | 'artifact'; path: string }>;
-  schemaVersion: number;
   effort: string;
   minimumConfidence?: 'high' | 'medium' | 'low';
   targetResolutionRoots?: string[] | null;
@@ -48,7 +45,6 @@ export interface AnalysisStats {
 
 export interface AnalysisResponse<TBug = Bug> {
   missingClasses?: string[];
-  schemaVersion?: number;
   results?: TBug[];
   errors?: AnalysisError[];
   warnings?: AnalysisWarning[];

@@ -44,7 +44,7 @@ describe('Java project settings snapshot transport', () => {
     const snapshot = { settings: {}, declaredSourceOutputs: { '/p/src': '/p/out' } };
     resetVscodeMock({ commands: { executeCommand: async (...args: unknown[]) => {
       calls.push(args);
-      return JSON.stringify({ schemaVersion: 2, results: [snapshot], errors: [] });
+      return JSON.stringify({ results: [snapshot], errors: [] });
     } } as any });
     const { requestJavaProjectSettings } = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
     assert.deepStrictEqual(await requestJavaProjectSettings('file:///p', token), snapshot);

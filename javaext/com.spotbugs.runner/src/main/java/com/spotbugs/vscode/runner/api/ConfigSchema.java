@@ -9,7 +9,6 @@ import java.util.Map;
  * produce the domain {@code AnalysisConfig}.
  */
 public class ConfigSchema {
-    private Integer schemaVersion;            // optional, for future growth
     private String effort;                    // "min" | "less" | "default" | "max"
     private List<String> targetResolutionRoots; // optional
     private List<String> runtimeClasspaths;   // optional
@@ -24,7 +23,6 @@ public class ConfigSchema {
     private List<String> plugins;             // optional
     private Boolean includeBaselineXml;       // optional command output
 
-    public Integer getSchemaVersion() { return schemaVersion; }
     public String getEffort() { return effort; }
     public List<String> getTargetResolutionRoots() { return targetResolutionRoots; }
     public List<String> getRuntimeClasspaths() { return runtimeClasspaths; }

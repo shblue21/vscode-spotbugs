@@ -1,7 +1,6 @@
 {
   "targetPath": "/workspace/build/classes",
   "payload": {
-    "schemaVersion": 2,
     "effort": "max",
     "targetResolutionRoots": [
       "/workspace/build/classes",

@@ -195,7 +195,6 @@ describe('analysisService', () => {
     })) as typeof resolverModule.resolveProjectAnalysisTargetDetailed;
     spotbugsClient.runSpotBugsAnalysis = (async () =>
       JSON.stringify({
-        schemaVersion: 2,
         results: [],
         warnings: [
           {
@@ -255,7 +254,7 @@ describe('analysisService', () => {
       receivedEfforts.push(request.payload.effort);
       assert.strictEqual(request.payload.includeBaselineXml, true);
       configuredEffort = 'max';
-      return JSON.stringify({ schemaVersion: 2, results: [], baselineXml });
+      return JSON.stringify({ results: [], baselineXml });
     }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
     const result = await service.analyzeWorkspaceFromProjectsDetailed(
@@ -407,7 +406,6 @@ describe('analysisService', () => {
     spotbugsClient.runSpotBugsAnalysis = (async (request) => {
       analyzedTargets.push(request.targetPath);
       return JSON.stringify({
-        schemaVersion: 2,
         results: [],
         errors: [
           {

@@ -52,7 +52,6 @@ public class RunAnalysisActionTest {
                 validRequest("/workspace/build/classes").toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals(0, response.getAsJsonArray("results").size());
         assertEquals("ANALYSIS_FAILED", firstError(response).get("code").getAsString());
         assertEquals("inner", firstError(response).get("message").getAsString());
@@ -81,7 +80,6 @@ public class RunAnalysisActionTest {
                 validRequest("/workspace/build/classes").toString());
         JsonObject stats = response.getAsJsonObject("stats");
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals("ANALYSIS_FAILED", firstError(response).get("code").getAsString());
         assertEquals("missing detector dependency", firstError(response).get("message").getAsString());
         assertEquals("/workspace/build/classes", stats.get("target").getAsString());
@@ -111,7 +109,6 @@ public class RunAnalysisActionTest {
         request.addProperty("includeBaselineXml", true);
         JsonObject response = execute(action, "/workspace/build/classes", request.toString());
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals("com.example.Missing", response.getAsJsonArray("missingClasses").get(0).getAsString());
         assertFalse(response.has("warnings"));
         assertEquals(1200, response.getAsJsonObject("reportSummary").get("analyzedCodeSize").getAsInt());
@@ -141,7 +138,6 @@ public class RunAnalysisActionTest {
         JsonObject response = execute(action, "/workspace/build/classes",
                 validRequest("/workspace/build/classes").toString());
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals(0, response.getAsJsonArray("results").size());
         assertEquals(0, response.getAsJsonArray("errors").size());
         assertTrue(response.has("warnings"));
@@ -182,7 +178,6 @@ public class RunAnalysisActionTest {
 
         JsonObject response = execute(action, "/workspace/build/classes", "{");
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals(0, response.getAsJsonArray("results").size());
         assertEquals("CFG_BAD_JSON", firstError(response).get("code").getAsString());
         assertEquals("Invalid config JSON", firstError(response).get("message").getAsString());
@@ -204,7 +199,6 @@ public class RunAnalysisActionTest {
         JsonObject response = executeWithMonitor(action, monitor, "/workspace/build/classes",
                 validRequest("/workspace/build/classes").toString());
 
-        assertEquals(2, response.get("schemaVersion").getAsInt());
         assertEquals("ANALYSIS_CANCELLED", firstError(response).get("code").getAsString());
         assertEquals("Command cancelled", firstError(response).get("message").getAsString());
         assertTrue(response.has("stats"));

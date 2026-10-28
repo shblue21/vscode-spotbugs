@@ -28,7 +28,6 @@ export interface ParsedAnalysis {
   reportSummary?: AnalysisReportSummary;
   nativeSarif?: string;
   baselineXml?: string;
-  schemaVersion?: number;
 }
 
 export type ParseResult =
@@ -90,8 +89,6 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     typeof envelope.nativeSarif === 'string' && envelope.nativeSarif.trim().length > 0
       ? envelope.nativeSarif
       : undefined;
-  const schemaVersion =
-    typeof envelope.schemaVersion === 'number' ? envelope.schemaVersion : undefined;
   return {
     ok: true,
     value: {
@@ -107,7 +104,6 @@ export function parseAnalysisResponse(raw: string): ParseResult {
         typeof envelope.baselineXml === 'string' && envelope.baselineXml.trim().length > 0
           ? envelope.baselineXml
           : undefined,
-      schemaVersion,
     },
   };
 }

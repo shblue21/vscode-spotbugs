@@ -133,7 +133,7 @@ describe('analysis plan execution', () => {
     const calls: unknown[][] = [];
     vscode.commands.executeCommand = async (...args: unknown[]) => {
       calls.push(args);
-      return JSON.stringify({ schemaVersion: 2, results: [], errors: [] });
+      return JSON.stringify({ results: [], errors: [] });
     };
 
     const result = await service.executeAnalysisPlan(plan);

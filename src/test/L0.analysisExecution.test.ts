@@ -53,7 +53,6 @@ function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecut
     validateExtraAuxClasspathPreflight: async () => undefined,
     validatePluginJarsPreflight: async () => undefined,
     buildAnalysisRequestPayload: (settings, options) => ({
-      schemaVersion: 2,
       inputs: [],
       effort: settings.effort,
       targetResolutionRoots: options.targetResolutionRoots ?? null,
@@ -63,7 +62,6 @@ function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecut
     }),
     runSpotBugsAnalysis: async () =>
       JSON.stringify({
-        schemaVersion: 2,
         inputs: [],
         results: [],
       }),
@@ -133,7 +131,7 @@ describe('analysisExecution', () => {
         },
         runSpotBugsAnalysis: async (request) => {
           backendCalls.push(request);
-          return JSON.stringify({ schemaVersion: 2, inputs: [], results: [] });
+          return JSON.stringify({ inputs: [], results: [] });
         },
       }));
       const outcome = await executor.run(
@@ -161,12 +159,10 @@ describe('analysisExecution', () => {
     };
     const target = makeTarget(vscode);
     const backendResponse = JSON.stringify({
-      schemaVersion: 2,
       inputs: [],
       results: [],
     });
     const payload = {
-      schemaVersion: 2,
       inputs: [],
       effort: 'max',
       targetResolutionRoots: ['/payload/root'],
@@ -266,7 +262,6 @@ describe('analysisExecution', () => {
               durationMs: 9,
               spotbugsVersion: '4.9.8',
             },
-            schemaVersion: 2,
             inputs: [],
           },
         }),
@@ -311,7 +306,6 @@ describe('analysisExecution', () => {
             },
             reportSummary: { analyzedClassCount: 3 },
             nativeSarif: '{"version":"2.1.0","runs":[]}',
-            schemaVersion: 2,
             inputs: [],
           },
         }),
@@ -352,7 +346,7 @@ describe('analysisExecution', () => {
           backendSourcepaths = request.payload.sourcepaths;
           const roots = target.sourceLookup.roots as string[];
           roots.splice(0, roots.length, '/mutated');
-          return JSON.stringify({ schemaVersion: 2, inputs: [], results: [] });
+          return JSON.stringify({ inputs: [], results: [] });
         },
         parseAnalysisResponse: () => ({
           ok: true,
