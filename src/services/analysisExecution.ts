@@ -182,30 +182,17 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     parsed: Extract<ParseResult, { ok: false }>,
     targetPath: string,
   ): AnalysisOutcome {
-    if (parsed.error.kind === 'invalid-json') {
-      deps.logger.error(
-        'Failed to parse analysis result',
-        parsed.error.cause ?? parsed.error.message,
-      );
-      return {
-        findings: [],
-        targetPath,
-        failure: {
-          kind: 'invalid-json',
-          level: 'error',
-          message: 'SpotBugs analysis failed: Invalid response payload.',
-        },
-      };
-    }
-
-    deps.logger.error(`SpotBugs analysis error: ${parsed.error.message}`);
+    deps.logger.error(
+      'Failed to parse analysis result',
+      parsed.error.cause ?? parsed.error.message,
+    );
     return {
       findings: [],
       targetPath,
       failure: {
-        kind: 'analysis-error',
+        kind: 'invalid-json',
         level: 'error',
-        message: `SpotBugs analysis failed: ${parsed.error.message}`,
+        message: 'SpotBugs analysis failed: Invalid response payload.',
       },
     };
   }

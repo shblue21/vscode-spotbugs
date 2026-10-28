@@ -219,6 +219,45 @@ describe('analysisExecution', () => {
     assert.strictEqual(parserInput, backendResponse);
   });
 
+  it('reports malformed JSON and unsupported response shapes as parsing failures', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    const logs: unknown[][] = [];
+    let raw = '';
+    const executor = createAnalysisExecutor({
+      runSpotBugsAnalysis: async () => raw,
+      logger: { log: () => undefined, error: (...args: unknown[]) => { logs.push(args); } },
+      mapBugsToFindings: () => { throw new Error('Invalid responses must not reach finding mapping'); },
+    });
+    for (const response of ['{', '[]', '[{"type":"NP"}]', '{"error":"boom"}']) {
+      raw = response;
+      const outcome = await executor.run({ effort: 'default' }, makeTarget(installVscodeMock()));
+      assert.deepStrictEqual(outcome.findings, []);
+      assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
+      assert.deepStrictEqual(outcome.failure, {
+        kind: 'invalid-json', level: 'error',
+        message: 'SpotBugs analysis failed: Invalid response payload.',
+      });
+    }
+    assert.strictEqual(logs.length, 4);
+    assert.ok(logs[0][1] instanceof SyntaxError);
+  });
+
+  it('keeps valid backend error and cancellation envelopes separate from parsing failures', async () => {
+    const { createAnalysisExecutor } = loadAnalysisExecution();
+    for (const code of ['ANALYSIS_FAILED', 'ANALYSIS_CANCELLED']) {
+      const error = { code, message: 'Backend detail' };
+      const executor = createAnalysisExecutor({
+        runSpotBugsAnalysis: async () => JSON.stringify({ results: [], errors: [error] }),
+        logger: { log: () => undefined, error: () => undefined },
+      });
+      const outcome = await executor.run({ effort: 'default' }, makeTarget(installVscodeMock()));
+      assert.deepStrictEqual(outcome.errors, [error]);
+      assert.strictEqual(outcome.failure?.kind, 'analysis-error');
+      assert.strictEqual(outcome.failure?.code, code);
+      assert.strictEqual(outcome.failure?.message, `SpotBugs analysis failed: [${code}] Backend detail`);
+    }
+  });
+
   it('returns ANALYSIS_NO_RESPONSE when backend returns no payload', async () => {
     const { createAnalysisExecutor } = loadAnalysisExecution();
     const executor = createAnalysisExecutor(
