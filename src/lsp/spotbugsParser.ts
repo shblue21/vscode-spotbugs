@@ -10,10 +10,7 @@ import {
   normalizeCommandIssues,
 } from './commandResponseEnvelope';
 
-export type ParseErrorKind = 'invalid-json' | 'analysis-error';
-
 export interface ParseError {
-  kind: ParseErrorKind;
   message: string;
   cause?: unknown;
 }
@@ -44,25 +41,10 @@ export function parseAnalysisResponse(raw: string): ParseResult {
     return {
       ok: false,
       error: {
-        kind: 'invalid-json',
         message: INVALID_RESPONSE_MESSAGE,
         cause,
       },
     };
-  }
-
-  if (
-    parsed &&
-    typeof parsed === 'object' &&
-    !Array.isArray(parsed) &&
-    (parsed as { error?: unknown }).error
-  ) {
-    const message = String((parsed as { error?: unknown }).error);
-    return { ok: false, error: { kind: 'analysis-error', message } };
-  }
-
-  if (Array.isArray(parsed)) {
-    return isBugArray(parsed) ? { ok: true, value: { bugs: parsed } } : invalidResponse();
   }
 
   const decoded = decodeCommandResponseEnvelope(parsed);
@@ -133,7 +115,6 @@ function invalidResponse(): ParseResult {
   return {
     ok: false,
     error: {
-      kind: 'invalid-json',
       message: INVALID_RESPONSE_MESSAGE,
     },
   };

@@ -4,54 +4,33 @@ import type { AnalysisResponse } from '../model/analysisProtocol';
 import { readAnalysisProtocolFixtureJson } from './helpers/analysisProtocolFixtures';
 
 describe('spotbugsParser', () => {
-  it('returns invalid-json error for malformed payloads', () => {
+  it('returns a parsing error with its cause for malformed JSON', () => {
     const result = parseAnalysisResponse('{');
     assert.strictEqual(result.ok, false);
     if (!result.ok) {
-      assert.strictEqual(result.error.kind, 'invalid-json');
       assert.strictEqual(result.error.message, 'Invalid response payload.');
+      assert.ok(result.error.cause instanceof SyntaxError);
     }
   });
 
-  it('returns analysis-error when payload contains top-level error', () => {
-    const result = parseAnalysisResponse(
-      JSON.stringify({
-        error: 'boom',
-        results: [],
-        errors: [],
-      })
-    );
-
-    assert.strictEqual(result.ok, false);
-    if (!result.ok) {
-      assert.strictEqual(result.error.kind, 'analysis-error');
-      assert.strictEqual(result.error.message, 'boom');
-    }
-  });
-
-  it('parses array responses as bugs', () => {
-    const result = parseAnalysisResponse(JSON.stringify([{ type: 'NP' }]));
+  it('uses envelope errors instead of an unrelated top-level error field', () => {
+    const result = parseAnalysisResponse(JSON.stringify({
+      error: 'ignored', results: [], errors: [{ code: 'ANALYSIS_FAILED', message: 'actual failure' }],
+    }));
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.strictEqual(result.value.bugs.length, 1);
-    }
-  });
-
-  it('rejects array responses with non-object entries', () => {
-    const samples = [JSON.stringify([null]), JSON.stringify(['NP']), JSON.stringify([[]])];
-
-    for (const sample of samples) {
-      const result = parseAnalysisResponse(sample);
-      assert.strictEqual(result.ok, false, sample);
-      if (!result.ok) {
-        assert.strictEqual(result.error.kind, 'invalid-json');
-        assert.strictEqual(result.error.message, 'Invalid response payload.');
-      }
+      assert.deepStrictEqual(result.value.errors, [{ code: 'ANALYSIS_FAILED', message: 'actual failure' }]);
     }
   });
 
   it('rejects unsupported JSON protocol shapes', () => {
     const samples = [
+      JSON.stringify({ error: 'boom' }),
+      JSON.stringify([]),
+      JSON.stringify([{ type: 'NP' }]),
+      JSON.stringify([null]),
+      JSON.stringify(['NP']),
+      JSON.stringify([[]]),
       JSON.stringify({}),
       JSON.stringify({ stats: { durationMs: 1 } }),
       JSON.stringify({ errors: [] }),
@@ -67,7 +46,6 @@ describe('spotbugsParser', () => {
       const result = parseAnalysisResponse(sample);
       assert.strictEqual(result.ok, false, sample);
       if (!result.ok) {
-        assert.strictEqual(result.error.kind, 'invalid-json');
         assert.strictEqual(result.error.message, 'Invalid response payload.');
       }
     }
@@ -165,7 +143,6 @@ describe('spotbugsParser', () => {
       const result = parseAnalysisResponse(sample);
       assert.strictEqual(result.ok, false, sample);
       if (!result.ok) {
-        assert.strictEqual(result.error.kind, 'invalid-json');
         assert.strictEqual(result.error.message, 'Invalid response payload.');
       }
     }
