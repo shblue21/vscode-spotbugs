@@ -1,4 +1,12 @@
 # Changelog
+## [0.14.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.13.0...v0.14.0) (2026-10-28)
+
+
+### Features
+
+* configure core and plugin detectors ([#181](https://github.com/shblue21/vscode-spotbugs/issues/181)) ([77d4429](https://github.com/shblue21/vscode-spotbugs/commit/77d4429b05627e9b3726c58ced9cf8682ad040f8))
+* inspect core and plugin detectors through shared runtime ([#177](https://github.com/shblue21/vscode-spotbugs/issues/177)) ([0c88d23](https://github.com/shblue21/vscode-spotbugs/commit/0c88d23389eaa1664009d4a38dabd470546b2c16))
+
 ## [0.13.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.12.0...v0.13.0) (2026-10-11)
 
 
