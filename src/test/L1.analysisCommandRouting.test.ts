@@ -19,7 +19,7 @@ describe('analysis command boundaries', () => {
       const token = { isCancellationRequested: false } as any;
       const request: AnalysisRequest = {
         targetPath: '/display/project',
-        payload: { schemaVersion: 2, effort: 'default',
+        payload: { effort: 'default',
           inputs: [{ kind, path: '/first' }, { kind, path: '/second' }],
           runtimeClasspaths: ['/runtime'], sourcepaths: ['/navigation'], includeBaselineXml: true,
         },
@@ -42,7 +42,7 @@ describe('analysis command boundaries', () => {
       } } as any });
       const { runSpotBugsAnalysis } = require('../lsp/spotbugsClient') as typeof import('../lsp/spotbugsClient');
       await assert.rejects(runSpotBugsAnalysis({ targetPath: '/display', payload: {
-        schemaVersion: 2, effort: 'default', inputs: [{ kind, path: '/input' }],
+        effort: 'default', inputs: [{ kind, path: '/input' }],
       } }), /Unknown command/);
       assert.deepStrictEqual(calls, [kind === 'source' ? 'java.spotbugs.analyzeSources' : 'java.spotbugs.analyzeArtifacts']);
     });
@@ -55,7 +55,7 @@ describe('analysis command boundaries', () => {
     for (const inputs of [[], [{ kind: 'source', path: '/a' }, { kind: 'artifact', path: '/b' }],
       [{ kind: 'artifact', path: '/b' }, { kind: 'source', path: '/a' }]]) {
       await assert.rejects(runSpotBugsAnalysis({ targetPath: '/display', payload: {
-        schemaVersion: 2, effort: 'default', inputs,
+        effort: 'default', inputs,
       } } as AnalysisRequest), /inputs of one kind/);
     }
     assert.strictEqual(calls, 0);

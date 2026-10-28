@@ -4,9 +4,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class CommandResponse {
-    private static final int SCHEMA_VERSION = 2;
-
-    private final int schemaVersion;
     private final Object results;
     private final List<CommandError> errors;
     private final List<CommandWarning> warnings;
@@ -26,7 +23,6 @@ public class CommandResponse {
             String baselineXml,
             List<String> missingClasses
     ) {
-        this.schemaVersion = SCHEMA_VERSION;
         this.results = results != null ? results : Collections.emptyList();
         this.errors = errors != null ? errors : Collections.emptyList();
         this.warnings = warnings != null && !warnings.isEmpty() ? warnings : null;
