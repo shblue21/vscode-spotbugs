@@ -2,16 +2,16 @@
 
 Thanks for your interest in improving SpotBugs for VS Code.
 
-## Before You Start
+## Before you start
 
-- Search existing issues before opening a new one.
+- Search existing issues and pull requests before opening a new one.
 - For bugs, include VS Code version, extension version, Java version, OS, project
-  type, and clear reproduction steps.
+  type, and a minimal example or clear reproduction steps.
 - For feature requests, describe the workflow you want to improve and why.
 - Do not include private source code, credentials, or sensitive logs in public
   issues.
 
-## Development Setup
+## Development setup
 
 Requirements:
 
@@ -19,45 +19,44 @@ Requirements:
 - Java 17 for building the Java runner
 - VS Code
 
-Install dependencies:
+Install dependencies and build the extension:
 
 ```sh
 npm ci
-```
-
-Build the Java runner:
-
-```sh
 npm run build-server
-```
-
-Compile the extension:
-
-```sh
 npm run compile
 ```
 
+After Java changes, rerun `npm run build-server` from the repository root to
+update the JARs in `server/` before trying the extension in VS Code.
+
 ## Checks
 
-Run these before opening a pull request:
+Run the checks relevant to your change. For extension code:
 
 ```sh
-npm run lint
 npm run format:check
 npm test
 ```
 
-For Java runner-only changes, also run:
+`npm test` compiles, lints, and runs unit and extension-host tests. The host tests
+use a Java extension stub; they do not verify live Java LS analysis. In headless
+Linux environments, run `xvfb-run -a npm test`.
+
+For Java runner changes, also run:
 
 ```sh
 cd javaext
 ./mvnw -B -ntp clean package
 ```
 
-## Pull Requests
+## Pull requests
 
 - Keep changes focused.
 - Update documentation when behavior, settings, commands, or requirements
   change.
-- Add or update tests for behavior changes when practical.
-- Explain user-visible impact and any known limitations in the PR description.
+- Add or update tests for behavior changes. For bug fixes, add a test that fails
+  without the fix when practical.
+- Describe the change, checks run, and any compatibility impact or limitations.
+- Use a Conventional Commit title, such as `fix: ...` or `feat: ...`, so Release
+  Please can categorize the change. Release Please manages versions and `CHANGELOG.md`.

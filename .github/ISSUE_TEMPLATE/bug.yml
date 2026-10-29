@@ -7,7 +7,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please describe what went wrong and how to reproduce it.
+        Search existing issues and pull requests before reporting. Do not include private code, credentials, or sensitive data.
+        For security reports, follow [SUPPORT.md](https://github.com/shblue21/vscode-spotbugs/blob/main/SUPPORT.md).
 
   - type: textarea
     id: details
@@ -29,12 +30,15 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Optional. Add versions if they seem relevant.
+      description: Optional. Include the details relevant to the problem.
       value: |
         - OS:
         - VS Code version:
         - SpotBugs extension version:
+        - Red Hat Java extension version:
         - Java version:
+        - Project type (Maven, Gradle, or other):
+        - SpotBugs command:
     validations:
       required: false
 
@@ -42,7 +46,7 @@ body:
     id: additional-context
     attributes:
       label: Additional context
-      description: Optional. Add logs, screenshots, or a sample project.
+      description: Optional. Add logs from Output → SpotBugs, screenshots, or a small sample project.
       placeholder: Paste logs, add screenshots, or link a small sample repository.
     validations:
       required: false

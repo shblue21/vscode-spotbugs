@@ -1,6 +1,7 @@
 ## Summary
 
-<!-- What changed? -->
+<!-- What changed and why? Link a related issue if applicable. -->
+
 ## Testing
 
 - [ ] `npm run lint`
@@ -8,6 +9,8 @@
 - [ ] `npm test`
 - [ ] Other:
 
+<!-- List tests run separately and their results, or explain any skipped checks. -->
+
 ## Notes
 
-<!-- Anything reviewers should know? -->
+<!-- Optional: compatibility changes or known limitations. Remove this section if unnecessary. -->
