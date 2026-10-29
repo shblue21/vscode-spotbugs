@@ -6,10 +6,7 @@ const SPOTBUGS_BUG_DESCRIPTIONS_PATH_SUFFIX = '/bugDescriptions.html';
 const LEGACY_SPOTBUGS_ANCHOR_PATTERN = /^[A-Z0-9_]+$/;
 const WEB_DOCUMENTATION_PROTOCOLS = new Set(['http:', 'https:']);
 
-export function getAllowedWebDocumentationUrl(
-  raw?: string,
-  bugType?: string
-): string | undefined {
+export function getAllowedWebDocumentationUrl(raw?: string, bugType?: string): string | undefined {
   const value = raw?.trim();
   if (!value) {
     return undefined;

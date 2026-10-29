@@ -1,9 +1,5 @@
 import * as assert from 'assert';
-import {
-  groupKeyFor,
-  MISSING_GROUP_KEYS,
-  toFindingFacets,
-} from '../ui/findingFacets';
+import { groupKeyFor, MISSING_GROUP_KEYS, toFindingFacets } from '../ui/findingFacets';
 import { Finding } from '../model/finding';
 import { mapBugToFinding } from '../lsp/spotbugsMapper';
 
@@ -20,12 +16,12 @@ describe('findingFacets', () => {
       assert.strictEqual(
         toFindingFacets(makeFinding({ priority, rank })).priorityLabel,
         expected,
-        `priority=${priority}, rank=${rank}`
+        `priority=${priority}, rank=${rank}`,
       );
     }
     assert.strictEqual(
       toFindingFacets(makeFinding({ priority: 'H', rank: 9 })).severityLabel,
-      'Warning'
+      'Warning',
     );
   });
 
@@ -47,7 +43,7 @@ describe('findingFacets', () => {
           sourceFile: 'UserService.java',
           startLine: 12,
         },
-      })
+      }),
     );
 
     assert.strictEqual(facets.categoryKey, 'SECURITY');
@@ -59,10 +55,7 @@ describe('findingFacets', () => {
     assert.strictEqual(facets.ruleKey, 'SQL_INJECTION');
     assert.strictEqual(facets.filterValues.package, 'com.acme');
     assert.strictEqual(facets.filterValues.class, 'com.acme.UserService');
-    assert.strictEqual(
-      facets.filterValues.path,
-      '/workspace/src/com/acme/UserService.java'
-    );
+    assert.strictEqual(facets.filterValues.path, '/workspace/src/com/acme/UserService.java');
     assert.strictEqual(facets.filterValues.rule, 'SQL_INJECTION');
     assert.ok(facets.searchableValues.includes('CWE-89'));
     assert.ok(facets.searchableValues.includes('89'));
@@ -79,7 +72,7 @@ describe('findingFacets', () => {
         abbrev: undefined,
         className: undefined,
         location: {},
-      })
+      }),
     );
 
     assert.strictEqual(facets.categoryKey, 'Uncategorized');
@@ -126,7 +119,7 @@ describe('findingFacets', () => {
           sourceFile: 'UserDao.java',
           startLine: 1,
         },
-      })
+      }),
     );
     const defaultPackage = toFindingFacets(
       makeFinding({
@@ -136,7 +129,7 @@ describe('findingFacets', () => {
           sourceFile: 'Main.java',
           startLine: 1,
         },
-      })
+      }),
     );
 
     assert.strictEqual(fromPath.packageKey, 'com.acme');
@@ -154,7 +147,7 @@ describe('findingFacets', () => {
         type: 'SQL_INJECTION',
         abbrev: 'SQL',
         message: 'SQL: Risk in query construction',
-      })
+      }),
     );
 
     assert.strictEqual(facets.ruleKey, 'SQL_INJECTION');
@@ -166,41 +159,28 @@ describe('findingFacets', () => {
 
   it('returns stable group keys for concrete and missing values', () => {
     const concrete = toFindingFacets(makeFinding({ className: 'com.acme.Service' }));
-    const missing = toFindingFacets(
-      makeFinding({ className: undefined, location: {} })
-    );
+    const missing = toFindingFacets(makeFinding({ className: undefined, location: {} }));
     const missingCategoryRule = toFindingFacets(
       makeFinding({
         category: undefined,
         patternId: undefined,
         type: undefined,
         abbrev: undefined,
-      })
+      }),
     );
-    const missingPriority = toFindingFacets(
-      makeFinding({ priority: undefined, rank: undefined })
-    );
+    const missingPriority = toFindingFacets(makeFinding({ priority: undefined, rank: undefined }));
 
     assert.strictEqual(groupKeyFor('category', concrete), 'CORRECTNESS');
     assert.strictEqual(groupKeyFor('package', concrete), 'com.acme');
     assert.strictEqual(groupKeyFor('class', concrete), 'com.acme.Service');
     assert.strictEqual(groupKeyFor('rule', concrete), 'NP_ALWAYS_NULL');
-    assert.strictEqual(
-      groupKeyFor('category', missingCategoryRule),
-      MISSING_GROUP_KEYS.category
-    );
+    assert.strictEqual(groupKeyFor('category', missingCategoryRule), MISSING_GROUP_KEYS.category);
     assert.strictEqual(groupKeyFor('path', missing), MISSING_GROUP_KEYS.path);
     assert.strictEqual(groupKeyFor('package', missing), MISSING_GROUP_KEYS.package);
     assert.strictEqual(groupKeyFor('class', missing), MISSING_GROUP_KEYS.class);
-    assert.strictEqual(
-      groupKeyFor('rule', missingCategoryRule),
-      MISSING_GROUP_KEYS.rule
-    );
+    assert.strictEqual(groupKeyFor('rule', missingCategoryRule), MISSING_GROUP_KEYS.rule);
     assert.strictEqual(groupKeyFor('priority', concrete), 'medium');
-    assert.strictEqual(
-      groupKeyFor('priority', missingPriority),
-      MISSING_GROUP_KEYS.priority
-    );
+    assert.strictEqual(groupKeyFor('priority', missingPriority), MISSING_GROUP_KEYS.priority);
   });
 });
 

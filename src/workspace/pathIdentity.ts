@@ -1,24 +1,16 @@
 import * as path from 'path';
 
-type PathFlavor = Pick<
-  typeof path,
-  'isAbsolute' | 'relative' | 'resolve' | 'sep'
->;
+type PathFlavor = Pick<typeof path, 'isAbsolute' | 'relative' | 'resolve' | 'sep'>;
 
-export function isPathInsideOrEqual(
-  parentPath: string,
-  candidatePath: string
-): boolean {
+export function isPathInsideOrEqual(parentPath: string, candidatePath: string): boolean {
   const flavor = selectPathFlavor(parentPath, candidatePath);
   const relative = flavor.relative(
     normalizePath(parentPath, flavor),
-    normalizePath(candidatePath, flavor)
+    normalizePath(candidatePath, flavor),
   );
   return (
     relative === '' ||
-    (relative !== '..' &&
-      !relative.startsWith(`..${flavor.sep}`) &&
-      !flavor.isAbsolute(relative))
+    (relative !== '..' && !relative.startsWith(`..${flavor.sep}`) && !flavor.isAbsolute(relative))
   );
 }
 
@@ -51,11 +43,7 @@ export function relativePath(from: string, to: string): string {
 }
 
 export function isWindowsPath(value: string): boolean {
-  return (
-    /^[a-zA-Z]:[\\/]/.test(value) ||
-    value.startsWith('\\\\') ||
-    value.startsWith('//')
-  );
+  return /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('//');
 }
 
 function selectPathFlavor(...values: string[]): PathFlavor {

@@ -9,7 +9,7 @@ import { SpotBugsTreeDataProvider } from './spotbugsTreeDataProvider';
 
 export function resolveSpotBugsSelection(
   provider: SpotBugsTreeDataProvider,
-  element: unknown
+  element: unknown,
 ): Finding[] {
   if (
     element instanceof CategoryGroupItem ||

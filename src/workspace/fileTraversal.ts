@@ -3,7 +3,7 @@ import * as path from 'path';
 
 export async function containsMatchingFile(
   targetPath: string,
-  predicate: (filePath: string) => boolean | Promise<boolean>
+  predicate: (filePath: string) => boolean | Promise<boolean>,
 ): Promise<boolean> {
   try {
     const stat = await fs.promises.stat(targetPath);

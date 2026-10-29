@@ -21,7 +21,7 @@ describe('projectDiscovery', () => {
     };
 
     const result = await discovery.getWorkspaceProjectDiscovery(
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.deepStrictEqual(result, {
@@ -43,7 +43,7 @@ describe('projectDiscovery', () => {
     };
 
     const result = await discovery.getWorkspaceProjectDiscovery(
-      vscode.Uri.file('/workspace') as any
+      vscode.Uri.file('/workspace') as any,
     );
 
     assert.deepStrictEqual(result, {
@@ -68,5 +68,4 @@ describe('projectDiscovery', () => {
     });
     assert.deepStrictEqual(calls, [projectRequest]);
   });
-
 });

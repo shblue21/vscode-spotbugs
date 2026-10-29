@@ -89,38 +89,54 @@ describe('analysisExecution', () => {
 
   it('logs missing classes once per analysis with all targets and ignores malformed metadata', async () => {
     const { createAnalysisExecutor } = loadAnalysisExecution();
-    const { parseAnalysisResponse } = require('../lsp/spotbugsParser') as typeof import('../lsp/spotbugsParser');
+    const { parseAnalysisResponse } =
+      require('../lsp/spotbugsParser') as typeof import('../lsp/spotbugsParser');
     const logs: string[] = [];
     let missingClasses: unknown = ['pkg.Z', 'pkg.A', 'pkg.Z', '', null];
-    const executor = createAnalysisExecutor(makeDeps({
-      runSpotBugsAnalysis: async () => JSON.stringify({ results: [], missingClasses }),
-      parseAnalysisResponse,
-      logger: { log: (message) => logs.push(message), error: () => undefined },
-    }));
+    const executor = createAnalysisExecutor(
+      makeDeps({
+        runSpotBugsAnalysis: async () => JSON.stringify({ results: [], missingClasses }),
+        parseAnalysisResponse,
+        logger: { log: (message) => logs.push(message), error: () => undefined },
+      }),
+    );
     const target = makeTarget(installVscodeMock());
-    target.inputs = [{ kind: 'artifact', path: '/project/a.jar' }, { kind: 'artifact', path: '/project/b.jar' }];
+    target.inputs = [
+      { kind: 'artifact', path: '/project/a.jar' },
+      { kind: 'artifact', path: '/project/b.jar' },
+    ];
     for (const value of [missingClasses, undefined, [], 'malformed']) {
       missingClasses = value;
       assert.strictEqual((await executor.run({ effort: 'default' }, target)).failure, undefined);
     }
-    assert.deepStrictEqual(logs.filter((line) => line.startsWith('[Warning]')), [
-      '[Warning] Missing classes required for SpotBugs analysis (/project/a.jar, /project/b.jar):\n  - pkg.A\n  - pkg.Z',
-    ]);
+    assert.deepStrictEqual(
+      logs.filter((line) => line.startsWith('[Warning]')),
+      [
+        '[Warning] Missing classes required for SpotBugs analysis (/project/a.jar, /project/b.jar):\n  - pkg.A\n  - pkg.Z',
+      ],
+    );
   });
 
   for (const code of ['CFG_PLUGINS_INVALID', 'CFG_DETECTORS_INVALID']) {
     it(`preserves ${code} before file checks or backend execution`, async () => {
       const { createAnalysisExecutor } = loadAnalysisExecution();
-      const unexpected = () => { throw new Error('File checks and backend must not run'); };
-      const executor = createAnalysisExecutor(makeDeps({
-        validateFilterFilesPreflight: unexpected,
-        validateExtraAuxClasspathPreflight: unexpected,
-        validatePluginJarsPreflight: unexpected,
-        buildAnalysisRequestPayload: unexpected,
-        runSpotBugsAnalysis: unexpected,
-      }));
+      const unexpected = () => {
+        throw new Error('File checks and backend must not run');
+      };
+      const executor = createAnalysisExecutor(
+        makeDeps({
+          validateFilterFilesPreflight: unexpected,
+          validateExtraAuxClasspathPreflight: unexpected,
+          validatePluginJarsPreflight: unexpected,
+          buildAnalysisRequestPayload: unexpected,
+          runSpotBugsAnalysis: unexpected,
+        }),
+      );
       const error = { code, message: 'Invalid setting' };
-      const outcome = await executor.run({ effort: 'default', configurationError: error }, makeTarget(installVscodeMock()));
+      const outcome = await executor.run(
+        { effort: 'default', configurationError: error },
+        makeTarget(installVscodeMock()),
+      );
       assert.deepStrictEqual(outcome.errors, [error]);
       assert.strictEqual(outcome.failure?.code, code);
     });
@@ -140,31 +156,44 @@ describe('analysisExecution', () => {
         callOrder.push(name);
         return name === stage ? { code, message } : undefined;
       };
-      const executor = createAnalysisExecutor(makeDeps({
-        validateFilterFilesPreflight: validate('filter'),
-        validateExtraAuxClasspathPreflight: validate('aux'),
-        validatePluginJarsPreflight: validate('plugin'),
-        buildAnalysisRequestPayload: () => {
-          throw new Error('buildAnalysisRequestPayload should not run');
-        },
-        runSpotBugsAnalysis: async (request) => {
-          backendCalls.push(request);
-          return JSON.stringify({ inputs: [], results: [] });
-        },
-      }));
+      const executor = createAnalysisExecutor(
+        makeDeps({
+          validateFilterFilesPreflight: validate('filter'),
+          validateExtraAuxClasspathPreflight: validate('aux'),
+          validatePluginJarsPreflight: validate('plugin'),
+          buildAnalysisRequestPayload: () => {
+            throw new Error('buildAnalysisRequestPayload should not run');
+          },
+          runSpotBugsAnalysis: async (request) => {
+            backendCalls.push(request);
+            return JSON.stringify({ inputs: [], results: [] });
+          },
+        }),
+      );
       const outcome = await executor.run(
-        { effort: 'default', ...(stage === 'plugin' ? { plugins: [{ path: '/workspace/missing-plugin.jar', detectors: {} }] } : {}) },
+        {
+          effort: 'default',
+          ...(stage === 'plugin'
+            ? { plugins: [{ path: '/workspace/missing-plugin.jar', detectors: {} }] }
+            : {}),
+        },
         makeTarget(installVscodeMock()),
       );
 
-      assert.deepStrictEqual(callOrder, preflightCases.slice(0, index + 1).map(([name]) => name));
+      assert.deepStrictEqual(
+        callOrder,
+        preflightCases.slice(0, index + 1).map(([name]) => name),
+      );
       assert.deepStrictEqual(backendCalls, []);
       assert.deepStrictEqual(outcome.findings, []);
       assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
       assert.strictEqual(outcome.errors?.[0]?.code, code);
       assert.strictEqual(outcome.failure?.kind, 'analysis-error');
       assert.strictEqual(outcome.failure?.code, code);
-      assert.strictEqual(outcome.failure?.message, `SpotBugs analysis failed: [${code}] ${message}`);
+      assert.strictEqual(
+        outcome.failure?.message,
+        `SpotBugs analysis failed: [${code}] ${message}`,
+      );
     });
   }
 
@@ -243,8 +272,15 @@ describe('analysisExecution', () => {
     let raw = '';
     const executor = createAnalysisExecutor({
       runSpotBugsAnalysis: async () => raw,
-      logger: { log: () => undefined, error: (...args: unknown[]) => { logs.push(args); } },
-      mapBugsToFindings: () => { throw new Error('Invalid responses must not reach finding mapping'); },
+      logger: {
+        log: () => undefined,
+        error: (...args: unknown[]) => {
+          logs.push(args);
+        },
+      },
+      mapBugsToFindings: () => {
+        throw new Error('Invalid responses must not reach finding mapping');
+      },
     });
     for (const response of ['{', '[]', '[{"type":"NP"}]', '{"error":"boom"}']) {
       raw = response;
@@ -252,7 +288,8 @@ describe('analysisExecution', () => {
       assert.deepStrictEqual(outcome.findings, []);
       assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
       assert.deepStrictEqual(outcome.failure, {
-        kind: 'invalid-json', level: 'error',
+        kind: 'invalid-json',
+        level: 'error',
         message: 'SpotBugs analysis failed: Invalid response payload.',
       });
     }
@@ -272,7 +309,10 @@ describe('analysisExecution', () => {
       assert.deepStrictEqual(outcome.errors, [error]);
       assert.strictEqual(outcome.failure?.kind, 'analysis-error');
       assert.strictEqual(outcome.failure?.code, code);
-      assert.strictEqual(outcome.failure?.message, `SpotBugs analysis failed: [${code}] Backend detail`);
+      assert.strictEqual(
+        outcome.failure?.message,
+        `SpotBugs analysis failed: [${code}] Backend detail`,
+      );
     }
   });
 

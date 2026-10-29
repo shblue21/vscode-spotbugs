@@ -96,10 +96,17 @@ function createFileHarness() {
   const warnings: string[] = [];
   const errors: string[] = [];
   const shownResults: Parameters<RunFileAnalysisSessionArgs['tree']['showResults']>[] = [];
-  const diagnosticUpdates: Parameters<RunFileAnalysisSessionArgs['diagnostics']['replaceForScope']>[] = [];
+  const diagnosticUpdates: Parameters<
+    RunFileAnalysisSessionArgs['diagnostics']['replaceForScope']
+  >[] = [];
 
   return {
-    calls, infos, warnings, errors, shownResults, diagnosticUpdates,
+    calls,
+    infos,
+    warnings,
+    errors,
+    shownResults,
+    diagnosticUpdates,
     args: {
       config: { getAnalysisSettings: () => ({}) } as any,
       tree: {
@@ -151,9 +158,14 @@ describe('analysisRunSession file analysis', () => {
       receivedUri = actualUri;
       receivedToken = actualToken;
       return {
-        reportRuns: [{ projectUri: uri.toString(), findings: [finding],
-          nativeSarif: '{"version":"2.1.0","runs":[]}', baselineXml: '<BugCollection/>',
-        }],
+        reportRuns: [
+          {
+            projectUri: uri.toString(),
+            findings: [finding],
+            nativeSarif: '{"version":"2.1.0","runs":[]}',
+            baselineXml: '<BugCollection/>',
+          },
+        ],
         outcome: {
           findings: [finding],
           nativeSarif: '{"version":"2.1.0","runs":[]}',
@@ -884,14 +896,23 @@ describe('analysisRunSession workspace analysis', () => {
     ['discovery', 'getWorkspaceProjectDiscovery', 'discovery boom', [], []],
     ['build', 'buildWorkspaceAuto', 'build boom', [], []],
     ['backend', 'analyzeWorkspaceFromProjectsDetailed', 'backend boom', ['progress:1'], []],
-    ['missing workspace', 'getPrimaryWorkspaceFolder', 'No workspace folder found.', [], ['No workspace folder found.']],
+    [
+      'missing workspace',
+      'getPrimaryWorkspaceFolder',
+      'No workspace folder found.',
+      [],
+      ['No workspace folder found.'],
+    ],
   ] as const) {
     it(`renders ${stage} failure with exact messages and preserves diagnostics`, async () => {
       const loggedErrors: string[] = [];
-      const fail = async () => { throw new Error(message); };
+      const fail = async () => {
+        throw new Error(message);
+      };
       const harness = createWorkspaceHarness({
         getWorkspaceProjectDiscovery: async () => ({
-          projectUris: ['file:///workspace/project-a'], issues: [],
+          projectUris: ['file:///workspace/project-a'],
+          issues: [],
         }),
         [dependency]: dependency === 'getPrimaryWorkspaceFolder' ? () => undefined : fail,
         logger: { log: () => undefined, error: (text) => loggedErrors.push(text) },
@@ -900,10 +921,14 @@ describe('analysisRunSession workspace analysis', () => {
       await runWorkspaceAnalysisSession(harness.args);
 
       assert.deepStrictEqual(harness.calls, [
-        ...prefix, `failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: ${message}`,
+        ...prefix,
+        `failure:WORKSPACE_ANALYSIS_FAILED:SpotBugs workspace analysis failed: ${message}`,
       ]);
       assert.deepStrictEqual(harness.errors, [`SpotBugs: Workspace analysis failed - ${message}`]);
-      assert.deepStrictEqual(loggedErrors, [...loggedPrefix, 'An error occurred during workspace analysis']);
+      assert.deepStrictEqual(loggedErrors, [
+        ...loggedPrefix,
+        'An error occurred during workspace analysis',
+      ]);
     });
   }
 });

@@ -11,7 +11,7 @@ describe('pathSetting', () => {
   const state = (
     paths: string[] = [],
     target: PathSettingState['target'] = 'workspace',
-    workspaceRoots: string[] = [root]
+    workspaceRoots: string[] = [root],
   ): PathSettingState => ({ target, paths, workspaceRoots });
 
   it('selects and normalizes the active scope', () => {
@@ -44,7 +44,7 @@ describe('pathSetting', () => {
       {
         paths: ['plugins/existing.jar', 'plugins/new.jar'],
         additions: ['plugins/new.jar'],
-      }
+      },
     );
 
     const inside = path.join(root, 'plugins', 'plugin.jar');

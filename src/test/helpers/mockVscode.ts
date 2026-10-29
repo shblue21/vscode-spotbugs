@@ -74,14 +74,14 @@ class MockThemeIcon {
 class MockPosition {
   constructor(
     public readonly line: number,
-    public readonly character: number
+    public readonly character: number,
   ) {}
 }
 
 class MockRange {
   constructor(
     public readonly start: MockPosition,
-    public readonly end: MockPosition
+    public readonly end: MockPosition,
   ) {}
 }
 
@@ -94,7 +94,7 @@ class MockTreeItem {
 
   constructor(
     public readonly label: string,
-    public readonly collapsibleState?: number
+    public readonly collapsibleState?: number,
   ) {}
 }
 
@@ -127,7 +127,7 @@ type VscodeMock = {
     };
     getWorkspaceFolder: (uri: MockUri) => WorkspaceFolder | undefined;
     onDidChangeConfiguration: (
-      listener: (event: { affectsConfiguration: (section: string) => boolean }) => unknown
+      listener: (event: { affectsConfiguration: (section: string) => boolean }) => unknown,
     ) => { dispose: () => void };
     onDidOpenTextDocument: (listener: (document: unknown) => unknown) => { dispose: () => void };
     fs: {
@@ -135,21 +135,24 @@ type VscodeMock = {
     };
   };
   window: {
-    createOutputChannel: (name: string) => { appendLine: (value: string) => void; show: () => void };
+    createOutputChannel: (name: string) => {
+      appendLine: (value: string) => void;
+      show: () => void;
+    };
     createTreeView: (
       viewId: string,
-      options: unknown
+      options: unknown,
     ) => {
-      onDidChangeSelection: (
-        listener: (event: { selection: unknown[] }) => unknown
-      ) => { dispose: () => void };
+      onDidChangeSelection: (listener: (event: { selection: unknown[] }) => unknown) => {
+        dispose: () => void;
+      };
       dispose: () => void;
     };
     createWebviewPanel: (
       viewType: string,
       title: string,
       showOptions: unknown,
-      options?: unknown
+      options?: unknown,
     ) => {
       title: string;
       webview: { html: string };
@@ -162,22 +165,19 @@ type VscodeMock = {
     showWarningMessage: (message: string) => Promise<string | undefined>;
     showErrorMessage: (message: string) => Promise<string | undefined>;
     showInputBox: (options?: unknown) => Promise<string | undefined>;
-    showQuickPick: <T>(
-      items: T[] | PromiseLike<T[]>,
-      options?: unknown
-    ) => Promise<T | undefined>;
+    showQuickPick: <T>(items: T[] | PromiseLike<T[]>, options?: unknown) => Promise<T | undefined>;
     activeTextEditor?: { document: { uri: MockUri } };
     registerWebviewViewProvider: (
       viewId: string,
       provider: unknown,
-      options?: unknown
+      options?: unknown,
     ) => { dispose: () => void };
     withProgress: <T>(
       options: unknown,
       task: (
         progress: { report: (value: unknown) => void },
-        token: { isCancellationRequested: boolean }
-      ) => Promise<T>
+        token: { isCancellationRequested: boolean },
+      ) => Promise<T>,
     ) => Promise<T>;
   };
   commands: {
@@ -217,11 +217,11 @@ type TelemetryWrapperMock = {
   initializeFromJsonFile: (...args: unknown[]) => Promise<void>;
   instrumentOperation: <TArgs extends unknown[], TResult>(
     operationName: string,
-    operation: (operationId: string, ...args: TArgs) => TResult
+    operation: (operationId: string, ...args: TArgs) => TResult,
   ) => (...args: TArgs) => TResult;
   instrumentOperationAsVsCodeCommand: (
     commandId: string,
-    callback: (...args: unknown[]) => unknown
+    callback: (...args: unknown[]) => unknown,
   ) => { dispose: () => void };
   dispose: () => Promise<void>;
 };
@@ -260,27 +260,27 @@ export function resetVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock
 }
 
 export function resetTelemetryWrapperMock(
-  overrides: Partial<TelemetryWrapperMock> = {}
+  overrides: Partial<TelemetryWrapperMock> = {},
 ): TelemetryWrapperMock {
   Object.assign(currentTelemetryWrapperMock, createTelemetryWrapperMock(overrides));
   return currentTelemetryWrapperMock;
 }
 
 function createTelemetryWrapperMock(
-  overrides: Partial<TelemetryWrapperMock> = {}
+  overrides: Partial<TelemetryWrapperMock> = {},
 ): TelemetryWrapperMock {
   return {
-    initializeFromJsonFile:
-      overrides.initializeFromJsonFile ?? (async () => undefined),
+    initializeFromJsonFile: overrides.initializeFromJsonFile ?? (async () => undefined),
     instrumentOperation:
       overrides.instrumentOperation ??
       (<TArgs extends unknown[], TResult>(
         _operationName: string,
-        operation: (operationId: string, ...args: TArgs) => TResult
-      ) => (...args: TArgs) => operation('test-operation', ...args)),
+        operation: (operationId: string, ...args: TArgs) => TResult,
+      ) =>
+        (...args: TArgs) =>
+          operation('test-operation', ...args)),
     instrumentOperationAsVsCodeCommand:
-      overrides.instrumentOperationAsVsCodeCommand ??
-      (() => ({ dispose: () => undefined })),
+      overrides.instrumentOperationAsVsCodeCommand ?? (() => ({ dispose: () => undefined })),
     dispose: overrides.dispose ?? (async () => undefined),
   };
 }
@@ -320,11 +320,9 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
       ((uri: MockUri) =>
         workspaceFolders.find((folder) => uri.fsPath.startsWith(folder.uri.fsPath))),
     onDidChangeConfiguration:
-      overrides.workspace?.onDidChangeConfiguration ??
-      (() => ({ dispose: () => undefined })),
+      overrides.workspace?.onDidChangeConfiguration ?? (() => ({ dispose: () => undefined })),
     onDidOpenTextDocument:
-      overrides.workspace?.onDidOpenTextDocument ??
-      (() => ({ dispose: () => undefined })),
+      overrides.workspace?.onDidOpenTextDocument ?? (() => ({ dispose: () => undefined })),
     fs: {
       stat: overrides.workspace?.fs?.stat ?? (async () => ({})),
     },
@@ -352,22 +350,15 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
         dispose: () => undefined,
         onDidDispose: () => ({ dispose: () => undefined }),
       })),
-    showInformationMessage:
-      overrides.window?.showInformationMessage ?? (async () => undefined),
-    showWarningMessage:
-      overrides.window?.showWarningMessage ?? (async () => undefined),
-    showErrorMessage:
-      overrides.window?.showErrorMessage ?? (async () => undefined),
-    showInputBox:
-      overrides.window?.showInputBox ?? (async () => undefined),
-    showQuickPick:
-      overrides.window?.showQuickPick ?? (async () => undefined),
-    showTextDocument:
-      overrides.window?.showTextDocument ?? (async () => undefined),
+    showInformationMessage: overrides.window?.showInformationMessage ?? (async () => undefined),
+    showWarningMessage: overrides.window?.showWarningMessage ?? (async () => undefined),
+    showErrorMessage: overrides.window?.showErrorMessage ?? (async () => undefined),
+    showInputBox: overrides.window?.showInputBox ?? (async () => undefined),
+    showQuickPick: overrides.window?.showQuickPick ?? (async () => undefined),
+    showTextDocument: overrides.window?.showTextDocument ?? (async () => undefined),
     activeTextEditor: overrides.window?.activeTextEditor,
     registerWebviewViewProvider:
-      overrides.window?.registerWebviewViewProvider ??
-      (() => ({ dispose: () => undefined })),
+      overrides.window?.registerWebviewViewProvider ?? (() => ({ dispose: () => undefined })),
     withProgress:
       overrides.window?.withProgress ??
       (async (_options, task) =>
@@ -377,7 +368,7 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
           },
           {
             isCancellationRequested: false,
-          }
+          },
         )),
   };
 
@@ -417,8 +408,7 @@ function createVscodeMock(overrides: Partial<VscodeMock> = {}): VscodeMock {
           set: () => undefined,
         })),
       registerCodeActionsProvider:
-        overrides.languages?.registerCodeActionsProvider ??
-        (() => ({ dispose: () => undefined })),
+        overrides.languages?.registerCodeActionsProvider ?? (() => ({ dispose: () => undefined })),
     },
     ProgressLocation: overrides.ProgressLocation ?? {
       Notification: 15,

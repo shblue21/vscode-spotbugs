@@ -32,8 +32,13 @@ describe('navigation', () => {
       end: { line: number; character: number };
     };
     assert.deepStrictEqual(
-      [selection.start.line, selection.start.character, selection.end.line, selection.end.character],
-      [9, 0, 9, 0]
+      [
+        selection.start.line,
+        selection.start.character,
+        selection.end.line,
+        selection.end.character,
+      ],
+      [9, 0, 9, 0],
     );
   });
 
@@ -78,9 +83,7 @@ describe('navigation', () => {
 
     await revealFindingSource(makeFinding({ location: {} }));
 
-    assert.deepStrictEqual(messages, [
-      'This SpotBugs finding has no source location.',
-    ]);
+    assert.deepStrictEqual(messages, ['This SpotBugs finding has no source location.']);
   });
 });
 
@@ -88,10 +91,7 @@ function installDocumentCapture(): ShownDocument[] {
   const shown: ShownDocument[] = [];
   resetVscodeMock({
     window: {
-      showTextDocument: async (
-        uri: { fsPath: string },
-        options: Record<string, unknown>
-      ) => {
+      showTextDocument: async (uri: { fsPath: string }, options: Record<string, unknown>) => {
         shown.push({ uri, options });
         return undefined;
       },

@@ -29,21 +29,18 @@ describe('pathResolver', () => {
           }
           throw new Error('not found');
         },
-      })
+      }),
     );
 
     const resolution = resolver.addFullPaths(
       [makeFinding('com/acme/Foo.java')],
       undefined,
-      sourcepaths
+      sourcepaths,
     );
     sourcepaths[0] = '/workspace/mutated';
     const [result] = await resolution;
 
-    assert.strictEqual(
-      result.location.fullPath,
-      '/workspace/source-b/com/acme/Foo.java'
-    );
+    assert.strictEqual(result.location.fullPath, '/workspace/source-b/com/acme/Foo.java');
     assert.deepStrictEqual(statCalls, [
       '/workspace/source-a/com/acme/Foo.java',
       '/workspace/source-b/com/acme/Foo.java',
@@ -64,26 +61,19 @@ describe('pathResolver', () => {
         getProjectRootPaths: async () => ['/workspace/project'],
         statPath: async (candidatePath) => {
           statCalls.push(candidatePath);
-          if (
-            candidatePath ===
-            '/workspace/project/src/test/java/com/acme/Foo.java'
-          ) {
+          if (candidatePath === '/workspace/project/src/test/java/com/acme/Foo.java') {
             return {};
           }
           throw new Error('not found');
         },
-      })
+      }),
     );
 
-    const [result] = await resolver.addFullPaths(
-      [makeFinding('com/acme/Foo.java')],
-      undefined,
-      []
-    );
+    const [result] = await resolver.addFullPaths([makeFinding('com/acme/Foo.java')], undefined, []);
 
     assert.strictEqual(
       result.location.fullPath,
-      '/workspace/project/src/test/java/com/acme/Foo.java'
+      '/workspace/project/src/test/java/com/acme/Foo.java',
     );
     assert.deepStrictEqual(statCalls, [
       '/workspace/project/src/main/java/com/acme/Foo.java',
@@ -109,15 +99,12 @@ describe('pathResolver', () => {
           }
           throw new Error('not found');
         },
-      })
+      }),
     );
 
     const results = await resolver.addFullPaths(
-      [
-        makeFinding('com/acme/Foo.java'),
-        makeFinding('com/acme/Bar.java'),
-      ],
-      preferredProject
+      [makeFinding('com/acme/Foo.java'), makeFinding('com/acme/Bar.java')],
+      preferredProject,
     );
 
     assert.deepStrictEqual(
@@ -125,7 +112,7 @@ describe('pathResolver', () => {
       [
         '/workspace/project-a/source/com/acme/Foo.java',
         '/workspace/project-a/source/com/acme/Bar.java',
-      ]
+      ],
     );
     assert.deepStrictEqual(requestedProjects, [preferredProject]);
   });
@@ -139,42 +126,24 @@ describe('pathResolver', () => {
     const resolver = createPathResolver(
       makeDeps({
         getClasspaths: async (project) => {
-          const projectPath =
-            typeof project === 'string' ? project : project?.fsPath ?? '';
+          const projectPath = typeof project === 'string' ? project : (project?.fsPath ?? '');
           requestedProjects.push(projectPath);
           return classpathResult([`${projectPath}/source`]);
         },
         statPath: async () => ({}),
-      })
+      }),
     );
 
-    const [findingA] = await resolver.addFullPaths(
-      [makeFinding('com/acme/Foo.java')],
-      projectA
-    );
-    const [findingB] = await resolver.addFullPaths(
-      [makeFinding('com/acme/Foo.java')],
-      projectB
-    );
+    const [findingA] = await resolver.addFullPaths([makeFinding('com/acme/Foo.java')], projectA);
+    const [findingB] = await resolver.addFullPaths([makeFinding('com/acme/Foo.java')], projectB);
 
-    assert.strictEqual(
-      findingA.location.fullPath,
-      '/workspace/project-a/source/com/acme/Foo.java'
-    );
-    assert.strictEqual(
-      findingB.location.fullPath,
-      '/workspace/project-b/source/com/acme/Foo.java'
-    );
-    assert.deepStrictEqual(requestedProjects, [
-      '/workspace/project-a',
-      '/workspace/project-b',
-    ]);
+    assert.strictEqual(findingA.location.fullPath, '/workspace/project-a/source/com/acme/Foo.java');
+    assert.strictEqual(findingB.location.fullPath, '/workspace/project-b/source/com/acme/Foo.java');
+    assert.deepStrictEqual(requestedProjects, ['/workspace/project-a', '/workspace/project-b']);
   });
 });
 
-function makeDeps(
-  overrides: Partial<PathResolverDeps> = {}
-): PathResolverDeps {
+function makeDeps(overrides: Partial<PathResolverDeps> = {}): PathResolverDeps {
   return {
     getClasspaths: async () => undefined,
     getProjectRootPaths: async () => [],

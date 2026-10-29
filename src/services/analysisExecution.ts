@@ -203,15 +203,8 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     context: AnalysisExecutionUnit,
   ): Promise<AnalysisOutcome> {
     const targetPath = context.inputs[0].path;
-    const {
-      bugs,
-      errors,
-      warnings,
-      ignoredMalformedWarnings,
-      stats,
-      reportSummary,
-      nativeSarif,
-    } = parsed;
+    const { bugs, errors, warnings, ignoredMalformedWarnings, stats, reportSummary, nativeSarif } =
+      parsed;
     const hasErrors = Array.isArray(errors) && errors.length > 0;
     const hasTerminalErrors = hasErrors && bugs.length === 0;
     const reportableWarnings =
@@ -277,7 +270,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     const targets = context.inputs.map((input) => input.path).join(', ');
     deps.logger.log(
       `[Warning] Missing classes required for SpotBugs analysis (${targets}):\n` +
-      names.map((name) => `  - ${name}`).join('\n'),
+        names.map((name) => `  - ${name}`).join('\n'),
     );
   }
 

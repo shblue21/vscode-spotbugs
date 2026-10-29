@@ -1,9 +1,6 @@
 import type * as vscode from 'vscode';
 
-type Localize = (
-  message: string,
-  ...args: Array<string | number | boolean>
-) => string;
+type Localize = (message: string, ...args: Array<string | number | boolean>) => string;
 
 export type LocalizationApi = {
   l10n: { t: Localize };
@@ -29,10 +26,7 @@ export function escapeAttribute(value: string): string {
   return escapeHtml(value);
 }
 
-function formatFallback(
-  message: string,
-  ...args: Array<string | number | boolean>
-): string {
+function formatFallback(message: string, ...args: Array<string | number | boolean>): string {
   return message.replace(/\{(\d+)\}/g, (placeholder, indexValue: string) => {
     const index = Number(indexValue);
     return index < args.length ? String(args[index]) : placeholder;

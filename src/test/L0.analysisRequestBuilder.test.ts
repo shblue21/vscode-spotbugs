@@ -15,12 +15,18 @@ describe('analysisRequestBuilder', () => {
   it('validates confidence only when building an analysis request', () => {
     for (const minimumConfidence of [undefined, null, 'default', 'high', 'medium', 'low']) {
       const payload = buildAnalysisRequestPayload(makeSettings({ minimumConfidence }), {});
-      assert.strictEqual(payload.minimumConfidence,
-        ['high', 'medium', 'low'].includes(minimumConfidence as string) ? minimumConfidence : undefined);
+      assert.strictEqual(
+        payload.minimumConfidence,
+        ['high', 'medium', 'low'].includes(minimumConfidence as string)
+          ? minimumConfidence
+          : undefined,
+      );
     }
     for (const minimumConfidence of ['', 'HIGH', 'unknown', 1, false, [], {}]) {
-      assert.throws(() => buildAnalysisRequestPayload(makeSettings({ minimumConfidence }), {}),
-        /minimumConfidence/);
+      assert.throws(
+        () => buildAnalysisRequestPayload(makeSettings({ minimumConfidence }), {}),
+        /minimumConfidence/,
+      );
     }
   });
 
@@ -39,7 +45,10 @@ describe('analysisRequestBuilder', () => {
         includeFilterPaths,
         excludeFilterPaths,
         excludeBaselineBugsPaths,
-        plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'].map((path) => ({ path, detectors: {} })),
+        plugins: ['/workspace/plugin-a.jar', '/workspace/plugin-b.jar'].map((path) => ({
+          path,
+          detectors: {},
+        })),
         priorityThreshold: 5,
       }),
       {

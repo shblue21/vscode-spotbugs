@@ -9,27 +9,22 @@ export interface PathSettingState {
 }
 
 export function readPathSetting(settingKey: string): PathSettingState {
-  const inspected = workspace
-    .getConfiguration(SETTINGS_SECTION)
-    .inspect<unknown>(settingKey);
+  const inspected = workspace.getConfiguration(SETTINGS_SECTION).inspect<unknown>(settingKey);
   return createPathSettingState(
     inspected,
-    workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? []
+    workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [],
   );
 }
 
 export function createPathSettingState(
   inspected: { globalValue?: unknown; workspaceValue?: unknown } | undefined,
-  workspaceRoots: readonly string[]
+  workspaceRoots: readonly string[],
 ): PathSettingState {
   const workspaceDefined = inspected?.workspaceValue !== undefined;
   const globalDefined = inspected?.globalValue !== undefined;
   const target =
-    workspaceDefined || (!globalDefined && workspaceRoots.length > 0)
-      ? 'workspace'
-      : 'global';
-  const value =
-    target === 'workspace' ? inspected?.workspaceValue : inspected?.globalValue;
+    workspaceDefined || (!globalDefined && workspaceRoots.length > 0) ? 'workspace' : 'global';
+  const value = target === 'workspace' ? inspected?.workspaceValue : inspected?.globalValue;
 
   return {
     target,
@@ -38,12 +33,9 @@ export function createPathSettingState(
   };
 }
 
-export function planPathAdditions(
-  state: PathSettingState,
-  absolutePaths: readonly string[]
-) {
+export function planPathAdditions(state: PathSettingState, absolutePaths: readonly string[]) {
   const configuredKeys = new Set(
-    state.paths.map((configuredPath) => configuredPathKey(configuredPath, state))
+    state.paths.map((configuredPath) => configuredPathKey(configuredPath, state)),
   );
   const additions: string[] = [];
   for (const absolutePath of absolutePaths) {
@@ -59,11 +51,11 @@ export function planPathAdditions(
 
 export function planPathRemoval(
   state: PathSettingState,
-  selectedPath: string
+  selectedPath: string,
 ): string[] | undefined {
   const selectedKey = configuredPathKey(selectedPath, state);
   const paths = state.paths.filter(
-    (configuredPath) => configuredPathKey(configuredPath, state) !== selectedKey
+    (configuredPath) => configuredPathKey(configuredPath, state) !== selectedKey,
   );
   return paths.length === state.paths.length ? undefined : paths;
 }
@@ -77,8 +69,8 @@ export function normalizedStringArray(value: unknown): string[] {
       value
         .filter((entry): entry is string => typeof entry === 'string')
         .map((entry) => entry.trim())
-        .filter(Boolean)
-    )
+        .filter(Boolean),
+    ),
   );
 }
 

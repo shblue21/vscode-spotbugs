@@ -1,19 +1,15 @@
 import * as assert from 'assert';
 import type { Uri } from 'vscode';
-import type {
-  FilterConfigurationDeps,
-} from '../commands/filterFiles';
+import type { FilterConfigurationDeps } from '../commands/filterFiles';
 import type { FilterKind } from '../model/filterFiles';
 import type { PathSettingState } from '../services/pathSetting';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 const vscode = installVscodeMock();
-const { addFilterFiles, removeFilterFile } = require(
-  '../commands/filterFiles'
-) as typeof import('../commands/filterFiles');
-const filterTreeModule = require(
-  '../ui/filterTreeDataProvider'
-) as typeof import('../ui/filterTreeDataProvider');
+const { addFilterFiles, removeFilterFile } =
+  require('../commands/filterFiles') as typeof import('../commands/filterFiles');
+const filterTreeModule =
+  require('../ui/filterTreeDataProvider') as typeof import('../ui/filterTreeDataProvider');
 
 type Write = [FilterKind, string[], string];
 type Validation = [FilterKind, string[]];
@@ -27,23 +23,11 @@ describe('filter file commands', () => {
 
     await addFilterFiles(
       { filterKind: 'exclude' },
-      deps(
-        state([], ['/workspace']),
-        uris('/workspace/filters/new.xml'),
-        writes,
-        validations
-      )
+      deps(state([], ['/workspace']), uris('/workspace/filters/new.xml'), writes, validations),
     );
 
-    assert.deepStrictEqual(validations[0], [
-      'exclude',
-      ['/workspace/filters/new.xml'],
-    ]);
-    assert.deepStrictEqual(writes[0], [
-      'exclude',
-      ['filters/new.xml'],
-      'workspace',
-    ]);
+    assert.deepStrictEqual(validations[0], ['exclude', ['/workspace/filters/new.xml']]);
+    assert.deepStrictEqual(writes[0], ['exclude', ['filters/new.xml'], 'workspace']);
   });
 
   it('does not write non-XML or invalid selections', async () => {
@@ -52,13 +36,9 @@ describe('filter file commands', () => {
 
     await addFilterFiles(
       { filterKind: 'include' },
-      deps(configuration, uris('/workspace/filter.txt'), writes)
+      deps(configuration, uris('/workspace/filter.txt'), writes),
     );
-    const invalid = deps(
-      configuration,
-      uris('/workspace/filter.xml'),
-      writes
-    );
+    const invalid = deps(configuration, uris('/workspace/filter.xml'), writes);
     invalid.validateFilterFiles = async () => ({
       code: 'CFG_FILTER_NOT_FOUND',
       message: 'missing',
@@ -73,21 +53,16 @@ describe('filter file commands', () => {
     const commandDeps = deps(
       state(['filters/a.xml', '/outside/b.xml'], ['/workspace']),
       [],
-      writes
+      writes,
     );
 
-    await removeFilterFile(
-      { filterKind: 'include', filterPath: 'filters/a.xml' },
-      commandDeps
-    );
+    await removeFilterFile({ filterKind: 'include', filterPath: 'filters/a.xml' }, commandDeps);
     await removeFilterFile(
       { filterKind: 'include', filterPath: '/workspace/filters/missing.xml' },
-      commandDeps
+      commandDeps,
     );
 
-    assert.deepStrictEqual(writes, [
-      ['include', ['/outside/b.xml'], 'workspace'],
-    ]);
+    assert.deepStrictEqual(writes, [['include', ['/outside/b.xml'], 'workspace']]);
   });
 });
 
@@ -102,17 +77,18 @@ describe('filterTreeDataProvider', () => {
     });
     const groups = await provider.getChildren();
 
-    assert.deepStrictEqual(groups.map((item) => item.label), [
-      'Include',
-      'Exclude',
-      'Baseline bugs',
-    ]);
-    assert.deepStrictEqual(groups.map((item) => item.description), ['1', '1', '0']);
-    assert.deepStrictEqual(groups.map((item) => item.filterKind), [
-      'include',
-      'exclude',
-      'baseline',
-    ]);
+    assert.deepStrictEqual(
+      groups.map((item) => item.label),
+      ['Include', 'Exclude', 'Baseline bugs'],
+    );
+    assert.deepStrictEqual(
+      groups.map((item) => item.description),
+      ['1', '1', '0'],
+    );
+    assert.deepStrictEqual(
+      groups.map((item) => item.filterKind),
+      ['include', 'exclude', 'baseline'],
+    );
     assert.ok(groups.every((item) => item.contextValue === 'spotbugs.filter.group'));
 
     const [file] = await provider.getChildren(groups[0]);
@@ -124,15 +100,12 @@ describe('filterTreeDataProvider', () => {
         'spotbugs.filter.file',
         'include',
         'filters/include.xml',
-      ]
+      ],
     );
   });
 });
 
-function state(
-  paths: string[],
-  workspaceRoots: string[]
-): PathSettingState {
+function state(paths: string[], workspaceRoots: string[]): PathSettingState {
   return { target: 'workspace', paths, workspaceRoots };
 }
 
@@ -145,7 +118,7 @@ function deps(
   selected: readonly Uri[],
   writes: Write[],
   validations: Validation[] = [],
-  selectedKind: FilterKind = 'include'
+  selectedKind: FilterKind = 'include',
 ): FilterConfigurationDeps {
   return {
     selectFilterKind: async () => selectedKind,

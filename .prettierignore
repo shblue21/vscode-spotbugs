@@ -1,5 +1,7 @@
 # Restrict Prettier to only TypeScript in src/
 **/*
+# Keep directories traversable so TypeScript files can be included below.
+!**/
 !src/**/*.ts
 src/**/*.d.ts
 

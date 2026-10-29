@@ -4,9 +4,7 @@ import type { JavaProjectsOutcome } from '../lsp/javaLsOutcome';
 import { requestAllJavaProjects } from '../lsp/javaLsGateway';
 
 export class JavaLsClient {
-  static async getAllProjectsOutcome(
-    token?: CancellationToken
-  ): Promise<JavaProjectsOutcome> {
+  static async getAllProjectsOutcome(token?: CancellationToken): Promise<JavaProjectsOutcome> {
     try {
       const uris = await requestAllJavaProjects(token);
       if (uris === undefined || uris === null) {

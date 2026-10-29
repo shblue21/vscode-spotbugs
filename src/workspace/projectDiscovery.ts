@@ -10,7 +10,7 @@ export interface WorkspaceProjectDiscoveryResult {
 
 export async function getWorkspaceProjectDiscovery(
   workspaceFolder: Uri,
-  token?: CancellationToken
+  token?: CancellationToken,
 ): Promise<WorkspaceProjectDiscoveryResult> {
   const outcome = await JavaLsClient.getAllProjectsOutcome(token);
   const projectUris = outcome.projectUris;
@@ -43,7 +43,7 @@ export async function getProjectRootPaths(
   options: {
     includeWorkspaceFallback?: boolean;
     token?: CancellationToken;
-  } = {}
+  } = {},
 ): Promise<string[]> {
   const rootCandidates: string[] = [];
 
@@ -63,10 +63,7 @@ export async function getProjectRootPaths(
     // ignore
   }
 
-  if (
-    rootCandidates.length === 0 &&
-    options.includeWorkspaceFallback !== false
-  ) {
+  if (rootCandidates.length === 0 && options.includeWorkspaceFallback !== false) {
     const folders = workspace.workspaceFolders ?? [];
     for (const f of folders) {
       rootCandidates.push(f.uri.fsPath);

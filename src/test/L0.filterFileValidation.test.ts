@@ -34,10 +34,10 @@ describe('filterFileValidation', () => {
   it('returns CFG_FILTER_NOT_FOUND when filter file does not exist', async () => {
     const missingPath = path.join(
       os.tmpdir(),
-      `spotbugs-missing-${process.pid}-${Date.now()}-include.xml`
+      `spotbugs-missing-${process.pid}-${Date.now()}-include.xml`,
     );
     const error = await validateFilterFilesPreflight(
-      makeSettings({ includeFilterPaths: [missingPath] })
+      makeSettings({ includeFilterPaths: [missingPath] }),
     );
 
     assert.ok(error);
@@ -47,9 +47,7 @@ describe('filterFileValidation', () => {
 
   it('returns CFG_FILTER_NOT_FILE when filter path points to a directory', async () => {
     await withTempDir(async (dir) => {
-      const error = await validateFilterFilesPreflight(
-        makeSettings({ excludeFilterPaths: [dir] })
-      );
+      const error = await validateFilterFilesPreflight(makeSettings({ excludeFilterPaths: [dir] }));
 
       assert.ok(error);
       assert.strictEqual(error?.code, 'CFG_FILTER_NOT_FILE');
@@ -71,7 +69,7 @@ describe('filterFileValidation', () => {
           includeFilterPaths: [includePath],
           excludeFilterPaths: [excludePath],
           excludeBaselineBugsPaths: [baselinePath],
-        })
+        }),
       );
 
       assert.strictEqual(error, undefined);
@@ -81,10 +79,10 @@ describe('filterFileValidation', () => {
   it('returns CFG_AUX_CLASSPATH_NOT_FOUND when an extra aux classpath entry is missing', async () => {
     const missingPath = path.join(
       os.tmpdir(),
-      `spotbugs-missing-${process.pid}-${Date.now()}-aux.jar`
+      `spotbugs-missing-${process.pid}-${Date.now()}-aux.jar`,
     );
     const error = await validateExtraAuxClasspathPreflight(
-      makeSettings({ extraAuxClasspaths: [missingPath] })
+      makeSettings({ extraAuxClasspaths: [missingPath] }),
     );
 
     assert.ok(error);
@@ -98,15 +96,15 @@ describe('filterFileValidation', () => {
       await writeFile(invalidPath, 'plain text');
 
       const error = await validateExtraAuxClasspathPreflight(
-        makeSettings({ extraAuxClasspaths: [invalidPath] })
+        makeSettings({ extraAuxClasspaths: [invalidPath] }),
       );
 
       assert.ok(error);
       assert.strictEqual(error?.code, 'CFG_AUX_CLASSPATH_INVALID_ENTRY');
       assert.ok(
         (error?.message ?? '').includes(
-          'extra aux classpath entry must be a directory or .jar/.zip file'
-        )
+          'extra aux classpath entry must be a directory or .jar/.zip file',
+        ),
       );
     });
   });
@@ -119,7 +117,7 @@ describe('filterFileValidation', () => {
       await fs.promises.mkdir(classesDir, { recursive: true });
 
       const error = await validateExtraAuxClasspathPreflight(
-        makeSettings({ extraAuxClasspaths: [jarPath, classesDir] })
+        makeSettings({ extraAuxClasspaths: [jarPath, classesDir] }),
       );
 
       assert.strictEqual(error, undefined);
@@ -129,10 +127,10 @@ describe('filterFileValidation', () => {
   it('returns CFG_PLUGIN_NOT_FOUND when a plugin jar is missing', async () => {
     const missingPath = path.join(
       os.tmpdir(),
-      `spotbugs-missing-${process.pid}-${Date.now()}-plugin.jar`
+      `spotbugs-missing-${process.pid}-${Date.now()}-plugin.jar`,
     );
     const error = await validatePluginJarsPreflight(
-      makeSettings({ plugins: [{ path: missingPath, detectors: {} }] })
+      makeSettings({ plugins: [{ path: missingPath, detectors: {} }] }),
     );
 
     assert.ok(error);
@@ -143,16 +141,12 @@ describe('filterFileValidation', () => {
   it('returns CFG_PLUGIN_NOT_FILE when a plugin path points to a directory', async () => {
     await withTempDir(async (dir) => {
       const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [{ path: dir, detectors: {} }] })
+        makeSettings({ plugins: [{ path: dir, detectors: {} }] }),
       );
 
       assert.ok(error);
       assert.strictEqual(error?.code, 'CFG_PLUGIN_NOT_FILE');
-      assert.ok(
-        (error?.message ?? '').includes(
-          'SpotBugs plugin path is not a regular file'
-        )
-      );
+      assert.ok((error?.message ?? '').includes('SpotBugs plugin path is not a regular file'));
     });
   });
 
@@ -162,16 +156,12 @@ describe('filterFileValidation', () => {
       await writeFile(pluginPath, '');
 
       const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] })
+        makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] }),
       );
 
       assert.ok(error);
       assert.strictEqual(error?.code, 'CFG_PLUGIN_NOT_JAR');
-      assert.ok(
-        (error?.message ?? '').includes(
-          'SpotBugs plugin path must be a .jar file'
-        )
-      );
+      assert.ok((error?.message ?? '').includes('SpotBugs plugin path must be a .jar file'));
     });
   });
 
@@ -189,14 +179,12 @@ describe('filterFileValidation', () => {
         }) as typeof fs.promises.open;
 
         const error = await validatePluginJarsPreflight(
-          makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] })
+          makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] }),
         );
 
         assert.ok(error);
         assert.strictEqual(error?.code, 'CFG_PLUGIN_UNREADABLE');
-        assert.ok(
-          (error?.message ?? '').includes('SpotBugs plugin jar is not readable')
-        );
+        assert.ok((error?.message ?? '').includes('SpotBugs plugin jar is not readable'));
       } finally {
         fs.promises.open = originalOpen;
       }
@@ -209,7 +197,7 @@ describe('filterFileValidation', () => {
       await writeFile(pluginPath, '');
 
       const error = await validatePluginJarsPreflight(
-        makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] })
+        makeSettings({ plugins: [{ path: pluginPath, detectors: {} }] }),
       );
 
       assert.strictEqual(error, undefined);

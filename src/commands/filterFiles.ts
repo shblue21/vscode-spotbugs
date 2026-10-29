@@ -3,10 +3,7 @@ import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import type { AnalysisError } from '../model/analysisProtocol';
-import type {
-  FilterFileCommandTarget,
-  FilterKind,
-} from '../model/filterFiles';
+import type { FilterFileCommandTarget, FilterKind } from '../model/filterFiles';
 import { validateFilterFilesPreflight } from '../services/filterFileValidation';
 import {
   type PathSettingState,
@@ -22,34 +19,22 @@ export interface FilterConfigurationDeps {
   writeConfiguration(
     kind: FilterKind,
     paths: string[],
-    target: PathSettingState['target']
+    target: PathSettingState['target'],
   ): Promise<void>;
-  validateFilterFiles(
-    kind: FilterKind,
-    paths: string[]
-  ): Promise<AnalysisError | undefined>;
+  validateFilterFiles(kind: FilterKind, paths: string[]): Promise<AnalysisError | undefined>;
 }
 
-type AnalysisPathKey =
-  | 'includeFilterPaths'
-  | 'excludeFilterPaths'
-  | 'excludeBaselineBugsPaths';
+type AnalysisPathKey = 'includeFilterPaths' | 'excludeFilterPaths' | 'excludeBaselineBugsPaths';
 
-const FILTER_CONFIGURATION: Record<
-  FilterKind,
-  readonly [string, AnalysisPathKey]
-> = {
+const FILTER_CONFIGURATION: Record<FilterKind, readonly [string, AnalysisPathKey]> = {
   include: [settingKeys.filtersIncludePaths, 'includeFilterPaths'],
   exclude: [settingKeys.filtersExcludePaths, 'excludeFilterPaths'],
-  baseline: [
-    settingKeys.filtersExcludeBaselineBugsPaths,
-    'excludeBaselineBugsPaths',
-  ],
+  baseline: [settingKeys.filtersExcludeBaselineBugsPaths, 'excludeBaselineBugsPaths'],
 };
 
 export async function addFilterFiles(
   target?: FilterFileCommandTarget,
-  deps: FilterConfigurationDeps = defaultFilterConfigurationDeps()
+  deps: FilterConfigurationDeps = defaultFilterConfigurationDeps(),
 ): Promise<void> {
   const kind = target?.filterKind ?? (await deps.selectFilterKind());
   if (!kind) {
@@ -67,8 +52,8 @@ export async function addFilterFiles(
     await window.showErrorMessage(
       l10n.t(
         'Could not add SpotBugs filter files: {0} is not an XML file.',
-        path.basename(nonXmlPath)
-      )
+        path.basename(nonXmlPath),
+      ),
     );
     return;
   }
@@ -76,10 +61,7 @@ export async function addFilterFiles(
   const validationError = await deps.validateFilterFiles(kind, selectedPaths);
   if (validationError) {
     await window.showErrorMessage(
-      l10n.t(
-        'Could not add SpotBugs filter files: {0}',
-        formatAnalysisErrors([validationError])
-      )
+      l10n.t('Could not add SpotBugs filter files: {0}', formatAnalysisErrors([validationError])),
     );
     return;
   }
@@ -89,7 +71,7 @@ export async function addFilterFiles(
 
   if (plan.additions.length === 0) {
     await window.showInformationMessage(
-      l10n.t('The selected SpotBugs filter files are already configured.')
+      l10n.t('The selected SpotBugs filter files are already configured.'),
     );
     return;
   }
@@ -99,18 +81,18 @@ export async function addFilterFiles(
     l10n.t(
       'Added {0} SpotBugs filter file(s) to {1} settings.',
       plan.additions.length,
-      state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User')
-    )
+      state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User'),
+    ),
   );
 }
 
 export async function removeFilterFile(
   target: FilterFileCommandTarget | undefined,
-  deps: FilterConfigurationDeps = defaultFilterConfigurationDeps()
+  deps: FilterConfigurationDeps = defaultFilterConfigurationDeps(),
 ): Promise<void> {
   if (!target?.filterKind || !target.filterPath) {
     await window.showInformationMessage(
-      l10n.t('Select a filter file in the Filters view to remove it.')
+      l10n.t('Select a filter file in the Filters view to remove it.'),
     );
     return;
   }
@@ -119,18 +101,14 @@ export async function removeFilterFile(
   const remainingPaths = planPathRemoval(state, target.filterPath);
   if (!remainingPaths) {
     await window.showInformationMessage(
-      l10n.t('The filter configuration changed. Refresh the Filters view and try again.')
+      l10n.t('The filter configuration changed. Refresh the Filters view and try again.'),
     );
     return;
   }
 
-  await deps.writeConfiguration(
-    target.filterKind,
-    remainingPaths,
-    state.target
-  );
+  await deps.writeConfiguration(target.filterKind, remainingPaths, state.target);
   await window.showInformationMessage(
-    l10n.t('Removed SpotBugs filter file: {0}', path.basename(target.filterPath))
+    l10n.t('Removed SpotBugs filter file: {0}', path.basename(target.filterPath)),
   );
 }
 
@@ -144,7 +122,7 @@ function defaultFilterConfigurationDeps(): FilterConfigurationDeps {
           { label: l10n.t('Exclude filter'), filterKind: 'exclude' as const },
           { label: l10n.t('Baseline bugs'), filterKind: 'baseline' as const },
         ],
-        { placeHolder: l10n.t('Select the SpotBugs filter type') }
+        { placeHolder: l10n.t('Select the SpotBugs filter type') },
       );
       return selected?.filterKind;
     },

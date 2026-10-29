@@ -20,7 +20,10 @@ describe('spotbugsTreeDataProvider', () => {
     ];
     provider.showResults([], resultResource, runs);
     runs.pop();
-    assert.deepStrictEqual(provider.getReportRuns().map((run) => run.nativeSarif), ['first', 'second']);
+    assert.deepStrictEqual(
+      provider.getReportRuns().map((run) => run.nativeSarif),
+      ['first', 'second'],
+    );
     assert.strictEqual(provider.getResultScope()?.kind, 'resource');
   });
 
@@ -29,16 +32,13 @@ describe('spotbugsTreeDataProvider', () => {
 
     provider.showAnalysisFailure(
       'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
-      'ANALYSIS_FAILED'
+      'ANALYSIS_FAILED',
     );
 
     const children = await provider.getChildren();
 
     assert.strictEqual(children.length, 1);
-    assert.strictEqual(
-      children[0].label,
-      'SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
-    );
+    assert.strictEqual(children[0].label, 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom');
     assert.strictEqual(children[0].description, 'ANALYSIS_FAILED');
     assert.strictEqual(children[0].contextValue, 'spotbugs.message.error');
     assert.deepStrictEqual(provider.getCachedFindings(), []);
@@ -48,20 +48,23 @@ describe('spotbugsTreeDataProvider', () => {
   it('keeps workspace project failures visible when all projects fail', async () => {
     const provider = await createProvider();
 
-    provider.showWorkspaceResults([
-      {
-        projectUri: 'file:///workspace/project-a',
-        findings: [],
-        error: 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
-        errorCode: 'ANALYSIS_FAILED',
-      },
-      {
-        projectUri: 'file:///workspace/project-b',
-        findings: [],
-        error: 'SpotBugs could not build the project.',
-        errorCode: 'no-class-targets',
-      },
-    ], workspaceFolder);
+    provider.showWorkspaceResults(
+      [
+        {
+          projectUri: 'file:///workspace/project-a',
+          findings: [],
+          error: 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
+          errorCode: 'ANALYSIS_FAILED',
+        },
+        {
+          projectUri: 'file:///workspace/project-b',
+          findings: [],
+          error: 'SpotBugs could not build the project.',
+          errorCode: 'no-class-targets',
+        },
+      ],
+      workspaceFolder,
+    );
 
     const children = await provider.getChildren();
 
@@ -69,13 +72,10 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(children[0].label, 'project-a');
     assert.strictEqual(
       children[0].description,
-      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
+      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
     assert.strictEqual(children[1].label, 'project-b');
-    assert.strictEqual(
-      children[1].description,
-      'Skipped: SpotBugs could not build the project.'
-    );
+    assert.strictEqual(children[1].description, 'Skipped: SpotBugs could not build the project.');
     assert.ok(!children.some((item) => item.label === 'No issues found.'));
     assert.deepStrictEqual(provider.getCachedFindings(), []);
     assert.deepStrictEqual(provider.getAllFindings(), []);
@@ -84,18 +84,21 @@ describe('spotbugsTreeDataProvider', () => {
   it('renders workspace project failures before successful finding groups', async () => {
     const provider = await createProvider();
 
-    provider.showWorkspaceResults([
-      {
-        projectUri: 'file:///workspace/project-a',
-        findings: [],
-        error: 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
-        errorCode: 'ANALYSIS_FAILED',
-      },
-      {
-        projectUri: 'file:///workspace/project-b',
-        findings: [makeFinding()],
-      },
-    ], workspaceFolder);
+    provider.showWorkspaceResults(
+      [
+        {
+          projectUri: 'file:///workspace/project-a',
+          findings: [],
+          error: 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
+          errorCode: 'ANALYSIS_FAILED',
+        },
+        {
+          projectUri: 'file:///workspace/project-b',
+          findings: [makeFinding()],
+        },
+      ],
+      workspaceFolder,
+    );
 
     const children = await provider.getChildren();
 
@@ -103,7 +106,7 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(children[0].label, 'project-a');
     assert.strictEqual(
       children[0].description,
-      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
+      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
     assert.strictEqual(children[1].label, 'Correctness (1)');
     assert.deepStrictEqual(provider.getCachedFindings(), [makeFinding()]);
@@ -120,7 +123,7 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(filteredChildren[0].label, 'project-a');
     assert.strictEqual(
       filteredChildren[0].description,
-      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
+      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
     assert.strictEqual(filteredChildren[1].label, 'Correctness (1)');
 
@@ -131,7 +134,7 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(clearedChildren[0].label, 'project-a');
     assert.strictEqual(
       clearedChildren[0].description,
-      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
+      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
     assert.strictEqual(clearedChildren[1].label, 'Correctness (1)');
   });
@@ -308,24 +311,28 @@ describe('spotbugsTreeDataProvider', () => {
   it('preserves group and sort on new workspace results while clearing transient state', async () => {
     const provider = await createProvider();
 
-    provider.showWorkspaceResults([
-      { projectUri: 'file:///workspace/project-a', findings: [makeFinding()] },
-    ], workspaceFolder);
+    provider.showWorkspaceResults(
+      [{ projectUri: 'file:///workspace/project-a', findings: [makeFinding()] }],
+      workspaceFolder,
+    );
     provider.setGroupBy('path');
     provider.setSortBy('rule');
     provider.setSearchQuery('NP');
     provider.setFilter('category', 'Correctness');
 
     const nextFinding = makeFinding({ patternId: 'SQL' });
-    provider.showWorkspaceResults([
-      {
-        projectUri: 'file:///workspace/project-a',
-        findings: [nextFinding],
-        spotbugsVersion: '4.9.8',
-        reportSummary: { analyzedClassCount: 1 },
-        nativeSarif: '{"version":"2.1.0","runs":[]}',
-      },
-    ], workspaceFolder);
+    provider.showWorkspaceResults(
+      [
+        {
+          projectUri: 'file:///workspace/project-a',
+          findings: [nextFinding],
+          spotbugsVersion: '4.9.8',
+          reportSummary: { analyzedClassCount: 1 },
+          nativeSarif: '{"version":"2.1.0","runs":[]}',
+        },
+      ],
+      workspaceFolder,
+    );
 
     assert.strictEqual(provider.getGroupBy(), 'path');
     assert.strictEqual(provider.getSortBy(), 'rule');
@@ -404,10 +411,12 @@ describe('spotbugsTreeDataProvider', () => {
     ];
 
     for (const transition of transitions) {
-      provider.showResults([finding], resultResource, [{
-        projectUri: 'file:///workspace/project-a',
-        findings: [finding],
-      }]);
+      provider.showResults([finding], resultResource, [
+        {
+          projectUri: 'file:///workspace/project-a',
+          findings: [finding],
+        },
+      ]);
       transition();
 
       assert.deepStrictEqual(provider.getCachedFindings(), []);
@@ -460,18 +469,21 @@ describe('spotbugsTreeDataProvider', () => {
   it('keeps workspace status items visible when search hides all findings', async () => {
     const provider = await createProvider();
 
-    provider.showWorkspaceResults([
-      {
-        projectUri: 'file:///workspace/project-a',
-        findings: [],
-        error: 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
-        errorCode: 'ANALYSIS_FAILED',
-      },
-      {
-        projectUri: 'file:///workspace/project-b',
-        findings: [makeFinding({ patternId: 'NP_ALWAYS_NULL', message: 'NP: Null pointer' })],
-      },
-    ], workspaceFolder);
+    provider.showWorkspaceResults(
+      [
+        {
+          projectUri: 'file:///workspace/project-a',
+          findings: [],
+          error: 'SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
+          errorCode: 'ANALYSIS_FAILED',
+        },
+        {
+          projectUri: 'file:///workspace/project-b',
+          findings: [makeFinding({ patternId: 'NP_ALWAYS_NULL', message: 'NP: Null pointer' })],
+        },
+      ],
+      workspaceFolder,
+    );
     provider.setSearchQuery('CWE-89');
 
     const children = await provider.getChildren();
@@ -480,7 +492,7 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(children[0].label, 'project-a');
     assert.strictEqual(
       children[0].description,
-      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom'
+      'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
     assert.strictEqual(children[1].label, 'No cached findings match the current view.');
     assert.strictEqual(children[1].description, 'Search: "CWE-89"');

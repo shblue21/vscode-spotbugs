@@ -21,13 +21,9 @@ const SORT_ITEMS: SortPickItem[] = [
   { label: l10n.t('Rule'), value: 'rule' },
 ];
 
-export async function searchResults(
-  provider: SpotBugsTreeDataProvider
-): Promise<void> {
+export async function searchResults(provider: SpotBugsTreeDataProvider): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
-    await window.showInformationMessage(
-      l10n.t('No SpotBugs results available to search.')
-    );
+    await window.showInformationMessage(l10n.t('No SpotBugs results available to search.'));
     return;
   }
 
@@ -44,12 +40,10 @@ export async function searchResults(
   provider.setSearchQuery(value);
 }
 
-export async function clearResultsSearch(
-  provider: SpotBugsTreeDataProvider
-): Promise<void> {
+export async function clearResultsSearch(provider: SpotBugsTreeDataProvider): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
     await window.showInformationMessage(
-      l10n.t('No cached SpotBugs findings available to clear search.')
+      l10n.t('No cached SpotBugs findings available to clear search.'),
     );
     return;
   }
@@ -57,13 +51,9 @@ export async function clearResultsSearch(
   provider.clearSearchQuery();
 }
 
-export async function groupResultsBy(
-  provider: SpotBugsTreeDataProvider
-): Promise<void> {
+export async function groupResultsBy(provider: SpotBugsTreeDataProvider): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
-    await window.showInformationMessage(
-      l10n.t('No cached SpotBugs findings available to group.')
-    );
+    await window.showInformationMessage(l10n.t('No cached SpotBugs findings available to group.'));
     return;
   }
 
@@ -76,7 +66,7 @@ export async function groupResultsBy(
     {
       title: l10n.t('SpotBugs Group Results By'),
       placeHolder: l10n.t('Choose a grouping mode'),
-    }
+    },
   );
 
   if (selected) {
@@ -84,13 +74,9 @@ export async function groupResultsBy(
   }
 }
 
-export async function sortResultsBy(
-  provider: SpotBugsTreeDataProvider
-): Promise<void> {
+export async function sortResultsBy(provider: SpotBugsTreeDataProvider): Promise<void> {
   if (provider.getCachedFindings().length === 0) {
-    await window.showInformationMessage(
-      l10n.t('No cached SpotBugs findings available to sort.')
-    );
+    await window.showInformationMessage(l10n.t('No cached SpotBugs findings available to sort.'));
     return;
   }
 
@@ -103,7 +89,7 @@ export async function sortResultsBy(
     {
       title: l10n.t('SpotBugs Sort Results By'),
       placeHolder: l10n.t('Choose a sorting mode'),
-    }
+    },
   );
 
   if (selected) {

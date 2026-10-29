@@ -9,13 +9,13 @@ export function buildWorkspaceCompletionNotices(
   projectResults: ProjectResult[],
   findingCount: number,
   resolutionIssues: AnalysisResolutionIssue[] = [],
-  cleanupWarnings: ProjectCleanupWarning[] = []
+  cleanupWarnings: ProjectCleanupWarning[] = [],
 ): AnalysisNotice[] {
   const skippedCount = projectResults.filter(
-    (result) => result.errorCode === NO_CLASS_TARGETS_CODE
+    (result) => result.errorCode === NO_CLASS_TARGETS_CODE,
   ).length;
   const failedCount = projectResults.filter(
-    (result) => !!result.error && result.errorCode !== NO_CLASS_TARGETS_CODE
+    (result) => !!result.error && result.errorCode !== NO_CLASS_TARGETS_CODE,
   ).length;
   const succeededCount = projectResults.length - skippedCount - failedCount;
   const hasTerminalFailure =
@@ -23,19 +23,17 @@ export function buildWorkspaceCompletionNotices(
     (failedCount > 0 && succeededCount === 0);
   const cleanupWarningSentence = buildCleanupWarningSentence(cleanupWarnings);
   const hasIncompleteAnalysisWarnings = cleanupWarnings.some(
-    ({ warning }) => warning.code === 'ANALYSIS_INCOMPLETE'
+    ({ warning }) => warning.code === 'ANALYSIS_INCOMPLETE',
   );
   const notices: AnalysisNotice[] = [];
 
   if (projectResults.length > 0 && skippedCount === projectResults.length) {
-    notices.push(
-      {
-        level: 'warn',
-        message:
-          'SpotBugs could not build the project. Run a manual build, then try again.' +
-          cleanupWarningSentence,
-      }
-    );
+    notices.push({
+      level: 'warn',
+      message:
+        'SpotBugs could not build the project. Run a manual build, then try again.' +
+        cleanupWarningSentence,
+    });
   } else if (failedCount > 0) {
     const skippedSentence =
       skippedCount > 0
@@ -43,15 +41,13 @@ export function buildWorkspaceCompletionNotices(
         : '';
 
     if (succeededCount === 0) {
-      notices.push(
-        {
-          level: 'error',
-          message:
-            `SpotBugs: Workspace analysis failed - ${formatProjectCount(failedCount)} failed.` +
-            `${skippedSentence} See the SpotBugs view for project errors.` +
-            cleanupWarningSentence,
-        }
-      );
+      notices.push({
+        level: 'error',
+        message:
+          `SpotBugs: Workspace analysis failed - ${formatProjectCount(failedCount)} failed.` +
+          `${skippedSentence} See the SpotBugs view for project errors.` +
+          cleanupWarningSentence,
+      });
     } else {
       const successSummary =
         findingCount === 0
@@ -62,8 +58,10 @@ export function buildWorkspaceCompletionNotices(
         level: 'warn',
         message:
           `SpotBugs: Workspace analysis completed with failures - ${formatProjectCount(
-            failedCount
-          )} failed.` + `${skippedSentence} ${successSummary}` + cleanupWarningSentence,
+            failedCount,
+          )} failed.` +
+          `${skippedSentence} ${successSummary}` +
+          cleanupWarningSentence,
       });
     }
   } else {
@@ -92,7 +90,7 @@ export function buildWorkspaceCompletionNotices(
   notices.push(
     ...buildResolutionIssueNotices(resolutionIssues, {
       terminal: hasTerminalFailure,
-    })
+    }),
   );
   return dedupeNotices(notices);
 }
@@ -105,12 +103,8 @@ function formatIssueCount(count: number): string {
   return `${count} issue${count === 1 ? '' : 's'}`;
 }
 
-function buildCleanupWarningSentence(
-  cleanupWarnings: ProjectCleanupWarning[]
-): string {
-  const uniqueProjectCount = new Set(
-    cleanupWarnings.map((warning) => warning.projectUri)
-  ).size;
+function buildCleanupWarningSentence(cleanupWarnings: ProjectCleanupWarning[]): string {
+  const uniqueProjectCount = new Set(cleanupWarnings.map((warning) => warning.projectUri)).size;
   if (uniqueProjectCount === 0) {
     return '';
   }

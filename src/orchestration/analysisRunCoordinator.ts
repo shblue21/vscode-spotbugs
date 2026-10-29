@@ -16,9 +16,7 @@ export class AnalysisRunCoordinator {
   private disposed = false;
   private currentCancellation?: AnalysisCancellationState;
 
-  public constructor(
-    private readonly createCancellationSource?: () => CancellationTokenSource
-  ) {}
+  public constructor(private readonly createCancellationSource?: () => CancellationTokenSource) {}
 
   public begin(): AnalysisRunLease {
     this.cancelCurrent();
@@ -55,7 +53,7 @@ export class AnalysisRunCoordinator {
 
   private cancelSource(
     cancellation: AnalysisCancellationState | undefined,
-    dispose: boolean
+    dispose: boolean,
   ): void {
     if (!cancellation) {
       return;

@@ -6,12 +6,7 @@ import { getClasspaths } from './classpathService';
 import { getProjectRootPaths } from './projectDiscovery';
 import { getPrimaryWorkspaceFolder } from './workspaceRoots';
 
-const SOURCE_ROOTS = [
-  ['src', 'main', 'java'],
-  ['src', 'test', 'java'],
-  ['src'],
-  [],
-] as const;
+const SOURCE_ROOTS = [['src', 'main', 'java'], ['src', 'test', 'java'], ['src'], []] as const;
 
 type LoggerLike = Pick<typeof Logger, 'log'>;
 
@@ -34,29 +29,21 @@ const defaultDeps: PathResolverDeps = {
 export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
   const deps: PathResolverDeps = { ...defaultDeps, ...overrides };
 
-  async function loadSourcepaths(
-    preferredProject?: Uri
-  ): Promise<readonly string[] | undefined> {
+  async function loadSourcepaths(preferredProject?: Uri): Promise<readonly string[] | undefined> {
     try {
       const workspaceFolder = deps.getPrimaryWorkspaceFolder();
-      const classpaths = await deps.getClasspaths(
-        preferredProject ?? workspaceFolder?.uri
-      );
-      return Array.isArray(classpaths?.sourcepaths)
-        ? classpaths.sourcepaths.slice()
-        : undefined;
+      const classpaths = await deps.getClasspaths(preferredProject ?? workspaceFolder?.uri);
+      return Array.isArray(classpaths?.sourcepaths) ? classpaths.sourcepaths.slice() : undefined;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      deps.logger.log(
-        `Sourcepath lookup failed; falling back to workspace scan: ${message}`
-      );
+      deps.logger.log(`Sourcepath lookup failed; falling back to workspace scan: ${message}`);
       return undefined;
     }
   }
 
   async function firstExistingPath(
     roots: readonly string[],
-    realSourcePath: string
+    realSourcePath: string,
   ): Promise<string | null> {
     for (const root of roots) {
       const candidatePath = path.join(root, realSourcePath);
@@ -73,7 +60,7 @@ export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
   async function resolveWithSourcepaths(
     realSourcePath: string,
     sourcepaths: readonly string[] | undefined,
-    loadFallbackRoots: () => Promise<readonly string[]>
+    loadFallbackRoots: () => Promise<readonly string[]>,
   ): Promise<string | null> {
     if (sourcepaths && sourcepaths.length > 0) {
       const resolved = await firstExistingPath(sourcepaths, realSourcePath);
@@ -100,24 +87,20 @@ export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
 
   async function resolveSourceFullPath(
     realSourcePath: string,
-    preferredProject?: Uri
+    preferredProject?: Uri,
   ): Promise<string | null> {
     if (!realSourcePath) {
       return null;
     }
 
     const sourcepaths = await loadSourcepaths(preferredProject);
-    return resolveWithSourcepaths(
-      realSourcePath,
-      sourcepaths,
-      deps.getProjectRootPaths
-    );
+    return resolveWithSourcepaths(realSourcePath, sourcepaths, deps.getProjectRootPaths);
   }
 
   async function addFullPaths(
     findings: Finding[],
     preferredProject?: Uri,
-    sourcepaths?: readonly string[] | null
+    sourcepaths?: readonly string[] | null,
   ): Promise<Finding[]> {
     if (!findings.length) {
       return [];
@@ -128,9 +111,7 @@ export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
     let recoveredSourcepaths: Promise<readonly string[] | undefined> | undefined;
     let fallbackRoots: Promise<readonly string[]> | undefined;
 
-    function getEffectiveSourcepaths(): Promise<
-      readonly string[] | undefined
-    > {
+    function getEffectiveSourcepaths(): Promise<readonly string[] | undefined> {
       if (hasSnapshot) {
         return Promise.resolve(capturedSourcepaths);
       }
@@ -149,10 +130,7 @@ export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
 
     const resolved: Finding[] = [];
     for (const finding of findings) {
-      if (
-        typeof finding.location.fullPath === 'string' &&
-        finding.location.fullPath.length > 0
-      ) {
+      if (typeof finding.location.fullPath === 'string' && finding.location.fullPath.length > 0) {
         resolved.push(finding);
         continue;
       }
@@ -164,7 +142,7 @@ export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
         const full = await resolveWithSourcepaths(
           finding.location.realSourcePath,
           await getEffectiveSourcepaths(),
-          getFallbackRoots
+          getFallbackRoots,
         );
         if (full) {
           resolved.push({
@@ -175,16 +153,12 @@ export function createPathResolver(overrides: Partial<PathResolverDeps> = {}) {
             },
           });
         } else {
-          deps.logger.log(
-            `Could not resolve full path for: ${finding.location.realSourcePath}`
-          );
+          deps.logger.log(`Could not resolve full path for: ${finding.location.realSourcePath}`);
           resolved.push(finding);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        deps.logger.log(
-          `Path resolve failed for ${finding.location.realSourcePath}: ${message}`
-        );
+        deps.logger.log(`Path resolve failed for ${finding.location.realSourcePath}: ${message}`);
         resolved.push(finding);
       }
     }
@@ -202,7 +176,7 @@ const defaultResolver = createPathResolver();
  */
 export function resolveSourceFullPath(
   realSourcePath: string,
-  preferredProject?: Uri
+  preferredProject?: Uri,
 ): Promise<string | null> {
   return defaultResolver.resolveSourceFullPath(realSourcePath, preferredProject);
 }
@@ -214,7 +188,7 @@ export function resolveSourceFullPath(
 export function addFullPaths(
   findings: Finding[],
   preferredProject?: Uri,
-  sourcepaths?: readonly string[] | null
+  sourcepaths?: readonly string[] | null,
 ): Promise<Finding[]> {
   return defaultResolver.addFullPaths(findings, preferredProject, sourcepaths);
 }

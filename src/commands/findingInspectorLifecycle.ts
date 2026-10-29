@@ -5,7 +5,7 @@ type LifecycleOperation = () => PromiseLike<void> | void;
 
 export async function clearInspectorBeforeOperation(
   inspectorState: FindingInspectorState,
-  operation: LifecycleOperation
+  operation: LifecycleOperation,
 ): Promise<void> {
   inspectorState.clear();
   await operation();
@@ -14,7 +14,7 @@ export async function clearInspectorBeforeOperation(
 export async function reconcileInspectorAfterOperation(
   inspectorState: FindingInspectorState,
   operation: LifecycleOperation,
-  getVisibleFindings: () => readonly Finding[]
+  getVisibleFindings: () => readonly Finding[],
 ): Promise<void> {
   await operation();
   inspectorState.reconcileVisibleFindings(getVisibleFindings());

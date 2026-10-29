@@ -50,7 +50,7 @@ export async function hasLooseClassTargets(targetPath: string): Promise<boolean>
 export async function findOutputFolderFromProject(
   projectRoot: string,
   hasTargets: OutputTargetPredicate = hasClassTargets,
-  options: OutputFolderSelectionOptions = {}
+  options: OutputFolderSelectionOptions = {},
 ): Promise<string | undefined> {
   const candidates = orderOutputFolderCandidates(
     DEFAULT_OUTPUT_DIRS.map((relativePath, index) => ({
@@ -58,7 +58,7 @@ export async function findOutputFolderFromProject(
       relativePath,
       index,
     })),
-    options
+    options,
   );
   for (const candidate of candidates) {
     if (!(await isDirectory(candidate.targetPath))) {
@@ -81,7 +81,7 @@ async function isDirectory(targetPath: string): Promise<boolean> {
 
 export function orderOutputFolderCandidates<T extends OutputFolderCandidate>(
   candidates: readonly T[],
-  options: OutputFolderSelectionOptions = {}
+  options: OutputFolderSelectionOptions = {},
 ): T[] {
   return [...candidates].sort((a, b) => {
     const aRank = options.rankCandidate?.(a) ?? 0;

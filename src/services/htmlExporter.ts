@@ -8,7 +8,7 @@ type CategoryGroup = { description: string; findings: Finding[] };
 export function scopeAnalysisReportRuns(
   runs: AnalysisReportRun[],
   selectedFindings: Finding[],
-  includeOriginallyEmptyRuns = false
+  includeOriginallyEmptyRuns = false,
 ): AnalysisReportRun[] {
   const selected = new Set(selectedFindings);
   return runs
@@ -19,7 +19,7 @@ export function scopeAnalysisReportRuns(
     .filter(
       (run, index) =>
         run.findings.length > 0 ||
-        (includeOriginallyEmptyRuns && runs[index].findings.length === 0)
+        (includeOriginallyEmptyRuns && runs[index].findings.length === 0),
     );
 }
 
@@ -50,7 +50,7 @@ function renderRun(run: AnalysisReportRun, index: number, runCount: number): str
   const categories = groupByCategory(run.findings);
   const rules = uniqueRules(run.findings);
   const ruleAnchors = new Map(
-    rules.map((finding, ruleIndex) => [ruleKey(finding), `${prefix}-rule-${ruleIndex + 1}`])
+    rules.map((finding, ruleIndex) => [ruleKey(finding), `${prefix}-rule-${ruleIndex + 1}`]),
   );
   const project = escapeHtml(projectName(run.projectUri));
   if (run.analysisStatus) {
@@ -108,12 +108,12 @@ function renderMetrics(run: AnalysisReportRun): string {
 function renderSummary(
   categories: Array<[string, CategoryGroup]>,
   total: number,
-  prefix: string
+  prefix: string,
 ): string {
   const rows = categories
     .map(
       ([, group], index) =>
-        `<tr class="tablerow${index % 2}"><td><a href="#${prefix}-category-${index + 1}">${escapeHtml(group.description)} Warnings</a></td><td class="number">${group.findings.length}</td></tr>`
+        `<tr class="tablerow${index % 2}"><td><a href="#${prefix}-category-${index + 1}">${escapeHtml(group.description)} Warnings</a></td><td class="number">${group.findings.length}</td></tr>`,
     )
     .join('');
   return `<h2>Summary</h2><table style="max-width:500px">
@@ -125,7 +125,7 @@ function renderSummary(
 function renderWarnings(
   categories: Array<[string, CategoryGroup]>,
   ruleAnchors: Map<string, string>,
-  prefix: string
+  prefix: string,
 ): string {
   const sections = categories
     .map(([, group], index) => {
@@ -141,11 +141,7 @@ function renderWarnings(
   return `<h1>Warnings</h1><p>Click on each warning link to see a full description of the issue, and details of how to resolve it.</p>${sections || '<p><i>None</i></p>'}`;
 }
 
-function renderFinding(
-  finding: Finding,
-  index: number,
-  ruleAnchors: Map<string, string>
-): string {
+function renderFinding(finding: Finding, index: number, ruleAnchors: Map<string, string>): string {
   const shortMessage = finding.shortDescription || finding.message || ruleKey(finding);
   const longMessage = finding.longMessage || finding.message || shortMessage;
   const annotations = (finding.annotationMessages ?? [])
@@ -162,7 +158,7 @@ function renderRules(rules: Finding[], anchors: Map<string, string>): string {
     .sort(
       (left, right) =>
         (left.abbrev ?? '').localeCompare(right.abbrev ?? '') ||
-        (left.shortDescription ?? '').localeCompare(right.shortDescription ?? '')
+        (left.shortDescription ?? '').localeCompare(right.shortDescription ?? ''),
     )
     .map((finding) => {
       const title = finding.shortDescription || finding.message || ruleKey(finding);
@@ -197,8 +193,11 @@ function groupByCategory(findings: Finding[]): Array<[string, CategoryGroup]> {
 function uniqueRules(findings: Finding[]): Finding[] {
   return Array.from(
     findings
-      .reduce((rules, finding) => rules.set(ruleKey(finding), rules.get(ruleKey(finding)) ?? finding), new Map<string, Finding>())
-      .values()
+      .reduce(
+        (rules, finding) => rules.set(ruleKey(finding), rules.get(ruleKey(finding)) ?? finding),
+        new Map<string, Finding>(),
+      )
+      .values(),
   );
 }
 
@@ -209,7 +208,11 @@ function renderLocation(finding: Finding): string {
   }
   const start = validLine(finding.location.startLine);
   const end = validLine(finding.location.endLine);
-  const lines = start ? (end && end !== start ? `, lines ${start} to ${end}` : `, line ${start}`) : '';
+  const lines = start
+    ? end && end !== start
+      ? `, lines ${start} to ${end}`
+      : `, line ${start}`
+    : '';
   return `<br><br>In file ${escapeHtml(sourcePath)}${lines}`;
 }
 
@@ -223,7 +226,13 @@ function compareFindings(left: Finding, right: Finding): number {
 
 function normalizedPriority(priority?: string): 'High' | 'Medium' | 'Low' | 'Unknown' {
   const value = priority?.trim().toLowerCase();
-  return value === 'high' ? 'High' : value === 'medium' ? 'Medium' : value === 'low' ? 'Low' : 'Unknown';
+  return value === 'high'
+    ? 'High'
+    : value === 'medium'
+      ? 'Medium'
+      : value === 'low'
+        ? 'Low'
+        : 'Unknown';
 }
 
 function priorityOrder(priority?: string): number {
@@ -241,12 +250,20 @@ function ruleKey(finding: Finding): string {
 
 function projectName(projectUri: string): string {
   try {
-    return path.basename(decodeURIComponent(new URL(projectUri).pathname).replace(/[\\/]+$/, '')) || projectUri;
+    return (
+      path.basename(decodeURIComponent(new URL(projectUri).pathname).replace(/[\\/]+$/, '')) ||
+      projectUri
+    );
   } catch {
     return path.basename(projectUri) || projectUri || 'workspace';
   }
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

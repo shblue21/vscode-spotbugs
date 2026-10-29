@@ -2,7 +2,14 @@ import { workspace, ExtensionContext, Uri } from 'vscode';
 import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
 import { Logger } from './logger';
-import { readPluginConfiguration, type ConfiguredPlugin, readScopedSetting, parseDetectorOverrides, type DetectorOverrides, type PluginConfigurationState } from '../services/pluginConfiguration';
+import {
+  readPluginConfiguration,
+  type ConfiguredPlugin,
+  readScopedSetting,
+  parseDetectorOverrides,
+  type DetectorOverrides,
+  type PluginConfigurationState,
+} from '../services/pluginConfiguration';
 import type { AnalysisError, AnalysisPlugin } from '../model/analysisProtocol';
 
 export interface AnalysisSettings {
@@ -45,30 +52,28 @@ export class Config {
 
     const pt = config.get<unknown>(settingKeys.analysisPriorityThreshold);
     this.priorityThreshold =
-      typeof pt === 'number' && Number.isInteger(pt) && pt >= 1 && pt <= 20
-        ? pt
-        : undefined;
+      typeof pt === 'number' && Number.isInteger(pt) && pt >= 1 && pt <= 20 ? pt : undefined;
     this.extraAuxClasspaths = this.readStringArray(
-      config.get<unknown>(settingKeys.analysisExtraAuxClasspaths)
+      config.get<unknown>(settingKeys.analysisExtraAuxClasspaths),
     );
 
     this.includeFilterPaths = this.readXmlPathArray(
       settingKeys.filtersIncludePaths,
-      config.get<unknown>(settingKeys.filtersIncludePaths)
+      config.get<unknown>(settingKeys.filtersIncludePaths),
     );
     this.excludeFilterPaths = this.readXmlPathArray(
       settingKeys.filtersExcludePaths,
-      config.get<unknown>(settingKeys.filtersExcludePaths)
+      config.get<unknown>(settingKeys.filtersExcludePaths),
     );
     this.excludeBaselineBugsPaths = this.readXmlPathArray(
       settingKeys.filtersExcludeBaselineBugsPaths,
-      config.get<unknown>(settingKeys.filtersExcludeBaselineBugsPaths)
+      config.get<unknown>(settingKeys.filtersExcludeBaselineBugsPaths),
     );
 
     this.pluginConfiguration = readPluginConfiguration();
 
     const revealSourceOnSelection = config.get<boolean | undefined>(
-      settingKeys.resultsRevealSourceOnSelection
+      settingKeys.resultsRevealSourceOnSelection,
     );
     this.revealSourceOnSelection =
       typeof revealSourceOnSelection === 'boolean' ? revealSourceOnSelection : true;
@@ -113,7 +118,7 @@ export class Config {
         xmlOnly.push(value);
       } else {
         Logger.log(
-          `Ignoring non-XML value in ${SETTINGS_SECTION}.${settingKey}: "${value}" (expected *.xml)`
+          `Ignoring non-XML value in ${SETTINGS_SECTION}.${settingKey}: "${value}" (expected *.xml)`,
         );
       }
     }
@@ -138,7 +143,7 @@ export class Config {
 
   private resolvePathsToAbsolute(
     paths: string[] | undefined,
-    resource?: Uri
+    resource?: Uri,
   ): string[] | undefined {
     if (!Array.isArray(paths) || paths.length === 0) {
       return undefined;
@@ -176,19 +181,27 @@ export class Config {
     }
     const excludeBaselineBugsPaths = this.resolvePathsToAbsolute(
       this.excludeBaselineBugsPaths,
-      resource
+      resource,
     );
     if (excludeBaselineBugsPaths) {
       settings.excludeBaselineBugsPaths = excludeBaselineBugsPaths;
     }
-    const plugins = this.getConfiguredPlugins(resource).filter((plugin) => plugin.enabled).map((plugin) => ({
-      path: plugin.resolvedPath, detectors: plugin.detectors,
-    }));
+    const plugins = this.getConfiguredPlugins(resource)
+      .filter((plugin) => plugin.enabled)
+      .map((plugin) => ({
+        path: plugin.resolvedPath,
+        detectors: plugin.detectors,
+      }));
     if (this.pluginConfiguration.error) {
-      settings.configurationError = { code: 'CFG_PLUGINS_INVALID', message: this.pluginConfiguration.error };
+      settings.configurationError = {
+        code: 'CFG_PLUGINS_INVALID',
+        message: this.pluginConfiguration.error,
+      };
     }
     try {
-      settings.detectors = parseDetectorOverrides(readScopedSetting(settingKeys.analysisDetectors).value);
+      settings.detectors = parseDetectorOverrides(
+        readScopedSetting(settingKeys.analysisDetectors).value,
+      );
     } catch (error) {
       settings.configurationError ??= {
         code: 'CFG_DETECTORS_INVALID',
@@ -208,7 +221,8 @@ export class Config {
   public getConfiguredPlugins(resource?: Uri): ConfiguredPlugin[] {
     const { registrations, target } = this.pluginConfiguration;
     return registrations.map((plugin) => ({
-      ...plugin, detectors: { ...plugin.detectors },
+      ...plugin,
+      detectors: { ...plugin.detectors },
       resolvedPath: this.resolveToAbsolute(plugin.path, resource)!,
       target,
     }));

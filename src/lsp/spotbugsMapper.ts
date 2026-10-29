@@ -59,7 +59,7 @@ function normalizeStringArray(value: unknown): string[] | undefined {
     return undefined;
   }
   const strings = value.filter(
-    (item): item is string => typeof item === 'string' && item.trim().length > 0
+    (item): item is string => typeof item === 'string' && item.trim().length > 0,
   );
   return strings.length > 0 ? strings : undefined;
 }

@@ -11,9 +11,7 @@ describe('findingInspectorLifecycle', () => {
 
   it('clears inspector state before running lifecycle operations', async () => {
     const findingInspectorState = await import('../ui/findingInspectorState');
-    const { clearInspectorBeforeOperation } = await import(
-      '../commands/findingInspectorLifecycle'
-    );
+    const { clearInspectorBeforeOperation } = await import('../commands/findingInspectorLifecycle');
     const state = new findingInspectorState.FindingInspectorState();
     const finding = makeFinding();
     const observedStatuses: string[] = [];
@@ -42,7 +40,7 @@ describe('findingInspectorLifecycle', () => {
       () => {
         operationStatuses.push(state.current.status);
       },
-      () => []
+      () => [],
     );
 
     assert.deepStrictEqual(operationStatuses, ['selected']);
@@ -61,14 +59,12 @@ describe('findingInspectorLifecycle', () => {
     await reconcileInspectorAfterOperation(
       state,
       () => undefined,
-      () => [finding]
+      () => [finding],
     );
 
     assert.strictEqual(state.current.status, 'selected');
     assert.strictEqual(state.current.finding, finding);
   });
-
-
 });
 
 function makeFinding(): Finding {

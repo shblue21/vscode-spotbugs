@@ -137,14 +137,22 @@ describe('analysis plan execution', () => {
     };
 
     const result = await service.executeAnalysisPlan(plan);
-    assert.deepStrictEqual(calls.map(([command, operation, target, payload]) => [
-      command, operation, target, JSON.parse(payload as string).inputs,
-    ]), ['/out/main/A.class', '/out/test/A.class'].map(target => [
-      'java.execute.workspaceCommand', 'java.spotbugs.analyzeSources', target,
-      [{ kind: 'source', path: target }],
-    ]));
+    assert.deepStrictEqual(
+      calls.map(([command, operation, target, payload]) => [
+        command,
+        operation,
+        target,
+        JSON.parse(payload as string).inputs,
+      ]),
+      ['/out/main/A.class', '/out/test/A.class'].map((target) => [
+        'java.execute.workspaceCommand',
+        'java.spotbugs.analyzeSources',
+        target,
+        [{ kind: 'source', path: target }],
+      ]),
+    );
     assert.strictEqual(result.results.length, 3);
-    assert.ok(result.results.slice(0, 2).every(project => !project.error));
+    assert.ok(result.results.slice(0, 2).every((project) => !project.error));
     assert.strictEqual(result.results[2].errorCode, 'NO_CLASS_TARGETS');
   });
 });

@@ -4,14 +4,11 @@ import { buildNativeSarifLog } from '../services/nativeSarifExporter';
 import { Logger } from '../core/logger';
 import * as path from 'path';
 import { resolveSpotBugsSelection } from '../ui/selection';
-import {
-  buildSpotBugsHtmlReport,
-  scopeAnalysisReportRuns,
-} from '../services/htmlExporter';
+import { buildSpotBugsHtmlReport, scopeAnalysisReportRuns } from '../services/htmlExporter';
 
 export async function exportSarifReport(
   provider: SpotBugsTreeDataProvider,
-  element: unknown
+  element: unknown,
 ): Promise<void> {
   const findings = resolveSpotBugsSelection(provider, element);
   const reportRuns = provider.getReportRuns();
@@ -21,26 +18,20 @@ export async function exportSarifReport(
       provider.getCachedFindings().length > 0 ||
       !reportRuns.some((run) => !run.analysisStatus)
     ) {
-      await window.showInformationMessage(
-        l10n.t('No SpotBugs findings available to export.')
-      );
+      await window.showInformationMessage(l10n.t('No SpotBugs findings available to export.'));
       return;
     }
   }
 
   let sarifLog;
   try {
-    sarifLog = buildNativeSarifLog(
-      reportRuns,
-      findings,
-      element === undefined
-    );
+    sarifLog = buildNativeSarifLog(reportRuns, findings, element === undefined);
   } catch (error) {
     Logger.error('Native SpotBugs SARIF is unavailable', error);
     await window.showErrorMessage(
       l10n.t(
-        'Native SpotBugs SARIF is unavailable. Reload the Java language server and run the analysis again.'
-      )
+        'Native SpotBugs SARIF is unavailable. Reload the Java language server and run the analysis again.',
+      ),
     );
     return;
   }
@@ -60,47 +51,32 @@ export async function exportSarifReport(
     const sarifJson = JSON.stringify(sarifLog, null, 2);
     await workspace.fs.writeFile(saveUri, Buffer.from(sarifJson, 'utf8'));
     Logger.log(
-      `SpotBugs SARIF export completed (${findings.length} findings) -> ${saveUri.fsPath}`
+      `SpotBugs SARIF export completed (${findings.length} findings) -> ${saveUri.fsPath}`,
     );
     await window.showInformationMessage(
       findings.length === 1
         ? l10n.t('SpotBugs exported {0} finding to {1}', findings.length, saveUri.fsPath)
-        : l10n.t(
-            'SpotBugs exported {0} findings to {1}',
-            findings.length,
-            saveUri.fsPath
-          )
+        : l10n.t('SpotBugs exported {0} findings to {1}', findings.length, saveUri.fsPath),
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     Logger.error('Failed to export SARIF report', error);
-    await window.showErrorMessage(
-      l10n.t('Failed to export SpotBugs SARIF: {0}', message)
-    );
+    await window.showErrorMessage(l10n.t('Failed to export SpotBugs SARIF: {0}', message));
   }
 }
 
 export async function exportHtmlReport(
   provider: SpotBugsTreeDataProvider,
-  element: unknown
+  element: unknown,
 ): Promise<void> {
   const findings = resolveSpotBugsSelection(provider, element);
   const cachedFindings = provider.getCachedFindings();
   const reportRuns = provider.getReportRuns();
-  let selectedRuns = scopeAnalysisReportRuns(
-    reportRuns,
-    findings,
-    element === undefined
-  );
+  let selectedRuns = scopeAnalysisReportRuns(reportRuns, findings, element === undefined);
 
   if (findings.length === 0) {
-    if (
-      cachedFindings.length > 0 ||
-      !reportRuns.some((run) => !run.analysisStatus)
-    ) {
-      await window.showInformationMessage(
-        l10n.t('No SpotBugs findings available to export.')
-      );
+    if (cachedFindings.length > 0 || !reportRuns.some((run) => !run.analysisStatus)) {
+      await window.showInformationMessage(l10n.t('No SpotBugs findings available to export.'));
       return;
     }
     selectedRuns = reportRuns;
@@ -126,34 +102,22 @@ export async function exportHtmlReport(
   try {
     const html = buildSpotBugsHtmlReport(selectedRuns);
     await workspace.fs.writeFile(saveUri, Buffer.from(html, 'utf8'));
-    Logger.log(
-      `SpotBugs HTML export completed (${findings.length} findings) -> ${saveUri.fsPath}`
-    );
+    Logger.log(`SpotBugs HTML export completed (${findings.length} findings) -> ${saveUri.fsPath}`);
     await window.showInformationMessage(
       findings.length === 1
         ? l10n.t('SpotBugs exported {0} finding to {1}', findings.length, saveUri.fsPath)
-        : l10n.t(
-            'SpotBugs exported {0} findings to {1}',
-            findings.length,
-            saveUri.fsPath
-          )
+        : l10n.t('SpotBugs exported {0} findings to {1}', findings.length, saveUri.fsPath),
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     Logger.error('Failed to export HTML report', error);
-    await window.showErrorMessage(
-      l10n.t('Failed to export SpotBugs HTML: {0}', message)
-    );
+    await window.showErrorMessage(l10n.t('Failed to export SpotBugs HTML: {0}', message));
   }
 }
 
 function buildDefaultReportFileName(extension: 'sarif' | 'html'): string {
   const workspaceName = getWorkspaceName();
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:]/g, '-')
-    .replace('T', '_')
-    .split('.')[0];
+  const timestamp = new Date().toISOString().replace(/[:]/g, '-').replace('T', '_').split('.')[0];
   return `spotbugs-report-${workspaceName}-${timestamp}.${extension}`;
 }
 

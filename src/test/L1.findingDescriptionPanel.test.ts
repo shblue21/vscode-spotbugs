@@ -17,23 +17,22 @@ describe('findingDescriptionPanel', () => {
     const html = renderFindingDescriptionHtml(
       makeFinding({
         detailHtml: '<p>Local detail body.</p>',
-        helpUri:
-          'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
-      })
+        helpUri: 'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
+      }),
     );
 
     assert.ok(html.includes('<p>Local detail body.</p>'));
     assert.ok(html.includes('Open external SpotBugs docs'));
     assert.ok(
       html.includes(
-        'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null'
-      )
+        'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null',
+      ),
     );
   });
 
   it('removes disallowed tags, event handlers, and javascript links', () => {
     const sanitized = sanitizeFindingDetailHtml(
-      '<script>alert(1)</script><p onclick="boom()">Safe body</p><a href="javascript:evil()">Bad link</a>'
+      '<script>alert(1)</script><p onclick="boom()">Safe body</p><a href="javascript:evil()">Bad link</a>',
     );
 
     assert.ok(!sanitized.includes('<script'));
@@ -52,15 +51,15 @@ describe('findingDescriptionPanel', () => {
         '<a href="https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL" title="Rule docs">Docs</a>',
         '<a href="https://example.test/rule">External</a>',
       ].join(''),
-      'NP_ALWAYS_NULL'
+      'NP_ALWAYS_NULL',
     );
 
     assert.ok(sanitized.includes('<p>Intro with <code>code()</code>.</p>'));
     assert.ok(sanitized.includes('<pre>line 1\nline 2</pre>'));
     assert.ok(
       sanitized.includes(
-        '<a href="https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null" title="Rule docs">Docs</a>'
-      )
+        '<a href="https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null" title="Rule docs">Docs</a>',
+      ),
     );
     assert.ok(sanitized.includes('<a href="https://example.test/rule">External</a>'));
   });
@@ -70,7 +69,7 @@ describe('findingDescriptionPanel', () => {
       makeFinding({
         detailHtml: '<script>alert(1)</script><style>p { color: red; }</style>',
         longDescription: 'Plain text fallback',
-      })
+      }),
     );
 
     assert.ok(html.includes('Plain text fallback'));

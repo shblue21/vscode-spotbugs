@@ -14,11 +14,7 @@ export interface AnalysisResolutionIssue {
   code: AnalysisResolutionIssueCode;
   level: 'info' | 'warn';
   source: 'java-ls' | 'project-discovery' | 'target-resolution';
-  phase:
-    | 'get-classpaths'
-    | 'get-all-projects'
-    | 'workspace-fallback'
-    | 'output-fallback';
+  phase: 'get-classpaths' | 'get-all-projects' | 'workspace-fallback' | 'output-fallback';
   message: string;
   cause?: string;
 }

@@ -14,12 +14,18 @@ describe('spotbugsParser', () => {
   });
 
   it('uses envelope errors instead of an unrelated top-level error field', () => {
-    const result = parseAnalysisResponse(JSON.stringify({
-      error: 'ignored', results: [], errors: [{ code: 'ANALYSIS_FAILED', message: 'actual failure' }],
-    }));
+    const result = parseAnalysisResponse(
+      JSON.stringify({
+        error: 'ignored',
+        results: [],
+        errors: [{ code: 'ANALYSIS_FAILED', message: 'actual failure' }],
+      }),
+    );
     assert.strictEqual(result.ok, true);
     if (result.ok) {
-      assert.deepStrictEqual(result.value.errors, [{ code: 'ANALYSIS_FAILED', message: 'actual failure' }]);
+      assert.deepStrictEqual(result.value.errors, [
+        { code: 'ANALYSIS_FAILED', message: 'actual failure' },
+      ]);
     }
   });
 
@@ -58,7 +64,7 @@ describe('spotbugsParser', () => {
         errors: [null, { code: 'X', message: 'warn' }],
         stats: { target: '/tmp/Foo', durationMs: 12 },
         nativeSarif: '{"version":"2.1.0","runs":[]}',
-      })
+      }),
     );
     assert.strictEqual(result.ok, true);
     if (result.ok) {
@@ -67,10 +73,7 @@ describe('spotbugsParser', () => {
       assert.strictEqual(result.value.errors?.[0]?.code, 'X');
       assert.strictEqual(result.value.errors?.[0]?.message, 'warn');
       assert.strictEqual(result.value.stats?.target, '/tmp/Foo');
-      assert.strictEqual(
-        result.value.nativeSarif,
-        '{"version":"2.1.0","runs":[]}'
-      );
+      assert.strictEqual(result.value.nativeSarif, '{"version":"2.1.0","runs":[]}');
     }
   });
 
@@ -78,15 +81,13 @@ describe('spotbugsParser', () => {
     const result = parseAnalysisResponse(
       JSON.stringify({
         errors: [{ code: 'ANALYSIS_FAILED', message: 'boom' }],
-      })
+      }),
     );
 
     assert.strictEqual(result.ok, true);
     if (result.ok) {
       assert.deepStrictEqual(result.value.bugs, []);
-      assert.deepStrictEqual(result.value.errors, [
-        { code: 'ANALYSIS_FAILED', message: 'boom' },
-      ]);
+      assert.deepStrictEqual(result.value.errors, [{ code: 'ANALYSIS_FAILED', message: 'boom' }]);
     }
   });
 
@@ -102,7 +103,7 @@ describe('spotbugsParser', () => {
           { code: 'NON_EMPTY_CODE', message: '' },
           { code: '', message: '' },
         ],
-      })
+      }),
     );
 
     assert.strictEqual(result.ok, true);
@@ -122,7 +123,7 @@ describe('spotbugsParser', () => {
       JSON.stringify({
         results: [],
         warnings: { code: 'INVALID_SHAPE', message: 'not an array' },
-      })
+      }),
     );
 
     assert.strictEqual(malformed.ok, true);
@@ -170,7 +171,7 @@ describe('spotbugsParser', () => {
           analyzedClassCount: 4,
           analyzedPackageCount: 2,
         },
-      })
+      }),
     );
 
     assert.strictEqual(result.ok, true);
@@ -218,7 +219,7 @@ describe('spotbugsParser', () => {
 
   it('parses terminal analysis failure envelopes with stats', () => {
     const fixture = readAnalysisProtocolFixtureJson<AnalysisResponse>(
-      'run-analysis-response-error-with-stats.json'
+      'run-analysis-response-error-with-stats.json',
     );
     const result = parseAnalysisResponse(JSON.stringify(fixture));
 
@@ -245,7 +246,7 @@ describe('spotbugsParser', () => {
           durationMs: 4,
           spotbugsVersion: '4.8.3',
         },
-      })
+      }),
     );
 
     assert.strictEqual(result.ok, true);

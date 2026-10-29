@@ -45,10 +45,7 @@ type FindingWithFacets = {
 
 type GroupLabelCache = Map<string, string>;
 
-export function buildResultView(
-  findings: Finding[],
-  state: ResultViewState
-): ResultView {
+export function buildResultView(findings: Finding[], state: ResultViewState): ResultView {
   const searchedEntries = findings
     .map((finding, originalIndex) => ({
       finding,
@@ -69,17 +66,14 @@ export function matchesFindingSearch(finding: Finding, query: string): boolean {
   return matchesSearch(toFindingFacets(finding), query);
 }
 
-export function sortFindings(
-  findings: Finding[],
-  sortBy: FindingSortKind
-): Finding[] {
+export function sortFindings(findings: Finding[], sortBy: FindingSortKind): Finding[] {
   return sortEntries(
     findings.map((finding, originalIndex) => ({
       finding,
       facets: toFindingFacets(finding),
       originalIndex,
     })),
-    sortBy
+    sortBy,
   ).map((entry) => entry.finding);
 }
 
@@ -88,15 +82,13 @@ function matchesSearch(facets: FindingFacets, query: string): boolean {
   if (needle.length === 0) {
     return true;
   }
-  return facets.searchableValues.some((value) =>
-    value.toLowerCase().includes(needle)
-  );
+  return facets.searchableValues.some((value) => value.toLowerCase().includes(needle));
 }
 
 function buildGroups(
   entries: FindingWithFacets[],
   groupBy: FindingGroupKind,
-  labelCache: GroupLabelCache
+  labelCache: GroupLabelCache,
 ): FindingResultNode[] {
   if (groupBy === 'category') {
     return buildCategoryRuleGroups(entries, labelCache);
@@ -106,14 +98,14 @@ function buildGroups(
 
 function buildCategoryRuleGroups(
   entries: FindingWithFacets[],
-  labelCache: GroupLabelCache
+  labelCache: GroupLabelCache,
 ): FindingResultGroup[] {
   const categoryGroups = groupEntries(entries, 'category', labelCache);
   return categoryGroups.map((category): FindingResultGroup => {
     const ruleGroups = buildSingleLevelGroups(
       category.entries,
       'rule',
-      labelCache
+      labelCache,
     ) as FindingResultGroup[];
     return {
       type: 'group',
@@ -130,7 +122,7 @@ function buildCategoryRuleGroups(
 function buildSingleLevelGroups(
   entries: FindingWithFacets[],
   groupBy: FindingGroupKind,
-  labelCache: GroupLabelCache
+  labelCache: GroupLabelCache,
 ): FindingResultGroup[] {
   return groupEntries(entries, groupBy, labelCache).map((group): FindingResultGroup => {
     return {
@@ -148,16 +140,12 @@ function buildSingleLevelGroups(
   });
 }
 
-function sortEntries(
-  entries: FindingWithFacets[],
-  sortBy: FindingSortKind
-): FindingWithFacets[] {
+function sortEntries(entries: FindingWithFacets[], sortBy: FindingSortKind): FindingWithFacets[] {
   return entries
     .slice()
     .sort(
       (left, right) =>
-        compareFindingEntries(left, right, sortBy) ||
-        left.originalIndex - right.originalIndex
+        compareFindingEntries(left, right, sortBy) || left.originalIndex - right.originalIndex,
     );
 }
 
@@ -186,7 +174,7 @@ function createGroupLabelCache(entries: FindingWithFacets[]): GroupLabelCache {
 function groupEntries(
   entries: FindingWithFacets[],
   groupBy: FindingGroupKind,
-  labelCache: GroupLabelCache
+  labelCache: GroupLabelCache,
 ): Array<{
   key: string;
   label: string;
@@ -200,8 +188,7 @@ function groupEntries(
   for (const entry of entries) {
     const key = groupKeyFor(groupBy, entry.facets);
     const label =
-      labelCache.get(groupLabelCacheKey(groupBy, key)) ??
-      groupLabelFor(groupBy, entry.facets);
+      labelCache.get(groupLabelCacheKey(groupBy, key)) ?? groupLabelFor(groupBy, entry.facets);
     const group = groups.get(key) ?? {
       label,
       firstIndex: entry.originalIndex,
@@ -227,8 +214,8 @@ function groupEntries(
         left.key,
         right.key,
         left.firstIndex,
-        right.firstIndex
-      )
+        right.firstIndex,
+      ),
     );
 }
 
@@ -262,7 +249,7 @@ function compareGroups(
   leftKey: string,
   rightKey: string,
   leftFirstIndex: number,
-  rightFirstIndex: number
+  rightFirstIndex: number,
 ): number {
   if (groupBy === 'priority') {
     const priorityOrder = ['high', 'medium', 'low', MISSING_GROUP_KEYS.priority];
@@ -274,11 +261,7 @@ function compareGroups(
   }
 
   if (groupBy === 'rule') {
-    const keyCompare = compareGroupKeyWithMissingLast(
-      leftKey,
-      rightKey,
-      MISSING_GROUP_KEYS.rule
-    );
+    const keyCompare = compareGroupKeyWithMissingLast(leftKey, rightKey, MISSING_GROUP_KEYS.rule);
     if (keyCompare !== 0) {
       return keyCompare;
     }
@@ -302,7 +285,7 @@ function normalizeGroupOrderIndex(index: number): number {
 function compareGroupKeyWithMissingLast(
   leftKey: string,
   rightKey: string,
-  missingKey: string
+  missingKey: string,
 ): number {
   const left = leftKey === missingKey ? undefined : leftKey;
   const right = rightKey === missingKey ? undefined : rightKey;
@@ -312,7 +295,7 @@ function compareGroupKeyWithMissingLast(
 function compareFindingEntries(
   left: FindingWithFacets,
   right: FindingWithFacets,
-  sortBy: FindingSortKind
+  sortBy: FindingSortKind,
 ): number {
   if (sortBy === 'pathLine') {
     return comparePathLine(left, right) || compareRank(left, right) || compareRule(left, right);
@@ -330,16 +313,11 @@ function compareRank(left: FindingWithFacets, right: FindingWithFacets): number 
 }
 
 function rankSortKey(rank?: number): number {
-  return typeof rank === 'number' && rank >= 1 && rank <= 20
-    ? rank
-    : Number.MAX_SAFE_INTEGER;
+  return typeof rank === 'number' && rank >= 1 && rank <= 20 ? rank : Number.MAX_SAFE_INTEGER;
 }
 
 function comparePathLine(left: FindingWithFacets, right: FindingWithFacets): number {
-  const pathCompare = compareTextWithMissingLast(
-    left.facets.pathKey,
-    right.facets.pathKey
-  );
+  const pathCompare = compareTextWithMissingLast(left.facets.pathKey, right.facets.pathKey);
   if (pathCompare !== 0) {
     return pathCompare;
   }

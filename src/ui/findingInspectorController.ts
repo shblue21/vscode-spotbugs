@@ -18,14 +18,14 @@ export interface FindingInspectorTreeBindingOptions {
   revealSourceOnSelection?: () => boolean;
   revealFindingSource?: (
     finding: Finding,
-    options: FindingSourcePreviewOptions
+    options: FindingSourcePreviewOptions,
   ) => Promise<void> | void;
 }
 
 export function bindFindingInspectorToTree(
   treeView: TreeView<TreeItem>,
   inspectorState: FindingInspectorState,
-  options: FindingInspectorTreeBindingOptions = {}
+  options: FindingInspectorTreeBindingOptions = {},
 ): Disposable {
   let sourcePreviewRequestId = 0;
 

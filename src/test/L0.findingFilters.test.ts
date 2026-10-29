@@ -1,8 +1,5 @@
 import * as assert from 'assert';
-import {
-  applyFindingFilters,
-  getFindingFilterOptions,
-} from '../ui/findingFilters';
+import { applyFindingFilters, getFindingFilterOptions } from '../ui/findingFilters';
 import { Finding } from '../model/finding';
 import { mapBugToFinding } from '../lsp/spotbugsMapper';
 
@@ -75,7 +72,7 @@ describe('findingFilters', () => {
         { label: 'Error', count: 2 },
         { label: 'Warning', count: 1 },
         { label: 'Info', count: 1 },
-      ]
+      ],
     );
   });
 
@@ -83,17 +80,21 @@ describe('findingFilters', () => {
     const packageOptions = getFindingFilterOptions(findings, {}, 'package');
     assert.deepStrictEqual(
       packageOptions.map((option) => option.label),
-      ['<default package>', 'com.acme', 'com.other']
+      ['<default package>', 'com.acme', 'com.other'],
     );
 
     const ruleOptions = getFindingFilterOptions(findings, {}, 'rule');
     assert.deepStrictEqual(
-      ruleOptions.map((option) => ({ value: option.value, label: option.label, count: option.count })),
+      ruleOptions.map((option) => ({
+        value: option.value,
+        label: option.label,
+        count: option.count,
+      })),
       [
         { value: 'DMI', label: '[DMI] Inefficient call', count: 1 },
         { value: 'NP', label: '[NP] Null pointer', count: 2 },
         { value: 'UR', label: '[UR] Unread value', count: 1 },
-      ]
+      ],
     );
   });
 
@@ -101,7 +102,7 @@ describe('findingFilters', () => {
     const options = getFindingFilterOptions(findings, { severity: 'Error' }, 'package');
     assert.deepStrictEqual(
       options.map((option) => option.label),
-      ['com.acme', 'com.other']
+      ['com.acme', 'com.other'],
     );
   });
 
@@ -144,28 +145,14 @@ describe('findingFilters', () => {
       }),
     ];
 
+    assert.deepStrictEqual(getFindingFilterOptions(missingFacetFindings, {}, 'package'), []);
+    assert.deepStrictEqual(getFindingFilterOptions(missingFacetFindings, {}, 'class'), []);
+    assert.deepStrictEqual(getFindingFilterOptions(missingFacetFindings, {}, 'path'), []);
     assert.deepStrictEqual(
-      getFindingFilterOptions(missingFacetFindings, {}, 'package'),
-      []
+      getFindingFilterOptions(missingFacetFindings, {}, 'category').map((option) => option.label),
+      ['Uncategorized'],
     );
-    assert.deepStrictEqual(
-      getFindingFilterOptions(missingFacetFindings, {}, 'class'),
-      []
-    );
-    assert.deepStrictEqual(
-      getFindingFilterOptions(missingFacetFindings, {}, 'path'),
-      []
-    );
-    assert.deepStrictEqual(
-      getFindingFilterOptions(missingFacetFindings, {}, 'category').map(
-        (option) => option.label
-      ),
-      ['Uncategorized']
-    );
-    assert.deepStrictEqual(
-      getFindingFilterOptions(missingFacetFindings, {}, 'rule'),
-      []
-    );
+    assert.deepStrictEqual(getFindingFilterOptions(missingFacetFindings, {}, 'rule'), []);
   });
 
   it('uses full rule types while preserving legacy rule filters', () => {
@@ -201,27 +188,14 @@ describe('findingFilters', () => {
         { value: 'LEGACY_RULE', count: 1 },
         { value: 'NP_ALWAYS_NULL', count: 1 },
         { value: 'NP_NULL_ON_SOME_PATH', count: 1 },
-      ]
+      ],
     );
-    assert.deepStrictEqual(
-      applyFindingFilters(findings, { rule: 'NP_ALWAYS_NULL' }),
-      [alwaysNull]
-    );
-    assert.deepStrictEqual(
-      applyFindingFilters(findings, { rule: 'NP_NULL_ON_SOME_PATH' }),
-      [nullOnSomePath]
-    );
-    assert.deepStrictEqual(
-      applyFindingFilters(findings, { rule: 'LEGACY_RULE' }),
-      [legacyRule]
-    );
-    assert.deepStrictEqual(
-      applyFindingFilters(findings, { rule: 'NP' }),
-      []
-    );
-    assert.deepStrictEqual(
-      getFindingFilterOptions([mapperSyntheticUnknown], {}, 'rule'),
-      []
-    );
+    assert.deepStrictEqual(applyFindingFilters(findings, { rule: 'NP_ALWAYS_NULL' }), [alwaysNull]);
+    assert.deepStrictEqual(applyFindingFilters(findings, { rule: 'NP_NULL_ON_SOME_PATH' }), [
+      nullOnSomePath,
+    ]);
+    assert.deepStrictEqual(applyFindingFilters(findings, { rule: 'LEGACY_RULE' }), [legacyRule]);
+    assert.deepStrictEqual(applyFindingFilters(findings, { rule: 'NP' }), []);
+    assert.deepStrictEqual(getFindingFilterOptions([mapperSyntheticUnknown], {}, 'rule'), []);
   });
 });

@@ -34,14 +34,8 @@ describe('resultViewModel', () => {
     assert.strictEqual(matchesFindingSearch(finding, 'security'), true);
     assert.strictEqual(matchesFindingSearch(finding, 'userservice'), true);
     assert.strictEqual(matchesFindingSearch(finding, 'com.acme'), true);
-    assert.strictEqual(
-      matchesFindingSearch(finding, '/workspace/src/userservice.java'),
-      true
-    );
-    assert.strictEqual(
-      matchesFindingSearch(finding, 'com/acme/userservice.java'),
-      true
-    );
+    assert.strictEqual(matchesFindingSearch(finding, '/workspace/src/userservice.java'), true);
+    assert.strictEqual(matchesFindingSearch(finding, 'com/acme/userservice.java'), true);
     assert.strictEqual(matchesFindingSearch(finding, 'UserService.java'), true);
     assert.strictEqual(matchesFindingSearch(finding, 'CWE-89'), true);
     assert.strictEqual(matchesFindingSearch(finding, '89'), true);
@@ -114,19 +108,15 @@ describe('resultViewModel', () => {
       first,
       second,
     ]);
-    assert.deepStrictEqual(sortFindings([first, second, third], 'rule'), [
-      second,
-      first,
-      third,
-    ]);
+    assert.deepStrictEqual(sortFindings([first, second, third], 'rule'), [second, first, third]);
     assert.deepStrictEqual(sortFindings([unknownLine, knownLine], 'pathLine'), [
       knownLine,
       unknownLine,
     ]);
-    assert.deepStrictEqual(
-      sortFindings([invalidZeroRank, validLowRank], 'severityRank'),
-      [validLowRank, invalidZeroRank]
-    );
+    assert.deepStrictEqual(sortFindings([invalidZeroRank, validLowRank], 'severityRank'), [
+      validLowRank,
+      invalidZeroRank,
+    ]);
   });
 
   it('applies documented sort tie-breakers and unknown placement', () => {
@@ -173,22 +163,22 @@ describe('resultViewModel', () => {
       location: { fullPath: '/z.java', startLine: 1 },
     });
 
-    assert.deepStrictEqual(
-      sortFindings([sameRankLaterPath, sameRankEarlierPath], 'severityRank'),
-      [sameRankEarlierPath, sameRankLaterPath]
-    );
-    assert.deepStrictEqual(
-      sortFindings([samePathLaterLine, samePathEarlierLine], 'pathLine'),
-      [samePathEarlierLine, samePathLaterLine]
-    );
-    assert.deepStrictEqual(
-      sortFindings([unknownPath, samePathEarlierLine], 'pathLine'),
-      [samePathEarlierLine, unknownPath]
-    );
-    assert.deepStrictEqual(
-      sortFindings([sameRuleLowerRank, sameRuleHigherRank], 'rule'),
-      [sameRuleHigherRank, sameRuleLowerRank]
-    );
+    assert.deepStrictEqual(sortFindings([sameRankLaterPath, sameRankEarlierPath], 'severityRank'), [
+      sameRankEarlierPath,
+      sameRankLaterPath,
+    ]);
+    assert.deepStrictEqual(sortFindings([samePathLaterLine, samePathEarlierLine], 'pathLine'), [
+      samePathEarlierLine,
+      samePathLaterLine,
+    ]);
+    assert.deepStrictEqual(sortFindings([unknownPath, samePathEarlierLine], 'pathLine'), [
+      samePathEarlierLine,
+      unknownPath,
+    ]);
+    assert.deepStrictEqual(sortFindings([sameRuleLowerRank, sameRuleHigherRank], 'rule'), [
+      sameRuleHigherRank,
+      sameRuleLowerRank,
+    ]);
   });
 
   it('builds default category rule groups and generic package, class, and path groups', () => {
@@ -337,14 +327,11 @@ describe('resultViewModel', () => {
     assertFindingLeaf(pathGroup.children[1]);
     assert.strictEqual(pathGroup.children[1].finding, lowMatch);
 
-    const priorityView = buildResultView(
-      [makeFinding({ priority: undefined, rank: undefined })],
-      {
-        searchQuery: '',
-        groupBy: 'priority',
-        sortBy: 'severityRank',
-      }
-    );
+    const priorityView = buildResultView([makeFinding({ priority: undefined, rank: undefined })], {
+      searchQuery: '',
+      groupBy: 'priority',
+      sortBy: 'severityRank',
+    });
     const priorityGroup = priorityView.nodes[0];
     assertResultGroup(priorityGroup);
     assert.strictEqual(priorityGroup.key, '__missing_priority__');
@@ -519,7 +506,7 @@ function assertResultGroup(node: FindingResultNode): asserts node is FindingResu
 }
 
 function assertFindingLeaf(
-  node: FindingResultNode
+  node: FindingResultNode,
 ): asserts node is Exclude<FindingResultNode, FindingResultGroup> {
   assert.strictEqual(node.type, 'finding');
 }

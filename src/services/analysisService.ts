@@ -89,11 +89,7 @@ export async function executeAnalysisPlan(
     let outcome = item.outcome;
     if (unit) {
       try {
-        outcome = await runAnalysisTarget(
-          unit.settings,
-          unit,
-          token,
-        );
+        outcome = await runAnalysisTarget(unit.settings, unit, token);
       } catch (error) {
         outcome = createAnalysisFailureOutcome(
           unit.inputs[0].path,
@@ -161,8 +157,11 @@ export function summarizeResourceResults(
   const scopeKey = (scope: DiagnosticUpdateScope | undefined) => {
     if (!scope) return '';
     return scope.kind === 'source-roots'
-      ? JSON.stringify([scope.kind, [...new Set(scope.uris.map((uri) => uri.toString()))].sort(),
-          [...new Set((scope.excludedUris ?? []).map((uri) => uri.toString()))].sort()])
+      ? JSON.stringify([
+          scope.kind,
+          [...new Set(scope.uris.map((uri) => uri.toString()))].sort(),
+          [...new Set((scope.excludedUris ?? []).map((uri) => uri.toString()))].sort(),
+        ])
       : JSON.stringify([scope.kind, scope.uri.toString()]);
   };
   const sameScope = scopes.every((scope) => scopeKey(scope) === scopeKey(scopes[0]));

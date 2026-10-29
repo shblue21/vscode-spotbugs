@@ -7,7 +7,7 @@ export interface DecodedCommandResponseEnvelope {
 }
 
 export function decodeCommandResponseEnvelope(
-  value: unknown
+  value: unknown,
 ): DecodedCommandResponseEnvelope | undefined {
   if (!isRecord(value)) {
     return undefined;

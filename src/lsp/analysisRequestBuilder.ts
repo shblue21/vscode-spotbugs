@@ -34,7 +34,9 @@ export function buildAnalysisRequestPayload(
   if (confidence === 'high' || confidence === 'medium' || confidence === 'low') {
     payload.minimumConfidence = confidence;
   } else if (confidence !== undefined && confidence !== null && confidence !== 'default') {
-    throw new Error('Invalid spotbugs.analysis.minimumConfidence: expected default, high, medium, or low.');
+    throw new Error(
+      'Invalid spotbugs.analysis.minimumConfidence: expected default, high, medium, or low.',
+    );
   }
 
   if (options.sourceOutputs && Object.keys(options.sourceOutputs).length > 0) {
@@ -57,7 +59,10 @@ export function buildAnalysisRequestPayload(
     payload.excludeBaselineBugsPaths = settings.excludeBaselineBugsPaths.slice();
   }
   if (Array.isArray(settings.plugins) && settings.plugins.length > 0) {
-    payload.plugins = settings.plugins.map((plugin) => ({ ...plugin, detectors: { ...plugin.detectors } }));
+    payload.plugins = settings.plugins.map((plugin) => ({
+      ...plugin,
+      detectors: { ...plugin.detectors },
+    }));
   }
   if (settings.detectors) payload.detectors = { ...settings.detectors };
   return payload;

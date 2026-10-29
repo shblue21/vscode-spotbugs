@@ -124,12 +124,23 @@ describe('analysisRunner', () => {
       const originalAnalyze = service.analyzeFileDetailed;
       let dismiss!: () => void;
       let pickerEntered!: () => void;
-      const pickerReady = new Promise<void>((resolve) => { pickerEntered = resolve; });
-      const picker = new Promise<undefined>((resolve) => { dismiss = () => resolve(undefined); });
+      const pickerReady = new Promise<void>((resolve) => {
+        pickerEntered = resolve;
+      });
+      const picker = new Promise<undefined>((resolve) => {
+        dismiss = () => resolve(undefined);
+      });
       let finishAnalysis!: (result: any) => void;
-      const analysis = new Promise<any>((resolve) => { finishAnalysis = resolve; });
+      const analysis = new Promise<any>((resolve) => {
+        finishAnalysis = resolve;
+      });
       const vscode = resetVscodeMock({
-        window: { showQuickPick: async () => { pickerEntered(); return picker; } } as any,
+        window: {
+          showQuickPick: async () => {
+            pickerEntered();
+            return picker;
+          },
+        } as any,
       });
       discovery.getProjectRootPaths = async () => ['/project'];
       service.analyzeFileDetailed = async () => analysis;
@@ -137,13 +148,22 @@ describe('analysisRunner', () => {
       let state = 'initial';
       const tree = {
         ...createNoopTree(),
-        showLoading: () => { state = 'loading'; },
-        showAnalysisFailure: (_message: string, code: string) => { state = code; },
+        showLoading: () => {
+          state = 'loading';
+        },
+        showAnalysisFailure: (_message: string, code: string) => {
+          state = code;
+        },
       };
-      const run = (kind: 'source' | 'project') => command.checkCode(
-        {} as any, tree, createNoopDiagnostics(),
-        vscode.Uri.file('/outside/A.java') as any, coordinator, kind,
-      );
+      const run = (kind: 'source' | 'project') =>
+        command.checkCode(
+          {} as any,
+          tree,
+          createNoopDiagnostics(),
+          vscode.Uri.file('/outside/A.java') as any,
+          coordinator,
+          kind,
+        );
       let oldRun: Promise<void> | undefined;
       let projectRun: Promise<void> | undefined;
       let newRun: Promise<void> | undefined;
@@ -261,7 +281,8 @@ describe('analysisRunner', () => {
 
       assert.deepStrictEqual(commandCalls, [['coordinator.begin'], ['spotbugs-view.focus']]);
       assert.strictEqual(delegated.length, 1);
-      const args = delegated[0] as import('../orchestration/analysisRunSession').RunFileAnalysisSessionArgs;
+      const args =
+        delegated[0] as import('../orchestration/analysisRunSession').RunFileAnalysisSessionArgs;
       assert.strictEqual(args.config, config);
       assert.strictEqual(args.tree, tree);
       assert.strictEqual(args.diagnostics, diagnostics);
@@ -270,8 +291,14 @@ describe('analysisRunner', () => {
       assert.ok(args.startedAtMs >= earliestStart && args.startedAtMs <= Date.now());
       const now = args.dependencies.now();
       assert.ok(now >= args.startedAtMs && now <= Date.now());
-      const token = { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => undefined }) };
-      assert.strictEqual(await args.dependencies.buildWorkspaceAuto(token), JavaCompileWorkspaceStatus.cancelled);
+      const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: () => ({ dispose: () => undefined }),
+      };
+      assert.strictEqual(
+        await args.dependencies.buildWorkspaceAuto(token),
+        JavaCompileWorkspaceStatus.cancelled,
+      );
       const builds = commandCalls.filter(([command]) => command === 'java.workspace.compile');
       assert.deepStrictEqual(builds, [['java.workspace.compile', false, token]]);
       assert.strictEqual(builds[0][2], token);
@@ -429,12 +456,17 @@ describe('analysisRunner', () => {
     const notifierModule = require('../core/notifier') as typeof import('../core/notifier');
     const originalRunWorkspaceAnalysisSession = session.runWorkspaceAnalysisSession;
     const delegated: unknown[] = [];
-    const discovery = require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
-    const analysis = require('../services/analysisService') as typeof import('../services/analysisService');
+    const discovery =
+      require('../workspace/projectDiscovery') as typeof import('../workspace/projectDiscovery');
+    const analysis =
+      require('../services/analysisService') as typeof import('../services/analysisService');
     const originalDiscovery = discovery.getWorkspaceProjectDiscovery;
     const originalAnalysis = analysis.analyzeWorkspaceFromProjectsDetailed;
     const discovered = { projectUris: ['file:///workspace/project'], issues: [] };
-    const analyzed = { results: [{ projectUri: discovered.projectUris[0], findings: [] }], context: { resolutionIssues: [] } };
+    const analyzed = {
+      results: [{ projectUri: discovered.projectUris[0], findings: [] }],
+      context: { resolutionIssues: [] },
+    };
     const serviceCalls: unknown[][] = [];
     const notify = { onStart: () => undefined };
 
@@ -445,9 +477,20 @@ describe('analysisRunner', () => {
         const deps = args.dependencies;
         const folder = deps.getPrimaryWorkspaceFolder();
         assert.strictEqual(folder?.uri.toString(), workspaceUri.toString());
-        assert.deepStrictEqual(await deps.getWorkspaceProjectDiscovery(folder!.uri, tokenArg), discovered);
-        assert.deepStrictEqual(await deps.analyzeWorkspaceFromProjectsDetailed(args.config, folder!.uri,
-          discovered.projectUris, notify, tokenArg), analyzed);
+        assert.deepStrictEqual(
+          await deps.getWorkspaceProjectDiscovery(folder!.uri, tokenArg),
+          discovered,
+        );
+        assert.deepStrictEqual(
+          await deps.analyzeWorkspaceFromProjectsDetailed(
+            args.config,
+            folder!.uri,
+            discovered.projectUris,
+            notify,
+            tokenArg,
+          ),
+          analyzed,
+        );
         cancelProgress();
       });
     };
@@ -491,7 +534,8 @@ describe('analysisRunner', () => {
         },
       ]);
       assert.strictEqual(delegated.length, 1);
-      const delegatedArgs = delegated[0] as import('../orchestration/analysisRunSession').RunWorkspaceAnalysisSessionArgs;
+      const delegatedArgs =
+        delegated[0] as import('../orchestration/analysisRunSession').RunWorkspaceAnalysisSessionArgs;
       assert.strictEqual(delegatedArgs.config, config);
       assert.strictEqual(delegatedArgs.tree, tree);
       assert.strictEqual(delegatedArgs.diagnostics, diagnostics);

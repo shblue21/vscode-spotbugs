@@ -23,9 +23,7 @@ import {
 const SHOW_LOCAL_DETAILS_TITLE = 'Show SpotBugs details';
 const OPEN_RULE_DOCS_TITLE = 'Open SpotBugs rule docs';
 
-export class SpotBugsDiagnosticCodeActionProvider
-  implements CodeActionProvider
-{
+export class SpotBugsDiagnosticCodeActionProvider implements CodeActionProvider {
   static readonly providedCodeActionKinds = [CodeActionKind.QuickFix];
 
   constructor(private readonly diagnostics: SpotBugsDiagnosticsManager) {}
@@ -34,7 +32,7 @@ export class SpotBugsDiagnosticCodeActionProvider
     document: TextDocument,
     _range: Range,
     context: CodeActionContext,
-    _token: CancellationToken
+    _token: CancellationToken,
   ): CodeAction[] {
     if (context.only && !context.only.contains(CodeActionKind.QuickFix)) {
       return [];
@@ -56,10 +54,7 @@ export class SpotBugsDiagnosticCodeActionProvider
 
       const detailKey = `${diagnostic.range.start.line}:${getFindingDiagnosticCodeValue(finding)}`;
       if (hasFindingLocalDescription(finding) && !seenDetails.has(detailKey)) {
-        const detailAction = new CodeAction(
-          SHOW_LOCAL_DETAILS_TITLE,
-          CodeActionKind.QuickFix
-        );
+        const detailAction = new CodeAction(SHOW_LOCAL_DETAILS_TITLE, CodeActionKind.QuickFix);
         detailAction.command = {
           command: SpotBugsCommands.OPEN_FINDING_DETAILS,
           title: SHOW_LOCAL_DETAILS_TITLE,
@@ -80,10 +75,7 @@ export class SpotBugsDiagnosticCodeActionProvider
         continue;
       }
 
-      const action = new CodeAction(
-        OPEN_RULE_DOCS_TITLE,
-        CodeActionKind.QuickFix
-      );
+      const action = new CodeAction(OPEN_RULE_DOCS_TITLE, CodeActionKind.QuickFix);
       action.command = {
         command: 'vscode.open',
         title: OPEN_RULE_DOCS_TITLE,
@@ -97,21 +89,15 @@ export class SpotBugsDiagnosticCodeActionProvider
     return actions;
   }
 
-  private findMatchingFinding(
-    document: TextDocument,
-    diagnostic: Diagnostic
-  ): Finding | undefined {
-    const findings = this.diagnostics.getFindingsAt(
-      document.uri,
-      diagnostic.range.start
-    );
+  private findMatchingFinding(document: TextDocument, diagnostic: Diagnostic): Finding | undefined {
+    const findings = this.diagnostics.getFindingsAt(document.uri, diagnostic.range.start);
     if (findings.length === 0) {
       return undefined;
     }
 
     const diagnosticCode = getDiagnosticCodeValue(diagnostic.code);
     const exactMatch = findings.find((finding) =>
-      this.matchesDiagnostic(finding, diagnostic, diagnosticCode)
+      this.matchesDiagnostic(finding, diagnostic, diagnosticCode),
     );
     if (exactMatch) {
       return exactMatch;
@@ -121,7 +107,7 @@ export class SpotBugsDiagnosticCodeActionProvider
       (finding) =>
         this.canExplainFinding(finding) &&
         diagnosticCode !== undefined &&
-        getFindingDiagnosticCodeValue(finding) === diagnosticCode
+        getFindingDiagnosticCodeValue(finding) === diagnosticCode,
     );
     if (codeMatch) {
       return codeMatch;
@@ -133,16 +119,13 @@ export class SpotBugsDiagnosticCodeActionProvider
   private matchesDiagnostic(
     finding: Finding,
     diagnostic: Diagnostic,
-    diagnosticCode: string | number | undefined
+    diagnosticCode: string | number | undefined,
   ): boolean {
     if (!this.canExplainFinding(finding)) {
       return false;
     }
 
-    if (
-      diagnosticCode !== undefined &&
-      getFindingDiagnosticCodeValue(finding) !== diagnosticCode
-    ) {
+    if (diagnosticCode !== undefined && getFindingDiagnosticCodeValue(finding) !== diagnosticCode) {
       return false;
     }
 
@@ -151,8 +134,7 @@ export class SpotBugsDiagnosticCodeActionProvider
 
   private canExplainFinding(finding: Finding): boolean {
     return (
-      hasFindingLocalDescription(finding) ||
-      getFindingRuleDocumentationUri(finding) !== undefined
+      hasFindingLocalDescription(finding) || getFindingRuleDocumentationUri(finding) !== undefined
     );
   }
 }

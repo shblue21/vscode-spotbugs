@@ -18,14 +18,10 @@ type FilterValuePickItem =
   | (QuickPickItem & { action: 'set'; value: string })
   | (QuickPickItem & { action: 'clear-kind' });
 
-export async function selectFindingFilter(
-  provider: SpotBugsTreeDataProvider
-): Promise<void> {
+export async function selectFindingFilter(provider: SpotBugsTreeDataProvider): Promise<void> {
   const cachedFindings = provider.getCachedFindings();
   if (cachedFindings.length === 0) {
-    await window.showInformationMessage(
-      l10n.t('No cached SpotBugs findings available to filter.')
-    );
+    await window.showInformationMessage(l10n.t('No cached SpotBugs findings available to filter.'));
     return;
   }
 
@@ -42,8 +38,8 @@ export async function selectFindingFilter(
           'Current: {0}',
           localizeFindingFilterText(
             filterKind,
-            getFindingFilterDisplayLabel(cachedFindings, filterKind, currentValue)
-          )
+            getFindingFilterDisplayLabel(cachedFindings, filterKind, currentValue),
+          ),
         )
       : undefined;
     const detail =
@@ -95,7 +91,7 @@ export async function selectFindingFilter(
       label: l10n.t('Clear {0} filter', kindLabel),
       description: localizeFindingFilterText(
         kind,
-        getFindingFilterDisplayLabel(cachedFindings, kind, currentValue)
+        getFindingFilterDisplayLabel(cachedFindings, kind, currentValue),
       ),
     });
   }
@@ -107,7 +103,7 @@ export async function selectFindingFilter(
       label: localizeFindingFilterText(kind, option.label),
       description: formatFindingCount(option.count),
       detail: option.detail ? localizeFindingFilterText(kind, option.detail) : undefined,
-    }))
+    })),
   );
 
   const selectedValue = await window.showQuickPick<FilterValuePickItem>(valueItems, {

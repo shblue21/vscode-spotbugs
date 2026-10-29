@@ -158,10 +158,8 @@ export class SpotBugsDiagnosticsManager {
   private getDiagnosticSeverity(rank: number | undefined, uri: Uri): DiagnosticSeverity {
     let severity = toDiagnosticSeverity(rankToSeverity(rank));
     if (typeof rank === 'number' && rank >= 1 && rank <= 20) {
-      const band = rank <= 4 ? 'scariest'
-        : rank <= 9 ? 'scary'
-        : rank <= 14 ? 'troubling'
-        : 'ofConcern';
+      const band =
+        rank <= 4 ? 'scariest' : rank <= 9 ? 'scary' : rank <= 14 ? 'troubling' : 'ofConcern';
       const value = workspace
         .getConfiguration(SETTINGS_SECTION, uri)
         .get<unknown>(`${settingKeys.diagnosticsSeverity}.${band}`);
@@ -174,7 +172,11 @@ export class SpotBugsDiagnosticsManager {
 
   private createDiagnostic(range: Range, finding: Finding, uri: Uri): Diagnostic {
     const message = formatFindingSummary(finding);
-    const diagnostic = new Diagnostic(range, message, this.getDiagnosticSeverity(finding.rank, uri));
+    const diagnostic = new Diagnostic(
+      range,
+      message,
+      this.getDiagnosticSeverity(finding.rank, uri),
+    );
     diagnostic.source = SPOTBUGS_DIAGNOSTIC_SOURCE;
     const docUri = !hasFindingLocalDescription(finding)
       ? getFindingDocumentationUri(finding)

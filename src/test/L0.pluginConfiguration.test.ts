@@ -2,32 +2,48 @@ import * as assert from 'assert';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
-const { readPluginConfiguration, readScopedSetting, parseDetectorOverrides, updateCoreDetectors, updatePluginConfiguration } =
-  require('../services/pluginConfiguration') as typeof import('../services/pluginConfiguration');
+const {
+  readPluginConfiguration,
+  readScopedSetting,
+  parseDetectorOverrides,
+  updateCoreDetectors,
+  updatePluginConfiguration,
+} = require('../services/pluginConfiguration') as typeof import('../services/pluginConfiguration');
 
 type Scope = { globalValue?: unknown; workspaceValue?: unknown };
 function configuration(settings: Record<string, Scope>) {
   const writes: Array<{ key: string; value: unknown; global: boolean }> = [];
-  resetVscodeMock({ workspace: {
-    getConfiguration: () => ({
-      get: () => undefined,
-      inspect: (key: string) => settings[key],
-      update: async (key: string, value: unknown, global: boolean) => {
-        writes.push({ key, value, global });
-        const entry = settings[key] ?? (settings[key] = {});
-        entry[global ? 'globalValue' : 'workspaceValue'] = value;
-      },
-    }),
-  } } as never);
+  resetVscodeMock({
+    workspace: {
+      getConfiguration: () => ({
+        get: () => undefined,
+        inspect: (key: string) => settings[key],
+        update: async (key: string, value: unknown, global: boolean) => {
+          writes.push({ key, value, global });
+          const entry = settings[key] ?? (settings[key] = {});
+          entry[global ? 'globalValue' : 'workspaceValue'] = value;
+        },
+      }),
+    },
+  } as never);
   return writes;
 }
-const plugin = { id: 'check', path: 'check.jar', enabled: true, detectors: { ['example.Check']: false } };
+const plugin = {
+  id: 'check',
+  path: 'check.jar',
+  enabled: true,
+  detectors: { ['example.Check']: false },
+};
 
 describe('plugin configuration ownership', () => {
   afterEach(() => resetVscodeMock());
 
   it('does not write unchanged core overrides, including an absent default', async () => {
-    for (const scope of [undefined, { workspaceValue: {} }, { globalValue: { ['example.Check']: false } }]) {
+    for (const scope of [
+      undefined,
+      { workspaceValue: {} },
+      { globalValue: { ['example.Check']: false } },
+    ]) {
       const writes = configuration(scope ? { ['analysis.detectors']: scope } : {});
       const { target } = readScopedSetting('analysis.detectors');
       assert.strictEqual(await updateCoreDetectors(target, (previous) => ({ ...previous })), false);
@@ -39,12 +55,20 @@ describe('plugin configuration ownership', () => {
     const settings = { ['analysis.detectors']: { workspaceValue: {} as Record<string, boolean> } };
     const writes = configuration(settings);
     let finishWrite!: () => void;
-    const pendingWrite = new Promise<void>((resolve) => { finishWrite = resolve; });
-    const pluginUpdate = updatePluginConfiguration({
-      readConfiguration: () => ({ target: 'workspace', registrations: [], workspaceRoots: [] }),
-      writeConfiguration: () => pendingWrite,
-    }, () => [plugin]);
-    const coreUpdate = updateCoreDetectors('workspace', (previous) => ({ ...previous, ['example.Second']: true }));
+    const pendingWrite = new Promise<void>((resolve) => {
+      finishWrite = resolve;
+    });
+    const pluginUpdate = updatePluginConfiguration(
+      {
+        readConfiguration: () => ({ target: 'workspace', registrations: [], workspaceRoots: [] }),
+        writeConfiguration: () => pendingWrite,
+      },
+      () => [plugin],
+    );
+    const coreUpdate = updateCoreDetectors('workspace', (previous) => ({
+      ...previous,
+      ['example.Second']: true,
+    }));
     await Promise.resolve();
     assert.strictEqual(writes.length, 0);
     settings['analysis.detectors'].workspaceValue = { ['example.First']: false };
@@ -55,9 +79,15 @@ describe('plugin configuration ownership', () => {
 
   it('rejects a changed core scope and allows the next queued write', async () => {
     const writes = configuration({ ['analysis.detectors']: { globalValue: {} } });
-    await assert.rejects(updateCoreDetectors('workspace', () => ({ ['example.Check']: true })), /scope changed/);
+    await assert.rejects(
+      updateCoreDetectors('workspace', () => ({ ['example.Check']: true })),
+      /scope changed/,
+    );
     assert.strictEqual(writes.length, 0);
-    assert.strictEqual(await updateCoreDetectors('global', () => ({ ['example.Check']: true })), true);
+    assert.strictEqual(
+      await updateCoreDetectors('global', () => ({ ['example.Check']: true })),
+      true,
+    );
     assert.strictEqual(writes.length, 1);
   });
 
@@ -68,7 +98,10 @@ describe('plugin configuration ownership', () => {
     });
     assert.deepStrictEqual(readPluginConfiguration().registrations, []);
     assert.strictEqual(readPluginConfiguration().target, 'workspace');
-    assert.deepStrictEqual(parseDetectorOverrides(readScopedSetting('analysis.detectors').value), {});
+    assert.deepStrictEqual(
+      parseDetectorOverrides(readScopedSetting('analysis.detectors').value),
+      {},
+    );
   });
 
   it('inherits the entire user registration and copies its child settings', () => {
@@ -106,7 +139,9 @@ describe('plugin configuration ownership', () => {
   });
 
   it('rejects malformed settings instead of silently dropping entries', () => {
-    configuration({ ['plugins.registrations']: { globalValue: [{ path: 'check.jar', enabled: 'false' }] } });
+    configuration({
+      ['plugins.registrations']: { globalValue: [{ path: 'check.jar', enabled: 'false' }] },
+    });
     assert.ok(readPluginConfiguration().error);
     assert.throws(() => parseDetectorOverrides({ ['example.Check']: 'false' }), /booleans/);
     assert.throws(() => parseDetectorOverrides(null), /booleans/);
@@ -114,12 +149,20 @@ describe('plugin configuration ownership', () => {
 
   it('requires a persistent unique ID in the selected scope, including disabled registrations', () => {
     const { id: _id, ...withoutId } = plugin;
-    for (const registrations of [[withoutId], [{ ...plugin, id: '' }], [plugin, { ...plugin, enabled: false }]]) {
-      const writes = configuration({ ['plugins.registrations']: { workspaceValue: registrations } });
+    for (const registrations of [
+      [withoutId],
+      [{ ...plugin, id: '' }],
+      [plugin, { ...plugin, enabled: false }],
+    ]) {
+      const writes = configuration({
+        ['plugins.registrations']: { workspaceValue: registrations },
+      });
       assert.ok(readPluginConfiguration().error);
       assert.deepStrictEqual(writes, []);
     }
-    configuration({ ['plugins.registrations']: { workspaceValue: [plugin], globalValue: [plugin] } });
+    configuration({
+      ['plugins.registrations']: { workspaceValue: [plugin], globalValue: [plugin] },
+    });
     assert.strictEqual(readPluginConfiguration().error, undefined);
   });
 });

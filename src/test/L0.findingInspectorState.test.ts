@@ -78,7 +78,7 @@ describe('findingInspectorState', () => {
     const otherRuleSamePatternId = makeFinding(
       'SQL',
       '',
-      'SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE'
+      'SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE',
     );
 
     state.select(selected);
@@ -91,7 +91,7 @@ describe('findingInspectorState', () => {
 function makeFinding(
   patternId: string,
   instanceHash = `${patternId}-hash`,
-  type = patternId
+  type = patternId,
 ): Finding {
   return {
     patternId,

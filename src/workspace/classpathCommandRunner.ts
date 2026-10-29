@@ -7,15 +7,8 @@ import {
   requestJavaProjectSettings,
   type JavaLsClasspathResponse,
 } from '../lsp/javaLsGateway';
-import type {
-  AnalysisResolutionIssue,
-  ClasspathLookupOutcome,
-} from '../lsp/javaLsOutcome';
-import type {
-  ClasspathResult,
-  ClasspathScope,
-  ProjectRef,
-} from './classpathTypes';
+import type { AnalysisResolutionIssue, ClasspathLookupOutcome } from '../lsp/javaLsOutcome';
+import type { ClasspathResult, ClasspathScope, ProjectRef } from './classpathTypes';
 import {
   isPathInsideOrEqual,
   isWindowsPath,
@@ -51,13 +44,13 @@ export interface ClasspathLookupOptions {
 
 export async function lookupJavaProjectClasspath(
   project?: ProjectRef,
-  options: ClasspathLookupOptions = {}
+  options: ClasspathLookupOptions = {},
 ): Promise<ClasspathLookupOutcome> {
   const queryUri = uriOf(project);
   if (!queryUri) {
     return unavailable(
       'JAVA_LS_NO_RESULT',
-      'Java project metadata lookup requires a file or project URI.'
+      'Java project metadata lookup requires a file or project URI.',
     );
   }
 
@@ -89,13 +82,13 @@ export async function lookupJavaProjectClasspath(
     }
 
     const response = normalizeClasspathResponse(
-      await requestJavaClasspaths(queryUri, scope, token)
+      await requestJavaClasspaths(queryUri, scope, token),
     );
     throwIfCancelled(token);
     if (!response) {
       return unavailable(
         'JAVA_LS_NO_RESULT',
-        'Java Language Server returned invalid project classpath metadata.'
+        'Java Language Server returned invalid project classpath metadata.',
       );
     }
     if (
@@ -104,7 +97,7 @@ export async function lookupJavaProjectClasspath(
     ) {
       return unavailable(
         'JAVA_PROJECT_METADATA_MISMATCH',
-        'Java Language Server returned metadata for a different project.'
+        'Java Language Server returned metadata for a different project.',
       );
     }
 
@@ -125,20 +118,20 @@ export async function lookupJavaProjectClasspath(
       projectSettings.sourceOutputs,
       resourcePath,
       pathOf(response.projectRoot),
-      scope
+      scope,
     );
     const sourcepaths = uniquePaths(selectedSources.map((entry) => entry.sourcepath));
     const sourceOutputs = Object.fromEntries(
       selectedSources.flatMap((entry) => {
         const output = entry.declaredOutput ?? entry.output;
         return output ? [[entry.sourcepath, output]] : [];
-      })
+      }),
     );
     const targetResolutionRoots = uniquePaths(
       selectedSources.flatMap((entry) => {
         const output = entry.declaredOutput ?? entry.output;
         return output ? [output] : [];
-      })
+      }),
     );
     if (
       targetResolutionRoots.length === 0 &&
@@ -147,10 +140,7 @@ export async function lookupJavaProjectClasspath(
     ) {
       targetResolutionRoots.push(projectSettings.defaultOutput);
     }
-    const runtimeClasspaths = uniquePaths([
-      ...response.classpaths,
-      ...response.modulepaths,
-    ]);
+    const runtimeClasspaths = uniquePaths([...response.classpaths, ...response.modulepaths]);
     if (runtimeClasspaths.length === 0) {
       issues.push({
         code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
@@ -170,24 +160,20 @@ export async function lookupJavaProjectClasspath(
       ...(projectSettings.sourceRootsAbsent ? { sourceRootsAbsent: true as const } : {}),
     };
     Logger.log(
-      `getClasspaths(${scope}) succeeded: projectRoot=${response.projectRoot}, auxPaths=${runtimeClasspaths.length}, targetResolutionRoots=${targetResolutionRoots.length}, sourcepaths=${sourcepaths.length}`
+      `getClasspaths(${scope}) succeeded: projectRoot=${response.projectRoot}, auxPaths=${runtimeClasspaths.length}, targetResolutionRoots=${targetResolutionRoots.length}, sourcepaths=${sourcepaths.length}`,
     );
     return { status: 'resolved', classpath, issues };
   } catch (error) {
     throwIfCancelled(token);
     logFailure(options, 'getClasspaths', error);
-    return unavailable(
-      'JAVA_LS_REQUEST_FAILED',
-      'Java project metadata lookup failed.',
-      error
-    );
+    return unavailable('JAVA_LS_REQUEST_FAILED', 'Java project metadata lookup failed.', error);
   }
 }
 
 async function loadSettings(
   uri: string,
   token: CancellationToken | undefined,
-  options: ClasspathLookupOptions
+  options: ClasspathLookupOptions,
 ): Promise<{ settings: ProjectSettings; issue?: AnalysisResolutionIssue }> {
   try {
     const snapshot = await requestJavaProjectSettings(uri, token);
@@ -206,7 +192,7 @@ async function loadSettings(
         ? {}
         : {
             issue: settingsIssue(
-              'Source-specific outputs were unavailable; using the default project output.'
+              'Source-specific outputs were unavailable; using the default project output.',
             ),
           }),
     };
@@ -220,7 +206,10 @@ async function loadSettings(
   }
 }
 
-function normalizeSettings(raw: Record<string, unknown>, declaredSourceOutputs: Record<string, string>): {
+function normalizeSettings(
+  raw: Record<string, unknown>,
+  declaredSourceOutputs: Record<string, string>,
+): {
   settings: ProjectSettings;
   complete: boolean;
 } {
@@ -252,12 +241,18 @@ function normalizeSettings(raw: Record<string, unknown>, declaredSourceOutputs: 
     if (source) source.declaredOutput = output;
   }
   return {
-    settings: { defaultOutput, sourceOutputs,
-      ...(Array.isArray(raw[SOURCE_PATHS]) && raw[SOURCE_PATHS].length === 0
-        && Array.isArray(entries) && entries.every((entry) => record(entry)
-          && typeof entry.kind === 'number' && entry.kind !== 3)
-        && Object.keys(declaredSourceOutputs).length === 0
-        ? { sourceRootsAbsent: true as const } : {}),
+    settings: {
+      defaultOutput,
+      sourceOutputs,
+      ...(Array.isArray(raw[SOURCE_PATHS]) &&
+      raw[SOURCE_PATHS].length === 0 &&
+      Array.isArray(entries) &&
+      entries.every(
+        (entry) => record(entry) && typeof entry.kind === 'number' && entry.kind !== 3,
+      ) &&
+      Object.keys(declaredSourceOutputs).length === 0
+        ? { sourceRootsAbsent: true as const }
+        : {}),
     },
     complete: Array.isArray(entries),
   };
@@ -267,19 +262,15 @@ function selectSources(
   sources: readonly SourceOutput[],
   resourcePath: string | undefined,
   projectRoot: string | undefined,
-  scope: ClasspathScope
+  scope: ClasspathScope,
 ): SourceOutput[] {
   const related = resourcePath ? relatedSources(sources, resourcePath) : [];
-  const allProjectSources =
-    !!resourcePath && !!projectRoot && samePath(resourcePath, projectRoot);
+  const allProjectSources = !!resourcePath && !!projectRoot && samePath(resourcePath, projectRoot);
   const selected = related.length > 0 ? related : allProjectSources ? [...sources] : [];
   return scope === 'runtime' ? selected.filter((entry) => !entry.test) : selected;
 }
 
-function relatedSources(
-  sources: readonly SourceOutput[],
-  resourcePath: string
-): SourceOutput[] {
+function relatedSources(sources: readonly SourceOutput[], resourcePath: string): SourceOutput[] {
   const direct = sources
     .map((entry) => ({ entry, length: ancestorLength(entry, resourcePath) }))
     .filter(({ length }) => length >= 0);
@@ -294,18 +285,14 @@ function ancestorLength(entry: SourceOutput, resourcePath: string): number {
   return [entry.sourcepath, entry.output]
     .filter(
       (candidate): candidate is string =>
-        !!candidate && isPathInsideOrEqual(candidate, resourcePath)
+        !!candidate && isPathInsideOrEqual(candidate, resourcePath),
     )
-    .reduce(
-      (longest, candidate) =>
-        Math.max(longest, pathComparisonKey(candidate).length),
-      -1
-    );
+    .reduce((longest, candidate) => Math.max(longest, pathComparisonKey(candidate).length), -1);
 }
 
 function inferScope(
   resourcePath: string | undefined,
-  sources: readonly SourceOutput[]
+  sources: readonly SourceOutput[],
 ): ClasspathScope {
   if (resourcePath) {
     const related = relatedSources(sources, resourcePath);
@@ -333,15 +320,13 @@ function testEntry(sourcepath: string, attributes: unknown): boolean {
 function conventionalScope(value: string): ClasspathScope {
   const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
   return /\/(src\/test|target\/test-classes|build\/classes\/java\/test|bin\/test)(\/|$)/.test(
-    normalized
+    normalized,
   )
     ? 'test'
     : 'runtime';
 }
 
-function normalizeClasspathResponse(
-  value: unknown
-): JavaLsClasspathResponse | undefined {
+function normalizeClasspathResponse(value: unknown): JavaLsClasspathResponse | undefined {
   if (!record(value)) return undefined;
   const projectRoot = text(value.projectRoot);
   const classpaths = strings(value.classpaths);
@@ -360,9 +345,7 @@ function sameProjectRoot(expected: ProjectRef, actual: ProjectRef): boolean {
 function uriOf(value: ProjectRef): string {
   if (!value) return '';
   if (typeof value !== 'string') return value.toString();
-  return isWindowsPath(value) || path.isAbsolute(value)
-    ? Uri.file(value).toString()
-    : value;
+  return isWindowsPath(value) || path.isAbsolute(value) ? Uri.file(value).toString() : value;
 }
 
 function pathOf(value: ProjectRef): string | undefined {
@@ -403,12 +386,9 @@ function settingsIssue(cause: string): AnalysisResolutionIssue {
 }
 
 function unavailable(
-  code:
-    | 'JAVA_LS_REQUEST_FAILED'
-    | 'JAVA_LS_NO_RESULT'
-    | 'JAVA_PROJECT_METADATA_MISMATCH',
+  code: 'JAVA_LS_REQUEST_FAILED' | 'JAVA_LS_NO_RESULT' | 'JAVA_PROJECT_METADATA_MISMATCH',
   messageText: string,
-  cause?: unknown
+  cause?: unknown,
 ): ClasspathLookupOutcome {
   return {
     status: 'unavailable',
@@ -429,11 +409,7 @@ function throwIfCancelled(token: CancellationToken | undefined): void {
   if (token?.isCancellationRequested) throw new Error('Operation cancelled');
 }
 
-function logFailure(
-  options: ClasspathLookupOptions,
-  operation: string,
-  error: unknown
-): void {
+function logFailure(options: ClasspathLookupOptions, operation: string, error: unknown): void {
   if (options.logFailures) Logger.log(`${operation} failed: ${message(error)}`);
 }
 

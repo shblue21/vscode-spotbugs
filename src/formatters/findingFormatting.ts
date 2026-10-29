@@ -12,7 +12,7 @@ export function formatFindingPatternLabel(finding: FindingSummary): string {
 function formatFinding(
   finding: FindingSummary,
   patternFallback: string,
-  messageFallback: string
+  messageFallback: string,
 ): string {
   const pattern = finding.abbrev || finding.type || patternFallback;
   const raw = finding.message || '';

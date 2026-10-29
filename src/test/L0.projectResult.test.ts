@@ -18,9 +18,10 @@ describe('projectResult', () => {
           kind: 'analysis-error',
           level: 'error',
           code: 'CFG_AUX_CLASSPATH_NOT_FOUND',
-          message: 'SpotBugs analysis failed: extra aux classpath entry not found: /tmp/missing.jar',
+          message:
+            'SpotBugs analysis failed: extra aux classpath entry not found: /tmp/missing.jar',
         },
-      })
+      }),
     );
 
     assert.deepStrictEqual(result, {
@@ -38,10 +39,11 @@ describe('projectResult', () => {
         errors: [
           {
             code: 'CFG_AUX_CLASSPATH_INVALID_ENTRY',
-            message: 'extra aux classpath entry must be a directory or .jar/.zip file: /tmp/bad.txt',
+            message:
+              'extra aux classpath entry must be a directory or .jar/.zip file: /tmp/bad.txt',
           },
         ],
-      })
+      }),
     );
 
     assert.deepStrictEqual(result, {
@@ -73,7 +75,7 @@ describe('projectResult', () => {
         stats: { spotbugsVersion: '4.9.8' },
         reportSummary: { analyzedCodeSize: 100 },
         nativeSarif: '{"version":"2.1.0","runs":[]}',
-      })
+      }),
     );
 
     assert.deepStrictEqual(result, {

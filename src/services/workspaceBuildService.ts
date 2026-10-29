@@ -1,8 +1,5 @@
 import { commands, type CancellationToken } from 'vscode';
-import {
-  JavaCompileWorkspaceStatus,
-  JavaLanguageServerCommands,
-} from '../constants/commands';
+import { JavaCompileWorkspaceStatus, JavaLanguageServerCommands } from '../constants/commands';
 import { ensureJavaCommandsAvailable } from '../core/utils';
 import { Logger } from '../core/logger';
 import { requestWorkspaceBuild } from '../lsp/javaLsGateway';
@@ -16,7 +13,7 @@ export interface BuildWorkspaceOptions {
 
 export async function buildWorkspace(
   options: BuildWorkspaceOptions = {},
-  token?: CancellationToken
+  token?: CancellationToken,
 ): Promise<number | undefined> {
   const { mode = 'auto', ensureCommands = true } = options;
 
@@ -53,7 +50,7 @@ export async function buildWorkspace(
         return JavaCompileWorkspaceStatus.cancelled;
       }
       Logger.log(
-        `Error during java.workspace.compile(${full}): ${e instanceof Error ? e.message : String(e)}`
+        `Error during java.workspace.compile(${full}): ${e instanceof Error ? e.message : String(e)}`,
       );
       return undefined;
     }
@@ -66,10 +63,7 @@ export async function buildWorkspace(
     result = await tryBuild(false);
   }
 
-  if (
-    token?.isCancellationRequested ||
-    result === JavaCompileWorkspaceStatus.cancelled
-  ) {
+  if (token?.isCancellationRequested || result === JavaCompileWorkspaceStatus.cancelled) {
     return JavaCompileWorkspaceStatus.cancelled;
   }
 
@@ -89,8 +83,6 @@ function normalizeCompileStatus(status: number | undefined): number | undefined 
   return status;
 }
 
-export async function buildWorkspaceAuto(
-  token?: CancellationToken
-): Promise<number | undefined> {
+export async function buildWorkspaceAuto(token?: CancellationToken): Promise<number | undefined> {
   return buildWorkspace({ mode: 'auto' }, token);
 }

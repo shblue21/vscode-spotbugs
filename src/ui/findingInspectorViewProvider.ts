@@ -13,9 +13,7 @@ type InspectorMessage =
   | { type: 'copyRuleId' }
   | { type: 'openDocs' };
 
-export class FindingInspectorViewProvider
-  implements WebviewViewProvider, Disposable
-{
+export class FindingInspectorViewProvider implements WebviewViewProvider, Disposable {
   private view: WebviewView | undefined;
   private readonly subscriptions: Disposable[] = [];
 
@@ -31,8 +29,8 @@ export class FindingInspectorViewProvider
     };
     this.subscriptions.push(
       webviewView.webview.onDidReceiveMessage((message: InspectorMessage) =>
-        this.handleMessage(message)
-      )
+        this.handleMessage(message),
+      ),
     );
     this.render();
   }
@@ -47,19 +45,15 @@ export class FindingInspectorViewProvider
     if (!this.view) {
       return;
     }
-    this.view.webview.html = renderFindingInspectorHtml(
-      this.state.current,
-      createNonce(),
-      { l10n: { t: (message, ...args) => l10n.t(message, ...args) } }
-    );
+    this.view.webview.html = renderFindingInspectorHtml(this.state.current, createNonce(), {
+      l10n: { t: (message, ...args) => l10n.t(message, ...args) },
+    });
   }
 
   private async handleMessage(message: InspectorMessage): Promise<void> {
     const finding = this.state.current.finding;
     if (!finding) {
-      await window.showInformationMessage(
-        l10n.t('No SpotBugs finding is currently selected.')
-      );
+      await window.showInformationMessage(l10n.t('No SpotBugs finding is currently selected.'));
       return;
     }
 
@@ -76,18 +70,14 @@ export class FindingInspectorViewProvider
     if (message.type === 'copyRuleId') {
       const ruleId = finding.type || finding.patternId;
       await env.clipboard.writeText(ruleId);
-      await window.showInformationMessage(
-        l10n.t('Copied SpotBugs rule id: {0}', ruleId)
-      );
+      await window.showInformationMessage(l10n.t('Copied SpotBugs rule id: {0}', ruleId));
       return;
     }
 
     if (message.type === 'openDocs') {
       const target = getFindingRuleDocumentationUri(finding);
       if (!target) {
-        await window.showInformationMessage(
-          l10n.t('No SpotBugs rule documentation is available.')
-        );
+        await window.showInformationMessage(l10n.t('No SpotBugs rule documentation is available.'));
         return;
       }
       await commands.executeCommand('vscode.open', target);

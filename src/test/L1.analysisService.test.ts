@@ -65,9 +65,13 @@ describe('analysisService', () => {
       { kind: 'source' as const, path: '/workspace/src/B.java' },
     ];
     resolverModule.resolveProjectAnalysisTargetDetailed = async () => ({
-      resolution: { status: 'ok', target: {
-        unit: { inputs, environment: {}, sourceLookup: {} },
-      } }, issues: [],
+      resolution: {
+        status: 'ok',
+        target: {
+          unit: { inputs, environment: {}, sourceLookup: {} },
+        },
+      },
+      issues: [],
     });
     const requests: unknown[] = [];
     spotbugsClient.runSpotBugsAnalysis = async (request) => {
@@ -76,7 +80,8 @@ describe('analysisService', () => {
     };
     await service.analyzeWorkspaceFromProjectsDetailed(
       { getAnalysisSettings: () => ({ effort: 'default' }) } as any,
-      resource, [resource.toString()],
+      resource,
+      [resource.toString()],
     );
     assert.deepStrictEqual(requests, [inputs]);
   });
@@ -269,22 +274,24 @@ describe('analysisService', () => {
       return JSON.stringify({ results: [], baselineXml });
     }) as typeof spotbugsClient.runSpotBugsAnalysis;
 
-    const result = await service.analyzeWorkspaceFromProjectsDetailed(
-      {
-        getAnalysisSettings: (resource?: { toString(): string }) => {
-          const resourceString = resource?.toString() ?? '';
-          settingsResources.push(resourceString);
-          events.push(`settings:${resourceString.split('/').pop()}`);
-          return { effort: configuredEffort, detectors, plugins };
+    const result = await service
+      .analyzeWorkspaceFromProjectsDetailed(
+        {
+          getAnalysisSettings: (resource?: { toString(): string }) => {
+            const resourceString = resource?.toString() ?? '';
+            settingsResources.push(resourceString);
+            events.push(`settings:${resourceString.split('/').pop()}`);
+            return { effort: configuredEffort, detectors, plugins };
+          },
+        } as any,
+        vscode.Uri.file('/workspace') as any,
+        ['file:///workspace/project-a', 'file:///workspace/project-b'],
+        {
+          onStart: (projectUri) => events.push(`start:${projectUri.split('/').pop()}`),
+          onDone: (projectUri) => events.push(`done:${projectUri.split('/').pop()}`),
         },
-      } as any,
-      vscode.Uri.file('/workspace') as any,
-      ['file:///workspace/project-a', 'file:///workspace/project-b'],
-      {
-        onStart: (projectUri) => events.push(`start:${projectUri.split('/').pop()}`),
-        onDone: (projectUri) => events.push(`done:${projectUri.split('/').pop()}`),
-      },
-    ).finally(() => rm(directory, { recursive: true, force: true }));
+      )
+      .finally(() => rm(directory, { recursive: true, force: true }));
 
     assert.deepStrictEqual(settingsResources, [
       'file:///workspace/project-a',

@@ -47,7 +47,7 @@ describe('findingInspectorViewProvider', () => {
       [
         spotbugsCommands.SpotBugsCommands.REVEAL_FINDING_SOURCE,
         spotbugsCommands.SpotBugsCommands.OPEN_FINDING_DETAILS,
-      ]
+      ],
     );
     assert.strictEqual(executed[0].arg, finding);
     assert.strictEqual(executed[1].arg, finding);
@@ -59,9 +59,8 @@ describe('findingInspectorViewProvider', () => {
     provider.resolveWebviewView({ webview } as never);
     state.select(
       makeFinding({
-        helpUri:
-          'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
-      })
+        helpUri: 'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
+      }),
     );
     await webview.dispatch({ type: 'openDocs' });
 
@@ -69,7 +68,7 @@ describe('findingInspectorViewProvider', () => {
     assert.strictEqual(executed[0].command, 'vscode.open');
     assert.strictEqual(
       (executed[0].arg as { toString(): string }).toString(),
-      'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null'
+      'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#np-always-null',
     );
   });
 
@@ -80,15 +79,13 @@ describe('findingInspectorViewProvider', () => {
     state.select(
       makeFinding({
         helpUri: 'command:workbench.action.closeWindow',
-      })
+      }),
     );
     await webview.dispatch({ type: 'openDocs' });
 
     assert.deepStrictEqual(executed, []);
     assert.ok(
-      messages.some((message) =>
-        message.includes('No SpotBugs rule documentation is available')
-      )
+      messages.some((message) => message.includes('No SpotBugs rule documentation is available')),
     );
   });
 });
@@ -128,9 +125,7 @@ async function createInspectorHarness() {
 function createWebview(): {
   html: string;
   options?: unknown;
-  onDidReceiveMessage: (
-    listener: (message: unknown) => unknown
-  ) => { dispose: () => void };
+  onDidReceiveMessage: (listener: (message: unknown) => unknown) => { dispose: () => void };
   dispatch: (message: unknown) => Promise<void>;
 } {
   let listener: ((message: unknown) => unknown) | undefined;

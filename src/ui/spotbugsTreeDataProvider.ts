@@ -1,14 +1,6 @@
 'use strict';
 
-import {
-  Event,
-  EventEmitter,
-  ThemeIcon,
-  TreeDataProvider,
-  TreeItem,
-  Uri,
-  l10n,
-} from 'vscode';
+import { Event, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, Uri, l10n } from 'vscode';
 import { Finding } from '../model/finding';
 import {
   CategoryGroupItem,
@@ -63,8 +55,9 @@ interface RenderedTreeContent {
 }
 
 export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
-  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
-    new EventEmitter<TreeItem | undefined | null>();
+  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> = new EventEmitter<
+    TreeItem | undefined | null
+  >();
   readonly onDidChangeTreeData: Event<TreeItem | undefined | null> =
     this._onDidChangeTreeData.event;
 
@@ -91,9 +84,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       return Promise.resolve(element.patterns);
     }
     if (element instanceof PatternGroupItem) {
-      return Promise.resolve(
-        element.findings.map((finding) => new FindingItem(finding))
-      );
+      return Promise.resolve(element.findings.map((finding) => new FindingItem(finding)));
     }
     if (element instanceof GenericGroupItem) {
       return Promise.resolve(element.children);
@@ -132,7 +123,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   public updateProjectStatus(
     uriString: string,
     status: ProjectStatus,
-    extra?: { count?: number; error?: string }
+    extra?: { count?: number; error?: string },
   ): void {
     if (this.content.kind !== 'workspace-progress') {
       return;
@@ -144,10 +135,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showWorkspaceResults(
-    projectResults: ProjectResult[],
-    workspaceFolder: Uri
-  ): void {
+  public showWorkspaceResults(projectResults: ProjectResult[], workspaceFolder: Uri): void {
     const findings = projectResults.flatMap((result) => result.findings);
     const reportRuns: AnalysisReportRun[] = projectResults.map((result) => ({
       projectUri: result.projectUri,
@@ -180,11 +168,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  public showResults(
-    findings: Finding[],
-    resource: Uri,
-    reportRuns: AnalysisReportRun[]
-  ): void {
+  public showResults(findings: Finding[], resource: Uri, reportRuns: AnalysisReportRun[]): void {
     const cachedFindings = findings ? findings.slice() : [];
     this.transitionTo({
       kind: 'results',
@@ -307,7 +291,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       .map((result) => {
         const item = new ProjectStatusItem(
           result.projectUri,
-          this.toDisplayName(result.projectUri)
+          this.toDisplayName(result.projectUri),
         );
         const status: ProjectStatus =
           result.errorCode === NO_CLASS_TARGETS_CODE ? 'skipped' : 'failed';
@@ -360,7 +344,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
             this.content.message,
             this.content.code,
             'spotbugs.message.error',
-            new ThemeIcon('error')
+            new ThemeIcon('error'),
           ),
         ]);
         return;
@@ -383,8 +367,8 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       this.setRenderedItems(
         this.prependWorkspaceStatusItems(
           [this.createMessageItem(l10n.t('No issues found.'))],
-          content
-        )
+          content,
+        ),
       );
       return;
     }
@@ -401,16 +385,16 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
       this.setRenderedItems(
         this.prependWorkspaceStatusItems(
           [this.createMessageItem(emptyState.label, emptyState.description)],
-          content
+          content,
         ),
-        resultView.visibleFindings
+        resultView.visibleFindings,
       );
       return;
     }
 
     this.setRenderedItems(
       this.prependWorkspaceStatusItems(this.toTreeItems(resultView.nodes), content),
-      resultView.visibleFindings
+      resultView.visibleFindings,
     );
   }
 
@@ -433,16 +417,15 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private toGenericGroupItem(group: FindingResultGroup): GenericGroupItem {
     const children = group.children.map((child) =>
-      child.type === 'finding'
-        ? new FindingItem(child.finding)
-        : this.toGenericGroupItem(child)
+      child.type === 'finding' ? new FindingItem(child.finding) : this.toGenericGroupItem(child),
     );
     return new GenericGroupItem(group.key, group.groupKind, group.label, group.findings, children);
   }
 
-  private createCurrentEmptyState(
-    cachedFindings: Finding[]
-  ): { label: string; description?: string } {
+  private createCurrentEmptyState(cachedFindings: Finding[]): {
+    label: string;
+    description?: string;
+  } {
     const parts = [
       describeLocalizedFindingFilters(cachedFindings, this.activeFilters),
       this.searchQuery ? l10n.t('Search: "{0}"', this.searchQuery) : undefined,
@@ -460,7 +443,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private prependWorkspaceStatusItems(
     viewItems: TreeItem[],
-    content: Extract<TreeContent, { kind: 'results' }>
+    content: Extract<TreeContent, { kind: 'results' }>,
   ): TreeItem[] {
     if (content.workspaceStatusItems.length === 0) {
       return viewItems;
@@ -481,7 +464,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
     label: string,
     description?: string,
     contextValue = 'spotbugs.message',
-    iconPath?: ThemeIcon
+    iconPath?: ThemeIcon,
   ): TreeItem {
     const item = new TreeItem(label);
     item.description = description;
