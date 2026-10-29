@@ -7,9 +7,7 @@ import {
 
 export const SPOTBUGS_DIAGNOSTIC_SOURCE = 'SpotBugs';
 
-export function getDiagnosticCodeValue(
-  code: Diagnostic['code']
-): string | number | undefined {
+export function getDiagnosticCodeValue(code: Diagnostic['code']): string | number | undefined {
   if (typeof code === 'string' || typeof code === 'number') {
     return code;
   }
@@ -24,19 +22,12 @@ export function hasFindingLocalDescription(finding: Finding): boolean {
   return typeof finding.detailHtml === 'string' && finding.detailHtml.trim().length > 0;
 }
 
-export function getFindingRuleDocumentationUri(
-  finding: Finding
-): Uri | undefined {
+export function getFindingRuleDocumentationUri(finding: Finding): Uri | undefined {
   return tryParseUri(finding.helpUri, finding.type);
 }
 
-export function getFindingDocumentationUri(
-  finding: Finding
-): Uri | undefined {
-  return (
-    getFindingRuleDocumentationUri(finding) ??
-    tryParseUri(GENERIC_SPOTBUGS_DOCS_URI)
-  );
+export function getFindingDocumentationUri(finding: Finding): Uri | undefined {
+  return getFindingRuleDocumentationUri(finding) ?? tryParseUri(GENERIC_SPOTBUGS_DOCS_URI);
 }
 
 export function isSpotBugsDiagnostic(diagnostic: Diagnostic): boolean {

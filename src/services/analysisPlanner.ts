@@ -16,7 +16,9 @@ export async function planAnalysis(
   selections: readonly AnalysisSelection[],
   token?: CancellationToken,
 ): Promise<AnalysisPlan> {
-  const settings = selections.map(({ resource }) => structuredClone(config.getAnalysisSettings(resource)));
+  const settings = selections.map(({ resource }) =>
+    structuredClone(config.getAnalysisSettings(resource)),
+  );
   const units: PlannedAnalysisUnit[] = [];
   const problems: Array<AnalysisPlan['problems'][number]> = [];
   const resolutionIssues: Array<AnalysisPlan['resolutionIssues'][number]> = [];

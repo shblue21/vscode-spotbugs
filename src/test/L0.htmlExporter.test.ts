@@ -1,10 +1,7 @@
 import * as assert from 'assert';
 import type { AnalysisReportRun } from '../model/analysisReport';
 import type { Finding } from '../model/finding';
-import {
-  buildSpotBugsHtmlReport,
-  scopeAnalysisReportRuns,
-} from '../services/htmlExporter';
+import { buildSpotBugsHtmlReport, scopeAnalysisReportRuns } from '../services/htmlExporter';
 
 describe('htmlExporter', () => {
   it('renders the selected project with plain report data and safe HTML', () => {
@@ -61,8 +58,8 @@ describe('htmlExporter', () => {
           },
         ],
         [selected],
-        true
-      )
+        true,
+      ),
     );
 
     assert.ok(html.includes('Project: alpha'));

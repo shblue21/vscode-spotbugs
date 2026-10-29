@@ -9,14 +9,12 @@ export interface BuildAnalysisNoticeOptions {
 
 export function buildAnalysisNotices(
   outcome: AnalysisOutcome,
-  options: BuildAnalysisNoticeOptions = {}
+  options: BuildAnalysisNoticeOptions = {},
 ): AnalysisNotice[] {
   const notices: AnalysisNotice[] = [];
   const hasTerminalFailure =
     !!outcome.failure ||
-    (Array.isArray(outcome.errors) &&
-      outcome.errors.length > 0 &&
-      outcome.findings.length === 0);
+    (Array.isArray(outcome.errors) && outcome.errors.length > 0 && outcome.findings.length === 0);
 
   if (outcome.failure) {
     notices.push({
@@ -43,15 +41,11 @@ export function buildAnalysisNotices(
     }
   }
 
-  if (
-    !hasTerminalFailure &&
-    Array.isArray(outcome.warnings) &&
-    outcome.warnings.length > 0
-  ) {
+  if (!hasTerminalFailure && Array.isArray(outcome.warnings) && outcome.warnings.length > 0) {
     notices.push({
       level: 'warn',
       message: `SpotBugs analysis completed with warnings: ${formatAnalysisErrors(
-        outcome.warnings
+        outcome.warnings,
       )}`,
     });
   }
@@ -59,7 +53,7 @@ export function buildAnalysisNotices(
   notices.push(
     ...buildResolutionIssueNotices(options.resolutionIssues ?? [], {
       terminal: hasTerminalFailure,
-    })
+    }),
   );
 
   if (!hasTerminalFailure && options.includeHints && outcome.findings.length === 0) {
@@ -76,7 +70,7 @@ export function buildResolutionIssueNotices(
   issues: AnalysisResolutionIssue[],
   context: {
     terminal?: boolean;
-  } = {}
+  } = {},
 ): AnalysisNotice[] {
   if (issues.length === 0) {
     return [];
@@ -87,13 +81,13 @@ export function buildResolutionIssueNotices(
       issue.phase === 'get-all-projects' &&
       (issue.code === 'JAVA_LS_EMPTY_PROJECT_LIST' ||
         issue.code === 'JAVA_LS_REQUEST_FAILED' ||
-        issue.code === 'JAVA_LS_NO_RESULT')
+        issue.code === 'JAVA_LS_NO_RESULT'),
   );
   const noResultChangedBehavior = issues.some(
     (issue) =>
       issue.code === 'WORKSPACE_FALLBACK_USED' ||
       issue.code === 'OUTPUT_FALLBACK_USED' ||
-      issue.code === 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH'
+      issue.code === 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH',
   );
 
   const notices = issues
@@ -102,7 +96,7 @@ export function buildResolutionIssueNotices(
         hasSpecificWorkspaceCause,
         noResultChangedBehavior,
         terminal: context.terminal === true,
-      })
+      }),
     )
     .filter((notice): notice is AnalysisNotice => !!notice);
 
@@ -155,7 +149,7 @@ function translateResolutionIssue(
     hasSpecificWorkspaceCause: boolean;
     noResultChangedBehavior: boolean;
     terminal: boolean;
-  }
+  },
 ): AnalysisNotice | undefined {
   switch (issue.code) {
     case 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH':
@@ -217,7 +211,7 @@ function translateJavaLsLookupFallbackNotice(
   context: {
     noResultChangedBehavior: boolean;
     terminal: boolean;
-  }
+  },
 ): AnalysisNotice | undefined {
   if (context.terminal) {
     return undefined;
@@ -237,7 +231,7 @@ function translateJavaLsLookupFallbackNotice(
 
 export function dedupeNotices(
   notices: AnalysisNotice[],
-  keyBuilder: (notice: AnalysisNotice) => string = exactNoticeKey
+  keyBuilder: (notice: AnalysisNotice) => string = exactNoticeKey,
 ): AnalysisNotice[] {
   const deduped: AnalysisNotice[] = [];
   const seen = new Set<string>();
@@ -259,7 +253,6 @@ function exactNoticeKey(notice: AnalysisNotice): string {
 }
 
 function semanticNoticeKey(notice: AnalysisNotice): string {
-  const code =
-    notice.code === 'JAVA_LS_NO_RESULT' ? 'JAVA_LS_REQUEST_FAILED' : notice.code ?? '';
+  const code = notice.code === 'JAVA_LS_NO_RESULT' ? 'JAVA_LS_REQUEST_FAILED' : (notice.code ?? '');
   return `${notice.level}|${code}|${notice.message}`;
 }

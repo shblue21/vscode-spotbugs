@@ -16,7 +16,7 @@ export interface ProjectResult {
 
 export function projectResultFromOutcome(
   projectUri: string,
-  outcome: AnalysisOutcome
+  outcome: AnalysisOutcome,
 ): ProjectResult {
   if (outcome.failure) {
     return {

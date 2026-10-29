@@ -18,9 +18,7 @@ describe('findingInspectorRenderer', () => {
     assert.ok(html.includes('class="severity"'));
     assert.ok(html.includes('Reported here'));
     assert.ok(
-      html.includes(
-        'NP_ALWAYS_NULL: Possible null pointer dereference in com.acme.Example.run()'
-      )
+      html.includes('NP_ALWAYS_NULL: Possible null pointer dereference in com.acme.Example.run()'),
     );
     assert.ok(html.includes('Rule'));
     assert.ok(html.includes('<dt>Pattern</dt><dd>NP_ALWAYS_NULL</dd>'));
@@ -47,10 +45,7 @@ describe('findingInspectorRenderer', () => {
 
   it('omits source location when no source is available', () => {
     const finding = makeFinding({ location: {} });
-    const html = renderFindingInspectorHtml(
-      { status: 'selected', finding },
-      'nonce-1'
-    );
+    const html = renderFindingInspectorHtml({ status: 'selected', finding }, 'nonce-1');
 
     assert.ok(!html.includes('<dt>Location</dt>'));
     assert.ok(html.includes('data-command="revealSource"'));
@@ -101,8 +96,7 @@ function makeFinding(overrides: Partial<Finding>): Finding {
     detailHtml:
       '<p>&lt;escaped&gt; rule summary.</p><p>Full details paragraph.</p><pre>example();</pre>',
     longDescription: 'Long plain text rule explanation.',
-    helpUri:
-      'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
+    helpUri: 'https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html#NP_ALWAYS_NULL',
     className: 'com.acme.Example',
     methodName: 'run',
     location: {

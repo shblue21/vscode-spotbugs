@@ -43,13 +43,11 @@ const DETAIL_HTML_ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 
 export function renderFindingDescriptionHtml(
   finding: Finding,
-  vscode: LocalizationApi = fallbackLocalizationApi
+  vscode: LocalizationApi = fallbackLocalizationApi,
 ): string {
   const title = getFindingDescriptionTitle(finding);
   const summary = formatFindingSummary(finding);
-  const docsHref =
-    getExternalDocsHref(finding.helpUri, finding.type) ??
-    GENERIC_SPOTBUGS_DOCS_URI;
+  const docsHref = getExternalDocsHref(finding.helpUri, finding.type) ?? GENERIC_SPOTBUGS_DOCS_URI;
   const body = renderDescriptionBody(finding, vscode);
   const metadata = [
     finding.type ? [vscode.l10n.t('Pattern'), finding.type] : undefined,
@@ -60,7 +58,7 @@ export function renderFindingDescriptionHtml(
   const metadataHtml = metadata
     .map(
       ([label, value]) =>
-        `<li><span class="meta-label">${escapeHtml(label)}</span><span class="meta-value">${escapeHtml(value)}</span></li>`
+        `<li><span class="meta-label">${escapeHtml(label)}</span><span class="meta-value">${escapeHtml(value)}</span></li>`,
     )
     .join('');
 
@@ -179,10 +177,7 @@ export function renderFindingDescriptionHtml(
 </html>`;
 }
 
-export function sanitizeFindingDetailHtml(
-  raw: string,
-  currentBugType?: string
-): string {
+export function sanitizeFindingDetailHtml(raw: string, currentBugType?: string): string {
   return sanitizeHtml(raw, getFindingDetailSanitizeOptions(currentBugType)).trim();
 }
 
@@ -207,9 +202,7 @@ export function getFindingDescriptionTitle(finding: Finding): string {
   return finding.shortDescription?.trim() || formatFindingSummary(finding) || PANEL_TITLE;
 }
 
-function getFindingDetailSanitizeOptions(
-  currentBugType?: string
-): sanitizeHtml.IOptions {
+function getFindingDetailSanitizeOptions(currentBugType?: string): sanitizeHtml.IOptions {
   return {
     allowedTags: DETAIL_HTML_ALLOWED_TAGS,
     allowedAttributes: {
@@ -236,24 +229,18 @@ function getFindingDetailSanitizeOptions(
   };
 }
 
-function getAllowedDetailHref(
-  raw?: string,
-  currentBugType?: string
-): string | undefined {
+function getAllowedDetailHref(raw?: string, currentBugType?: string): string | undefined {
   return getAllowedAbsoluteUrl(raw, DETAIL_HTML_ALLOWED_PROTOCOLS, currentBugType);
 }
 
-function getExternalDocsHref(
-  raw?: string,
-  currentBugType?: string
-): string | undefined {
+function getExternalDocsHref(raw?: string, currentBugType?: string): string | undefined {
   return getAllowedAbsoluteUrl(raw, new Set(['http:', 'https:']), currentBugType);
 }
 
 function getAllowedAbsoluteUrl(
   raw: string | undefined,
   allowedProtocols: ReadonlySet<string>,
-  currentBugType?: string
+  currentBugType?: string,
 ): string | undefined {
   const trimmed = raw?.trim();
   if (!trimmed) {

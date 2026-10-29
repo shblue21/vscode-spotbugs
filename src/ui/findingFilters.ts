@@ -1,8 +1,5 @@
 import { Finding } from '../model/finding';
-import {
-  FindingFacetFilterKind,
-  toFindingFacets,
-} from './findingFacets';
+import { FindingFacetFilterKind, toFindingFacets } from './findingFacets';
 
 export type FindingFilterKind = FindingFacetFilterKind;
 
@@ -30,10 +27,7 @@ export function getFindingFilterKinds(): FindingFilterKind[] {
   return FILTER_KIND_ORDER.slice();
 }
 
-export function applyFindingFilters(
-  findings: Finding[],
-  filters: FindingFilterState
-): Finding[] {
+export function applyFindingFilters(findings: Finding[], filters: FindingFilterState): Finding[] {
   const activeKinds = FILTER_KIND_ORDER.filter((kind) => filters[kind]);
   return findings.filter((finding) => {
     if (activeKinds.length === 0) return true;
@@ -45,7 +39,7 @@ export function applyFindingFilters(
 export function getFindingFilterOptions(
   findings: Finding[],
   filters: FindingFilterState,
-  kind: FindingFilterKind
+  kind: FindingFilterKind,
 ): FindingFilterOption[] {
   const scopedFindings = applyFindingFilters(findings, omitFindingFilter(filters, kind));
   const counts = new Map<string, { label: string; count: number; detail?: string }>();
@@ -75,7 +69,7 @@ export function getFindingFilterOptions(
 export function getFindingFilterDisplayLabel(
   findings: Finding[],
   kind: FindingFilterKind,
-  value: string
+  value: string,
 ): string {
   return getFindingFilterLabel(findings, kind, value);
 }
@@ -83,15 +77,17 @@ export function getFindingFilterDisplayLabel(
 function getFindingFilterLabel(
   findings: Finding[],
   kind: FindingFilterKind,
-  value: string
+  value: string,
 ): string {
-  const matching = getFindingFilterOptions(findings, {}, kind).find((option) => option.value === value);
+  const matching = getFindingFilterOptions(findings, {}, kind).find(
+    (option) => option.value === value,
+  );
   return matching?.label || value;
 }
 
 function omitFindingFilter(
   filters: FindingFilterState,
-  kindToOmit: FindingFilterKind
+  kindToOmit: FindingFilterKind,
 ): FindingFilterState {
   const next: FindingFilterState = {};
   for (const kind of FILTER_KIND_ORDER) {
@@ -108,7 +104,7 @@ function omitFindingFilter(
 
 function toFindingFilterOption(
   kind: FindingFilterKind,
-  finding: Finding
+  finding: Finding,
 ): Omit<FindingFilterOption, 'count'> | undefined {
   const facets = toFindingFacets(finding);
   const value = facets.filterValues[kind];
@@ -148,7 +144,7 @@ function toFindingFilterOption(
 
 function sortFindingFilterOptions(
   kind: FindingFilterKind,
-  counts: Map<string, { label: string; count: number; detail?: string }>
+  counts: Map<string, { label: string; count: number; detail?: string }>,
 ): FindingFilterOption[] {
   const options = Array.from(counts.entries()).map(([value, entry]) => ({
     value,
@@ -159,7 +155,7 @@ function sortFindingFilterOptions(
 
   if (kind === 'severity') {
     return options.sort(
-      (a, b) => SEVERITY_ORDER.indexOf(a.value) - SEVERITY_ORDER.indexOf(b.value)
+      (a, b) => SEVERITY_ORDER.indexOf(a.value) - SEVERITY_ORDER.indexOf(b.value),
     );
   }
 

@@ -1,14 +1,7 @@
-import {
-  AnalysisError,
-  AnalysisStats,
-  AnalysisWarning,
-} from '../model/analysisProtocol';
+import { AnalysisError, AnalysisStats, AnalysisWarning } from '../model/analysisProtocol';
 import { Bug } from '../model/bug';
 import type { AnalysisReportSummary } from '../model/analysisReport';
-import {
-  decodeCommandResponseEnvelope,
-  normalizeCommandIssues,
-} from './commandResponseEnvelope';
+import { decodeCommandResponseEnvelope, normalizeCommandIssues } from './commandResponseEnvelope';
 
 export interface ParseError {
   message: string;
@@ -27,9 +20,7 @@ export interface ParsedAnalysis {
   baselineXml?: string;
 }
 
-export type ParseResult =
-  | { ok: true; value: ParsedAnalysis }
-  | { ok: false; error: ParseError };
+export type ParseResult = { ok: true; value: ParsedAnalysis } | { ok: false; error: ParseError };
 
 const INVALID_RESPONSE_MESSAGE = 'Invalid response payload.';
 
@@ -92,14 +83,14 @@ export function parseAnalysisResponse(raw: string): ParseResult {
 
 function normalizeMissingClasses(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  const names = value.filter((name): name is string => typeof name === 'string')
-    .map((name) => name.trim()).filter(Boolean);
+  const names = value
+    .filter((name): name is string => typeof name === 'string')
+    .map((name) => name.trim())
+    .filter(Boolean);
   return names.length > 0 ? [...new Set(names)].sort() : undefined;
 }
 
-function normalizeAnalysisReportSummary(
-  value: unknown
-): AnalysisReportSummary | undefined {
+function normalizeAnalysisReportSummary(value: unknown): AnalysisReportSummary | undefined {
   if (!isRecord(value)) {
     return undefined;
   }
@@ -126,7 +117,7 @@ function isBugArray(value: unknown): value is Bug[] {
 
 function normalizeAnalysisWarnings(value: unknown[]): AnalysisWarning[] {
   return normalizeCommandIssues(value).filter(
-    (warning) => typeof warning.code === 'string' && typeof warning.message === 'string'
+    (warning) => typeof warning.code === 'string' && typeof warning.message === 'string',
   );
 }
 
@@ -153,7 +144,7 @@ function normalizeAnalysisStats(value: unknown): AnalysisStats | undefined {
 function copyStringField<T extends keyof AnalysisStats>(
   source: Record<string, unknown>,
   target: AnalysisStats,
-  key: T
+  key: T,
 ): void {
   if (typeof source[key] === 'string') {
     target[key] = source[key] as AnalysisStats[T];
@@ -163,7 +154,7 @@ function copyStringField<T extends keyof AnalysisStats>(
 function copyNumberField<T extends keyof AnalysisStats>(
   source: Record<string, unknown>,
   target: AnalysisStats,
-  key: T
+  key: T,
 ): void {
   if (typeof source[key] === 'number') {
     target[key] = source[key] as AnalysisStats[T];
@@ -173,7 +164,7 @@ function copyNumberField<T extends keyof AnalysisStats>(
 function copyNonNegativeInteger<T extends keyof AnalysisReportSummary>(
   source: Record<string, unknown>,
   target: AnalysisReportSummary,
-  key: T
+  key: T,
 ): void {
   const value = source[key];
   if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {

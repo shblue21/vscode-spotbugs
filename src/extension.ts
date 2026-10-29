@@ -115,8 +115,12 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
         changed = await update();
       } catch (error) {
         changed = true; // Re-read settings after an update error.
-        defaultNotifier.error(l10n.t('Could not update SpotBugs plugins: {0}',
-          error instanceof Error ? error.message : String(error)));
+        defaultNotifier.error(
+          l10n.t(
+            'Could not update SpotBugs plugins: {0}',
+            error instanceof Error ? error.message : String(error),
+          ),
+        );
         throw error;
       } finally {
         if (changed) {
@@ -149,7 +153,10 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
           Logger.log('SpotBugs configuration changed; reinitializing.');
           config.init();
           filterTreeDataProvider.update(filterPaths(config));
-          if (e.affectsConfiguration(`${SETTINGS_SECTION}.plugins`) || e.affectsConfiguration(`${SETTINGS_SECTION}.analysis.detectors`)) {
+          if (
+            e.affectsConfiguration(`${SETTINGS_SECTION}.plugins`) ||
+            e.affectsConfiguration(`${SETTINGS_SECTION}.analysis.detectors`)
+          ) {
             invalidatePluginInventoryRefresh();
             void refreshPluginInventory(config, pluginInventoryTreeDataProvider);
           }
@@ -244,19 +251,30 @@ async function doActivate(_operationId: string, context: ExtensionContext): Prom
           refreshPluginInventory(config, pluginInventoryTreeDataProvider, uri),
       ),
 
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.CONFIGURE_DETECTORS,
-        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => configureDetectors(config, item))),
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ADD_PLUGIN_JARS, () => updatePlugins(() => addPluginJars())),
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.CONFIGURE_DETECTORS,
+        (item: PluginJarCommandTarget | undefined) =>
+          updatePlugins(() => configureDetectors(config, item)),
+      ),
+      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ADD_PLUGIN_JARS, () =>
+        updatePlugins(() => addPluginJars()),
+      ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.REMOVE_PLUGIN_JAR,
         (item: PluginJarCommandTarget | undefined) => updatePlugins(() => removePluginJar(item)),
       ),
 
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.ENABLE_PLUGIN,
-        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => setPluginEnabled(item, true))),
-      instrumentOperationAsVsCodeCommand(SpotBugsCommands.DISABLE_PLUGIN,
-        (item: PluginJarCommandTarget | undefined) => updatePlugins(() => setPluginEnabled(item, false))),
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.ENABLE_PLUGIN,
+        (item: PluginJarCommandTarget | undefined) =>
+          updatePlugins(() => setPluginEnabled(item, true)),
+      ),
+      instrumentOperationAsVsCodeCommand(
+        SpotBugsCommands.DISABLE_PLUGIN,
+        (item: PluginJarCommandTarget | undefined) =>
+          updatePlugins(() => setPluginEnabled(item, false)),
+      ),
 
       instrumentOperationAsVsCodeCommand(
         SpotBugsCommands.ADD_FILTER_FILES,

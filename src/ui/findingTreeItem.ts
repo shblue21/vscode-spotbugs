@@ -49,7 +49,7 @@ export class GenericGroupItem extends TreeItem {
     public readonly groupKind: FindingGroupKind,
     label: string,
     public readonly findings: Finding[],
-    public readonly children: Array<GenericGroupItem | FindingItem>
+    public readonly children: Array<GenericGroupItem | FindingItem>,
   ) {
     super(`${label} (${findings.length})`, TreeItemCollapsibleState.Collapsed);
     this.iconPath = new ThemeIcon('list-tree');
@@ -72,10 +72,7 @@ export class ProjectStatusItem extends TreeItem {
     this.description = l10n.t('Pending');
   }
 
-  public setStatus(
-    status: ProjectStatus,
-    extra?: { count?: number; error?: string }
-  ) {
+  public setStatus(status: ProjectStatus, extra?: { count?: number; error?: string }) {
     this.status = status;
     if (status === 'pending') {
       this.iconPath = new ThemeIcon('clock');
@@ -87,19 +84,13 @@ export class ProjectStatusItem extends TreeItem {
       this.iconPath = new ThemeIcon('check');
       this.count = extra?.count;
       this.description =
-        typeof this.count === 'number'
-          ? l10n.t('Done ({0})', this.count)
-          : l10n.t('Done');
+        typeof this.count === 'number' ? l10n.t('Done ({0})', this.count) : l10n.t('Done');
     } else if (status === 'failed') {
       this.iconPath = new ThemeIcon('error');
-      this.description = extra?.error
-        ? l10n.t('Failed: {0}', extra.error)
-        : l10n.t('Failed');
+      this.description = extra?.error ? l10n.t('Failed: {0}', extra.error) : l10n.t('Failed');
     } else if (status === 'skipped') {
       this.iconPath = new ThemeIcon('warning');
-      this.description = extra?.error
-        ? l10n.t('Skipped: {0}', extra.error)
-        : l10n.t('Skipped');
+      this.description = extra?.error ? l10n.t('Skipped: {0}', extra.error) : l10n.t('Skipped');
     }
   }
 }

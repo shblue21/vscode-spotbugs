@@ -169,29 +169,34 @@ describe('package contributions', () => {
   it('keeps result exploration actions on results and source navigation on inspector titles', () => {
     const titleMenus = manifest.contributes.menus['view/title'];
 
-    assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-view'), [
-      'spotbugs.analyzeWorkspace',
-      'spotbugs.searchResults',
-      'spotbugs.openSettings',
-      'spotbugs.exportSarif',
-      'spotbugs.filterResults',
-      'spotbugs.resetResults',
-      'spotbugs.exportHtml',
-      'spotbugs.createBaseline',
-      'spotbugs.groupResultsBy',
-      'spotbugs.sortResultsBy',
-      'spotbugs.clearSearch',
-    ].sort());
-    assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-inspector-view'), [
-      'spotbugs.revealFindingSource',
-    ].sort());
-    assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-filters-view'), [
-      'spotbugs.addFilterFiles',
-    ].sort());
-    assert.deepStrictEqual(commandIdsForView(titleMenus, 'spotbugs-plugins-view'), [
-      'spotbugs.addPluginJars',
-      'spotbugs.refreshPluginInventory',
-    ].sort());
+    assert.deepStrictEqual(
+      commandIdsForView(titleMenus, 'spotbugs-view'),
+      [
+        'spotbugs.analyzeWorkspace',
+        'spotbugs.searchResults',
+        'spotbugs.openSettings',
+        'spotbugs.exportSarif',
+        'spotbugs.filterResults',
+        'spotbugs.resetResults',
+        'spotbugs.exportHtml',
+        'spotbugs.createBaseline',
+        'spotbugs.groupResultsBy',
+        'spotbugs.sortResultsBy',
+        'spotbugs.clearSearch',
+      ].sort(),
+    );
+    assert.deepStrictEqual(
+      commandIdsForView(titleMenus, 'spotbugs-inspector-view'),
+      ['spotbugs.revealFindingSource'].sort(),
+    );
+    assert.deepStrictEqual(
+      commandIdsForView(titleMenus, 'spotbugs-filters-view'),
+      ['spotbugs.addFilterFiles'].sort(),
+    );
+    assert.deepStrictEqual(
+      commandIdsForView(titleMenus, 'spotbugs-plugins-view'),
+      ['spotbugs.addPluginJars', 'spotbugs.refreshPluginInventory'].sort(),
+    );
 
     const removePluginMenu = manifest.contributes.menus['view/item/context'].find(
       (entry) => entry.command === 'spotbugs.removePluginJar',
@@ -225,9 +230,18 @@ describe('package contributions', () => {
     );
 
     const resultMenus = titleMenus.filter((entry) => entry.when === 'view == spotbugs-view');
-    assert.strictEqual(resultMenus.find((entry) => entry.command === 'spotbugs.analyzeWorkspace')?.group, 'navigation@1');
-    assert.strictEqual(resultMenus.find((entry) => entry.command === 'spotbugs.searchResults')?.group, 'navigation@2');
-    assert.strictEqual(resultMenus.find((entry) => entry.command === 'spotbugs.openSettings')?.group, 'navigation@99');
+    assert.strictEqual(
+      resultMenus.find((entry) => entry.command === 'spotbugs.analyzeWorkspace')?.group,
+      'navigation@1',
+    );
+    assert.strictEqual(
+      resultMenus.find((entry) => entry.command === 'spotbugs.searchResults')?.group,
+      'navigation@2',
+    );
+    assert.strictEqual(
+      resultMenus.find((entry) => entry.command === 'spotbugs.openSettings')?.group,
+      'navigation@99',
+    );
     assert.ok(
       resultMenus
         .filter(

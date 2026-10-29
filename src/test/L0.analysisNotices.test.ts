@@ -38,7 +38,7 @@ describe('analysisNotices', () => {
             message: 'raw issue',
           },
         ]),
-        [{ level: 'warn', code, message }]
+        [{ level: 'warn', code, message }],
       );
     });
   }
@@ -108,15 +108,11 @@ describe('analysisNotices', () => {
         targetPath: '/workspace/src/main/java/Foo.java',
       },
       {
-        resolutionIssues: [
-          outputFallbackIssue(),
-        ],
-      }
+        resolutionIssues: [outputFallbackIssue()],
+      },
     );
 
-    assert.deepStrictEqual(notices, [
-      OUTPUT_FALLBACK_NOTICE,
-    ]);
+    assert.deepStrictEqual(notices, [OUTPUT_FALLBACK_NOTICE]);
   });
 
   it('keeps resolution notices on failure outcomes instead of returning early', () => {
@@ -132,10 +128,8 @@ describe('analysisNotices', () => {
         },
       },
       {
-        resolutionIssues: [
-          outputFallbackIssue(),
-        ],
-      }
+        resolutionIssues: [outputFallbackIssue()],
+      },
     );
 
     assert.deepStrictEqual(notices, [
@@ -178,34 +172,46 @@ describe('analysisNotices', () => {
             message: 'Java LS classpath lookup failed.',
           },
         ],
-      }
+      },
     );
 
     assert.deepStrictEqual(notices, [
       {
         level: 'error',
         code: 'CFG_AUX_CLASSPATH_NOT_FOUND',
-        message:
-          'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
+        message: 'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
       },
     ]);
   });
 
   for (const includeLookupFailure of [false, true]) {
     it(`keeps one fatal error notice with lookup failure=${includeLookupFailure}`, () => {
-      const notices = buildAnalysisNotices({
-        findings: [],
-        errors: [{ code: 'CFG_AUX_CLASSPATH_NOT_FOUND', message: 'aux classpath is invalid' }],
-      }, {
-        resolutionIssues: includeLookupFailure ? [{
-          code: 'JAVA_LS_REQUEST_FAILED', level: 'warn', source: 'java-ls',
-          phase: 'get-classpaths', message: 'Java LS classpath lookup failed.',
-        }] : [],
-      });
-      assert.deepStrictEqual(notices, [{
-        level: 'error',
-        message: 'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
-      }]);
+      const notices = buildAnalysisNotices(
+        {
+          findings: [],
+          errors: [{ code: 'CFG_AUX_CLASSPATH_NOT_FOUND', message: 'aux classpath is invalid' }],
+        },
+        {
+          resolutionIssues: includeLookupFailure
+            ? [
+                {
+                  code: 'JAVA_LS_REQUEST_FAILED',
+                  level: 'warn',
+                  source: 'java-ls',
+                  phase: 'get-classpaths',
+                  message: 'Java LS classpath lookup failed.',
+                },
+              ]
+            : [],
+        },
+      );
+      assert.deepStrictEqual(notices, [
+        {
+          level: 'error',
+          message:
+            'SpotBugs analysis failed: [CFG_AUX_CLASSPATH_NOT_FOUND] aux classpath is invalid',
+        },
+      ]);
     });
   }
 
@@ -230,7 +236,7 @@ describe('analysisNotices', () => {
             message: 'Java LS classpath lookup failed.',
           },
         ],
-      }
+      },
     );
 
     assert.deepStrictEqual(notices, [
@@ -243,31 +249,25 @@ describe('analysisNotices', () => {
   });
 
   it('emits cleanup warning notices without converting zero-finding outcomes into failures', () => {
-    const notices = buildAnalysisNotices(
-      {
-        findings: [],
-        warnings: [
-          {
-            code: 'PLUGIN_CLEANUP_FAILED',
-            message: 'Could not delete plugin jar',
-          },
-        ],
-      }
-    );
+    const notices = buildAnalysisNotices({
+      findings: [],
+      warnings: [
+        {
+          code: 'PLUGIN_CLEANUP_FAILED',
+          message: 'Could not delete plugin jar',
+        },
+      ],
+    });
 
     assert.ok(
       notices.some(
         (notice) =>
           notice.level === 'warn' &&
           notice.message ===
-            'SpotBugs analysis completed with warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar'
-      )
+            'SpotBugs analysis completed with warnings: [PLUGIN_CLEANUP_FAILED] Could not delete plugin jar',
+      ),
     );
-    assert.ok(
-      notices.every(
-        (notice) => !notice.message.startsWith('SpotBugs analysis failed:')
-      )
-    );
+    assert.ok(notices.every((notice) => !notice.message.startsWith('SpotBugs analysis failed:')));
   });
 
   it('still surfaces JAVA_LS_REQUEST_FAILED on non-terminal analysis outcomes', () => {
@@ -291,7 +291,7 @@ describe('analysisNotices', () => {
             message: 'Java LS classpath lookup failed.',
           },
         ],
-      }
+      },
     );
 
     assert.deepStrictEqual(notices, [
@@ -330,7 +330,7 @@ describe('analysisNotices', () => {
           },
           outputFallbackIssue(),
         ],
-      }
+      },
     );
 
     assert.deepStrictEqual(notices, [
@@ -360,7 +360,7 @@ describe('analysisNotices', () => {
           },
           outputFallbackIssue(),
         ],
-      }
+      },
     );
 
     assert.deepStrictEqual(notices, [
@@ -393,7 +393,6 @@ describe('analysisNotices', () => {
       },
     ]);
   });
-
 });
 
 function outputFallbackIssue(): AnalysisResolutionIssue {

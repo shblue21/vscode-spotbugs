@@ -6,7 +6,7 @@ type BaselineFilePlan = { baselineXml: string; filePath: string };
 export async function planBaselineFiles(
   workspaceRoot: string,
   baselineXmls: string[],
-  unavailablePaths: string[] = []
+  unavailablePaths: string[] = [],
 ): Promise<BaselineFilePlan[]> {
   const reserved = new Set(unavailablePaths.map(absolutePathKey));
   const plans: BaselineFilePlan[] = [];
@@ -18,12 +18,9 @@ export async function planBaselineFiles(
       index++;
       filePath = path.join(
         workspaceRoot,
-        index === 1 ? 'spotbugs-baseline.xml' : `spotbugs-baseline-${index}.xml`
+        index === 1 ? 'spotbugs-baseline.xml' : `spotbugs-baseline-${index}.xml`,
       );
-    } while (
-      reserved.has(absolutePathKey(filePath)) ||
-      (await fileExists(filePath))
-    );
+    } while (reserved.has(absolutePathKey(filePath)) || (await fileExists(filePath)));
     plans.push({ baselineXml, filePath });
   }
   return plans;
@@ -42,9 +39,7 @@ export async function writeBaselineFiles(plans: BaselineFilePlan[]): Promise<voi
       }
     }
   } catch (error) {
-    await Promise.allSettled(
-      created.map((filePath) => fs.promises.rm(filePath, { force: true }))
-    );
+    await Promise.allSettled(created.map((filePath) => fs.promises.rm(filePath, { force: true })));
     throw error;
   }
 }

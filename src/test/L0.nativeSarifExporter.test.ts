@@ -34,19 +34,15 @@ describe('buildNativeSarifLog', () => {
           nativeSarif: nativeSarif([first.type!, second.type!]),
         },
       ],
-      [second]
+      [second],
     );
 
-    assert.deepStrictEqual(log.runs[0].results, [
-      { ruleId: 'UR_UNINIT_READ', ruleIndex: 1 },
+    assert.deepStrictEqual(log.runs[0].results, [{ ruleId: 'UR_UNINIT_READ', ruleIndex: 1 }]);
+    assert.deepStrictEqual((log.runs[0].tool as any).driver.rules, [
+      { id: 'NP_NULL' },
+      { id: 'UR_UNINIT_READ' },
     ]);
-    assert.deepStrictEqual(
-      (log.runs[0].tool as any).driver.rules,
-      [{ id: 'NP_NULL' }, { id: 'UR_UNINIT_READ' }]
-    );
-    assert.deepStrictEqual(log.runs[0].invocations, [
-      { executionSuccessful: true },
-    ]);
+    assert.deepStrictEqual(log.runs[0].invocations, [{ executionSuccessful: true }]);
     assert.deepStrictEqual(log.runs[0].taxonomies, [{ name: 'CWE' }]);
   });
 
@@ -77,7 +73,10 @@ describe('buildNativeSarifLog', () => {
     const log = buildNativeSarifLog(runs, [selected], true);
 
     assert.strictEqual(log.runs.length, 2);
-    assert.deepStrictEqual(log.runs.map((run) => run.results.length), [1, 0]);
+    assert.deepStrictEqual(
+      log.runs.map((run) => run.results.length),
+      [1, 0],
+    );
   });
 
   it('rejects missing, malformed, or misaligned native reports', () => {
@@ -119,8 +118,8 @@ describe('buildNativeSarifLog', () => {
             nativeSarif: nativeSarif([selected.type!]),
           },
         ],
-        [finding('NP_NULL')]
-      )
+        [finding('NP_NULL')],
+      ),
     );
   });
 });

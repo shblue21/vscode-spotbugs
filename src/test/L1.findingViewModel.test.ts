@@ -17,7 +17,7 @@ describe('findingViewModel', () => {
         priority: 'unknown',
         rank: 14,
         location: { startLine: 10, endLine: 10 },
-      })
+      }),
     );
 
     assert.strictEqual(view.description, 'Uncategorized');

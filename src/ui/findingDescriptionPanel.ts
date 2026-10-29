@@ -14,10 +14,9 @@ export class FindingDescriptionPanel implements Disposable {
   show(finding: Finding): void {
     const panel = this.getOrCreatePanel();
     panel.title = getFindingDescriptionTitle(finding);
-    panel.webview.html = renderFindingDescriptionHtml(
-      finding,
-      { l10n: { t: (message, ...args) => l10n.t(message, ...args) } }
-    );
+    panel.webview.html = renderFindingDescriptionHtml(finding, {
+      l10n: { t: (message, ...args) => l10n.t(message, ...args) },
+    });
     panel.reveal(ViewColumn.Beside, true);
   }
 
@@ -44,7 +43,7 @@ export class FindingDescriptionPanel implements Disposable {
       {
         enableScripts: false,
         localResourceRoots: [],
-      }
+      },
     );
 
     panel.onDidDispose(() => {

@@ -10,23 +10,19 @@ import {
   TreeItemCollapsibleState,
 } from 'vscode';
 import * as path from 'path';
-import type {
-  FilterFileCommandTarget,
-  FilterKind,
-  FilterPaths,
-} from '../model/filterFiles';
+import type { FilterFileCommandTarget, FilterKind, FilterPaths } from '../model/filterFiles';
 import { FILTER_KINDS } from '../model/filterFiles';
 
 class FilterTreeItem extends TreeItem implements FilterFileCommandTarget {
   constructor(
     public readonly filterKind: FilterKind,
     public readonly filterPath?: string,
-    count = 0
+    count = 0,
   ) {
     const isGroup = filterPath === undefined;
     super(
       isGroup ? groupLabel(filterKind) : path.basename(filterPath),
-      isGroup ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.None
+      isGroup ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.None,
     );
     if (isGroup) {
       this.description = String(count);
@@ -43,9 +39,7 @@ class FilterTreeItem extends TreeItem implements FilterFileCommandTarget {
 }
 
 export class FilterTreeDataProvider implements TreeDataProvider<FilterTreeItem> {
-  private readonly _onDidChangeTreeData = new EventEmitter<
-    FilterTreeItem | undefined | null
-  >();
+  private readonly _onDidChangeTreeData = new EventEmitter<FilterTreeItem | undefined | null>();
   readonly onDidChangeTreeData: Event<FilterTreeItem | undefined | null> =
     this._onDidChangeTreeData.event;
 
@@ -62,12 +56,12 @@ export class FilterTreeDataProvider implements TreeDataProvider<FilterTreeItem> 
   getChildren(element?: FilterTreeItem): FilterTreeItem[] {
     if (!element) {
       return FILTER_KINDS.map(
-        (kind) => new FilterTreeItem(kind, undefined, this.paths[kind].length)
+        (kind) => new FilterTreeItem(kind, undefined, this.paths[kind].length),
       );
     }
     if (element.filterPath === undefined) {
       return this.paths[element.filterKind].map(
-        (filterPath) => new FilterTreeItem(element.filterKind, filterPath)
+        (filterPath) => new FilterTreeItem(element.filterKind, filterPath),
       );
     }
     return [];

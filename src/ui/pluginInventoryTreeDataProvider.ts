@@ -23,20 +23,19 @@ class PluginInventoryTreeItem extends TreeItem {
     public readonly pluginPath?: string,
     public readonly rules: readonly string[] = [],
     public readonly configurationTarget?: 'global' | 'workspace',
-    public readonly registrationId?: string
+    public readonly registrationId?: string,
   ) {
     super(
       label,
-      rules.length > 0
-        ? TreeItemCollapsibleState.Collapsed
-        : TreeItemCollapsibleState.None
+      rules.length > 0 ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None,
     );
   }
 }
 
 export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeItem> {
-  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> =
-    new EventEmitter<TreeItem | undefined | null>();
+  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null> = new EventEmitter<
+    TreeItem | undefined | null
+  >();
   readonly onDidChangeTreeData: Event<TreeItem | undefined | null> =
     this._onDidChangeTreeData.event;
 
@@ -54,15 +53,13 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
     return Promise.resolve(
       element instanceof PluginInventoryTreeItem
         ? element.rules.map((rule) => new PluginInventoryTreeItem(rule))
-        : this.viewItems
+        : this.viewItems,
     );
   }
 
   public showInitialMessage(): void {
     this.viewItems = [
-      this.createMessageItem(
-        l10n.t('Refresh to inspect configured SpotBugs plugin jars.')
-      ),
+      this.createMessageItem(l10n.t('Refresh to inspect configured SpotBugs plugin jars.')),
     ];
     this._onDidChangeTreeData.fire(undefined);
   }
@@ -75,9 +72,7 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
       item.iconPath = new ThemeIcon('error');
       this.viewItems = [item];
     } else if (result.items.length === 0) {
-      this.viewItems = [
-        this.createMessageItem(l10n.t('No SpotBugs plugin jars configured.')),
-      ];
+      this.viewItems = [this.createMessageItem(l10n.t('No SpotBugs plugin jars configured.'))];
     } else {
       this.viewItems = result.items.map((item) => this.createPluginItem(item));
     }
@@ -88,23 +83,24 @@ export class PluginInventoryTreeDataProvider implements TreeDataProvider<TreeIte
     const itemPath = item.path || item.canonicalPath || l10n.t('Plugin {0}', item.index + 1);
     const treeItem = new PluginInventoryTreeItem(
       item.index === -1 ? l10n.t('SpotBugs Core') : path.basename(itemPath),
-      item.index === -1 ? undefined : item.configuredPath ?? item.path,
+      item.index === -1 ? undefined : (item.configuredPath ?? item.path),
       item.bugPatternTypes,
       item.configurationTarget,
-      item.registrationId
+      item.registrationId,
     );
-    const statusLabel = item.enabled === false ? l10n.t('Disabled') : statusDescription(item.status);
-    const statusAndId = item.pluginId
-      ? `${statusLabel}: ${item.pluginId}`
-      : statusLabel;
+    const statusLabel =
+      item.enabled === false ? l10n.t('Disabled') : statusDescription(item.status);
+    const statusAndId = item.pluginId ? `${statusLabel}: ${item.pluginId}` : statusLabel;
     const declaredCounts = declaredCountSummary(item);
 
-    treeItem.description = declaredCounts
-      ? `${statusAndId} · ${declaredCounts}`
-      : statusAndId;
+    treeItem.description = declaredCounts ? `${statusAndId} · ${declaredCounts}` : statusAndId;
     treeItem.tooltip = tooltip(item);
-    treeItem.contextValue = item.index === -1 ? 'spotbugs.plugin.core' : `spotbugs.plugin.${item.enabled === false ? 'disabled' : item.status ?? 'uninspected'}`;
-    treeItem.iconPath = item.enabled === false ? new ThemeIcon('circle-slash') : statusIcon(item.status);
+    treeItem.contextValue =
+      item.index === -1
+        ? 'spotbugs.plugin.core'
+        : `spotbugs.plugin.${item.enabled === false ? 'disabled' : (item.status ?? 'uninspected')}`;
+    treeItem.iconPath =
+      item.enabled === false ? new ThemeIcon('circle-slash') : statusIcon(item.status);
     return treeItem;
   }
 
@@ -148,8 +144,12 @@ function tooltip(item: PluginInventoryItem): string {
   const declaredCounts = declaredCountSummary(item);
   return [
     item.enabled === false ? l10n.t('Disabled. Enable to use in the next analysis.') : undefined,
-    item.configurationTarget ? l10n.t('Settings: {0}',
-      item.configurationTarget === 'workspace' ? l10n.t('Workspace') : l10n.t('User')) : undefined,
+    item.configurationTarget
+      ? l10n.t(
+          'Settings: {0}',
+          item.configurationTarget === 'workspace' ? l10n.t('Workspace') : l10n.t('User'),
+        )
+      : undefined,
     item.shortDescription,
     item.provider ? l10n.t('Provider: {0}', item.provider) : undefined,
     item.version ? l10n.t('Version: {0}', item.version) : undefined,
@@ -169,14 +169,14 @@ function declaredCountSummary(item: PluginInventoryItem): string | undefined {
     counts.push(
       item.detectorCount === 1
         ? l10n.t('{0} detector', item.detectorCount)
-        : l10n.t('{0} detectors', item.detectorCount)
+        : l10n.t('{0} detectors', item.detectorCount),
     );
   }
   if (item.bugPatternCount !== undefined) {
     counts.push(
       item.bugPatternCount === 1
         ? l10n.t('{0} rule', item.bugPatternCount)
-        : l10n.t('{0} rules', item.bugPatternCount)
+        : l10n.t('{0} rules', item.bugPatternCount),
     );
   }
   return counts.length > 0 ? counts.join(' · ') : undefined;

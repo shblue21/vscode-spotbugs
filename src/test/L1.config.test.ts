@@ -21,8 +21,7 @@ describe('Config', () => {
       workspace: {
         getConfiguration: () => ({
           inspect: () => undefined,
-          get: (key: string) =>
-            key === 'results.revealSourceOnSelection' ? false : undefined,
+          get: (key: string) => (key === 'results.revealSourceOnSelection' ? false : undefined),
         }),
       },
     } as never);
@@ -38,8 +37,18 @@ describe('Config', () => {
     const workspaceA = vscode.Uri.file('/workspace-a');
     const workspaceB = vscode.Uri.file('/workspace-b');
     const registrations = [
-      { id: 'security', path: 'plugins/findsecbugs.jar', enabled: true, detectors: { ['example.Check']: false } },
-      { id: 'disabled', path: '/missing.jar', enabled: false, detectors: { ['missing.Check']: true } },
+      {
+        id: 'security',
+        path: 'plugins/findsecbugs.jar',
+        enabled: true,
+        detectors: { ['example.Check']: false },
+      },
+      {
+        id: 'disabled',
+        path: '/missing.jar',
+        enabled: false,
+        detectors: { ['missing.Check']: true },
+      },
       { id: 'second', path: 'plugins/findsecbugs.jar', enabled: true, detectors: {} },
     ];
     const original = structuredClone(registrations);
@@ -51,9 +60,8 @@ describe('Config', () => {
         ],
         getConfiguration: () => ({
           get: () => undefined,
-          inspect: (key: string) => key === 'plugins.registrations'
-            ? { workspaceValue: registrations }
-            : undefined,
+          inspect: (key: string) =>
+            key === 'plugins.registrations' ? { workspaceValue: registrations } : undefined,
         }),
         getWorkspaceFolder: (uri: typeof workspaceA) =>
           uri.fsPath.startsWith(workspaceB.fsPath)
@@ -67,48 +75,82 @@ describe('Config', () => {
     const resource = vscode.Uri.file('/workspace-b/src/main/java/App.java') as never;
     const payload = buildAnalysisRequestPayload(config.getAnalysisSettings(resource), {});
 
-    assert.deepStrictEqual(config.getConfiguredPlugins().map((plugin) => plugin.enabled), [true, false, true]);
+    assert.deepStrictEqual(
+      config.getConfiguredPlugins().map((plugin) => plugin.enabled),
+      [true, false, true],
+    );
     assert.deepStrictEqual(payload.plugins, [
-      { path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar'), detectors: { ['example.Check']: false } },
+      {
+        path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar'),
+        detectors: { ['example.Check']: false },
+      },
       { path: path.resolve('/workspace-b', 'plugins/findsecbugs.jar'), detectors: {} },
     ]);
     assert.deepStrictEqual(registrations, original);
 
-    registrations.forEach((registration) => { registration.enabled = false; });
+    registrations.forEach((registration) => {
+      registration.enabled = false;
+    });
     config.init();
-    assert.strictEqual(buildAnalysisRequestPayload(config.getAnalysisSettings(resource), {}).plugins, undefined);
+    assert.strictEqual(
+      buildAnalysisRequestPayload(config.getAnalysisSettings(resource), {}).plugins,
+      undefined,
+    );
   });
 
   it('classifies invalid core overrides without replacing an existing registration error', async () => {
     const configModule = await import('../core/config');
     for (const invalidPlugin of [false, true]) {
-      resetVscodeMock({ workspace: { getConfiguration: () => ({
-        get: () => undefined,
-        inspect: (key: string) => key === 'analysis.detectors'
-          ? { workspaceValue: { ['example.Check']: 'false' } }
-          : key === 'plugins.registrations' && invalidPlugin ? { workspaceValue: 'invalid' } : undefined,
-      }) } } as never);
+      resetVscodeMock({
+        workspace: {
+          getConfiguration: () => ({
+            get: () => undefined,
+            inspect: (key: string) =>
+              key === 'analysis.detectors'
+                ? { workspaceValue: { ['example.Check']: 'false' } }
+                : key === 'plugins.registrations' && invalidPlugin
+                  ? { workspaceValue: 'invalid' }
+                  : undefined,
+          }),
+        },
+      } as never);
       const settings = new configModule.Config({} as never).getAnalysisSettings();
-      assert.strictEqual(settings.configurationError?.code, invalidPlugin ? 'CFG_PLUGINS_INVALID' : 'CFG_DETECTORS_INVALID');
+      assert.strictEqual(
+        settings.configurationError?.code,
+        invalidPlugin ? 'CFG_PLUGINS_INVALID' : 'CFG_DETECTORS_INVALID',
+      );
     }
   });
 
   it('blocks analysis when a disabled registration has an invalid ID', async () => {
     const configModule = await import('../core/config');
     const { createAnalysisExecutor } = await import('../services/analysisExecution');
-    resetVscodeMock({ workspace: { getConfiguration: () => ({
-      get: () => undefined,
-      inspect: (key: string) => key === 'plugins.registrations'
-        ? { workspaceValue: [{ id: '', path: '/missing.jar', enabled: false, detectors: {} }] } : undefined,
-    }) } } as never);
+    resetVscodeMock({
+      workspace: {
+        getConfiguration: () => ({
+          get: () => undefined,
+          inspect: (key: string) =>
+            key === 'plugins.registrations'
+              ? {
+                  workspaceValue: [{ id: '', path: '/missing.jar', enabled: false, detectors: {} }],
+                }
+              : undefined,
+        }),
+      },
+    } as never);
     const config = new configModule.Config({} as never);
     let backendCalls = 0;
     const executor = createAnalysisExecutor({
       logger: { log: () => undefined, error: () => undefined },
-      runSpotBugsAnalysis: async () => { backendCalls++; return JSON.stringify({ results: [] }); },
+      runSpotBugsAnalysis: async () => {
+        backendCalls++;
+        return JSON.stringify({ results: [] });
+      },
     });
     const outcome = await executor.run(config.getAnalysisSettings(), {
-      inputs: [{ kind: 'artifact', path: '/workspace/Example.class' }], environment: {}, sourceLookup: {},
+      inputs: [{ kind: 'artifact', path: '/workspace/Example.class' }],
+      environment: {},
+      sourceLookup: {},
     });
     assert.strictEqual(outcome.failure?.code, 'CFG_PLUGINS_INVALID');
     assert.strictEqual(backendCalls, 0);

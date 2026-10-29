@@ -13,7 +13,9 @@ describe('source-less project target selection', () => {
     resetVscodeMock();
     const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
     const original = { ...gateway };
-    restoreGateway = () => { Object.assign(gateway, original); };
+    restoreGateway = () => {
+      Object.assign(gateway, original);
+    };
   });
 
   afterEach(() => restoreGateway());
@@ -29,15 +31,22 @@ describe('source-less project target selection', () => {
       fs.writeFileSync(library, 'library fixture');
       const uri = vscode.Uri.file(project) as any;
       const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
-      gateway.requestJavaClasspaths = async () => ({ projectRoot: uri.toString(), classpaths: [library], modulepaths: [] });
+      gateway.requestJavaClasspaths = async () => ({
+        projectRoot: uri.toString(),
+        classpaths: [library],
+        modulepaths: [],
+      });
       let settings: Record<string, unknown> | undefined = {
         'org.eclipse.jdt.ls.core.sourcePaths': [],
         'org.eclipse.jdt.ls.core.outputPath': output,
         'org.eclipse.jdt.ls.core.classpathEntries': [{ kind: 1, path: library, attributes: {} }],
       };
-      gateway.requestJavaProjectSettings = async () => settings ? { settings, declaredSourceOutputs: {} } : undefined;
-      const runner = require('../workspace/classpathCommandRunner') as typeof import('../workspace/classpathCommandRunner');
-      const resolver = require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
+      gateway.requestJavaProjectSettings = async () =>
+        settings ? { settings, declaredSourceOutputs: {} } : undefined;
+      const runner =
+        require('../workspace/classpathCommandRunner') as typeof import('../workspace/classpathCommandRunner');
+      const resolver =
+        require('../workspace/analysisTargetResolver') as typeof import('../workspace/analysisTargetResolver');
       try {
         const metadata = await runner.lookupJavaProjectClasspath(uri, { scope: 'runtime' });
         assert.strictEqual(metadata.status, 'resolved');
@@ -64,12 +73,16 @@ describe('source-less project target selection', () => {
         settings = previousSettings;
         if (!rootOutput) {
           fs.unlinkSync(path.join(output, 'A.class'));
-          assert.notStrictEqual((await resolver.resolveProjectAnalysisTargetDetailed(uri, uri)).resolution.status, 'ok');
+          assert.notStrictEqual(
+            (await resolver.resolveProjectAnalysisTargetDetailed(uri, uri)).resolution.status,
+            'ok',
+          );
         }
         settings = undefined;
         const failed = await runner.lookupJavaProjectClasspath(uri, { scope: 'runtime' });
         assert.strictEqual(failed.status, 'resolved');
-        if (failed.status === 'resolved') assert.strictEqual(failed.classpath.sourceRootsAbsent, undefined);
+        if (failed.status === 'resolved')
+          assert.strictEqual(failed.classpath.sourceRootsAbsent, undefined);
       } finally {
         fs.rmSync(project, { recursive: true, force: true });
       }
@@ -78,20 +91,38 @@ describe('source-less project target selection', () => {
 
   it('does not infer no sources from incomplete, contradictory, or nonempty settings', async () => {
     const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
-    gateway.requestJavaClasspaths = async () => ({ projectRoot: 'file:///p', classpaths: [], modulepaths: [] });
-    const { lookupJavaProjectClasspath } = require('../workspace/classpathCommandRunner') as typeof import('../workspace/classpathCommandRunner');
+    gateway.requestJavaClasspaths = async () => ({
+      projectRoot: 'file:///p',
+      classpaths: [],
+      modulepaths: [],
+    });
+    const { lookupJavaProjectClasspath } =
+      require('../workspace/classpathCommandRunner') as typeof import('../workspace/classpathCommandRunner');
     for (const settings of [
       {},
       { 'org.eclipse.jdt.ls.core.sourcePaths': [] },
-      { 'org.eclipse.jdt.ls.core.sourcePaths': null, 'org.eclipse.jdt.ls.core.classpathEntries': [] },
-      { 'org.eclipse.jdt.ls.core.sourcePaths': [''], 'org.eclipse.jdt.ls.core.classpathEntries': [] },
-      { 'org.eclipse.jdt.ls.core.sourcePaths': [], 'org.eclipse.jdt.ls.core.classpathEntries': [{ kind: 3, path: '/p/src' }] },
-      { 'org.eclipse.jdt.ls.core.sourcePaths': ['/p/empty-src'], 'org.eclipse.jdt.ls.core.classpathEntries': [] },
+      {
+        'org.eclipse.jdt.ls.core.sourcePaths': null,
+        'org.eclipse.jdt.ls.core.classpathEntries': [],
+      },
+      {
+        'org.eclipse.jdt.ls.core.sourcePaths': [''],
+        'org.eclipse.jdt.ls.core.classpathEntries': [],
+      },
+      {
+        'org.eclipse.jdt.ls.core.sourcePaths': [],
+        'org.eclipse.jdt.ls.core.classpathEntries': [{ kind: 3, path: '/p/src' }],
+      },
+      {
+        'org.eclipse.jdt.ls.core.sourcePaths': ['/p/empty-src'],
+        'org.eclipse.jdt.ls.core.classpathEntries': [],
+      },
     ]) {
       gateway.requestJavaProjectSettings = async () => ({ settings, declaredSourceOutputs: {} });
       const result = await lookupJavaProjectClasspath('file:///p', { scope: 'runtime' });
       assert.strictEqual(result.status, 'resolved');
-      if (result.status === 'resolved') assert.strictEqual(result.classpath.sourceRootsAbsent, undefined);
+      if (result.status === 'resolved')
+        assert.strictEqual(result.classpath.sourceRootsAbsent, undefined);
     }
   });
 });

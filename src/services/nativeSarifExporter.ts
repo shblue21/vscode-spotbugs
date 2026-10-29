@@ -17,7 +17,7 @@ interface NativeSarifResult extends Record<string, unknown> {
 export function buildNativeSarifLog(
   reportRuns: AnalysisReportRun[],
   selectedFindings: Finding[],
-  includeOriginallyEmptyRuns = false
+  includeOriginallyEmptyRuns = false,
 ): NativeSarifLog {
   const selected = new Set(selectedFindings);
   const nativeRuns: NativeSarifRun[] = [];
@@ -32,8 +32,7 @@ export function buildNativeSarifLog(
     const selectedIndices = reportRun.findings
       .map((finding, index) => (selected.has(finding) ? index : -1))
       .filter((index) => index >= 0);
-    const includeEmptyRun =
-      includeOriginallyEmptyRuns && reportRun.findings.length === 0;
+    const includeEmptyRun = includeOriginallyEmptyRuns && reportRun.findings.length === 0;
     if (selectedIndices.length === 0 && !includeEmptyRun) {
       continue;
     }
@@ -83,10 +82,7 @@ function parseNativeSarif(value: string | undefined): NativeSarifLog {
   return parsed as NativeSarifLog;
 }
 
-function validateAlignment(
-  reportRun: AnalysisReportRun,
-  nativeRun: NativeSarifRun
-): void {
+function validateAlignment(reportRun: AnalysisReportRun, nativeRun: NativeSarifRun): void {
   if (nativeRun.results.length !== reportRun.findings.length) {
     throw new Error('Native SpotBugs SARIF result count does not match the analysis.');
   }

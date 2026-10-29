@@ -140,7 +140,7 @@ describe('outputResolver', () => {
 
       assert.strictEqual(
         await findOutputFolderFromProject(dir, hasLooseClassTargets),
-        mainOutputDir
+        mainOutputDir,
       );
 
       const found = await findOutputFolderFromProject(dir, hasLooseClassTargets, {

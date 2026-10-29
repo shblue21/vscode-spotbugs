@@ -36,7 +36,7 @@ export function localizeFindingFilterText(kind: FindingFilterKind, text: string)
 
 export function describeLocalizedFindingFilters(
   findings: Finding[],
-  filters: FindingFilterState
+  filters: FindingFilterState,
 ): string | undefined {
   const parts = getFindingFilterKinds().flatMap((kind) => {
     const value = filters[kind];

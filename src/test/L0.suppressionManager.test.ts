@@ -30,10 +30,7 @@ describe('suppression manager', () => {
       location: { startLine: 30 },
     });
 
-    const result = createSuppressionPlan(
-      [selected, sameMethod],
-      [selected, sameMethod, overload]
-    );
+    const result = createSuppressionPlan([selected, sameMethod], [selected, sameMethod, overload]);
     assert.ok(result.ok);
     assert.deepStrictEqual(result.value, {
       blocks: [
@@ -47,15 +44,15 @@ describe('suppression manager', () => {
       matchedCount: 2,
       additionalCount: 0,
     });
-    assert.deepStrictEqual(
-      createSuppressionPlan([finding({ type: undefined })], []),
-      { ok: false, unsupportedCount: 1 }
-    );
+    assert.deepStrictEqual(createSuppressionPlan([finding({ type: undefined })], []), {
+      ok: false,
+      unsupportedCount: 1,
+    });
   });
 
   it('protects user files, rejects modified managed XML, and guards updates', async () => {
     const tempRoot = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'spotbugs-suppression-test-')
+      path.join(os.tmpdir(), 'spotbugs-suppression-test-'),
     );
     const filePath = path.join(tempRoot, 'spotbugs-suppressions.xml');
     const escaped = createSuppressionPlan(
@@ -67,7 +64,7 @@ describe('suppression manager', () => {
           methodSignature: '(Ljava/lang/String;)V',
         }),
       ],
-      []
+      [],
     );
     assert.ok(escaped.ok);
     const block = escaped.value.blocks[0];
@@ -84,10 +81,7 @@ describe('suppression manager', () => {
         filePath,
       });
 
-      await fs.promises.writeFile(
-        filePath,
-        `${MANAGED_SUPPRESSION_MARKER}\n<FindBugsFilter/>\n`
-      );
+      await fs.promises.writeFile(filePath, `${MANAGED_SUPPRESSION_MARKER}\n<FindBugsFilter/>\n`);
       assert.deepStrictEqual(await inspectManagedSuppressionFile(filePath), {
         kind: 'invalid',
         filePath,
@@ -102,7 +96,7 @@ describe('suppression manager', () => {
 
       await assert.rejects(
         () => writeManagedSuppressionFile(filePath, undefined, [block]),
-        SuppressionFileChangedError
+        SuppressionFileChangedError,
       );
     } finally {
       await fs.promises.rm(tempRoot, { recursive: true, force: true });

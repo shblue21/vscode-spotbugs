@@ -17,7 +17,7 @@ const CODE_PLUGIN_NOT_JAR = 'CFG_PLUGIN_NOT_JAR';
 const CODE_PLUGIN_UNREADABLE = 'CFG_PLUGIN_UNREADABLE';
 
 export async function validateFilterFilesPreflight(
-  settings: AnalysisSettings
+  settings: AnalysisSettings,
 ): Promise<AnalysisError | undefined> {
   const includeError = await validateFilterGroup('include', settings.includeFilterPaths);
   if (includeError) {
@@ -31,7 +31,7 @@ export async function validateFilterFilesPreflight(
 }
 
 export async function validateExtraAuxClasspathPreflight(
-  settings: AnalysisSettings
+  settings: AnalysisSettings,
 ): Promise<AnalysisError | undefined> {
   const paths = settings.extraAuxClasspaths;
   if (!Array.isArray(paths) || paths.length === 0) {
@@ -73,7 +73,7 @@ export async function validateExtraAuxClasspathPreflight(
 }
 
 export async function validatePluginJarsPreflight(
-  settings: AnalysisSettings
+  settings: AnalysisSettings,
 ): Promise<AnalysisError | undefined> {
   const paths = settings.plugins?.map((plugin) => plugin.path);
   if (!Array.isArray(paths) || paths.length === 0) {
@@ -122,7 +122,7 @@ export async function validatePluginJarsPreflight(
 
 async function validateFilterGroup(
   kind: FilterKind,
-  paths: string[] | undefined
+  paths: string[] | undefined,
 ): Promise<AnalysisError | undefined> {
   if (!Array.isArray(paths) || paths.length === 0) {
     return undefined;

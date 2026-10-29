@@ -16,7 +16,7 @@ export interface RevealFindingSourceOptions {
  */
 export async function revealFindingSource(
   finding: Finding,
-  revealOptions: RevealFindingSourceOptions = {}
+  revealOptions: RevealFindingSourceOptions = {},
 ): Promise<void> {
   try {
     Logger.log(`Revealing finding source: ${finding.message ?? 'SpotBugs finding'}`);
@@ -36,10 +36,7 @@ export async function revealFindingSource(
     }
 
     if (!filePath) {
-      const errorMsg = l10n.t(
-        'Cannot open file: Could not resolve path for {0}',
-        sourcePath
-      );
+      const errorMsg = l10n.t('Cannot open file: Could not resolve path for {0}', sourcePath);
       Logger.error(errorMsg);
       notifier.error(errorMsg);
       return;
@@ -48,9 +45,7 @@ export async function revealFindingSource(
     const fileUri = Uri.file(filePath);
 
     const startLine = normalizeLineNumber(finding.location.startLine);
-    const endLine = normalizeLineNumber(
-      finding.location.endLine ?? finding.location.startLine
-    );
+    const endLine = normalizeLineNumber(finding.location.endLine ?? finding.location.startLine);
     let range: Range | undefined;
     if (startLine !== undefined && endLine !== undefined) {
       // Calculate zero-based line numbers (VS Code uses zero-based indexing)
@@ -61,7 +56,7 @@ export async function revealFindingSource(
         start,
         finding.location.locationOrigin === 'primaryClass' && endLine > startLine
           ? start
-          : new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER)
+          : new Position(endLineZeroBased, Number.MAX_SAFE_INTEGER),
       );
     }
 

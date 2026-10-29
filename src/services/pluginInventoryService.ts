@@ -51,11 +51,11 @@ export interface PluginInventoryResult {
 }
 
 export async function runPluginInventory(
-  request: PluginInventoryRequest
+  request: PluginInventoryRequest,
 ): Promise<string | undefined> {
   return executeWorkspaceCommand<string>(
     SpotBugsLSCommands.PLUGIN_INVENTORY,
-    JSON.stringify(request)
+    JSON.stringify(request),
   );
 }
 
@@ -81,8 +81,10 @@ export function parsePluginInventoryResponse(raw: string): PluginInventoryParseR
   const resultValues = decoded.results ?? [];
   if (
     resultValues.some(
-      (value) => !isRecord(value) || !Number.isInteger(value.index) ||
-        (value.detectors !== undefined && !isDetectorInventory(value.detectors))
+      (value) =>
+        !isRecord(value) ||
+        !Number.isInteger(value.index) ||
+        (value.detectors !== undefined && !isDetectorInventory(value.detectors)),
     )
   ) {
     return invalidResponse();
@@ -100,10 +102,18 @@ export function parsePluginInventoryResponse(raw: string): PluginInventoryParseR
 }
 
 function isDetectorInventory(value: unknown): value is DetectorInventoryItem[] {
-  return Array.isArray(value) && value.every((detector) => isRecord(detector) &&
-    typeof detector.className === 'string' && !!detector.className.trim() &&
-    typeof detector.defaultEnabled === 'boolean' && Array.isArray(detector.reports) &&
-    detector.reports.every((report) => typeof report === 'string'));
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (detector) =>
+        isRecord(detector) &&
+        typeof detector.className === 'string' &&
+        !!detector.className.trim() &&
+        typeof detector.defaultEnabled === 'boolean' &&
+        Array.isArray(detector.reports) &&
+        detector.reports.every((report) => typeof report === 'string'),
+    )
+  );
 }
 
 function normalizeItems(values: unknown[]): PluginInventoryItem[] {
@@ -115,12 +125,13 @@ function normalizeItems(values: unknown[]): PluginInventoryItem[] {
 
     const index = value.index as number;
     const path = typeof value.path === 'string' ? value.path : '';
-    const canonicalPath =
-      typeof value.canonicalPath === 'string' ? value.canonicalPath : undefined;
+    const canonicalPath = typeof value.canonicalPath === 'string' ? value.canonicalPath : undefined;
 
     items.push({
       index,
-      detectors: Array.isArray(value.detectors) ? value.detectors as DetectorInventoryItem[] : undefined,
+      detectors: Array.isArray(value.detectors)
+        ? (value.detectors as DetectorInventoryItem[])
+        : undefined,
       path,
       canonicalPath,
       status: normalizeStatus(value.status),
@@ -132,8 +143,7 @@ function normalizeItems(values: unknown[]): PluginInventoryItem[] {
       detectorCount: optionalCount(value.detectorCount),
       bugPatternCount: optionalCount(value.bugPatternCount),
       bugPatternTypes: optionalNonBlankStrings(value.bugPatternTypes),
-      errorMessage:
-        typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
+      errorMessage: typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
     });
   }
   return items;
@@ -148,9 +158,7 @@ function optionalNonBlankString(value: unknown): string | undefined {
 }
 
 function optionalCount(value: unknown): number | undefined {
-  return Number.isInteger(value) && (value as number) >= 0
-    ? (value as number)
-    : undefined;
+  return Number.isInteger(value) && (value as number) >= 0 ? (value as number) : undefined;
 }
 
 function optionalNonBlankStrings(value: unknown): string[] | undefined {
@@ -158,9 +166,7 @@ function optionalNonBlankStrings(value: unknown): string[] | undefined {
     return undefined;
   }
   const values = value.map(optionalNonBlankString);
-  return values.every((item): item is string => item !== undefined)
-    ? values
-    : undefined;
+  return values.every((item): item is string => item !== undefined) ? values : undefined;
 }
 
 function normalizeStatus(value: unknown): PluginInventoryStatus {
@@ -195,7 +201,7 @@ export interface PluginInventoryServiceDeps {
 export async function getPluginInventory(
   config: PluginConfigurationReader,
   resource?: Uri,
-  deps: PluginInventoryServiceDeps = {}
+  deps: PluginInventoryServiceDeps = {},
 ): Promise<PluginInventoryResult> {
   const configurationError = config.getPluginConfigurationError?.();
   if (configurationError) {
@@ -205,22 +211,28 @@ export async function getPluginInventory(
     };
   }
   const configured = config.getConfiguredPlugins(resource);
-  const plugins = configured.filter((plugin) => plugin.enabled).map((plugin) => plugin.resolvedPath);
+  const plugins = configured
+    .filter((plugin) => plugin.enabled)
+    .map((plugin) => plugin.resolvedPath);
   const inspected = await inspectPlugins(plugins, deps);
   let activeIndex = 0;
   return {
     ...inspected,
-    items: [...inspected.items.filter((item) => item.index === -1), ...configured.map((plugin, index) => {
-      const inspectedIndex = plugin.enabled ? activeIndex++ : undefined;
-      return {
-      ...(plugin.enabled ? inspected.items.find((item) => item.index === inspectedIndex) : {}),
-      index,
-      registrationId: plugin.id,
-      path: plugin.resolvedPath,
-      configuredPath: plugin.path,
-      enabled: plugin.enabled,
-      configurationTarget: plugin.target,
-    }; })],
+    items: [
+      ...inspected.items.filter((item) => item.index === -1),
+      ...configured.map((plugin, index) => {
+        const inspectedIndex = plugin.enabled ? activeIndex++ : undefined;
+        return {
+          ...(plugin.enabled ? inspected.items.find((item) => item.index === inspectedIndex) : {}),
+          index,
+          registrationId: plugin.id,
+          path: plugin.resolvedPath,
+          configuredPath: plugin.path,
+          enabled: plugin.enabled,
+          configurationTarget: plugin.target,
+        };
+      }),
+    ],
   };
 }
 
@@ -228,7 +240,6 @@ async function inspectPlugins(
   plugins: string[],
   deps: PluginInventoryServiceDeps,
 ): Promise<PluginInventoryResult> {
-
   const request: PluginInventoryRequest = {
     plugins,
   };
@@ -261,7 +272,7 @@ async function inspectPlugins(
 
 function completeInventoryItems(
   items: PluginInventoryItem[],
-  plugins: string[]
+  plugins: string[],
 ): PluginInventoryItem[] {
   const seen = new Set<number>();
   if (
@@ -278,29 +289,38 @@ function completeInventoryItems(
     return backendFailure(plugins, 'Plugin inventory returned invalid indexes.').items;
   }
   const itemsByIndex = new Map(
-    items.map((item) => [item.index, { ...item, path: item.path || plugins[item.index] }] as const)
+    items.map((item) => [item.index, { ...item, path: item.path || plugins[item.index] }] as const),
   );
-  return [items.find((item) => item.index === -1) ?? {
-    index: -1, path: '', status: 'backend-error', errorMessage: 'Java language server omitted the core detector inventory.',
-  }, ...plugins.map<PluginInventoryItem>(
-    (pluginPath, index) =>
-      itemsByIndex.get(index) ?? {
-        index,
-        path: pluginPath,
-        status: 'backend-error',
-        errorMessage: 'Java language server omitted this plugin inventory result.',
-      }
-  )];
+  return [
+    items.find((item) => item.index === -1) ?? {
+      index: -1,
+      path: '',
+      status: 'backend-error',
+      errorMessage: 'Java language server omitted the core detector inventory.',
+    },
+    ...plugins.map<PluginInventoryItem>(
+      (pluginPath, index) =>
+        itemsByIndex.get(index) ?? {
+          index,
+          path: pluginPath,
+          status: 'backend-error',
+          errorMessage: 'Java language server omitted this plugin inventory result.',
+        },
+    ),
+  ];
 }
 
 function backendFailure(plugins: string[], message: string): PluginInventoryResult {
   return {
-    items: [{ index: -1, path: '', status: 'backend-error', errorMessage: message }, ...plugins.map<PluginInventoryItem>((pluginPath, index) => ({
-      index,
-      path: pluginPath,
-      status: 'backend-error',
-      errorMessage: message,
-    }))],
+    items: [
+      { index: -1, path: '', status: 'backend-error', errorMessage: message },
+      ...plugins.map<PluginInventoryItem>((pluginPath, index) => ({
+        index,
+        path: pluginPath,
+        status: 'backend-error',
+        errorMessage: message,
+      })),
+    ],
     errors: [{ message }],
   };
 }

@@ -13,7 +13,7 @@ import {
 export function renderFindingInspectorHtml(
   snapshot: FindingInspectorSnapshot,
   nonce: string,
-  vscode: LocalizationApi = fallbackLocalizationApi
+  vscode: LocalizationApi = fallbackLocalizationApi,
 ): string {
   const body =
     snapshot.status === 'empty'
@@ -114,7 +114,7 @@ function renderEmptyState(vscode: LocalizationApi): string {
 function renderFinding(
   finding: Finding,
   status: 'selected' | 'retained',
-  vscode: LocalizationApi
+  vscode: LocalizationApi,
 ): string {
   const title = getFindingDescriptionTitle(finding);
   const stateLabel =

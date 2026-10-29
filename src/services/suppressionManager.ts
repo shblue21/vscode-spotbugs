@@ -4,10 +4,8 @@ import * as path from 'path';
 import type { Finding } from '../model/finding';
 
 export const SUPPRESSION_FILE_NAME = 'spotbugs-suppressions.xml';
-export const SUPPRESSION_FALLBACK_FILE_NAME =
-  'spotbugs-managed-suppressions.xml';
-export const MANAGED_SUPPRESSION_MARKER =
-  '<!-- Managed by vscode-spotbugs; format-version: 1. -->';
+export const SUPPRESSION_FALLBACK_FILE_NAME = 'spotbugs-managed-suppressions.xml';
+export const MANAGED_SUPPRESSION_MARKER = '<!-- Managed by vscode-spotbugs; format-version: 1. -->';
 
 const FILE_PREFIX = [
   '<?xml version="1.0" encoding="UTF-8"?>',
@@ -21,7 +19,7 @@ const MATCH_BLOCK = new RegExp(
   `  <Match>\\n    <Class name="${XML_ATTRIBUTE}" \\/>\\n` +
     `(?:    (?:<Field name="${XML_ATTRIBUTE}" \\/>|<Method name="${XML_ATTRIBUTE}"(?: params="${XML_ATTRIBUTE}" returns="${XML_ATTRIBUTE}")? \\/>)\\n)?` +
     `    <Bug pattern="${XML_ATTRIBUTE}" \\/>\\n  <\\/Match>\\n`,
-  'g'
+  'g',
 );
 
 const DESCRIPTOR_PRIMITIVE_TYPES = new Map<string, string>([
@@ -81,7 +79,7 @@ export class SuppressionFileChangedError extends Error {
 
 export function createSuppressionPlan(
   selectedFindings: Finding[],
-  cachedFindings: Finding[]
+  cachedFindings: Finding[],
 ): SuppressionPlanResult {
   const rulesByBlock = new Map<string, SuppressionRule>();
   let unsupportedCount = 0;
@@ -101,7 +99,7 @@ export function createSuppressionPlan(
   const rules = [...rulesByBlock.values()];
   const selected = new Set(selectedFindings);
   const matched = cachedFindings.filter((finding) =>
-    rules.some((rule) => matchesSuppressionRule(finding, rule))
+    rules.some((rule) => matchesSuppressionRule(finding, rule)),
   );
   return {
     ok: true,
@@ -114,14 +112,8 @@ export function createSuppressionPlan(
   };
 }
 
-export function matchesSuppressionRule(
-  finding: Finding,
-  rule: SuppressionRule
-): boolean {
-  if (
-    finding.type?.trim() !== rule.pattern ||
-    finding.className?.trim() !== rule.className
-  ) {
+export function matchesSuppressionRule(finding: Finding, rule: SuppressionRule): boolean {
+  if (finding.type?.trim() !== rule.pattern || finding.className?.trim() !== rule.className) {
     return false;
   }
   if (!rule.member) {
@@ -145,7 +137,7 @@ export function matchesSuppressionRule(
 }
 
 function parseMethodDescriptor(
-  signature: string | undefined
+  signature: string | undefined,
 ): { params: string[]; returns: string } | undefined {
   if (!signature?.startsWith('(')) {
     return undefined;
@@ -172,22 +164,17 @@ function parseMethodDescriptor(
 }
 
 function serializeSuppressionBlock(rule: SuppressionRule): string {
-  const lines = [
-    '  <Match>',
-    `    <Class name="${escapeXmlAttribute(rule.className)}" />`,
-  ];
+  const lines = ['  <Match>', `    <Class name="${escapeXmlAttribute(rule.className)}" />`];
   if (rule.member?.kind === 'field') {
     lines.push(`    <Field name="${escapeXmlAttribute(rule.member.name)}" />`);
   } else if (rule.member?.kind === 'method') {
     const signature =
       rule.member.params !== undefined && rule.member.returns !== undefined
         ? ` params="${escapeXmlAttribute(
-            rule.member.params
+            rule.member.params,
           )}" returns="${escapeXmlAttribute(rule.member.returns)}"`
         : '';
-    lines.push(
-      `    <Method name="${escapeXmlAttribute(rule.member.name)}"${signature} />`
-    );
+    lines.push(`    <Method name="${escapeXmlAttribute(rule.member.name)}"${signature} />`);
   }
   lines.push(`    <Bug pattern="${escapeXmlAttribute(rule.pattern)}" />`);
   lines.push('  </Match>');
@@ -199,7 +186,7 @@ export function serializeManagedSuppressionFile(blocks: string[]): string {
 }
 
 export async function inspectManagedSuppressionFile(
-  filePath: string
+  filePath: string,
 ): Promise<ManagedSuppressionFileState> {
   const content = await readOptionalFile(filePath);
   if (content === undefined) {
@@ -209,15 +196,13 @@ export async function inspectManagedSuppressionFile(
     return { kind: 'conflict', filePath };
   }
   const blocks = parseManagedSuppressionBlocks(content);
-  return blocks
-    ? { kind: 'managed', filePath, content, blocks }
-    : { kind: 'invalid', filePath };
+  return blocks ? { kind: 'managed', filePath, content, blocks } : { kind: 'invalid', filePath };
 }
 
 export async function writeManagedSuppressionFile(
   filePath: string,
   expectedContent: string | undefined,
-  blocks: string[]
+  blocks: string[],
 ): Promise<void> {
   if ((await readOptionalFile(filePath)) !== expectedContent) {
     throw new SuppressionFileChangedError(filePath);
@@ -225,13 +210,12 @@ export async function writeManagedSuppressionFile(
 
   const temporaryPath = path.join(
     path.dirname(filePath),
-    `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`
+    `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`,
   );
-  await fs.promises.writeFile(
-    temporaryPath,
-    serializeManagedSuppressionFile(blocks),
-    { encoding: 'utf8', flag: 'wx' }
-  );
+  await fs.promises.writeFile(temporaryPath, serializeManagedSuppressionFile(blocks), {
+    encoding: 'utf8',
+    flag: 'wx',
+  });
 
   try {
     if ((await readOptionalFile(filePath)) !== expectedContent) {
@@ -276,7 +260,7 @@ function ruleForFinding(finding: Finding): SuppressionRule | undefined {
 function parseDescriptorType(
   signature: string,
   startIndex: number,
-  allowVoid: boolean
+  allowVoid: boolean,
 ): { type: string; nextIndex: number } | undefined {
   let index = startIndex;
   let dimensions = 0;

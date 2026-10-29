@@ -6,12 +6,10 @@ import { getWorkspaceRootPath } from './workspaceRoots';
 
 export function getBestEffortFilePath(
   finding: Finding,
-  workspaceRootPath?: string
+  workspaceRootPath?: string,
 ): string | undefined {
   const filePath =
-    finding.location.fullPath ||
-    finding.location.realSourcePath ||
-    finding.location.sourceFile;
+    finding.location.fullPath || finding.location.realSourcePath || finding.location.sourceFile;
   if (!filePath) {
     return undefined;
   }
@@ -26,12 +24,9 @@ export function getBestEffortFilePath(
 
 export function getBestEffortFileUri(
   finding: Finding,
-  workspaceRootPath?: string
+  workspaceRootPath?: string,
 ): Uri | undefined {
-  const filePath = getBestEffortFilePath(
-    finding,
-    workspaceRootPath ?? getWorkspaceRootPath()
-  );
+  const filePath = getBestEffortFilePath(finding, workspaceRootPath ?? getWorkspaceRootPath());
   if (!filePath) {
     return undefined;
   }
@@ -44,7 +39,7 @@ export function getBestEffortFileUri(
 
 export async function resolveFindingFilePath(
   finding: Finding,
-  preferredProject?: Uri
+  preferredProject?: Uri,
 ): Promise<string | undefined> {
   const root = getWorkspaceRootPath();
 
@@ -58,10 +53,7 @@ export async function resolveFindingFilePath(
   }
 
   if (finding.location.realSourcePath) {
-    const resolved = await resolveSourceFullPath(
-      finding.location.realSourcePath,
-      preferredProject
-    );
+    const resolved = await resolveSourceFullPath(finding.location.realSourcePath, preferredProject);
     if (resolved) {
       return resolved;
     }

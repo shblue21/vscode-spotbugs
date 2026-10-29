@@ -493,15 +493,21 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
     token?: CancellationToken,
   ): Promise<TargetResolutionResult> {
     const projectUriString = projectUri.toString();
-    const { targetResolutionRoots, runtimeClasspaths, sourcepaths, sourceOutputs, sourceRootsAbsent, issues } =
-      await readClasspaths(projectUri, {
-        logEmpty: true,
-        logFailure: true,
-        expectedProjectRoot: projectUri,
-        scope: 'runtime',
-        analysisResource: projectUri,
-        token,
-      });
+    const {
+      targetResolutionRoots,
+      runtimeClasspaths,
+      sourcepaths,
+      sourceOutputs,
+      sourceRootsAbsent,
+      issues,
+    } = await readClasspaths(projectUri, {
+      logEmpty: true,
+      logFailure: true,
+      expectedProjectRoot: projectUri,
+      scope: 'runtime',
+      analysisResource: projectUri,
+      token,
+    });
     const resolutionIssues = [...issues];
     const projectRoot = projectUri.scheme === 'file' ? projectUri.fsPath : workspaceFolder.fsPath;
     const outputResolution = await resolveOutputPath(

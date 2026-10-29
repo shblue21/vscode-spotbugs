@@ -6,11 +6,15 @@ import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 function loadService() {
   const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
-  const service = require('../workspace/classpathService') as typeof import('../workspace/classpathService');
+  const service =
+    require('../workspace/classpathService') as typeof import('../workspace/classpathService');
   return { gateway, service };
 }
 
-function snapshot(settings: Record<string, unknown>, declaredSourceOutputs: Record<string, string> = {}) {
+function snapshot(
+  settings: Record<string, unknown>,
+  declaredSourceOutputs: Record<string, string> = {},
+) {
   return { settings, declaredSourceOutputs };
 }
 
@@ -22,7 +26,9 @@ describe('Java classpath contract', () => {
     resetVscodeMock();
     const gateway = require('../lsp/javaLsGateway') as typeof import('../lsp/javaLsGateway');
     const original = { ...gateway };
-    restoreGateway = () => { Object.assign(gateway, original); };
+    restoreGateway = () => {
+      Object.assign(gateway, original);
+    };
   });
 
   afterEach(() => restoreGateway());
@@ -106,14 +112,14 @@ describe('Java classpath contract', () => {
         : snapshot(settings);
 
     const main = await service.getClasspathsOutcome(
-      'file:///workspace/project/src/main/java/demo/Main.java'
+      'file:///workspace/project/src/main/java/demo/Main.java',
     );
     const test = await service.getClasspathsOutcome('file:///workspace/project', {
       expectedProjectRoot: 'file:///workspace/project',
       analysisResource: 'file:///workspace/project/src/integration/java',
     });
     const classFile = await service.getClasspathsOutcome(
-      'file:///workspace/project/target/classes/demo/Main.class'
+      'file:///workspace/project/target/classes/demo/Main.class',
     );
 
     assert.strictEqual(main.status, 'resolved');
@@ -148,17 +154,23 @@ describe('Java classpath contract', () => {
   it('changes only output mappings for sources selected from captured JDT settings', async () => {
     const { gateway, service } = loadService();
     // Captured from JDT LS 1.61.0 on 2026-09-13; project prefix normalized only.
-    const settings = JSON.parse(fs.readFileSync(
-      path.resolve(__dirname, '../../src/test/fixtures/jdt-project-settings.json'), 'utf8',
-    ));
-    gateway.requestJavaProjectSettings = async () => snapshot(settings, {
-      '/workspace/project/src/main/java/nested': '/workspace/project/custom/nested',
-      '/workspace/project/src/test/java': '/workspace/project/custom/test',
-      '/workspace/project/generated/java': '/workspace/project/custom/generated',
-    });
+    const settings = JSON.parse(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../src/test/fixtures/jdt-project-settings.json'),
+        'utf8',
+      ),
+    );
+    gateway.requestJavaProjectSettings = async () =>
+      snapshot(settings, {
+        '/workspace/project/src/main/java/nested': '/workspace/project/custom/nested',
+        '/workspace/project/src/test/java': '/workspace/project/custom/test',
+        '/workspace/project/generated/java': '/workspace/project/custom/generated',
+      });
     gateway.requestJavaIsTestFile = async (uri) => uri.includes('/src/test/');
     gateway.requestJavaClasspaths = async () => ({
-      projectRoot: 'file:///workspace/project', classpaths: ['/deps/library.jar'], modulepaths: [],
+      projectRoot: 'file:///workspace/project',
+      classpaths: ['/deps/library.jar'],
+      modulepaths: [],
     });
     for (const [source, output] of [
       ['src/main/java', 'custom/main'],
@@ -166,56 +178,94 @@ describe('Java classpath contract', () => {
       ['src/test/java', 'custom/test'],
       ['generated/java', 'custom/generated'],
     ]) {
-      const result = await service.getClasspathsOutcome(`file:///workspace/project/${source}/demo/A.java`);
+      const result = await service.getClasspathsOutcome(
+        `file:///workspace/project/${source}/demo/A.java`,
+      );
       assert.strictEqual(result.status, 'resolved');
       if (result.status !== 'resolved') throw new Error('Expected resolved metadata');
       assert.deepStrictEqual(result.classpath.sourcepaths, [`/workspace/project/${source}`]);
       assert.deepStrictEqual(result.classpath.sourceOutputs, {
         [`/workspace/project/${source}`]: `/workspace/project/${output}`,
       });
-      assert.deepStrictEqual(result.classpath.targetResolutionRoots, [`/workspace/project/${output}`]);
+      assert.deepStrictEqual(result.classpath.targetResolutionRoots, [
+        `/workspace/project/${output}`,
+      ]);
       assert.deepStrictEqual(result.classpath.runtimeClasspaths, ['/deps/library.jar']);
     }
   });
 
   it('preserves existing source selection even when JDT test attributes disagree with path conventions', async () => {
     const { gateway, service } = loadService();
-    gateway.requestJavaProjectSettings = async () => snapshot({
-      'org.eclipse.jdt.ls.core.outputPath': '/workspace/project/bin',
-      'org.eclipse.jdt.ls.core.sourcePaths': ['/workspace/project/src/test/java', '/workspace/project/custom-source'],
-      'org.eclipse.jdt.ls.core.classpathEntries': [
-        { kind: 3, path: '/workspace/project/src/test/java', output: '/workspace/project/test-out', attributes: {} },
-        { kind: 3, path: '/workspace/project/custom-source', output: '/workspace/project/custom-out', attributes: { test: 'true' } },
-      ],
-    }, {
-      '/workspace/project/src/test/java': '/workspace/project/test-out',
-      '/workspace/project/custom-source': '/workspace/project/custom-out',
-    });
+    gateway.requestJavaProjectSettings = async () =>
+      snapshot(
+        {
+          'org.eclipse.jdt.ls.core.outputPath': '/workspace/project/bin',
+          'org.eclipse.jdt.ls.core.sourcePaths': [
+            '/workspace/project/src/test/java',
+            '/workspace/project/custom-source',
+          ],
+          'org.eclipse.jdt.ls.core.classpathEntries': [
+            {
+              kind: 3,
+              path: '/workspace/project/src/test/java',
+              output: '/workspace/project/test-out',
+              attributes: {},
+            },
+            {
+              kind: 3,
+              path: '/workspace/project/custom-source',
+              output: '/workspace/project/custom-out',
+              attributes: { test: 'true' },
+            },
+          ],
+        },
+        {
+          '/workspace/project/src/test/java': '/workspace/project/test-out',
+          '/workspace/project/custom-source': '/workspace/project/custom-out',
+        },
+      );
     gateway.requestJavaClasspaths = async () => ({
-      projectRoot: 'file:///workspace/project', classpaths: [], modulepaths: [],
+      projectRoot: 'file:///workspace/project',
+      classpaths: [],
+      modulepaths: [],
     });
-    const result = await service.getClasspathsOutcome('file:///workspace/project', { scope: 'runtime' });
+    const result = await service.getClasspathsOutcome('file:///workspace/project', {
+      scope: 'runtime',
+    });
     assert.strictEqual(result.status, 'resolved');
     if (result.status !== 'resolved') throw new Error('Expected resolved metadata');
     // Keep the pre-change selection policy; correcting that policy is a separate change.
     assert.deepStrictEqual(result.classpath.sourcepaths, ['/workspace/project/custom-source']);
-    assert.deepStrictEqual(result.classpath.sourceOutputs, { '/workspace/project/custom-source': '/workspace/project/custom-out' });
+    assert.deepStrictEqual(result.classpath.sourceOutputs, {
+      '/workspace/project/custom-source': '/workspace/project/custom-out',
+    });
   });
 
   it('retains the existing Gradle project selection while preserving declared outputs', async () => {
     const { gateway, service } = loadService();
-    gateway.requestJavaProjectSettings = async () => snapshot(JSON.parse(fs.readFileSync(
-      path.resolve(__dirname, '../../src/test/fixtures/jdt-gradle-project-settings.json'), 'utf8',
-    )), {
-      '/workspace/project/src/main/java': '/workspace/project/bin/main',
-      '/workspace/project/generated/java': '/workspace/project/bin/main',
-      '/workspace/project/src/test/java': '/workspace/project/bin/test',
-      '/workspace/project/src/integrationTest/java': '/workspace/project/bin/integrationTest',
-    });
+    gateway.requestJavaProjectSettings = async () =>
+      snapshot(
+        JSON.parse(
+          fs.readFileSync(
+            path.resolve(__dirname, '../../src/test/fixtures/jdt-gradle-project-settings.json'),
+            'utf8',
+          ),
+        ),
+        {
+          '/workspace/project/src/main/java': '/workspace/project/bin/main',
+          '/workspace/project/generated/java': '/workspace/project/bin/main',
+          '/workspace/project/src/test/java': '/workspace/project/bin/test',
+          '/workspace/project/src/integrationTest/java': '/workspace/project/bin/integrationTest',
+        },
+      );
     gateway.requestJavaClasspaths = async () => ({
-      projectRoot: 'file:///workspace/project', classpaths: [], modulepaths: [],
+      projectRoot: 'file:///workspace/project',
+      classpaths: [],
+      modulepaths: [],
     });
-    const result = await service.getClasspathsOutcome('file:///workspace/project', { scope: 'runtime' });
+    const result = await service.getClasspathsOutcome('file:///workspace/project', {
+      scope: 'runtime',
+    });
     assert.strictEqual(result.status, 'resolved');
     if (result.status !== 'resolved') throw new Error('Expected resolved metadata');
     assert.deepStrictEqual(result.classpath.sourcepaths, [
@@ -224,9 +274,18 @@ describe('Java classpath contract', () => {
       '/workspace/project/generated/java',
       '/workspace/project/src/integrationTest/java',
     ]);
-    assert.strictEqual(result.classpath.sourceOutputs?.['/workspace/project/src/main/java'], '/workspace/project/bin/main');
-    assert.strictEqual(result.classpath.sourceOutputs?.['/workspace/project/generated/java'], '/workspace/project/bin/main');
-    assert.strictEqual(result.classpath.sourceOutputs?.['/workspace/project/src/integrationTest/java'], '/workspace/project/bin/integrationTest');
+    assert.strictEqual(
+      result.classpath.sourceOutputs?.['/workspace/project/src/main/java'],
+      '/workspace/project/bin/main',
+    );
+    assert.strictEqual(
+      result.classpath.sourceOutputs?.['/workspace/project/generated/java'],
+      '/workspace/project/bin/main',
+    );
+    assert.strictEqual(
+      result.classpath.sourceOutputs?.['/workspace/project/src/integrationTest/java'],
+      '/workspace/project/bin/integrationTest',
+    );
   });
 
   it('rejects mismatched provenance and preserves aux when settings degrade', async () => {
@@ -240,23 +299,20 @@ describe('Java classpath contract', () => {
     });
     gateway.requestJavaProjectSettings = async () => undefined;
 
-    const mismatch = await service.getClasspathsOutcome(
-      'file:///workspace/wrong',
-      {
-        scope: 'runtime',
-        expectedProjectRoot: 'file:///workspace/project-b',
-      }
-    );
-    const degraded = await service.getClasspathsOutcome(
-      'file:///workspace/project-b',
-      { scope: 'runtime' }
-    );
+    const mismatch = await service.getClasspathsOutcome('file:///workspace/wrong', {
+      scope: 'runtime',
+      expectedProjectRoot: 'file:///workspace/project-b',
+    });
+    const degraded = await service.getClasspathsOutcome('file:///workspace/project-b', {
+      scope: 'runtime',
+    });
 
     assert.strictEqual(mismatch.status, 'unavailable');
     assert.ok(!('classpath' in mismatch));
-    assert.deepStrictEqual(mismatch.issues.map((issue) => issue.code), [
-      'JAVA_PROJECT_METADATA_MISMATCH',
-    ]);
+    assert.deepStrictEqual(
+      mismatch.issues.map((issue) => issue.code),
+      ['JAVA_PROJECT_METADATA_MISMATCH'],
+    );
     assert.strictEqual(degraded.status, 'resolved');
     if (degraded.status === 'resolved') {
       assert.deepStrictEqual(degraded.classpath.runtimeClasspaths, [
@@ -264,34 +320,31 @@ describe('Java classpath contract', () => {
         '/modules/classes',
       ]);
       assert.deepStrictEqual(degraded.classpath.targetResolutionRoots, []);
-      assert.deepStrictEqual(degraded.issues.map((issue) => issue.code), [
-        'JAVA_LS_PROJECT_SETTINGS_FAILED',
-      ]);
+      assert.deepStrictEqual(
+        degraded.issues.map((issue) => issue.code),
+        ['JAVA_LS_PROJECT_SETTINGS_FAILED'],
+      );
     }
 
-    gateway.requestJavaProjectSettings = async () => snapshot({
-      'org.eclipse.jdt.ls.core.outputPath': '/workspace/project-b/test-output',
-      'org.eclipse.jdt.ls.core.classpathEntries': [
-        {
-          kind: 1,
-          path: '/workspace/project-b/test-source',
-          output: '/workspace/project-b/test-output',
-          attributes: { test: 'true' },
-        },
-      ],
+    gateway.requestJavaProjectSettings = async () =>
+      snapshot({
+        'org.eclipse.jdt.ls.core.outputPath': '/workspace/project-b/test-output',
+        'org.eclipse.jdt.ls.core.classpathEntries': [
+          {
+            kind: 1,
+            path: '/workspace/project-b/test-source',
+            output: '/workspace/project-b/test-output',
+            attributes: { test: 'true' },
+          },
+        ],
+      });
+    const runtimeOnly = await service.getClasspathsOutcome('file:///workspace/project-b', {
+      scope: 'runtime',
+      expectedProjectRoot: 'file:///workspace/project-b',
     });
-    const runtimeOnly = await service.getClasspathsOutcome(
-      'file:///workspace/project-b',
-      {
-        scope: 'runtime',
-        expectedProjectRoot: 'file:///workspace/project-b',
-      }
-    );
     assert.deepStrictEqual(
-      runtimeOnly.status === 'resolved'
-        ? runtimeOnly.classpath.targetResolutionRoots
-        : undefined,
-      []
+      runtimeOnly.status === 'resolved' ? runtimeOnly.classpath.targetResolutionRoots : undefined,
+      [],
     );
 
     gateway.requestJavaClasspaths = async () => ({
@@ -305,5 +358,4 @@ describe('Java classpath contract', () => {
     });
     assert.strictEqual(windows.status, 'resolved');
   });
-
 });

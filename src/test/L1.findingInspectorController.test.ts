@@ -165,7 +165,7 @@ describe('findingInspectorController', () => {
     assert.strictEqual(isCurrentRequest?.(), true);
 
     await tree.fireSelection(
-      new findingTreeItem.GenericGroupItem('com.acme', 'package', 'com.acme', [finding], [])
+      new findingTreeItem.GenericGroupItem('com.acme', 'package', 'com.acme', [finding], []),
     );
 
     assert.strictEqual(state.current.status, 'retained');
@@ -179,16 +179,12 @@ describe('findingInspectorController', () => {
     const finding = makeFinding();
 
     bindFindingInspectorToTree(tree.view, state);
-    await tree.fireSelection(
-      new findingTreeItem.ProjectStatusItem('project', 'Analyzing project')
-    );
+    await tree.fireSelection(new findingTreeItem.ProjectStatusItem('project', 'Analyzing project'));
     await tree.fireSelection({ label: 'message' });
     assert.strictEqual(state.current.status, 'empty');
 
     await tree.fireSelection(new findingTreeItem.FindingItem(finding));
-    await tree.fireSelection(
-      new findingTreeItem.ProjectStatusItem('project', 'Analyzing project')
-    );
+    await tree.fireSelection(new findingTreeItem.ProjectStatusItem('project', 'Analyzing project'));
     await tree.fireSelection({ label: 'message' });
 
     assertInspectorFinding(state.current, 'selected', finding);
@@ -210,7 +206,7 @@ async function createInspectorHarness() {
 function assertInspectorFinding(
   snapshot: { status: string; finding?: Finding },
   status: string,
-  finding: Finding
+  finding: Finding,
 ): void {
   assert.strictEqual(snapshot.status, status);
   assert.strictEqual(snapshot.finding, finding);

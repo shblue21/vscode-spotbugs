@@ -18,7 +18,7 @@ describe('workspaceSummary', () => {
         makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
         makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
-      0
+      0,
     );
 
     assert.deepStrictEqual(notices, [
@@ -35,13 +35,14 @@ describe('workspaceSummary', () => {
         makeProjectResult({ findings: [{ patternId: 'X', location: {} }] }),
         makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
-      1
+      1,
     );
 
     assert.deepStrictEqual(notices, [
       {
         level: 'warn',
-        message: 'SpotBugs skipped 1 project because the build failed. Run a manual build, then try again.',
+        message:
+          'SpotBugs skipped 1 project because the build failed. Run a manual build, then try again.',
       },
       {
         level: 'info',
@@ -56,7 +57,7 @@ describe('workspaceSummary', () => {
         makeProjectResult({ findings: [{ patternId: 'X', location: {} }] }),
         makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
       ],
-      1
+      1,
     );
 
     assert.deepStrictEqual(notices, [
@@ -74,7 +75,7 @@ describe('workspaceSummary', () => {
         makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
         makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
-      0
+      0,
     );
 
     assert.deepStrictEqual(notices, [
@@ -108,7 +109,7 @@ describe('workspaceSummary', () => {
           phase: 'get-classpaths',
           message: 'Java LS classpath lookup returned no usable result.',
         },
-      ]
+      ],
     );
 
     assert.deepStrictEqual(notices, [
@@ -144,7 +145,7 @@ describe('workspaceSummary', () => {
             message: 'Some checks may have been skipped.',
           },
         },
-      ]
+      ],
     );
 
     assert.deepStrictEqual(notices, [
@@ -203,7 +204,7 @@ describe('workspaceSummary', () => {
           phase: 'get-classpaths',
           message: 'Java LS classpath lookup failed.',
         },
-      ]
+      ],
     );
 
     assert.deepStrictEqual(notices, [
@@ -228,14 +229,16 @@ describe('workspaceSummary', () => {
         level: 'info',
         source: 'target-resolution',
         phase: 'output-fallback',
-        message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
+        message:
+          'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
       },
       {
         code: 'OUTPUT_FALLBACK_USED',
         level: 'info',
         source: 'target-resolution',
         phase: 'output-fallback',
-        message: 'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
+        message:
+          'Output folder fallback was used because Java build output metadata was unavailable or unusable for the selected target.',
       },
     ]);
 

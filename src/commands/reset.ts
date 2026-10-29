@@ -6,7 +6,7 @@ import { AnalysisRunCoordinator } from '../orchestration/analysisRunCoordinator'
 export async function resetResults(
   provider: SpotBugsTreeDataProvider,
   diagnostics: SpotBugsDiagnosticsManager,
-  coordinator: AnalysisRunCoordinator
+  coordinator: AnalysisRunCoordinator,
 ): Promise<void> {
   coordinator.invalidate();
   provider.showInitialMessage();

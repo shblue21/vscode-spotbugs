@@ -1,7 +1,4 @@
-import {
-  formatFindingPatternLabel,
-  rankToSeverity,
-} from '../formatters/findingFormatting';
+import { formatFindingPatternLabel, rankToSeverity } from '../formatters/findingFormatting';
 import { Finding, getFindingSourcePath } from '../model/finding';
 
 export type FindingFacetFilterKind =
@@ -12,13 +9,7 @@ export type FindingFacetFilterKind =
   | 'path'
   | 'rule';
 
-export type FindingGroupKind =
-  | 'category'
-  | 'package'
-  | 'class'
-  | 'path'
-  | 'priority'
-  | 'rule';
+export type FindingGroupKind = 'category' | 'package' | 'class' | 'path' | 'priority' | 'rule';
 
 export const MISSING_GROUP_KEYS: Record<FindingGroupKind, string> = {
   category: '__missing_category__',
@@ -147,16 +138,14 @@ export function groupKeyFor(kind: FindingGroupKind, facets: FindingFacets): stri
     return facets.pathKey ?? MISSING_GROUP_KEYS.path;
   }
   if (kind === 'priority') {
-    return facets.priorityKey === 'unknown'
-      ? MISSING_GROUP_KEYS.priority
-      : facets.priorityKey;
+    return facets.priorityKey === 'unknown' ? MISSING_GROUP_KEYS.priority : facets.priorityKey;
   }
   return facets.ruleKey === 'Unknown rule' ? MISSING_GROUP_KEYS.rule : facets.ruleKey;
 }
 
 export function normalizePriority(
   rawPriority?: string,
-  rank?: number
+  rank?: number,
 ): {
   key: 'high' | 'medium' | 'low' | 'unknown';
   label: 'High' | 'Medium' | 'Low' | 'Unknown priority';
@@ -224,8 +213,7 @@ function concreteRuleFilterValue(finding: Finding): string | undefined {
   if (!patternId) {
     return undefined;
   }
-  const hasExplicitRule =
-    !!valueOrUndefined(finding.type) || !!valueOrUndefined(finding.abbrev);
+  const hasExplicitRule = !!valueOrUndefined(finding.type) || !!valueOrUndefined(finding.abbrev);
   if (patternId.toUpperCase() === 'UNKNOWN' && !hasExplicitRule) {
     return undefined;
   }

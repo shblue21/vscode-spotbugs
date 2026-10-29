@@ -6,7 +6,7 @@ async function main(): Promise<void> {
     const extensionDevelopmentPath = path.resolve(__dirname, '../../');
     const javaExtensionStubPath = path.resolve(
       __dirname,
-      '../../src/test/fixtures/redhat.java-stub'
+      '../../src/test/fixtures/redhat.java-stub',
     );
     const extensionTestsPath = path.resolve(__dirname, './index');
 

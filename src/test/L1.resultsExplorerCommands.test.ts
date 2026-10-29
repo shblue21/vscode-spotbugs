@@ -29,7 +29,7 @@ describe('resultsExplorerCommands', () => {
       {
         clearAll: () => currentStates.push(lease.isCurrent()),
       } as never,
-      coordinator
+      coordinator,
     );
 
     assert.deepStrictEqual(currentStates, [false, false]);
@@ -48,11 +48,7 @@ describe('resultsExplorerCommands', () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const { searchResults, clearResultsSearch } = await import('../commands/resultsExplorer');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
-    provider.showResults(
-      [makeFinding({ cweId: 89, message: 'SQL risk' })],
-      resultResource,
-      []
-    );
+    provider.showResults([makeFinding({ cweId: 89, message: 'SQL risk' })], resultResource, []);
     provider.setSearchQuery('existing query');
 
     await searchResults(provider);
@@ -80,11 +76,7 @@ describe('resultsExplorerCommands', () => {
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
     const { searchResults } = await import('../commands/resultsExplorer');
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
-    provider.showResults(
-      [makeFinding({ cweId: 89, message: 'SQL risk' })],
-      resultResource,
-      []
-    );
+    provider.showResults([makeFinding({ cweId: 89, message: 'SQL risk' })], resultResource, []);
 
     await searchResults(provider);
     assert.strictEqual(provider.getSearchQuery(), 'CWE-89');
@@ -142,11 +134,11 @@ describe('resultsExplorerCommands', () => {
 
     assert.strictEqual(
       quickPickCalls[0].find((item) => item.label === 'Class')?.description,
-      'Current'
+      'Current',
     );
     assert.strictEqual(
       quickPickCalls[1].find((item) => item.label === 'Path / Line')?.description,
-      'Current'
+      'Current',
     );
     assert.strictEqual(provider.getGroupBy(), 'package');
     assert.strictEqual(provider.getSortBy(), 'rule');
@@ -173,12 +165,9 @@ describe('resultsExplorerCommands', () => {
       } as never,
     });
     const treeProviderModule = await import('../ui/spotbugsTreeDataProvider');
-    const {
-      clearResultsSearch,
-      groupResultsBy,
-      searchResults,
-      sortResultsBy,
-    } = await import('../commands/resultsExplorer');
+    const { clearResultsSearch, groupResultsBy, searchResults, sortResultsBy } = await import(
+      '../commands/resultsExplorer'
+    );
     const provider = new treeProviderModule.SpotBugsTreeDataProvider();
 
     await searchResults(provider);
@@ -203,23 +192,31 @@ describe('resultsExplorerCommands', () => {
     let tree!: import('../ui/spotbugsTreeDataProvider').SpotBugsTreeDataProvider;
     let select!: (event: { selection: unknown[] }) => unknown;
     const webview = { html: '', onDidReceiveMessage: () => ({ dispose() {} }) };
-    resetVscodeMock({ window: {
-      showInformationMessage: async () => { informationCount++; return undefined; },
-      createTreeView: (id: string, options: { treeDataProvider: typeof tree }) => {
-        if (id === 'spotbugs-view') tree = options.treeDataProvider;
-        return {
-          onDidChangeSelection: (listener: typeof select) => {
-            select = listener;
-            return { dispose() {} };
-          },
-          dispose() {},
-        };
-      },
-      registerWebviewViewProvider: (_id: string, provider: import('../ui/findingInspectorViewProvider').FindingInspectorViewProvider) => {
-        provider.resolveWebviewView({ webview } as never);
-        return { dispose() {} };
-      },
-    } as never });
+    resetVscodeMock({
+      window: {
+        showInformationMessage: async () => {
+          informationCount++;
+          return undefined;
+        },
+        createTreeView: (id: string, options: { treeDataProvider: typeof tree }) => {
+          if (id === 'spotbugs-view') tree = options.treeDataProvider;
+          return {
+            onDidChangeSelection: (listener: typeof select) => {
+              select = listener;
+              return { dispose() {} };
+            },
+            dispose() {},
+          };
+        },
+        registerWebviewViewProvider: (
+          _id: string,
+          provider: import('../ui/findingInspectorViewProvider').FindingInspectorViewProvider,
+        ) => {
+          provider.resolveWebviewView({ webview } as never);
+          return { dispose() {} };
+        },
+      } as never,
+    });
     resetTelemetryWrapperMock({
       instrumentOperationAsVsCodeCommand: (commandId, callback) => {
         registeredCommands.set(commandId, callback);
@@ -235,8 +232,10 @@ describe('resultsExplorerCommands', () => {
       } as never);
       const finding = makeFinding();
       for (const commandId of [
-        'spotbugs.searchResults', 'spotbugs.clearSearch',
-        'spotbugs.groupResultsBy', 'spotbugs.sortResultsBy',
+        'spotbugs.searchResults',
+        'spotbugs.clearSearch',
+        'spotbugs.groupResultsBy',
+        'spotbugs.sortResultsBy',
       ]) {
         tree.showResults([finding], resultResource, []);
         await select({ selection: [new findingTreeItem.FindingItem(finding)] });
