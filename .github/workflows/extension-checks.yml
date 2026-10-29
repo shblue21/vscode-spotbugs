@@ -3,7 +3,7 @@ name: Extension Checks
 on:
   push:
     branches:
-      - '**'
+      - main
     paths: &extension_paths
       - 'src/**'
       - 'l10n/**'
@@ -52,3 +52,6 @@ jobs:
 
       - name: Unit tests
         run: npm run test:unit
+
+      - name: Extension-host tests (Java stub)
+        run: xvfb-run -a npm run test:vscode
