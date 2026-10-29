@@ -93,20 +93,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ steps.release.outputs.tag_name }}" "${{ steps.pkg.outputs.vsix }}" --clobber
 
-      - name: Publish to VS Code Marketplace (optional)
+      - name: Publish to VS Code Marketplace
+        id: marketplace
         if: ${{ steps.release.outputs.release_created == 'true' }}
+        continue-on-error: true
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         shell: bash
         run: |
           if [[ -z "${VSCE_PAT}" ]]; then
-            echo "VSCE_PAT not set; skipping publish"
-            exit 0
+            echo "VSCE_PAT is not configured" >&2
+            exit 1
           fi
           vsce publish --packagePath "${{ steps.pkg.outputs.vsix }}" -p "${VSCE_PAT}"
 
       - name: Publish to Open VSX
+        id: openvsx
         if: ${{ steps.release.outputs.release_created == 'true' }}
+        continue-on-error: true
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         shell: bash
@@ -116,3 +120,7 @@ jobs:
             exit 1
           fi
           npx --yes ovsx@1.0.2 publish "${{ steps.pkg.outputs.vsix }}" -p "${OVSX_PAT}"
+
+      - name: Check publish results
+        if: ${{ always() && (steps.marketplace.outcome == 'failure' || steps.openvsx.outcome == 'failure') }}
+        run: exit 1
