@@ -1,4 +1,11 @@
 # Changelog
+## [0.14.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.14.0...v0.14.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* enable Prettier checks and format TypeScript sources ([#182](https://github.com/shblue21/vscode-spotbugs/issues/182)) ([dc6c1d4](https://github.com/shblue21/vscode-spotbugs/commit/dc6c1d4eb50af94d00aa1796a2f1dc4553cb382a))
+
 ## [0.14.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.13.0...v0.14.0) (2026-10-28)
 
 
