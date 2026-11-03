@@ -1,10 +1,7 @@
-import type * as vscode from 'vscode';
-
 type Localize = (message: string, ...args: Array<string | number | boolean>) => string;
 
 export type LocalizationApi = {
   l10n: { t: Localize };
-  readonly vscodeL10nType?: typeof vscode.l10n;
 };
 
 export const fallbackLocalizationApi: LocalizationApi = {
