@@ -8,7 +8,7 @@ import type { AnalysisError } from '../model/analysisProtocol';
 export type PluginConfigurationReader = Pick<Config, 'getConfiguredPlugins'> &
   Partial<Pick<Config, 'getPluginConfigurationError'>>;
 
-export interface PluginInventoryRequest {
+interface PluginInventoryRequest {
   plugins: string[];
 }
 
@@ -18,7 +18,7 @@ export type PluginInventoryStatus =
   | 'validation-failed'
   | 'backend-error';
 
-export interface DetectorInventoryItem {
+interface DetectorInventoryItem {
   className: string;
   defaultEnabled: boolean;
   reports: string[];
@@ -50,16 +50,14 @@ export interface PluginInventoryResult {
   errors?: AnalysisError[];
 }
 
-export async function runPluginInventory(
-  request: PluginInventoryRequest,
-): Promise<string | undefined> {
+async function runPluginInventory(request: PluginInventoryRequest): Promise<string | undefined> {
   return executeWorkspaceCommand<string>(
     SpotBugsLSCommands.PLUGIN_INVENTORY,
     JSON.stringify(request),
   );
 }
 
-export type PluginInventoryParseResult =
+type PluginInventoryParseResult =
   | { ok: true; value: PluginInventoryResult }
   | { ok: false; message: string };
 

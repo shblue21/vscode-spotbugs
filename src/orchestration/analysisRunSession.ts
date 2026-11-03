@@ -20,12 +20,12 @@ import { buildWorkspaceCompletionNotices } from './workspaceSummary';
 
 const ERROR_ANALYSIS_CANCELLED = 'ANALYSIS_CANCELLED';
 
-export interface AnalysisLogger {
+interface AnalysisLogger {
   log(message: string): void;
   error(message: string, error?: unknown): void;
 }
 
-export interface AnalysisProgressReporter {
+interface AnalysisProgressReporter {
   report(value: { message?: string; increment?: number }): void;
 }
 
@@ -33,13 +33,13 @@ export type AnalysisProgressRunner = (
   task: (progress: AnalysisProgressReporter, token: CancellationToken) => Promise<void>,
 ) => Promise<void>;
 
-export interface FileAnalysisSessionTree {
+interface FileAnalysisSessionTree {
   showLoading(): void;
   showResults(findings: Finding[], resource: Uri, reportRuns: AnalysisReportRun[]): void;
   showAnalysisFailure(message: string, code?: string): void;
 }
 
-export interface WorkspaceAnalysisSessionTree {
+interface WorkspaceAnalysisSessionTree {
   showAnalysisFailure(message: string, code?: string): void;
   showWorkspaceProgress(projectUris: string[]): void;
   updateProjectStatus(
@@ -51,12 +51,12 @@ export interface WorkspaceAnalysisSessionTree {
   showWorkspaceResults(projectResults: ProjectResult[], workspaceFolder: Uri): void;
 }
 
-export interface AnalysisSessionDiagnostics {
+interface AnalysisSessionDiagnostics {
   replaceForScope(scope: DiagnosticUpdateScope, findings: Finding[]): void;
   replaceAll(findings: Finding[]): void;
 }
 
-export interface WorkspaceProgressCallbacks {
+interface WorkspaceProgressCallbacks {
   onStart?: (uriString: string, index: number, total: number) => void;
   onDone?: (uriString: string, count: number) => void;
   onFail?: (uriString: string, message: string) => void;
@@ -288,7 +288,7 @@ async function runWorkspaceBody(args: RunWorkspaceAnalysisSessionArgs): Promise<
   );
 }
 
-export function messageFromUnknown(error: unknown): string {
+function messageFromUnknown(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message.trim();
   }
@@ -329,7 +329,7 @@ function isAnalysisCancelledProjectResult(result: ProjectResult): boolean {
 }
 
 /** Shared lease and terminal-failure boundary; scope-specific functions only prepare/present. */
-export async function runAnalysisSession(
+async function runAnalysisSession(
   args:
     | { kind: 'resource'; value: RunFileAnalysisSessionArgs }
     | { kind: 'workspace'; value: RunWorkspaceAnalysisSessionArgs },

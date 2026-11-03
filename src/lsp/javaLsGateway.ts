@@ -8,7 +8,7 @@ export interface JavaLsClasspathResponse {
   modulepaths: string[];
 }
 
-export interface JavaLsProjectSettingsResponse {
+interface JavaLsProjectSettingsResponse {
   settings: Record<string, unknown>;
   declaredSourceOutputs: Record<string, string>;
 }

@@ -2,7 +2,7 @@ import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisNotice, AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 
-export interface BuildAnalysisNoticeOptions {
+interface BuildAnalysisNoticeOptions {
   includeHints?: boolean;
   resolutionIssues?: AnalysisResolutionIssue[];
 }

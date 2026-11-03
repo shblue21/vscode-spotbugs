@@ -4,9 +4,9 @@ import { ensureJavaCommandsAvailable } from '../core/utils';
 import { Logger } from '../core/logger';
 import { requestWorkspaceBuild } from '../lsp/javaLsGateway';
 
-export type BuildMode = 'auto' | 'incremental' | 'full';
+type BuildMode = 'auto' | 'incremental' | 'full';
 
-export interface BuildWorkspaceOptions {
+interface BuildWorkspaceOptions {
   mode?: BuildMode;
   ensureCommands?: boolean;
 }

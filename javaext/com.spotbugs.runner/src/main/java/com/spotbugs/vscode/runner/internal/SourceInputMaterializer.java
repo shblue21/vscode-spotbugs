@@ -25,11 +25,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 public class SourceInputMaterializer {
 
     public List<String> resolveTargets(String[] inputs, List<File> targetResolutionRootDirs) throws IOException {
-        return resolveTargets(inputs, targetResolutionRootDirs, null);
-    }
-
-    public List<String> resolveTargets(String[] inputs, List<File> targetResolutionRootDirs, IProgressMonitor monitor) throws IOException {
-        return resolveTargets(inputs, targetResolutionRootDirs, null, monitor);
+        return resolveTargets(inputs, targetResolutionRootDirs, null, null);
     }
 
     public List<String> resolveTargets(

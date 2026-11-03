@@ -4,7 +4,7 @@ import { Finding } from '../model/finding';
 import { formatFindingSummary, rankToSeverity } from '../formatters/findingFormatting';
 import { toFindingFacets } from './findingFacets';
 
-export interface FindingItemViewProps {
+interface FindingItemViewProps {
   label: string;
   description: string;
   tooltip: string;

@@ -21,18 +21,18 @@ export interface FindingResultGroup {
   children: FindingResultNode[];
 }
 
-export interface FindingResultLeaf {
+interface FindingResultLeaf {
   type: 'finding';
   finding: Finding;
 }
 
-export interface ResultViewState {
+interface ResultViewState {
   searchQuery: string;
   groupBy: FindingGroupKind;
   sortBy: FindingSortKind;
 }
 
-export interface ResultView {
+interface ResultView {
   visibleFindings: Finding[];
   nodes: FindingResultNode[];
 }

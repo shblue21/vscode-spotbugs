@@ -11,14 +11,11 @@ import { projectResultFromOutcome, type ProjectResult } from './projectResult';
 import { planAnalysis } from './analysisPlanner';
 import { NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE } from '../workspace/analysisTargetCodes';
 
-export { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
-export type { ProjectResult } from './projectResult';
-
 export interface ProjectCleanupWarning {
   projectUri: string;
   warning: AnalysisWarning;
 }
-export interface AnalysisExecutionContext {
+interface AnalysisExecutionContext {
   resolutionIssues: AnalysisResolutionIssue[];
   cleanupWarnings?: ProjectCleanupWarning[];
   diagnosticScope?: DiagnosticUpdateScope;
@@ -34,12 +31,12 @@ export interface WorkspaceExecutionResult {
   cancelled?: boolean;
   context: AnalysisExecutionContext;
 }
-export interface AnalysisProgressCallbacks {
+interface AnalysisProgressCallbacks {
   onStart?: (uri: string, index: number, total: number) => void;
   onDone?: (uri: string, count: number) => void;
   onFail?: (uri: string, message: string) => void;
 }
-export interface PlanExecutionResult extends WorkspaceExecutionResult {
+interface PlanExecutionResult extends WorkspaceExecutionResult {
   outcomes: Array<{
     selectionIndex: number;
     outcome: AnalysisOutcome;

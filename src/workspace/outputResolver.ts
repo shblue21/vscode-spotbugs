@@ -18,9 +18,9 @@ const DEFAULT_OUTPUT_DIRS = [
   'classes',
 ];
 
-export type OutputTargetPredicate = (targetPath: string) => Promise<boolean>;
+type OutputTargetPredicate = (targetPath: string) => Promise<boolean>;
 
-export interface OutputFolderCandidate {
+interface OutputFolderCandidate {
   targetPath: string;
   relativePath?: string;
   index: number;

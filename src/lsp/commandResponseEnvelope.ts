@@ -1,6 +1,6 @@
 import type { AnalysisError } from '../model/analysisProtocol';
 
-export interface DecodedCommandResponseEnvelope {
+interface DecodedCommandResponseEnvelope {
   envelope: Record<string, unknown>;
   results?: unknown[];
   errors?: AnalysisError[];

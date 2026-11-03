@@ -143,7 +143,7 @@ export function groupKeyFor(kind: FindingGroupKind, facets: FindingFacets): stri
   return facets.ruleKey === 'Unknown rule' ? MISSING_GROUP_KEYS.rule : facets.ruleKey;
 }
 
-export function normalizePriority(
+function normalizePriority(
   rawPriority?: string,
   rank?: number,
 ): {

@@ -1,22 +1,22 @@
 import type { Uri } from 'vscode';
 
-export interface PathAnalysisInput {
+interface PathAnalysisInput {
   kind: 'source' | 'artifact';
   path: string;
   resolutionRoots?: readonly string[] | null;
   sourceOutputs?: Readonly<Record<string, string>> | null;
 }
 
-export interface AnalysisEnvironment {
+interface AnalysisEnvironment {
   runtimeClasspaths?: readonly string[] | null;
 }
 
-export interface SourceLookupContext {
+interface SourceLookupContext {
   preferredResource?: Uri;
   roots?: readonly string[] | null;
 }
 
-export interface AnalysisExecutionOptions {
+interface AnalysisExecutionOptions {
   includeBaselineXml?: boolean;
 }
 

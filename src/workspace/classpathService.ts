@@ -2,8 +2,7 @@ import type { ClasspathLookupOutcome } from '../lsp/javaLsOutcome';
 import { lookupJavaProjectClasspath, type ClasspathLookupOptions } from './classpathCommandRunner';
 import type { ClasspathResult, ProjectRef } from './classpathTypes';
 
-export type { ClasspathLookupOptions } from './classpathCommandRunner';
-export type { ClasspathScope, ProjectRef } from './classpathTypes';
+export type { ClasspathScope } from './classpathTypes';
 
 export function getClasspathsOutcome(
   project?: ProjectRef,

@@ -266,7 +266,7 @@ export function workspaceExcludePathsWithSuppression(
     : [...paths, path.basename(filePath)];
 }
 
-export function isExcludeFilterConfigured(
+function isExcludeFilterConfigured(
   rawPaths: unknown,
   filePath: string,
   workspaceRoot: string,

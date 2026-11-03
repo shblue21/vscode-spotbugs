@@ -19,30 +19,30 @@ import { containsMatchingFile } from './fileTraversal';
 import { isPathInsideOrEqual, pathComparisonKey, relativePath, uniquePaths } from './pathIdentity';
 import { getProjectRootPaths } from './projectDiscovery';
 
-export interface AnalysisTarget {
+interface AnalysisTarget {
   unit: AnalysisExecutionUnit;
   diagnosticScope?: DiagnosticUpdateScope;
 }
 
-export interface TargetResolutionOk {
+interface TargetResolutionOk {
   status: 'ok';
   target: AnalysisTarget;
 }
 
-export interface TargetResolutionFailure {
+interface TargetResolutionFailure {
   status: 'no-class-targets';
   errorCode: string;
   message: string;
 }
 
-export type TargetResolution = TargetResolutionOk | TargetResolutionFailure;
+type TargetResolution = TargetResolutionOk | TargetResolutionFailure;
 
-export interface TargetResolutionResult {
+interface TargetResolutionResult {
   resolution: TargetResolution;
   issues: AnalysisResolutionIssue[];
 }
 
-export interface TargetResolverDeps {
+interface TargetResolverDeps {
   getClasspathsOutcome: typeof getClasspathsOutcome;
   findOutputFolderFromProject: typeof findOutputFolderFromProject;
   hasClassTargets: typeof hasClassTargets;
