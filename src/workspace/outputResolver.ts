@@ -22,7 +22,6 @@ type OutputTargetPredicate = (targetPath: string) => Promise<boolean>;
 
 interface OutputFolderCandidate {
   targetPath: string;
-  relativePath?: string;
   index: number;
 }
 
@@ -55,7 +54,6 @@ export async function findOutputFolderFromProject(
   const candidates = orderOutputFolderCandidates(
     DEFAULT_OUTPUT_DIRS.map((relativePath, index) => ({
       targetPath: path.join(projectRoot, relativePath),
-      relativePath,
       index,
     })),
     options,

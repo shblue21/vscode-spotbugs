@@ -35,12 +35,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.eclipse.tycho</groupId>
-                <artifactId>tycho-maven-plugin</artifactId>
-                <version>${tycho-version}</version>
-                <extensions>true</extensions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.1</version>
