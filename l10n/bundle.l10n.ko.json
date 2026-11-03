@@ -179,5 +179,6 @@
   "Enabled by default": "기본 활성화",
   "Disabled by default": "기본 비활성화",
   "Unresolved configured detector": "확인할 수 없는 설정된 detector",
-  "Configure SpotBugs detectors": "SpotBugs detector 설정"
+  "Configure SpotBugs detectors": "SpotBugs detector 설정",
+  "Analysis cancelled": "분석이 취소되었습니다."
 }
