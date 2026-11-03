@@ -4,10 +4,7 @@ import { Finding } from '../model/finding';
 import { resolveSourceFullPath } from './pathResolver';
 import { getWorkspaceRootPath } from './workspaceRoots';
 
-export function getBestEffortFilePath(
-  finding: Finding,
-  workspaceRootPath?: string,
-): string | undefined {
+function getBestEffortFilePath(finding: Finding, workspaceRootPath?: string): string | undefined {
   const filePath =
     finding.location.fullPath || finding.location.realSourcePath || finding.location.sourceFile;
   if (!filePath) {

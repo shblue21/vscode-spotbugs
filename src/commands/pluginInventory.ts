@@ -23,7 +23,7 @@ import {
   type PluginInventoryServiceDeps,
 } from '../services/pluginInventoryService';
 
-export interface PluginInventoryView {
+interface PluginInventoryView {
   showInventory(result: PluginInventoryResult): void;
 }
 

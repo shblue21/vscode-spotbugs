@@ -2,7 +2,7 @@ import { Finding } from './finding';
 import { AnalysisError, AnalysisStats, AnalysisWarning } from './analysisProtocol';
 import type { AnalysisReportSummary } from './analysisReport';
 
-export type AnalysisNoticeLevel = 'info' | 'warn' | 'error';
+type AnalysisNoticeLevel = 'info' | 'warn' | 'error';
 
 export interface AnalysisNotice {
   level: AnalysisNoticeLevel;
@@ -10,9 +10,9 @@ export interface AnalysisNotice {
   message: string;
 }
 
-export type AnalysisFailureKind = 'target' | 'invalid-json' | 'analysis-error';
+type AnalysisFailureKind = 'target' | 'invalid-json' | 'analysis-error';
 
-export interface AnalysisFailure {
+interface AnalysisFailure {
   kind: AnalysisFailureKind;
   level: AnalysisNoticeLevel;
   message: string;

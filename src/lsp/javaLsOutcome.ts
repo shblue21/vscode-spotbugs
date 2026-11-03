@@ -1,6 +1,6 @@
 import type { ClasspathResult } from '../workspace/classpathTypes';
 
-export type AnalysisResolutionIssueCode =
+type AnalysisResolutionIssueCode =
   | 'JAVA_LS_REQUEST_FAILED'
   | 'JAVA_LS_NO_RESULT'
   | 'JAVA_LS_EMPTY_PROJECT_LIST'

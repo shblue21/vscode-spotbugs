@@ -3,7 +3,7 @@ import { Bug } from '../model/bug';
 import type { AnalysisReportSummary } from '../model/analysisReport';
 import { decodeCommandResponseEnvelope, normalizeCommandIssues } from './commandResponseEnvelope';
 
-export interface ParseError {
+interface ParseError {
   message: string;
   cause?: unknown;
 }

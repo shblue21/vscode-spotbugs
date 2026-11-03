@@ -4,7 +4,7 @@ import { Logger } from '../core/logger';
 import { defaultNotifier } from '../core/notifier';
 import { resolveFindingFilePath } from '../workspace/findingLocator';
 
-export interface RevealFindingSourceOptions {
+interface RevealFindingSourceOptions {
   preserveFocus?: boolean;
   preview?: boolean;
   isCurrentRequest?: () => boolean;

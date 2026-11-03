@@ -55,7 +55,7 @@ export interface SuppressionPlan {
   additionalCount: number;
 }
 
-export type SuppressionPlanResult =
+type SuppressionPlanResult =
   | { ok: true; value: SuppressionPlan }
   | { ok: false; unsupportedCount: number };
 
@@ -112,7 +112,7 @@ export function createSuppressionPlan(
   };
 }
 
-export function matchesSuppressionRule(finding: Finding, rule: SuppressionRule): boolean {
+function matchesSuppressionRule(finding: Finding, rule: SuppressionRule): boolean {
   if (finding.type?.trim() !== rule.pattern || finding.className?.trim() !== rule.className) {
     return false;
   }
@@ -181,7 +181,7 @@ function serializeSuppressionBlock(rule: SuppressionRule): string {
   return `${lines.join('\n')}\n`;
 }
 
-export function serializeManagedSuppressionFile(blocks: string[]): string {
+function serializeManagedSuppressionFile(blocks: string[]): string {
   return `${FILE_PREFIX}${blocks.join('')}${FILE_SUFFIX}`;
 }
 

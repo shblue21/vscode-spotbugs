@@ -8,13 +8,13 @@ import {
 import { FindingInspectorState } from './findingInspectorState';
 import { Finding, getFindingSourcePath } from '../model/finding';
 
-export interface FindingSourcePreviewOptions {
+interface FindingSourcePreviewOptions {
   preserveFocus?: boolean;
   preview?: boolean;
   isCurrentRequest: () => boolean;
 }
 
-export interface FindingInspectorTreeBindingOptions {
+interface FindingInspectorTreeBindingOptions {
   revealSourceOnSelection?: () => boolean;
   revealFindingSource?: (
     finding: Finding,

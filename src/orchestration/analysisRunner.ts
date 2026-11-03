@@ -14,7 +14,7 @@ import { getPrimaryWorkspaceFolder } from '../workspace/workspaceRoots';
 import * as analysisRunSession from './analysisRunSession';
 import { AnalysisRunCoordinator, type AnalysisRunLease } from './analysisRunCoordinator';
 
-export interface RunFileAnalysisArgs {
+interface RunFileAnalysisArgs {
   config: Config;
   tree: SpotBugsTreeDataProvider;
   diagnostics: SpotBugsDiagnosticsManager;
@@ -25,7 +25,7 @@ export interface RunFileAnalysisArgs {
   lease?: AnalysisRunLease;
 }
 
-export interface RunWorkspaceAnalysisArgs {
+interface RunWorkspaceAnalysisArgs {
   config: Config;
   tree: SpotBugsTreeDataProvider;
   diagnostics: SpotBugsDiagnosticsManager;
