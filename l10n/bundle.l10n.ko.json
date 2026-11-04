@@ -179,5 +179,6 @@
   "Disabled by default": "기본 비활성화",
   "Unresolved configured detector": "확인할 수 없는 설정된 detector",
   "Configure SpotBugs detectors": "SpotBugs detector 설정",
-  "Analysis cancelled": "분석이 취소되었습니다."
+  "Analysis cancelled": "분석이 취소되었습니다.",
+  "Could not register the suppression file {0} in the filter settings. The file has been kept. Resolve the settings error and retry the same selection, or add the file from the Filters view. Details: {1}": "억제 파일 {0}을 필터 설정에 등록하지 못했습니다. 파일은 보존되었습니다. 설정 오류를 해결한 뒤 같은 항목으로 다시 시도하거나 Filters 보기에서 파일을 추가하세요. 오류 내용: {1}"
 }

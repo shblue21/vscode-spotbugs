@@ -144,6 +144,39 @@ describe('suppress findings command', () => {
     assert.deepStrictEqual(events, ['preview', 'register']);
   });
 
+  it('distinguishes save and registration errors without reporting success', async () => {
+    for (const failedStep of ['write', 'register']) {
+      const events: string[] = [];
+      const errors: string[] = [];
+      const step = async (name: string) => {
+        events.push(name);
+        if (name === failedStep) throw new Error('Access denied');
+      };
+      vscode.window.showErrorMessage = async (message: string) => {
+        errors.push(message);
+        return undefined;
+      };
+      await runCommand({
+        writeFile: () => step('write'),
+        ensureExcludeFilterConfigured: () => step('register'),
+        notifySaved: async () => {
+          events.push('saved');
+          return true;
+        },
+      });
+      assert.deepStrictEqual(events, failedStep === 'write' ? ['write'] : ['write', 'register']);
+      assert.strictEqual(errors.length, 1);
+      if (failedStep === 'write') {
+        assert.strictEqual(errors[0], 'Could not update SpotBugs suppressions: Access denied');
+      } else {
+        assert.ok(errors[0].includes('/workspace/spotbugs-suppressions.xml'));
+        assert.ok(errors[0].includes('The file has been kept.'));
+        assert.ok(errors[0].includes('Filters view'));
+        assert.ok(errors[0].includes('Access denied'));
+      }
+    }
+  });
+
   it('preserves effective filters when adding the workspace suppression path', () => {
     const existing = [' filters/existing.xml ', '/outside/filter.xml'];
     assert.deepStrictEqual(

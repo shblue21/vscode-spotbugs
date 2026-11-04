@@ -124,9 +124,22 @@ async function runSuppressFindings(
         ...additions,
       ]);
     }
-    await deps.ensureExcludeFilterConfigured(file.filePath, workspaceRoots[0]);
   } catch (error) {
     await window.showErrorMessage(formatSuppressionFileError(error));
+    return;
+  }
+
+  try {
+    await deps.ensureExcludeFilterConfigured(file.filePath, workspaceRoots[0]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await window.showErrorMessage(
+      l10n.t(
+        'Could not register the suppression file {0} in the filter settings. The file has been kept. Resolve the settings error and retry the same selection, or add the file from the Filters view. Details: {1}',
+        file.filePath,
+        message,
+      ),
+    );
     return;
   }
 

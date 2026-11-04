@@ -59,7 +59,7 @@ describe('spotbugsTreeDataProvider', () => {
         {
           projectUri: 'file:///workspace/project-b',
           findings: [],
-          error: 'SpotBugs could not build the project.',
+          error: 'SpotBugs could not find compiled classes to analyze.',
           errorCode: 'no-class-targets',
         },
       ],
@@ -75,7 +75,10 @@ describe('spotbugsTreeDataProvider', () => {
       'Failed: SpotBugs analysis failed: [ANALYSIS_FAILED] boom',
     );
     assert.strictEqual(children[1].label, 'project-b');
-    assert.strictEqual(children[1].description, 'Skipped: SpotBugs could not build the project.');
+    assert.strictEqual(
+      children[1].description,
+      'Skipped: SpotBugs could not find compiled classes to analyze.',
+    );
     assert.ok(!children.some((item) => item.label === 'No issues found.'));
     assert.deepStrictEqual(provider.getCachedFindings(), []);
     assert.deepStrictEqual(provider.getAllFindings(), []);

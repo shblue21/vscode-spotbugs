@@ -179,5 +179,6 @@
   "Disabled by default": "Disabled by default",
   "Unresolved configured detector": "Unresolved configured detector",
   "Configure SpotBugs detectors": "Configure SpotBugs detectors",
-  "Analysis cancelled": "Analysis cancelled"
+  "Analysis cancelled": "Analysis cancelled",
+  "Could not register the suppression file {0} in the filter settings. The file has been kept. Resolve the settings error and retry the same selection, or add the file from the Filters view. Details: {1}": "Could not register the suppression file {0} in the filter settings. The file has been kept. Resolve the settings error and retry the same selection, or add the file from the Filters view. Details: {1}"
 }
