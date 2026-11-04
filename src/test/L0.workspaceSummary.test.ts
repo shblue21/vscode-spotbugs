@@ -12,11 +12,11 @@ function makeProjectResult(overrides: Partial<ProjectResult> = {}): ProjectResul
 }
 
 describe('workspaceSummary', () => {
-  it('returns the existing build warning when all projects are skipped', () => {
+  it('reports missing compiled classes when all projects are skipped', () => {
     const notices = buildWorkspaceCompletionNotices(
       [
-        makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
-        makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
+        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
+        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
       0,
     );
@@ -24,7 +24,8 @@ describe('workspaceSummary', () => {
     assert.deepStrictEqual(notices, [
       {
         level: 'warn',
-        message: 'SpotBugs could not build the project. Run a manual build, then try again.',
+        message:
+          'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.',
       },
     ]);
   });
@@ -33,7 +34,7 @@ describe('workspaceSummary', () => {
     const notices = buildWorkspaceCompletionNotices(
       [
         makeProjectResult({ findings: [{ patternId: 'X', location: {} }] }),
-        makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
+        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
       1,
     );
@@ -42,7 +43,7 @@ describe('workspaceSummary', () => {
       {
         level: 'warn',
         message:
-          'SpotBugs skipped 1 project because the build failed. Run a manual build, then try again.',
+          'SpotBugs skipped 1 project because no compiled classes were found. Run a manual build, then try again.',
       },
       {
         level: 'info',
@@ -73,7 +74,7 @@ describe('workspaceSummary', () => {
     const notices = buildWorkspaceCompletionNotices(
       [
         makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
-        makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
+        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
       0,
     );
@@ -82,7 +83,7 @@ describe('workspaceSummary', () => {
       {
         level: 'error',
         message:
-          'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because the build failed. See the SpotBugs view for project errors.',
+          'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because no compiled classes were found. See the SpotBugs view for project errors.',
       },
     ]);
   });
@@ -91,7 +92,7 @@ describe('workspaceSummary', () => {
     const notices = buildWorkspaceCompletionNotices(
       [
         makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
-        makeProjectResult({ error: 'build failed', errorCode: NO_CLASS_TARGETS_CODE }),
+        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
       ],
       0,
       [
@@ -116,7 +117,7 @@ describe('workspaceSummary', () => {
       {
         level: 'error',
         message:
-          'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because the build failed. See the SpotBugs view for project errors.',
+          'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because no compiled classes were found. See the SpotBugs view for project errors.',
       },
     ]);
   });

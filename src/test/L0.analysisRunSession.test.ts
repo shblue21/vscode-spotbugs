@@ -742,7 +742,8 @@ describe('analysisRunSession workspace analysis', () => {
           {
             projectUri: 'file:///workspace/project-a',
             findings: [],
-            error: 'SpotBugs could not build the project. Run a manual build, then try again.',
+            error:
+              'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.',
             errorCode: 'no-class-targets',
           },
         ],
@@ -760,13 +761,14 @@ describe('analysisRunSession workspace analysis', () => {
         {
           projectUri: 'file:///workspace/project-a',
           findings: [],
-          error: 'SpotBugs could not build the project. Run a manual build, then try again.',
+          error:
+            'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.',
           errorCode: 'no-class-targets',
         },
       ],
     ]);
     assert.deepStrictEqual(harness.warnings, [
-      'SpotBugs could not build the project. Run a manual build, then try again.',
+      'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.',
     ]);
   });
 

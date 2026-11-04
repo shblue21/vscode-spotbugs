@@ -31,13 +31,13 @@ export function buildWorkspaceCompletionNotices(
     notices.push({
       level: 'warn',
       message:
-        'SpotBugs could not build the project. Run a manual build, then try again.' +
+        'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.' +
         cleanupWarningSentence,
     });
   } else if (failedCount > 0) {
     const skippedSentence =
       skippedCount > 0
-        ? ` ${formatProjectCount(skippedCount)} skipped because the build failed.`
+        ? ` ${formatProjectCount(skippedCount)} skipped because no compiled classes were found.`
         : '';
 
     if (succeededCount === 0) {
@@ -69,7 +69,7 @@ export function buildWorkspaceCompletionNotices(
       notices.push({
         level: 'warn',
         message:
-          `SpotBugs skipped ${formatProjectCount(skippedCount)} because the build failed. ` +
+          `SpotBugs skipped ${formatProjectCount(skippedCount)} because no compiled classes were found. ` +
           'Run a manual build, then try again.' +
           cleanupWarningSentence,
       });
