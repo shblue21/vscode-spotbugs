@@ -1,4 +1,4 @@
-import type { CancellationToken, Uri, WorkspaceFolder } from 'vscode';
+import { l10n, type CancellationToken, type Uri, type WorkspaceFolder } from 'vscode';
 import type { Config } from '../core/config';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import type { Notifier } from '../core/notifier';
@@ -122,7 +122,7 @@ async function runFileBody(args: RunFileAnalysisSessionArgs): Promise<void> {
       args.lease.token?.isCancellationRequested ||
       build === JavaCompileWorkspaceStatus.cancelled
     ) {
-      args.tree.showAnalysisFailure('Analysis cancelled', ERROR_ANALYSIS_CANCELLED);
+      args.tree.showAnalysisFailure(l10n.t('Analysis cancelled'), ERROR_ANALYSIS_CANCELLED);
       return;
     }
   }
@@ -140,7 +140,12 @@ async function runFileBody(args: RunFileAnalysisSessionArgs): Promise<void> {
   const findings = outcome.findings;
 
   if (outcome.failure) {
-    args.tree.showAnalysisFailure(outcome.failure.message, outcome.failure.code);
+    args.tree.showAnalysisFailure(
+      outcome.failure.code === ERROR_ANALYSIS_CANCELLED
+        ? l10n.t('Analysis cancelled')
+        : outcome.failure.message,
+      outcome.failure.code,
+    );
   } else {
     args.tree.showResults(findings, args.uri, result.reportRuns);
     args.diagnostics.replaceForScope(
@@ -298,12 +303,14 @@ function messageFromUnknown(error: unknown): string {
 
 function emitNotices(notifier: Notifier, notices: AnalysisNotice[]): void {
   for (const notice of notices) {
+    const message =
+      notice.code === ERROR_ANALYSIS_CANCELLED ? l10n.t('Analysis cancelled') : notice.message;
     if (notice.level === 'error') {
-      notifier.error(notice.message);
+      notifier.error(message);
     } else if (notice.level === 'warn') {
-      notifier.warn(notice.message);
+      notifier.warn(message);
     } else {
-      notifier.info(notice.message);
+      notifier.info(message);
     }
   }
 }

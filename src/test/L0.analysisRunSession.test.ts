@@ -1,9 +1,5 @@
 import * as assert from 'assert';
 import type { CancellationToken, Uri } from 'vscode';
-import {
-  runFileAnalysisSession,
-  runWorkspaceAnalysisSession,
-} from '../orchestration/analysisRunSession';
 import type {
   AnalysisProgressRunner,
   AnalysisSessionDependencies,
@@ -21,6 +17,8 @@ import { JavaCompileWorkspaceStatus } from '../constants/commands';
 import { installVscodeMock, resetVscodeMock } from './helpers/mockVscode';
 
 installVscodeMock();
+const { runFileAnalysisSession, runWorkspaceAnalysisSession } =
+  require('../orchestration/analysisRunSession') as typeof import('../orchestration/analysisRunSession');
 
 function createCurrentLease(token?: CancellationToken): AnalysisRunLease {
   return { token, isCurrent: () => true, cancel: () => undefined };
@@ -294,6 +292,16 @@ describe('analysisRunSession file analysis', () => {
       'log:File analysis finished: elapsedMs=125, file=/workspace/src/Foo.java, findings=0',
     ]);
     assert.deepStrictEqual(errors, ['SpotBugs analysis failed: [ANALYSIS_FAILED] boom']);
+
+    const cancelled = await deps.analyzeFileDetailed(args.config, args.uri);
+    cancelled.outcome.failure!.code = 'ANALYSIS_CANCELLED';
+    deps.analyzeFileDetailed = async () => cancelled;
+    installVscodeMock().l10n.t = (message: string) =>
+      message === 'Analysis cancelled' ? '분석이 취소되었습니다.' : message;
+    calls.length = errors.length = 0;
+    await runFileAnalysisSession(args);
+    assert.strictEqual(calls[1], 'failure:ANALYSIS_CANCELLED:분석이 취소되었습니다.');
+    assert.deepStrictEqual(errors, ['분석이 취소되었습니다.']);
   });
 
   it('renders unexpected file analysis exceptions as failure state', async () => {
