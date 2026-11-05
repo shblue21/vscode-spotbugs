@@ -52,50 +52,56 @@ describe('workspaceSummary', () => {
     ]);
   });
 
-  it('returns a warning summary when some projects fail but successful ones still produce results', () => {
-    const notices = buildWorkspaceCompletionNotices(
-      [
-        makeProjectResult({ findings: [{ patternId: 'X', location: {} }] }),
-        makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
-      ],
-      1,
-    );
-
-    assert.deepStrictEqual(notices, [
+  it('keeps partial-success summaries with and without Java LS notices', () => {
+    const makeProjects = () => [
+      makeProjectResult({ findings: [{ patternId: 'X', location: {} }] }),
+      makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
+    ];
+    const expectedSummary = [
       {
         level: 'warn',
         message:
           'SpotBugs: Workspace analysis completed with failures - 1 project failed. 1 issue found in successful projects.',
       },
-    ]);
+    ];
+    assert.deepStrictEqual(buildWorkspaceCompletionNotices(makeProjects(), 1), expectedSummary);
+    assert.deepStrictEqual(
+      buildWorkspaceCompletionNotices(makeProjects(), 1, [
+        {
+          code: 'JAVA_LS_REQUEST_FAILED',
+          level: 'warn',
+          source: 'java-ls',
+          phase: 'get-classpaths',
+          message: 'Java LS classpath lookup failed.',
+        },
+      ]),
+      [
+        ...expectedSummary,
+        {
+          level: 'warn',
+          code: 'JAVA_LS_REQUEST_FAILED',
+          message:
+            'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.',
+        },
+      ],
+    );
   });
 
-  it('returns an error summary when no projects succeed and at least one project fails', () => {
-    const notices = buildWorkspaceCompletionNotices(
-      [
-        makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
-        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
-      ],
-      0,
-    );
-
-    assert.deepStrictEqual(notices, [
+  it('keeps terminal failure summaries and suppresses Java LS notices', () => {
+    const makeProjects = () => [
+      makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
+      makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
+    ];
+    const expectedSummary = [
       {
         level: 'error',
         message:
           'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because no compiled classes were found. See the SpotBugs view for project errors.',
       },
-    ]);
-  });
-
-  it('suppresses degraded-success Java LS notices for terminal workspace failures', () => {
-    const notices = buildWorkspaceCompletionNotices(
-      [
-        makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
-        makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
-      ],
-      0,
-      [
+    ];
+    assert.deepStrictEqual(buildWorkspaceCompletionNotices(makeProjects(), 0), expectedSummary);
+    assert.deepStrictEqual(
+      buildWorkspaceCompletionNotices(makeProjects(), 0, [
         {
           code: 'JAVA_LS_REQUEST_FAILED',
           level: 'warn',
@@ -110,16 +116,9 @@ describe('workspaceSummary', () => {
           phase: 'get-classpaths',
           message: 'Java LS classpath lookup returned no usable result.',
         },
-      ],
+      ]),
+      expectedSummary,
     );
-
-    assert.deepStrictEqual(notices, [
-      {
-        level: 'error',
-        message:
-          'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because no compiled classes were found. See the SpotBugs view for project errors.',
-      },
-    ]);
   });
 
   it('returns the clean success summary when nothing failed and no findings were produced', () => {
@@ -186,39 +185,6 @@ describe('workspaceSummary', () => {
         code: 'JAVA_LS_EMPTY_PROJECT_LIST',
         message:
           'SpotBugs: No Java projects were reported by the Java Language Server; workspace-folder analysis was used.',
-      },
-    ]);
-  });
-
-  it('keeps degraded-success Java LS notices for non-terminal workspace outcomes', () => {
-    const notices = buildWorkspaceCompletionNotices(
-      [
-        makeProjectResult({ findings: [{ patternId: 'X', location: {} }] }),
-        makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
-      ],
-      1,
-      [
-        {
-          code: 'JAVA_LS_REQUEST_FAILED',
-          level: 'warn',
-          source: 'java-ls',
-          phase: 'get-classpaths',
-          message: 'Java LS classpath lookup failed.',
-        },
-      ],
-    );
-
-    assert.deepStrictEqual(notices, [
-      {
-        level: 'warn',
-        message:
-          'SpotBugs: Workspace analysis completed with failures - 1 project failed. 1 issue found in successful projects.',
-      },
-      {
-        level: 'warn',
-        code: 'JAVA_LS_REQUEST_FAILED',
-        message:
-          'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.',
       },
     ]);
   });

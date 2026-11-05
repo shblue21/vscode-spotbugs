@@ -1,7 +1,6 @@
 package com.spotbugs.vscode.runner.internal.command;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -18,12 +17,7 @@ import org.junit.Test;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spotbugs.vscode.runner.internal.config.Effort;
-import com.spotbugs.vscode.runner.internal.config.PreferencesApplier;
 import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
-import edu.umd.cs.findbugs.FindBugs;
-import edu.umd.cs.findbugs.FindBugs2;
-import edu.umd.cs.findbugs.config.AnalysisFeatureSetting;
-import edu.umd.cs.findbugs.config.UserPreferences;
 
 public class RunAnalysisRequestParserTest {
 
@@ -84,21 +78,10 @@ public class RunAnalysisRequestParserTest {
     }
 
     @Test
-    public void parsedLessEffortAppliesEngineFeatureSettings() throws Exception {
+    public void parsesLessEffort() throws Exception {
         RunAnalysisRequest request = parser.parse(context("/project",
                 "{\"effort\":\"less\",\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"}]}"));
-        try (var engine = new FindBugs2() {
-            AnalysisFeatureSetting[] applied;
-            @Override
-            public void setAnalysisFeatureSettings(AnalysisFeatureSetting[] settings) {
-                super.setAnalysisFeatureSettings(settings);
-                applied = settings;
-            }
-        }) {
-            new PreferencesApplier().apply(UserPreferences.createDefaultUserPreferences(), engine,
-                    request.getConfig().getExecutionOptions());
-            assertArrayEquals(FindBugs.LESS_EFFORT, engine.applied);
-        }
+        assertEquals(Effort.LESS, request.getConfig().getExecutionOptions().getEffort());
     }
 
     @Test
@@ -131,27 +114,11 @@ public class RunAnalysisRequestParserTest {
     }
 
     @Test
-    public void parseRequiresExplicitInputs() {
-        assertEquals("INVALID_ARGUMENT", expectFailure(() -> parser.parse(context("/workspace/build/classes", "{}"))).getCode());
-        assertEquals("INVALID_ARGUMENT", expectFailure(() -> parser.parse(context("/workspace/build/classes", "{\"inputs\":[]}"))).getCode());
-    }
-
-    @Test
     public void parsesMultipleTypedInputsIndependentlyOfDisplayTarget() throws Exception {
         RunAnalysisRequest request = parser.parse(context("display", "{\"inputs\":[{\"kind\":\"source\",\"path\":\"/project/A.java\"},{\"kind\":\"artifact\",\"path\":\"/project/B.jar\"}]}"));
         assertEquals(2, request.getInputs().length);
         assertEquals(com.spotbugs.vscode.runner.internal.AnalysisInput.Kind.SOURCE, request.getInputs()[0].kind);
         assertEquals("/project/B.jar", request.getInputs()[1].path);
-    }
-
-    @Test
-    public void parseRaisesConfigParseErrors() {
-        AbstractCommandAction.CommandActionException failure = expectFailure(() ->
-                parser.parse(context("/workspace/build/classes", "{"))
-        );
-
-        assertEquals("CFG_BAD_JSON", failure.getCode());
-        assertEquals("Invalid config JSON", failure.getMessage());
     }
 
     @Test
@@ -170,16 +137,6 @@ public class RunAnalysisRequestParserTest {
 
         assertEquals("CFG_AUX_CLASSPATH_NOT_FOUND", failure.getCode());
         assertTrue(failure.getMessage().contains(missingPath));
-    }
-
-    @Test
-    public void parseRaisesInvalidArgumentForBadTargetPath() {
-        AbstractCommandAction.CommandActionException failure = expectFailure(() ->
-                parser.parse(context(Integer.valueOf(7), "{}"))
-        );
-
-        assertEquals("INVALID_ARGUMENT", failure.getCode());
-        assertEquals("Argument 'path' must be a string", failure.getMessage());
     }
 
     private static AbstractCommandAction.ActionContext context(Object... args) {

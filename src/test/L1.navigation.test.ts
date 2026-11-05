@@ -40,15 +40,8 @@ describe('navigation', () => {
       ],
       [9, 0, 9, 0],
     );
-  });
-
-  it('can preview a selected finding source without stealing focus', async () => {
-    const shown = installDocumentCapture();
-    const { revealFindingSource } = await import('../commands/navigation');
-    const finding = makeFinding();
-
-    await revealFindingSource(finding, { preserveFocus: true, preview: true });
-
+    shown.length = 0;
+    await revealFindingSource(makeFinding(), { preserveFocus: true, preview: true });
     assert.strictEqual(shown.length, 1);
     assert.strictEqual(shown[0].uri.fsPath, '/tmp/Example.java');
     assert.strictEqual(shown[0].options.preserveFocus, true);
