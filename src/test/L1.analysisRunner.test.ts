@@ -302,32 +302,11 @@ describe('analysisRunner', () => {
       const builds = commandCalls.filter(([command]) => command === 'java.workspace.compile');
       assert.deepStrictEqual(builds, [['java.workspace.compile', false, token]]);
       assert.strictEqual(builds[0][2], token);
-    } finally {
-      restore();
-    }
-  });
-
-  it('uses the default notifier for delegated file analysis when omitted', async () => {
-    const vscode = installVscodeMock();
-    const notifierModule = require('../core/notifier') as typeof import('../core/notifier');
-    const { delegated, restore } = captureFileAnalysisSessions();
-
-    try {
-      const runner =
-        require('../orchestration/analysisRunner') as typeof import('../orchestration/analysisRunner');
-
-      await runner.runFileAnalysis({
-        config: { getAnalysisSettings: () => ({}) } as any,
-        tree: createNoopTree(),
-        diagnostics: createNoopDiagnostics(),
-        coordinator: new AnalysisRunCoordinator(),
-        uri: vscode.Uri.file('/workspace/src/Foo.java') as any,
-      });
-
-      assert.strictEqual(delegated.length, 1);
+      await runner.runFileAnalysis({ config, tree, diagnostics, coordinator, uri });
+      assert.strictEqual(delegated.length, 2);
       assert.strictEqual(
-        (delegated[0] as { notifier: unknown }).notifier,
-        notifierModule.defaultNotifier,
+        (delegated[1] as { notifier: unknown }).notifier,
+        require('../core/notifier').defaultNotifier,
       );
     } finally {
       restore();

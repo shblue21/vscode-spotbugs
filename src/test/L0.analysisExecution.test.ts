@@ -62,7 +62,6 @@ function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecut
     }),
     runSpotBugsAnalysis: async () =>
       JSON.stringify({
-        inputs: [],
         results: [],
       }),
     parseAnalysisResponse: () => ({
@@ -166,7 +165,7 @@ describe('analysisExecution', () => {
           },
           runSpotBugsAnalysis: async (request) => {
             backendCalls.push(request);
-            return JSON.stringify({ inputs: [], results: [] });
+            return JSON.stringify({ results: [] });
           },
         }),
       );
@@ -206,7 +205,6 @@ describe('analysisExecution', () => {
     };
     const target = makeTarget(vscode);
     const backendResponse = JSON.stringify({
-      inputs: [],
       results: [],
     });
     const payload = {
@@ -359,7 +357,6 @@ describe('analysisExecution', () => {
               durationMs: 9,
               spotbugsVersion: '4.9.8',
             },
-            inputs: [],
           },
         }),
       }),
@@ -403,7 +400,6 @@ describe('analysisExecution', () => {
             },
             reportSummary: { analyzedClassCount: 3 },
             nativeSarif: '{"version":"2.1.0","runs":[]}',
-            inputs: [],
           },
         }),
         mapBugsToFindings: () => [mappedFinding],
@@ -443,7 +439,7 @@ describe('analysisExecution', () => {
           backendSourcepaths = request.payload.sourcepaths;
           const roots = target.sourceLookup.roots as string[];
           roots.splice(0, roots.length, '/mutated');
-          return JSON.stringify({ inputs: [], results: [] });
+          return JSON.stringify({ results: [] });
         },
         parseAnalysisResponse: () => ({
           ok: true,

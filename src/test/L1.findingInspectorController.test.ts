@@ -9,21 +9,23 @@ describe('findingInspectorController', () => {
     resetVscodeMock();
   });
 
-  it('selects finding leaves and retains on category selection', async () => {
-    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
-      await createInspectorHarness();
-    const finding = makeFinding();
-    const leaf = new findingTreeItem.FindingItem(finding);
-    const pattern = new findingTreeItem.PatternGroupItem('NP_ALWAYS_NULL', [finding]);
-    const category = new findingTreeItem.CategoryGroupItem('CORRECTNESS', [pattern], 1);
+  it('selects finding leaves and retains on category and pattern selections', async () => {
+    for (const groupKind of ['category', 'pattern'] as const) {
+      const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
+        await createInspectorHarness();
+      const finding = makeFinding();
+      const pattern = new findingTreeItem.PatternGroupItem('NP_ALWAYS_NULL', [finding]);
+      const group =
+        groupKind === 'category'
+          ? new findingTreeItem.CategoryGroupItem('CORRECTNESS', [pattern], 1)
+          : pattern;
 
-    bindFindingInspectorToTree(tree.view, state);
-    await tree.fireSelection(leaf);
-    assert.strictEqual(state.current.status, 'selected');
-    assert.strictEqual(state.current.finding, finding);
-
-    await tree.fireSelection(category);
-    assertInspectorFinding(state.current, 'retained', finding);
+      bindFindingInspectorToTree(tree.view, state);
+      await tree.fireSelection(new findingTreeItem.FindingItem(finding));
+      assertInspectorFinding(state.current, 'selected', finding);
+      await tree.fireSelection(group);
+      assertInspectorFinding(state.current, 'retained', finding);
+    }
   });
 
   it('selects finding leaves then previews the finding source when enabled', async () => {
@@ -131,21 +133,6 @@ describe('findingInspectorController', () => {
     assert.strictEqual(state.current.status, 'selected');
     assert.strictEqual(state.current.finding, findingWithoutSource);
     assert.strictEqual(previewCount, 0);
-  });
-
-  it('retains current finding on pattern selection', async () => {
-    const { state, tree, findingTreeItem, bindFindingInspectorToTree } =
-      await createInspectorHarness();
-    const finding = makeFinding();
-    const leaf = new findingTreeItem.FindingItem(finding);
-    const pattern = new findingTreeItem.PatternGroupItem('NP_ALWAYS_NULL', [finding]);
-
-    bindFindingInspectorToTree(tree.view, state);
-    await tree.fireSelection(leaf);
-    await tree.fireSelection(pattern);
-
-    assert.strictEqual(state.current.status, 'retained');
-    assert.strictEqual(state.current.finding, finding);
   });
 
   it('retains current finding and stales preview on generic group selection', async () => {

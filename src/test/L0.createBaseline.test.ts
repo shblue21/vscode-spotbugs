@@ -84,29 +84,15 @@ describe('create baseline command', () => {
     assert.strictEqual(await fs.promises.readFile(conflictingPath, 'utf8'), 'user file');
   });
 
-  it('does not treat resource results at the workspace root as workspace results', async () => {
+  it('does not create a file when cancelled or results are unavailable', async () => {
     let confirmationCount = 0;
     vscode.window.showWarningMessage = async () => {
       confirmationCount += 1;
-      return 'Create Baseline';
+      return undefined;
     };
-
-    await createBaseline(
-      readyProvider({
-        scope: {
-          kind: 'resource',
-          resource: vscode.Uri.file(workspaceRoot) as unknown as Uri,
-        },
-      }),
-    );
-
-    assert.strictEqual(confirmationCount, 0);
-    await assert.rejects(fs.promises.access(path.join(workspaceRoot, 'spotbugs-baseline.xml')));
-  });
-
-  it('does not create a file when cancelled or results are unavailable', async () => {
-    vscode.window.showWarningMessage = async () => undefined;
     await createBaseline(readyProvider());
+    assert.strictEqual(confirmationCount, 1);
+    confirmationCount = 0;
     for (const provider of [
       readyProvider({
         scope: {
@@ -127,6 +113,7 @@ describe('create baseline command', () => {
     ]) {
       await createBaseline(provider);
     }
+    assert.strictEqual(confirmationCount, 0);
     await assert.rejects(fs.promises.access(path.join(workspaceRoot, 'spotbugs-baseline.xml')));
   });
 });
