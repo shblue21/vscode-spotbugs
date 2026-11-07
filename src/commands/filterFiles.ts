@@ -8,7 +8,7 @@ import { validateFilterFilesPreflight } from '../services/filterFileValidation';
 import {
   type PathSettingState,
   planPathAdditions,
-  planPathRemoval,
+  planFilterPathRemoval,
   readPathSetting,
 } from '../services/pathSetting';
 
@@ -98,7 +98,7 @@ export async function removeFilterFile(
   }
 
   const state = deps.readConfiguration(target.filterKind);
-  const remainingPaths = planPathRemoval(state, target.filterPath);
+  const remainingPaths = planFilterPathRemoval(state, target.filterPath);
   if (!remainingPaths) {
     await window.showInformationMessage(
       l10n.t('The filter configuration changed. Refresh the Filters view and try again.'),

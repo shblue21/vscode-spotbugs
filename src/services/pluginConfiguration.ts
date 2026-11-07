@@ -1,5 +1,7 @@
 import { workspace } from 'vscode';
+import * as path from 'path';
 import { SETTINGS_SECTION, settingKeys } from '../constants/settings';
+import { planPathAdditions } from './pathSetting';
 
 export type DetectorOverrides = Record<string, boolean>;
 export interface PluginRegistration {
@@ -17,6 +19,20 @@ export interface PluginConfigurationState {
   registrations: PluginRegistration[];
   workspaceRoots: string[];
   error?: string;
+}
+
+export function planPluginJarAdditions(
+  state: PluginConfigurationState,
+  absolutePaths: readonly string[],
+): string[] {
+  const roots = state.workspaceRoots.length > 0 ? state.workspaceRoots : [process.cwd()];
+  // Project registrations to every workspace before checking selected absolute JAR paths.
+  const paths = state.registrations.flatMap((registration) =>
+    path.isAbsolute(registration.path)
+      ? [registration.path]
+      : roots.map((root) => path.resolve(root, registration.path)),
+  );
+  return planPathAdditions({ ...state, paths }, absolutePaths).additions;
 }
 
 /** Read one explicit scope. VS Code merges object settings, which is not our contract. */

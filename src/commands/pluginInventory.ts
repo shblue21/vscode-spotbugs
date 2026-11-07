@@ -5,8 +5,8 @@ import { settingKeys } from '../constants/settings';
 import { formatAnalysisErrors } from '../model/analysisErrors';
 import type { AnalysisError } from '../model/analysisProtocol';
 import { validatePluginJarsPreflight } from '../services/filterFileValidation';
-import { type PathSettingState, planPathAdditions } from '../services/pathSetting';
 import {
+  planPluginJarAdditions,
   readPluginConfiguration,
   type PluginConfigurationState,
   type PluginRegistration,
@@ -32,7 +32,7 @@ export interface PluginConfigurationDeps {
   readConfiguration(): PluginConfigurationState;
   writeConfiguration(
     registrations: PluginRegistration[],
-    target: PathSettingState['target'],
+    target: PluginConfigurationState['target'],
   ): Promise<void>;
   validatePluginJars(paths: string[]): Promise<AnalysisError | undefined>;
 }
@@ -40,7 +40,7 @@ export interface PluginConfigurationDeps {
 export interface PluginJarCommandTarget {
   pluginPath?: string;
   registrationId?: string;
-  configurationTarget?: PathSettingState['target'];
+  configurationTarget?: PluginConfigurationState['target'];
 }
 
 let refreshGeneration = 0;
@@ -118,15 +118,12 @@ export async function addPluginJars(
   let additions = 0;
   let targetLabel = '';
   const changed = await updatePluginConfiguration(deps, (state) => {
-    const plan = planPathAdditions(
-      { ...state, paths: state.registrations.map((entry) => entry.path) },
-      selectedPaths,
-    );
-    additions = plan.additions.length;
+    const addedPaths = planPluginJarAdditions(state, selectedPaths);
+    additions = addedPaths.length;
     targetLabel = state.target === 'workspace' ? l10n.t('Workspace') : l10n.t('User');
     return [
       ...state.registrations,
-      ...plan.additions.map((path) => ({ id: randomUUID(), path, enabled: true, detectors: {} })),
+      ...addedPaths.map((path) => ({ id: randomUUID(), path, enabled: true, detectors: {} })),
     ];
   });
   void window.showInformationMessage(
