@@ -19,7 +19,7 @@ async function invokeBuild(
   });
   const service =
     require('../services/workspaceBuildService') as typeof import('../services/workspaceBuildService');
-  const result = await service.buildWorkspace({ mode: 'auto', ensureCommands: false }, token);
+  const result = await service.buildWorkspaceAuto(token);
   return { result, calls };
 }
 
