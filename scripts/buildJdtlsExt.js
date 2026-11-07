@@ -1,51 +1,24 @@
 const cp = require('child_process');
+const fs = require('fs');
 const path = require('path');
-const fse = require('fs-extra');
 const { assertJavaBackendVersions } = require('./validateJavaBackendVersion');
 
-const server_dir = path.resolve('./javaext');
+const root = path.resolve(__dirname, '..');
+assertJavaBackendVersions(root);
+const { version } = require(path.join(root, 'package.json'));
+const javaRoot = path.join(root, 'javaext');
+cp.execSync(`${process.platform === 'win32' ? 'mvnw.cmd' : './mvnw'} clean package`, {
+  cwd: javaRoot,
+  stdio: 'inherit',
+});
 
-try {
-  assertJavaBackendVersions(path.resolve('.'));
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
-}
-
-// Run Maven build
-cp.execSync(mvnw() + ' clean package', { cwd: server_dir, stdio: 'inherit' });
-
-// Copy all generated jars from the runner to the server directory
-const runnerJarFolder = path.join(server_dir, 'com.spotbugs.runner/target');
-const targetFolder = path.resolve('./server');
-
-if (fse.existsSync(runnerJarFolder)) {
-  const jars = fse
-    .readdirSync(runnerJarFolder)
-    .filter((file) => path.extname(file) === '.jar');
-  fse.ensureDirSync(targetFolder);
-
-  for (const jar of jars) {
-    fse.copySync(path.join(runnerJarFolder, jar), path.join(targetFolder, jar));
-    console.log(`Copied ${jar} to server/`);
-  }
-
-  // Create a stable, versionless alias for the OSGi plugin JAR
-  // by renaming the copied artifact in server/ to a constant filename.
-  const pluginJar = jars.find((j) => j.startsWith('com.spotbugs.runner-') && j.endsWith('.jar'));
-  if (pluginJar) {
-    const stableName = 'com.spotbugs.runner.jar';
-    const src = path.join(targetFolder, pluginJar);
-    const dest = path.join(targetFolder, stableName);
-    try {
-      fse.moveSync(src, dest, { overwrite: true });
-      console.log(`Renamed ${pluginJar} -> ${stableName}`);
-    } catch (e) {
-      console.warn(`Failed to rename ${pluginJar} to ${stableName}: ${e?.message || e}`);
-    }
-  }
-}
-
-function mvnw() {
-  return process.platform.startsWith('win') ? 'mvnw.cmd' : './mvnw';
+const target = path.join(javaRoot, 'com.spotbugs.runner', 'target');
+const server = path.join(root, 'server');
+fs.mkdirSync(server, { recursive: true });
+for (const [source, destination] of [
+  [`com.spotbugs.runner-${version}.jar`, 'com.spotbugs.runner.jar'],
+  ['spotbugs-runner-all.jar', 'spotbugs-runner-all.jar'],
+]) {
+  fs.copyFileSync(path.join(target, source), path.join(server, destination));
+  console.log(`Copied ${source} -> server/${destination}`);
 }
