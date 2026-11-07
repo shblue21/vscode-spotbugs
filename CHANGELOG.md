@@ -1,4 +1,14 @@
 # Changelog
+## [0.14.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.14.0...v0.14.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* clarify analysis and suppression failure messages ([#187](https://github.com/shblue21/vscode-spotbugs/issues/187)) ([fb78bb6](https://github.com/shblue21/vscode-spotbugs/commit/fb78bb65658919c92b309d8605151c5e548b7d57))
+* enable Prettier checks and format TypeScript sources ([#182](https://github.com/shblue21/vscode-spotbugs/issues/182)) ([dc6c1d4](https://github.com/shblue21/vscode-spotbugs/commit/dc6c1d4eb50af94d00aa1796a2f1dc4553cb382a))
+* localize analysis cancellation messages ([#188](https://github.com/shblue21/vscode-spotbugs/issues/188)) ([9ccf3eb](https://github.com/shblue21/vscode-spotbugs/commit/9ccf3ebdcf0f07329fb5336d38d598afebe831cd))
+* preserve multi-root filter and plugin path identity ([#193](https://github.com/shblue21/vscode-spotbugs/issues/193)) ([8b57c6f](https://github.com/shblue21/vscode-spotbugs/commit/8b57c6f05fbe7969f4c8f9d97d5a2b1c467b1420))
+
 ## [0.14.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.13.0...v0.14.0) (2026-10-28)
 
 
