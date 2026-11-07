@@ -52,6 +52,7 @@ describe('pathSetting', () => {
     for (const [setting, selected] of [
       [state([], 'global'), inside],
       [state([], 'workspace', [root, path.resolve('/workspace-b')]), inside],
+      [state(['plugins/plugin.jar'], 'workspace', [root, path.resolve('/workspace-b')]), inside],
       [state(), outside],
       [state(), root],
     ] as Array<[PathSettingState, string]>) {
@@ -61,10 +62,27 @@ describe('pathSetting', () => {
 
   it('removes relative or absolute targets and ignores stale ones', () => {
     const setting = state(['filters/a.xml', 'plugins/b.jar']);
-    assert.deepStrictEqual(planner.planPathRemoval(setting, 'filters/a.xml'), ['plugins/b.jar']);
-    assert.deepStrictEqual(planner.planPathRemoval(setting, path.join(root, 'plugins', 'b.jar')), [
-      'filters/a.xml',
+    assert.deepStrictEqual(planner.planFilterPathRemoval(setting, 'filters/a.xml'), [
+      'plugins/b.jar',
     ]);
-    assert.strictEqual(planner.planPathRemoval(setting, 'missing.xml'), undefined);
+    assert.deepStrictEqual(
+      planner.planFilterPathRemoval(setting, path.join(root, 'plugins', 'b.jar')),
+      ['filters/a.xml'],
+    );
+    assert.strictEqual(planner.planFilterPathRemoval(setting, 'missing.xml'), undefined);
+    const absolute = path.join(root, 'filters/a.xml');
+    const multi = state(['filters/a.xml', absolute], 'workspace', [
+      root,
+      path.resolve('/workspace-b'),
+    ]);
+    assert.deepStrictEqual(planner.planFilterPathRemoval(multi, 'filters/a.xml'), [absolute]);
+    assert.deepStrictEqual(planner.planFilterPathRemoval(multi, absolute), ['filters/a.xml']);
+    assert.deepStrictEqual(
+      planner.planFilterPathRemoval(
+        state(['filters/a.xml', path.join(root, 'filters/a.xml')]),
+        'filters/a.xml',
+      ),
+      [],
+    );
   });
 });

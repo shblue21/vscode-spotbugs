@@ -49,7 +49,7 @@ export function planPathAdditions(state: PathSettingState, absolutePaths: readon
   return { paths: [...state.paths, ...additions], additions };
 }
 
-export function planPathRemoval(
+export function planFilterPathRemoval(
   state: PathSettingState,
   selectedPath: string,
 ): string[] | undefined {
@@ -92,6 +92,11 @@ function pathForStorage(absolutePath: string, state: PathSettingState): string {
 }
 
 function configuredPathKey(configuredPath: string, state: PathSettingState): string {
+  if (state.workspaceRoots.length > 1 && !path.isAbsolute(configuredPath)) {
+    // A relative entry can resolve to a different file in each workspace root.
+    const normalized = path.normalize(configuredPath);
+    return `relative:${process.platform === 'win32' ? normalized.toLowerCase() : normalized}`;
+  }
   const absolutePath = path.isAbsolute(configuredPath)
     ? configuredPath
     : path.resolve(state.workspaceRoots[0] ?? process.cwd(), configuredPath);

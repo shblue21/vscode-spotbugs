@@ -122,22 +122,20 @@ describe('pluginInventoryCommands', () => {
     } as never);
     try {
       assert.deepStrictEqual(readPluginConfiguration().registrations, []);
-      assert.strictEqual(
-        await addPluginJars({
-          selectPluginJars: async () =>
-            ['/workspace/a.jar', '/workspace/plugins/new.jar'].map(
-              (filePath) => vscode.Uri.file(filePath) as unknown as Uri,
-            ),
-          readConfiguration: readPluginConfiguration,
-          writeConfiguration: (registrations, target) =>
-            configuration.update('plugins.registrations', registrations, target === 'global'),
-          validatePluginJars: async (paths) => {
-            validatedPaths = paths;
-            return undefined;
-          },
-        }),
-        true,
-      );
+      const deps: PluginConfigurationDeps = {
+        selectPluginJars: async () =>
+          ['/workspace/a.jar', '/workspace/plugins/new.jar'].map(
+            (filePath) => vscode.Uri.file(filePath) as unknown as Uri,
+          ),
+        readConfiguration: readPluginConfiguration,
+        writeConfiguration: (registrations, target) =>
+          configuration.update('plugins.registrations', registrations, target === 'global'),
+        validatePluginJars: async (paths) => {
+          validatedPaths = paths;
+          return undefined;
+        },
+      };
+      assert.strictEqual(await addPluginJars(deps), true);
       assert.deepStrictEqual(validatedPaths, ['/workspace/a.jar', '/workspace/plugins/new.jar']);
       const state = readPluginConfiguration();
       assert.strictEqual(state.error, undefined);
@@ -152,6 +150,10 @@ describe('pluginInventoryCommands', () => {
       );
       assert.deepStrictEqual(values['plugins.paths'], ['a.jar']);
       assert.deepStrictEqual(values['plugins.disabledPaths'], ['a.jar']);
+      deps.readConfiguration = () => ({ ...state, workspaceRoots: ['/other', '/workspace'] });
+      assert.strictEqual(await addPluginJars(deps), false);
+      assert.strictEqual(writes.length, 1);
+      assert.deepStrictEqual(readPluginConfiguration().registrations, state.registrations);
     } finally {
       resetVscodeMock();
     }
