@@ -51,7 +51,7 @@ describe('source-less project target selection', () => {
         const metadata = await runner.lookupJavaProjectClasspath(uri, { scope: 'runtime' });
         assert.strictEqual(metadata.status, 'resolved');
         if (metadata.status !== 'resolved') throw new Error('Expected resolved');
-        assert.strictEqual(metadata.classpath.sourceRootsAbsent, true);
+        assert.strictEqual(metadata.classpath.sourceSelection, 'source-less');
         // Do not rewrite the existing candidate list or runtime policy in this fix.
         assert.deepStrictEqual(metadata.classpath.sourcepaths, [library]);
         assert.deepStrictEqual(metadata.classpath.runtimeClasspaths, [library]);
@@ -82,7 +82,7 @@ describe('source-less project target selection', () => {
         const failed = await runner.lookupJavaProjectClasspath(uri, { scope: 'runtime' });
         assert.strictEqual(failed.status, 'resolved');
         if (failed.status === 'resolved')
-          assert.strictEqual(failed.classpath.sourceRootsAbsent, undefined);
+          assert.strictEqual(failed.classpath.sourceSelection, 'unknown');
       } finally {
         fs.rmSync(project, { recursive: true, force: true });
       }
@@ -122,7 +122,7 @@ describe('source-less project target selection', () => {
       const result = await lookupJavaProjectClasspath('file:///p', { scope: 'runtime' });
       assert.strictEqual(result.status, 'resolved');
       if (result.status === 'resolved')
-        assert.strictEqual(result.classpath.sourceRootsAbsent, undefined);
+        assert.notStrictEqual(result.classpath.sourceSelection, 'source-less');
     }
   });
 });

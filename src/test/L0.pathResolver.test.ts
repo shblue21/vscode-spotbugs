@@ -159,6 +159,7 @@ function makeDeps(overrides: Partial<PathResolverDeps> = {}): PathResolverDeps {
 function classpathResult(sourcepaths: string[]) {
   return {
     projectRoot: 'file:///workspace/project-a',
+    sourceSelection: 'selected' as const,
     runtimeClasspaths: [],
     targetResolutionRoots: [],
     sourcepaths,
