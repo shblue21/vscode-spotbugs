@@ -31,7 +31,7 @@ type SourceOutput = {
 type ProjectSettings = {
   defaultOutput?: string;
   sourceOutputs: SourceOutput[];
-  sourceRootsAbsent?: true;
+  sourceInventory: 'unknown' | 'source-less' | 'known';
 };
 
 export interface ClasspathLookupOptions {
@@ -112,7 +112,7 @@ export async function lookupJavaProjectClasspath(
     } else if (preliminarySettingsIssue) {
       issues.push(preliminarySettingsIssue);
     }
-    const projectSettings = settings ?? { sourceOutputs: [] };
+    const projectSettings = settings ?? { sourceOutputs: [], sourceInventory: 'unknown' };
 
     const selectedSources = selectSources(
       projectSettings.sourceOutputs,
@@ -157,7 +157,12 @@ export async function lookupJavaProjectClasspath(
       targetResolutionRoots,
       sourcepaths,
       sourceOutputs,
-      ...(projectSettings.sourceRootsAbsent ? { sourceRootsAbsent: true as const } : {}),
+      sourceSelection:
+        projectSettings.sourceInventory === 'known'
+          ? selectedSources.length > 0
+            ? 'selected'
+            : 'empty'
+          : projectSettings.sourceInventory,
     };
     Logger.log(
       `getClasspaths(${scope}) succeeded: projectRoot=${response.projectRoot}, auxPaths=${runtimeClasspaths.length}, targetResolutionRoots=${targetResolutionRoots.length}, sourcepaths=${sourcepaths.length}`,
@@ -181,7 +186,7 @@ async function loadSettings(
     const raw = snapshot?.settings;
     if (!record(raw)) {
       return {
-        settings: { sourceOutputs: [] },
+        settings: { sourceOutputs: [], sourceInventory: 'unknown' },
         issue: settingsIssue('Java project settings returned no usable result.'),
       };
     }
@@ -200,7 +205,7 @@ async function loadSettings(
     throwIfCancelled(token);
     logFailure(options, 'getProjectSettings', error);
     return {
-      settings: { sourceOutputs: [] },
+      settings: { sourceOutputs: [], sourceInventory: 'unknown' },
       issue: settingsIssue(message(error)),
     };
   }
@@ -244,15 +249,34 @@ function normalizeSettings(
     settings: {
       defaultOutput,
       sourceOutputs,
-      ...(Array.isArray(raw[SOURCE_PATHS]) &&
-      raw[SOURCE_PATHS].length === 0 &&
-      Array.isArray(entries) &&
-      entries.every(
-        (entry) => record(entry) && typeof entry.kind === 'number' && entry.kind !== 3,
-      ) &&
-      Object.keys(declaredSourceOutputs).length === 0
-        ? { sourceRootsAbsent: true as const }
-        : {}),
+      sourceInventory:
+        Array.isArray(raw[SOURCE_PATHS]) &&
+        raw[SOURCE_PATHS].length === 0 &&
+        Array.isArray(entries) &&
+        entries.every(
+          (entry) => record(entry) && typeof entry.kind === 'number' && entry.kind !== 3,
+        ) &&
+        Object.keys(declaredSourceOutputs).length === 0
+          ? 'source-less'
+          : Array.isArray(entries) &&
+              entries.every(
+                (entry) =>
+                  record(entry) &&
+                  typeof entry.kind === 'number' &&
+                  (entry.kind !== 3 || !!text(entry.path)),
+              ) &&
+              sourceOutputs.length > 0 &&
+              sourceOutputs.every((source) =>
+                entries.some(
+                  (entry) =>
+                    record(entry) &&
+                    entry.kind === 3 &&
+                    text(entry.path) &&
+                    samePath(entry.path as string, source.sourcepath),
+                ),
+              )
+            ? 'known'
+            : 'unknown',
     },
     complete: Array.isArray(entries),
   };

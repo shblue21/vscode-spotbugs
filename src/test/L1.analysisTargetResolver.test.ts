@@ -18,6 +18,7 @@ describe('analysisTargetResolver', () => {
       getClasspathsOutcome: async () => ({
         status: 'resolved',
         classpath: {
+          sourceSelection: 'unknown' as const,
           projectRoot: 'file:///workspace/project',
           runtimeClasspaths: ['/deps/classes'],
           targetResolutionRoots: [],
@@ -76,6 +77,7 @@ describe('analysisTargetResolver', () => {
       getClasspathsOutcome: async () => ({
         status: 'resolved',
         classpath: {
+          sourceSelection: 'unknown' as const,
           projectRoot: 'file:///workspace/project',
           runtimeClasspaths: ['/deps/classes'],
           targetResolutionRoots: ['/workspace/project/build/classes'],
@@ -115,6 +117,7 @@ describe('analysisTargetResolver', () => {
       getClasspathsOutcome: async () => ({
         status: 'resolved',
         classpath: {
+          sourceSelection: 'unknown' as const,
           projectRoot: 'file:///workspace/project',
           runtimeClasspaths: ['/deps/classes'],
           targetResolutionRoots: ['/workspace/project/target/classes'],
@@ -952,6 +955,7 @@ function createResolverDeps(
       return {
         status: 'resolved' as const,
         classpath: {
+          sourceSelection: 'unknown' as const,
           projectRoot: options.metadataProjectRoot ?? 'file:///workspace/project',
           runtimeClasspaths,
           targetResolutionRoots,

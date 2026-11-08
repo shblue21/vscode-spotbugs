@@ -18,6 +18,7 @@ import {
 import { containsMatchingFile } from './fileTraversal';
 import { isPathInsideOrEqual, pathComparisonKey, relativePath, uniquePaths } from './pathIdentity';
 import { getProjectRootPaths } from './projectDiscovery';
+import type { SourceSelection } from './classpathTypes';
 
 interface AnalysisTarget {
   unit: AnalysisExecutionUnit;
@@ -81,7 +82,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
 
   type ClasspathInfo = {
     projectRootPath?: string;
-    sourceRootsAbsent?: true;
+    sourceSelection: SourceSelection;
     targetResolutionRoots?: string[];
     runtimeClasspaths?: string[];
     sourcepaths?: string[];
@@ -166,7 +167,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
             'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.',
           );
         }
-        return { issues: outcome.issues };
+        return { sourceSelection: 'unknown', issues: outcome.issues };
       }
 
       const cp = outcome.classpath;
@@ -183,7 +184,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       }
       return {
         projectRootPath: Uri.parse(cp.projectRoot).fsPath,
-        sourceRootsAbsent: cp.sourceRootsAbsent,
+        sourceSelection: cp.sourceSelection,
         targetResolutionRoots:
           cp.targetResolutionRoots.length > 0 ? cp.targetResolutionRoots.slice() : undefined,
         runtimeClasspaths:
@@ -202,7 +203,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
           `Warning: Could not get project runtime classpaths (${message}); target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.`,
         );
       }
-      return { issues: [] };
+      return { sourceSelection: 'unknown', issues: [] };
     }
   }
 
@@ -363,6 +364,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
             : {}),
         })
       : {
+          sourceSelection: 'unknown' as const,
           issues: [
             {
               code: 'JAVA_LS_EMPTY_RUNTIME_CLASSPATH' as const,
@@ -498,7 +500,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       runtimeClasspaths,
       sourcepaths,
       sourceOutputs,
-      sourceRootsAbsent,
+      sourceSelection,
       issues,
     } = await readClasspaths(projectUri, {
       logEmpty: true,
@@ -547,7 +549,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       (await filterTargetResolutionRootsWithTargets(classTargetRoots, deps.hasLooseClassTargets))
         .length > 0;
     const analysisPath =
-      !sourceRootsAbsent && sourcepaths && sourcepaths.length > 0 && hasLooseOutput
+      sourceSelection !== 'source-less' && sourcepaths && sourcepaths.length > 0 && hasLooseOutput
         ? projectRoot
         : outputResolution.outputPath;
 
@@ -555,7 +557,10 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       resolution: {
         status: 'ok',
         target: createAnalysisTarget({
-          kind: !sourceRootsAbsent && analysisPath === projectRoot ? 'source' : 'artifact',
+          kind:
+            sourceSelection !== 'source-less' && analysisPath === projectRoot
+              ? 'source'
+              : 'artifact',
           targetPath: analysisPath,
           sourceLookupResource: projectUri,
           targetResolutionRoots: classTargetRoots,
