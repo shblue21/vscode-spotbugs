@@ -75,6 +75,11 @@ public class RunAnalysisRequestParserTest {
                 request.getConfig().getExecutionOptions().getPluginPaths()
         );
         assertTrue(request.isIncludeBaselineXml());
+        parseablePayload.getAsJsonArray("plugins").get(0).getAsJsonObject()
+                .addProperty("path", " \t/workspace/plugin-a.jar \n");
+        assertEquals(request.getConfig().getExecutionOptions().getPluginPaths(),
+                parser.parse(context(fixture.get("targetPath").getAsString(), parseablePayload.toString()))
+                        .getConfig().getExecutionOptions().getPluginPaths());
     }
 
     @Test

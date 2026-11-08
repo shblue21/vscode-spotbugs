@@ -62,7 +62,7 @@ public class ConfigValidator {
                     || !validDetectors(plugin.getDetectors())) {
                 return ConfigValidationResult.error("CFG_PLUGINS_INVALID", "Each plugin requires a nonempty path and boolean detector overrides");
             }
-            plugins.add(new AnalysisPlugin(plugin.getPath(), plugin.getDetectors()));
+            plugins.add(new AnalysisPlugin(plugin.getPath().trim(), plugin.getDetectors()));
         }
 
         ConfigError includeFilterError = FilterFileValidator.validateIncludeFilters(includeFilterPaths);
