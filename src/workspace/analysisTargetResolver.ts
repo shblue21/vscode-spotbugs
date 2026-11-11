@@ -164,7 +164,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       if (outcome.status === 'unavailable') {
         if (options.logEmpty) {
           deps.logger.log(
-            'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.',
+            'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis will use only spotbugs.analysis.extraAuxClasspaths.',
           );
         }
         return { sourceSelection: 'unknown', issues: outcome.issues };
@@ -179,7 +179,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
         }
       } else if (options.logEmpty) {
         deps.logger.log(
-          'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.',
+          'No runtime classpaths returned from Java Language Server; target resolution will use output folder fallbacks, and aux analysis will use only spotbugs.analysis.extraAuxClasspaths.',
         );
       }
       return {
@@ -200,7 +200,7 @@ export function createTargetResolver(overrides: Partial<TargetResolverDeps> = {}
       if (options.logFailure) {
         const message = error instanceof Error ? error.message : String(error);
         deps.logger.log(
-          `Warning: Could not get project runtime classpaths (${message}); target resolution will use output folder fallbacks, and aux analysis may fall back to explicit extras or the system classpath.`,
+          `Warning: Could not get project runtime classpaths (${message}); target resolution will use output folder fallbacks, and aux analysis will use only spotbugs.analysis.extraAuxClasspaths.`,
         );
       }
       return { sourceSelection: 'unknown', issues: [] };

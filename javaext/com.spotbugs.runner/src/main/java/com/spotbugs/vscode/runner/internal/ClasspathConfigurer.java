@@ -25,17 +25,6 @@ public class ClasspathConfigurer {
             List<String> runtimeClasspaths,
             List<String> extraAuxClasspaths
     ) {
-        List<String> explicitEntries = mergeExplicitAuxEntries(runtimeClasspaths, extraAuxClasspaths);
-        if (!explicitEntries.isEmpty()) {
-            return explicitEntries;
-        }
-        return systemClasspathEntries();
-    }
-
-    private List<String> mergeExplicitAuxEntries(
-            List<String> runtimeClasspaths,
-            List<String> extraAuxClasspaths
-    ) {
         Set<String> deduped = new LinkedHashSet<>();
         addEntries(deduped, runtimeClasspaths);
         addEntries(deduped, extraAuxClasspaths);
@@ -55,27 +44,6 @@ public class ClasspathConfigurer {
                 out.add(trimmed);
             }
         }
-    }
-
-    private List<String> systemClasspathEntries() {
-        Set<String> deduped = new LinkedHashSet<>();
-        String classPath = System.getProperty("java.class.path");
-        String pathSeparator = System.getProperty("path.separator");
-        if (classPath == null || pathSeparator == null || pathSeparator.isEmpty()) {
-            return new ArrayList<>(deduped);
-        }
-
-        String[] pathElements = classPath.split(java.util.regex.Pattern.quote(pathSeparator));
-        for (String element : pathElements) {
-            if (element == null) {
-                continue;
-            }
-            String trimmed = element.trim();
-            if (!trimmed.isEmpty()) {
-                deduped.add(trimmed);
-            }
-        }
-        return new ArrayList<>(deduped);
     }
 
 }
