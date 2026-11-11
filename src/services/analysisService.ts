@@ -79,7 +79,6 @@ export async function executeAnalysisPlan(
       result.cancelled = true;
       break;
     }
-    const selection = plan.selections[item.selectionIndex];
     const uri = item.resource.toString();
     notify?.onStart?.(uri, index + 1, work.length);
     const unit = item.unit;
@@ -93,8 +92,6 @@ export async function executeAnalysisPlan(
           'ANALYSIS_FAILED',
           error instanceof Error ? error.message : String(error),
         );
-        if (selection.kind === 'project' && outcome.failure)
-          outcome.failure.message = error instanceof Error ? error.message : String(error);
       }
     }
     if (!outcome) throw new Error('Analysis plan has no unit or problem for its selection');

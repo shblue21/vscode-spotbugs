@@ -400,7 +400,7 @@ describe('analysisService', () => {
     );
     assert.deepStrictEqual(
       result.results.map((project) => project.error),
-      ['analysis boom', 'analysis boom'],
+      ['SpotBugs analysis failed: analysis boom', 'SpotBugs analysis failed: analysis boom'],
     );
   });
 
