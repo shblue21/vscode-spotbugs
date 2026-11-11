@@ -14,6 +14,8 @@
   "contributes.views.spotbugs-container.spotbugs-inspector-view.name": "Inspector",
   "contributes.views.spotbugs-container.spotbugs-filters-view.name": "필터",
   "contributes.views.spotbugs-container.spotbugs-plugins-view.name": "플러그인",
+  "contributes.viewsWelcome.spotbugs-view.ready": "분석할 준비가 되었습니다. 시작하려면 버그 아이콘을 클릭하세요.",
+  "contributes.viewsWelcome.spotbugs-view.lightWeight": "SpotBugs 분석은 Java 언어 서버가 Standard 모드여야 합니다.\n[Standard 모드로 전환](command:java.server.mode.switch)",
   "contributes.configuration.analysis.title": "SpotBugs: 분석",
   "contributes.configuration.filters.title": "SpotBugs: 필터",
   "contributes.configuration.results.title": "SpotBugs: 결과",

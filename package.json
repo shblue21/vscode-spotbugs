@@ -88,6 +88,18 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "spotbugs-view",
+        "contents": "%contributes.viewsWelcome.spotbugs-view.ready%",
+        "when": "java:serverMode != LightWeight"
+      },
+      {
+        "view": "spotbugs-view",
+        "contents": "%contributes.viewsWelcome.spotbugs-view.lightWeight%",
+        "when": "java:serverMode == LightWeight"
+      }
+    ],
     "configuration": [
       {
         "type": "object",
@@ -308,12 +320,14 @@
     "commands": [
       {
         "command": "spotbugs.analyzeSource",
-        "title": "%contributes.commands.spotbugs.analyzeSource.title%"
+        "title": "%contributes.commands.spotbugs.analyzeSource.title%",
+        "enablement": "java:serverMode != LightWeight"
       },
       {
         "command": "spotbugs.analyzeWorkspace",
         "title": "%contributes.commands.spotbugs.analyzeWorkspace.title%",
-        "icon": "$(bug)"
+        "icon": "$(bug)",
+        "enablement": "java:serverMode != LightWeight"
       },
       {
         "command": "spotbugs.revealFindingSource",
@@ -413,11 +427,13 @@
       },
       {
         "command": "spotbugs.analyzeArtifacts",
-        "title": "%contributes.commands.spotbugs.analyzeArtifacts.title%"
+        "title": "%contributes.commands.spotbugs.analyzeArtifacts.title%",
+        "enablement": "java:serverMode != LightWeight"
       },
       {
         "command": "spotbugs.analyzeProject",
-        "title": "%contributes.commands.spotbugs.analyzeProject.title%"
+        "title": "%contributes.commands.spotbugs.analyzeProject.title%",
+        "enablement": "java:serverMode != LightWeight"
       },
       {
         "command": "spotbugs.configureDetectors",

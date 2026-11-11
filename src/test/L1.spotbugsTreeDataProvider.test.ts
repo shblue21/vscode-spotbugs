@@ -142,15 +142,6 @@ describe('spotbugsTreeDataProvider', () => {
     assert.strictEqual(clearedChildren[1].label, 'Correctness (1)');
   });
 
-  it('preserves existing initial state wording before results exist', async () => {
-    const provider = await createProvider();
-
-    const children = await provider.getChildren();
-
-    assert.strictEqual(children.length, 1);
-    assert.strictEqual(children[0].label, 'Ready to analyze. Click the bug icon to start.');
-  });
-
   it('records resource and workspace result scopes explicitly', async () => {
     const provider = await createProvider();
 
