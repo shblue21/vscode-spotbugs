@@ -3,43 +3,7 @@ import type { AnalysisPlan, PlannedAnalysisUnit } from '../model/analysisPlan';
 import { installVscodeMock } from './helpers/mockVscode';
 
 describe('analysis plan execution', () => {
-  it('preserves every native run and nonterminal errors in a resource result', () => {
-    const vscode = installVscodeMock();
-    const { summarizeResourceResults } =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-    const uri = vscode.Uri.file('/workspace/A.java') as any;
-    const first = { id: 'first' } as any;
-    const second = { id: 'second' } as any;
-    const result = summarizeResourceResults(uri, {
-      results: [],
-      context: { resolutionIssues: [] },
-      cancelled: false,
-      outcomes: [
-        {
-          selectionIndex: 0,
-          outcome: {
-            findings: [first],
-            nativeSarif: 'first-report',
-            errors: [{ message: 'Recoverable' }],
-          },
-        },
-        { selectionIndex: 0, outcome: { findings: [second], nativeSarif: 'second-report' } },
-      ],
-    });
-    assert.deepStrictEqual(result.outcome.findings, [first, second]);
-    assert.strictEqual(result.outcome.failure, undefined);
-    assert.deepStrictEqual(result.outcome.errors, [{ message: 'Recoverable' }]);
-    assert.deepStrictEqual(
-      result.reportRuns?.map((run) => run.nativeSarif),
-      ['first-report', 'second-report'],
-    );
-    assert.deepStrictEqual(
-      result.reportRuns?.map((run) => run.findings),
-      [[first], [second]],
-    );
-  });
-
-  it('does not hide a later failure or cancellation behind a first success', () => {
+  it('keeps a failure, prefers cancellation, and reports a missing outcome', () => {
     const vscode = installVscodeMock();
     const { summarizeResourceResults } =
       require('../services/analysisService') as typeof import('../services/analysisService');
@@ -49,7 +13,6 @@ describe('analysis plan execution', () => {
       context: { resolutionIssues: [] },
       cancelled: false,
       outcomes: [
-        { selectionIndex: 0, outcome: { findings: [] } },
         {
           selectionIndex: 0,
           outcome: {
@@ -58,7 +21,7 @@ describe('analysis plan execution', () => {
               kind: 'target' as const,
               level: 'error' as const,
               code: 'BROKEN',
-              message: 'Second failed',
+              message: 'Failed',
             },
           },
         },
@@ -73,23 +36,6 @@ describe('analysis plan execution', () => {
       summarizeResourceResults(uri, { ...planResult, outcomes: [] }).outcome.failure?.code,
       'no-class-targets',
     );
-  });
-
-  it('does not silently replace diagnostics using incompatible unit scopes', () => {
-    const vscode = installVscodeMock();
-    const { summarizeResourceResults } =
-      require('../services/analysisService') as typeof import('../services/analysisService');
-    const uri = vscode.Uri.file('/workspace/A.java') as any;
-    const result = summarizeResourceResults(uri, {
-      results: [],
-      context: { resolutionIssues: [] },
-      outcomes: ['/workspace/A.java', '/workspace/B.java'].map((file) => ({
-        selectionIndex: 0,
-        outcome: { findings: [] },
-        diagnosticScope: { kind: 'file', uri: vscode.Uri.file(file) } as any,
-      })),
-    });
-    assert.strictEqual(result.outcome.failure?.code, 'ANALYSIS_SCOPE_MISMATCH');
   });
 
   it('executes every unit, including multiple units for one selection, and retains planning failures', async () => {

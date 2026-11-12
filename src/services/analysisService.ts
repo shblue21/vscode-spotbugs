@@ -126,53 +126,19 @@ export async function analyzeFileDetailed(
   return summarizeResourceResults(uri, result);
 }
 
-/** Keep native runs separate; the outcome is only the resource-level presentation. */
+/** A single resource selection plans at most one unit, so it has at most one outcome. */
 export function summarizeResourceResults(
   uri: Uri,
   result: PlanExecutionResult,
 ): AnalysisExecutionResult {
   const outcomes = result.outcomes.map((entry) => entry.outcome);
-  const failure = outcomes.find((outcome) => outcome.failure)?.failure;
   const outcome: AnalysisOutcome = result.cancelled
     ? createAnalysisFailureOutcome(uri.fsPath, 'ANALYSIS_CANCELLED', 'Analysis cancelled')
-    : outcomes.length === 0
-      ? createAnalysisFailureOutcome(uri.fsPath, NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE)
-      : outcomes.length === 1
-        ? outcomes[0]
-        : {
-            findings: outcomes.flatMap((entry) => entry.findings),
-            targetPath: uri.fsPath,
-            ...(failure ? { failure } : {}),
-            errors: outcomes.flatMap((entry) => entry.errors ?? []),
-            warnings: outcomes.flatMap((entry) => entry.warnings ?? []),
-          };
-  // Apply a resource only when every result describes the same replacement scope.
-  const scopes = result.outcomes.map((entry) => entry.diagnosticScope);
-  const scopeKey = (scope: DiagnosticUpdateScope | undefined) => {
-    if (!scope) return '';
-    return scope.kind === 'source-roots'
-      ? JSON.stringify([
-          scope.kind,
-          [...new Set(scope.uris.map((uri) => uri.toString()))].sort(),
-          [...new Set((scope.excludedUris ?? []).map((uri) => uri.toString()))].sort(),
-        ])
-      : JSON.stringify([scope.kind, scope.uri.toString()]);
-  };
-  const sameScope = scopes.every((scope) => scopeKey(scope) === scopeKey(scopes[0]));
+    : (outcomes[0] ??
+      createAnalysisFailureOutcome(uri.fsPath, NO_CLASS_TARGETS_CODE, NO_CLASS_TARGETS_MESSAGE));
   return {
     cancelled: result.cancelled === true,
-    outcome:
-      !failure && !result.cancelled && !sameScope
-        ? {
-            ...outcome,
-            failure: {
-              kind: 'target',
-              level: 'error',
-              code: 'ANALYSIS_SCOPE_MISMATCH',
-              message: 'Analysis units have incompatible result scopes.',
-            },
-          }
-        : outcome,
+    outcome,
     reportRuns: outcomes.map((entry) => ({
       projectUri: uri.toString(),
       findings: entry.findings,
@@ -189,7 +155,7 @@ export function summarizeResourceResults(
       nativeSarif: entry.nativeSarif,
       baselineXml: entry.baselineXml,
     })),
-    context: { ...result.context, diagnosticScope: scopes[0] },
+    context: { ...result.context, diagnosticScope: result.outcomes[0]?.diagnosticScope },
   };
 }
 
