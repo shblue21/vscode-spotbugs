@@ -26,7 +26,6 @@ describe('package contributions', () => {
 
   it('keeps Java bundle paths independent of public command names', () => {
     assert.deepStrictEqual(manifest.contributes.javaExtensions, [
-      './server/com.spotbugs.runner.jar',
       './server/spotbugs-runner-all.jar',
     ]);
   });
