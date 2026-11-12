@@ -14,6 +14,8 @@
   "contributes.views.spotbugs-container.spotbugs-inspector-view.name": "Inspector",
   "contributes.views.spotbugs-container.spotbugs-filters-view.name": "Filters",
   "contributes.views.spotbugs-container.spotbugs-plugins-view.name": "Plugins",
+  "contributes.viewsWelcome.spotbugs-view.ready": "Ready to analyze. Click the bug icon to start.",
+  "contributes.viewsWelcome.spotbugs-view.lightWeight": "SpotBugs analysis needs the Java language server in Standard mode.\n[Switch to Standard Mode](command:java.server.mode.switch)",
   "contributes.configuration.analysis.title": "SpotBugs: Analysis",
   "contributes.configuration.filters.title": "SpotBugs: Filters",
   "contributes.configuration.results.title": "SpotBugs: Results",

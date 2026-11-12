@@ -331,9 +331,7 @@ export class SpotBugsTreeDataProvider implements TreeDataProvider<TreeItem> {
   private materializeContent(): void {
     switch (this.content.kind) {
       case 'initial':
-        this.setRenderedItems([
-          this.createMessageItem(l10n.t('Ready to analyze. Click the bug icon to start.')),
-        ]);
+        this.setRenderedItems([]);
         return;
       case 'loading':
         this.setRenderedItems([this.createMessageItem(l10n.t('Analyzing...'))]);
