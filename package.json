@@ -2,7 +2,7 @@
   "name": "vscode-spotbugs",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "publisher": "shblue21",
   "icon": "images/spotbugs_icon.png",
   "author": {
@@ -627,6 +627,7 @@
       }
     ],
     "javaExtensions": [
+      "./server/com.spotbugs.runner.jar",
       "./server/spotbugs-runner-all.jar"
     ]
   },
