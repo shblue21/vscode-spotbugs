@@ -9,7 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -26,6 +28,9 @@ import com.spotbugs.vscode.runner.internal.SpotBugsAnalysisResult;
 
 @RunWith(Parameterized.class)
 public class RunAnalysisActionTest {
+
+    @Rule
+    public TemporaryFolder temporary = new TemporaryFolder();
 
     @Parameterized.Parameters(name = "{0}")
     public static Object[] inputKinds() {
@@ -223,7 +228,7 @@ public class RunAnalysisActionTest {
     }
 
     @Test
-    public void executeReportsAllCurrentStatsKeysAndCounts() {
+    public void executeReportsAllCurrentStatsKeysAndCounts() throws Exception {
         RunAnalysisAction action = new RunAnalysisAction(inputKind, CountingAnalyzerService::new);
         JsonObject request = validRequest("/workspace/build/classes");
         request.add("targetResolutionRoots", JsonParser.parseString(
@@ -232,9 +237,13 @@ public class RunAnalysisActionTest {
         JsonArray extraAuxClasspaths = new JsonArray();
         extraAuxClasspaths.add(System.getProperty("java.io.tmpdir"));
         request.add("extraAuxClasspaths", extraAuxClasspaths);
-        request.add("plugins", JsonParser.parseString(
-                "[{\"path\":\"/workspace/plugin-a.jar\"},"
-                        + "{\"path\":\"/workspace/plugin-b.jar\"}]"));
+        JsonArray plugins = new JsonArray();
+        for (String name : new String[] { "plugin-a.jar", "plugin-b.jar" }) {
+            JsonObject plugin = new JsonObject();
+            plugin.addProperty("path", temporary.newFile(name).getAbsolutePath());
+            plugins.add(plugin);
+        }
+        request.add("plugins", plugins);
 
         JsonObject response = execute(action, "/workspace/build/classes", request.toString());
         JsonObject stats = response.getAsJsonObject("stats");

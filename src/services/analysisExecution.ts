@@ -11,7 +11,6 @@ import type { ParsedAnalysis, ParseResult } from '../lsp/spotbugsParser';
 import * as spotbugsParser from '../lsp/spotbugsParser';
 import * as analysisRequestBuilder from '../lsp/analysisRequestBuilder';
 import * as spotbugsMapper from '../lsp/spotbugsMapper';
-import * as filterFileValidation from './filterFileValidation';
 
 const ERROR_ANALYSIS_NO_RESPONSE = 'ANALYSIS_NO_RESPONSE';
 const LOGGED_STATS_FIELDS = [
@@ -29,9 +28,6 @@ const LOGGED_STATS_FIELDS = [
 type LoggerLike = Pick<typeof Logger, 'log' | 'error'>;
 
 export interface AnalysisExecutorDeps {
-  validateFilterFilesPreflight: typeof filterFileValidation.validateFilterFilesPreflight;
-  validateExtraAuxClasspathPreflight: typeof filterFileValidation.validateExtraAuxClasspathPreflight;
-  validatePluginJarsPreflight: typeof filterFileValidation.validatePluginJarsPreflight;
   buildAnalysisRequestPayload: typeof analysisRequestBuilder.buildAnalysisRequestPayload;
   runSpotBugsAnalysis: typeof spotbugsClient.runSpotBugsAnalysis;
   parseAnalysisResponse: typeof spotbugsParser.parseAnalysisResponse;
@@ -42,9 +38,6 @@ export interface AnalysisExecutorDeps {
 
 function createDefaultDeps(): AnalysisExecutorDeps {
   return {
-    validateFilterFilesPreflight: filterFileValidation.validateFilterFilesPreflight,
-    validateExtraAuxClasspathPreflight: filterFileValidation.validateExtraAuxClasspathPreflight,
-    validatePluginJarsPreflight: filterFileValidation.validatePluginJarsPreflight,
     buildAnalysisRequestPayload: analysisRequestBuilder.buildAnalysisRequestPayload,
     runSpotBugsAnalysis: spotbugsClient.runSpotBugsAnalysis,
     parseAnalysisResponse: spotbugsParser.parseAnalysisResponse,
@@ -77,10 +70,7 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
           : context.sourceLookup.roots,
       },
     };
-    const preflightFailure = await validateAnalysisPreflight(
-      settings,
-      analysisContext.inputs[0].path,
-    );
+    const preflightFailure = settingsConfigurationFailure(settings, analysisContext.inputs[0].path);
     if (preflightFailure) {
       return preflightFailure;
     }
@@ -89,38 +79,27 @@ export function createAnalysisExecutor(overrides: Partial<AnalysisExecutorDeps> 
     return analysisOutcomeFromRawResponse(raw, analysisContext);
   }
 
-  async function validateAnalysisPreflight(
+  function settingsConfigurationFailure(
     settings: AnalysisSettings,
     targetPath: string,
-  ): Promise<AnalysisOutcome | undefined> {
-    const checks = [
-      ['settings', () => settings.configurationError],
-      ['filter', () => deps.validateFilterFilesPreflight(settings)],
-      ['extra aux classpath', () => deps.validateExtraAuxClasspathPreflight(settings)],
-      ['plugin', () => deps.validatePluginJarsPreflight(settings)],
-    ] as const;
-
-    for (const [label, validate] of checks) {
-      const error = await validate();
-      if (!error) {
-        continue;
-      }
-      const combined = formatAnalysisErrors([error]);
-      deps.logger.error(`SpotBugs ${label} configuration error: ${combined}`);
-      return {
-        findings: [],
-        errors: [error],
-        targetPath,
-        failure: {
-          kind: 'analysis-error',
-          level: 'error',
-          code: error.code,
-          message: `SpotBugs analysis failed: ${combined}`,
-        },
-      };
+  ): AnalysisOutcome | undefined {
+    const error = settings.configurationError;
+    if (!error) {
+      return undefined;
     }
-
-    return undefined;
+    const combined = formatAnalysisErrors([error]);
+    deps.logger.error(`SpotBugs settings configuration error: ${combined}`);
+    return {
+      findings: [],
+      errors: [error],
+      targetPath,
+      failure: {
+        kind: 'analysis-error',
+        level: 'error',
+        code: error.code,
+        message: `SpotBugs analysis failed: ${combined}`,
+      },
+    };
   }
 
   async function executeAnalysisRequest(

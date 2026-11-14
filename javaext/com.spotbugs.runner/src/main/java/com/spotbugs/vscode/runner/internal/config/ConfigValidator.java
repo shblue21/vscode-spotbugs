@@ -81,6 +81,14 @@ public class ConfigValidator {
         if (extraAuxClasspathError != null) {
             return ConfigValidationResult.error(extraAuxClasspathError.getCode(), extraAuxClasspathError.getMessage());
         }
+        List<String> pluginPaths = new ArrayList<>();
+        for (AnalysisPlugin plugin : plugins) {
+            pluginPaths.add(plugin.getPath());
+        }
+        ConfigError pluginJarError = PluginJarValidator.validatePluginJars(pluginPaths);
+        if (pluginJarError != null) {
+            return ConfigValidationResult.error(pluginJarError.getCode(), pluginJarError.getMessage());
+        }
 
         AnalysisExecutionOptions executionOptions = new AnalysisExecutionOptions(
                 effort, priorityThreshold, confidenceThreshold, includeFilterPaths,

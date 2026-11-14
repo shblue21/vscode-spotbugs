@@ -8,9 +8,6 @@ type FilterKind = 'include' | 'exclude' | 'baseline';
 const CODE_FILTER_NOT_FOUND = 'CFG_FILTER_NOT_FOUND';
 const CODE_FILTER_NOT_FILE = 'CFG_FILTER_NOT_FILE';
 const CODE_FILTER_UNREADABLE = 'CFG_FILTER_UNREADABLE';
-const CODE_AUX_CLASSPATH_NOT_FOUND = 'CFG_AUX_CLASSPATH_NOT_FOUND';
-const CODE_AUX_CLASSPATH_INVALID_ENTRY = 'CFG_AUX_CLASSPATH_INVALID_ENTRY';
-const CODE_AUX_CLASSPATH_UNREADABLE = 'CFG_AUX_CLASSPATH_UNREADABLE';
 const CODE_PLUGIN_NOT_FOUND = 'CFG_PLUGIN_NOT_FOUND';
 const CODE_PLUGIN_NOT_FILE = 'CFG_PLUGIN_NOT_FILE';
 const CODE_PLUGIN_NOT_JAR = 'CFG_PLUGIN_NOT_JAR';
@@ -28,48 +25,6 @@ export async function validateFilterFilesPreflight(
     return excludeError;
   }
   return validateFilterGroup('baseline', settings.excludeBaselineBugsPaths);
-}
-
-export async function validateExtraAuxClasspathPreflight(
-  settings: AnalysisSettings,
-): Promise<AnalysisError | undefined> {
-  const paths = settings.extraAuxClasspaths;
-  if (!Array.isArray(paths) || paths.length === 0) {
-    return undefined;
-  }
-  const unreadableError = (absolutePath: string, error: unknown): AnalysisError => ({
-    code: CODE_AUX_CLASSPATH_UNREADABLE,
-    message: `extra aux classpath entry is not readable: ${absolutePath} (${rootCauseMessage(error)})`,
-  });
-
-  for (const rawPath of paths) {
-    const absolutePath = toAbsolutePath(rawPath);
-    let stat: fs.Stats | undefined;
-    try {
-      stat = await safeStat(absolutePath);
-    } catch (error) {
-      return unreadableError(absolutePath, error);
-    }
-    if (!stat) {
-      return {
-        code: CODE_AUX_CLASSPATH_NOT_FOUND,
-        message: `extra aux classpath entry not found: ${absolutePath}`,
-      };
-    }
-    if (!stat.isDirectory() && !(stat.isFile() && isArchivePath(absolutePath))) {
-      return {
-        code: CODE_AUX_CLASSPATH_INVALID_ENTRY,
-        message: `extra aux classpath entry must be a directory or .jar/.zip file: ${absolutePath}`,
-      };
-    }
-    try {
-      await fs.promises.access(absolutePath, fs.constants.R_OK);
-    } catch (error) {
-      return unreadableError(absolutePath, error);
-    }
-  }
-
-  return undefined;
 }
 
 export async function validatePluginJarsPreflight(
@@ -184,11 +139,6 @@ function toAbsolutePath(rawPath: string): string {
     return trimmed;
   }
   return path.resolve(trimmed);
-}
-
-function isArchivePath(filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
-  return ext === '.jar' || ext === '.zip';
 }
 
 function isJarPath(filePath: string): boolean {
