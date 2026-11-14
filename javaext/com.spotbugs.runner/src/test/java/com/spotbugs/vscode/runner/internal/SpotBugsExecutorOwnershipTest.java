@@ -3,16 +3,22 @@ package com.spotbugs.vscode.runner.internal;
 import static org.junit.Assert.*;
 import static com.spotbugs.vscode.runner.internal.ExecutorTestSupport.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import edu.umd.cs.findbugs.FindBugs2;
 import edu.umd.cs.findbugs.Project;
 
 public class SpotBugsExecutorOwnershipTest {
+
+    @Rule
+    public TemporaryFolder temporary = new TemporaryFolder();
     @Test
     public void eachCallOwnsFreshEngineAndProjectAndDetachesReportsBeforeClosing() throws Exception {
         List<TrackingEngine> engines = new ArrayList<>();
@@ -54,10 +60,15 @@ public class SpotBugsExecutorOwnershipTest {
 
     @Test
     public void pluginLoadFailureStillClosesEngine() throws Exception {
+        // The plugin must pass configuration validation, then vanish before execution,
+        // so plugin loading fails and the executor still closes the engine.
+        File pluginJar = temporary.newFile("plugin.jar");
+        var options = options(9, List.of(pluginJar.getAbsolutePath()));
+        assertTrue(pluginJar.delete());
         TrackingEngine engine = new TrackingEngine(null, null);
         try {
             new SpotBugsExecutor(() -> engine, PluginLifecycle.DEFAULT)
-                    .execute(input(), options(9, List.of("/missing/spotbugs-plugin.jar")), null, false);
+                    .execute(input(), options, null, false);
             fail("Expected plugin failure");
         } catch (IOException expected) {
             assertFalse(engine.executed);

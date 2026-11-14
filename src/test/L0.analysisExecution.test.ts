@@ -49,9 +49,6 @@ function makeFinding(overrides: Partial<Finding> = {}): Finding {
 
 function makeDeps(overrides: Partial<AnalysisExecutorDeps> = {}): AnalysisExecutorDeps {
   return {
-    validateFilterFilesPreflight: async () => undefined,
-    validateExtraAuxClasspathPreflight: async () => undefined,
-    validatePluginJarsPreflight: async () => undefined,
     buildAnalysisRequestPayload: (settings, options) => ({
       inputs: [],
       effort: settings.effort,
@@ -117,16 +114,13 @@ describe('analysisExecution', () => {
   });
 
   for (const code of ['CFG_PLUGINS_INVALID', 'CFG_DETECTORS_INVALID']) {
-    it(`preserves ${code} before file checks or backend execution`, async () => {
+    it(`preserves ${code} before backend execution`, async () => {
       const { createAnalysisExecutor } = loadAnalysisExecution();
       const unexpected = () => {
-        throw new Error('File checks and backend must not run');
+        throw new Error('Backend must not run');
       };
       const executor = createAnalysisExecutor(
         makeDeps({
-          validateFilterFilesPreflight: unexpected,
-          validateExtraAuxClasspathPreflight: unexpected,
-          validatePluginJarsPreflight: unexpected,
           buildAnalysisRequestPayload: unexpected,
           runSpotBugsAnalysis: unexpected,
         }),
@@ -138,61 +132,6 @@ describe('analysisExecution', () => {
       );
       assert.deepStrictEqual(outcome.errors, [error]);
       assert.strictEqual(outcome.failure?.code, code);
-    });
-  }
-
-  const preflightCases = [
-    ['filter', 'CFG_INCLUDE_FILTER_NOT_FOUND', 'Include filter not found'],
-    ['aux', 'CFG_AUX_CLASSPATH_NOT_FOUND', 'Extra aux classpath not found'],
-    ['plugin', 'CFG_PLUGIN_NOT_FOUND', 'SpotBugs plugin jar not found'],
-  ] as const;
-  for (const [index, [stage, code, message]] of preflightCases.entries()) {
-    it(`short-circuits ${stage} preflight failures before payload or backend execution`, async () => {
-      const { createAnalysisExecutor } = loadAnalysisExecution();
-      const callOrder: string[] = [];
-      const backendCalls: unknown[] = [];
-      const validate = (name: string) => async () => {
-        callOrder.push(name);
-        return name === stage ? { code, message } : undefined;
-      };
-      const executor = createAnalysisExecutor(
-        makeDeps({
-          validateFilterFilesPreflight: validate('filter'),
-          validateExtraAuxClasspathPreflight: validate('aux'),
-          validatePluginJarsPreflight: validate('plugin'),
-          buildAnalysisRequestPayload: () => {
-            throw new Error('buildAnalysisRequestPayload should not run');
-          },
-          runSpotBugsAnalysis: async (request) => {
-            backendCalls.push(request);
-            return JSON.stringify({ results: [] });
-          },
-        }),
-      );
-      const outcome = await executor.run(
-        {
-          effort: 'default',
-          ...(stage === 'plugin'
-            ? { plugins: [{ path: '/workspace/missing-plugin.jar', detectors: {} }] }
-            : {}),
-        },
-        makeTarget(installVscodeMock()),
-      );
-
-      assert.deepStrictEqual(
-        callOrder,
-        preflightCases.slice(0, index + 1).map(([name]) => name),
-      );
-      assert.deepStrictEqual(backendCalls, []);
-      assert.deepStrictEqual(outcome.findings, []);
-      assert.strictEqual(outcome.targetPath, '/workspace/build/classes');
-      assert.strictEqual(outcome.errors?.[0]?.code, code);
-      assert.strictEqual(outcome.failure?.kind, 'analysis-error');
-      assert.strictEqual(outcome.failure?.code, code);
-      assert.strictEqual(
-        outcome.failure?.message,
-        `SpotBugs analysis failed: [${code}] ${message}`,
-      );
     });
   }
 

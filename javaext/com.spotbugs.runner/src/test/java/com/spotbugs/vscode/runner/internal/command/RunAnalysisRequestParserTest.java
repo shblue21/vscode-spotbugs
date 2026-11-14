@@ -12,7 +12,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -21,16 +23,24 @@ import com.spotbugs.vscode.runner.internal.config.AnalysisConfig;
 
 public class RunAnalysisRequestParserTest {
 
+    @Rule
+    public TemporaryFolder temporary = new TemporaryFolder();
+
     private final RunAnalysisRequestParser parser = new RunAnalysisRequestParser();
 
     @Test
     public void parseReturnsTargetPathAndValidatedConfig() throws Exception {
+        File pluginA = temporary.newFile("plugin-a.jar");
+        File pluginB = temporary.newFile("plugin-b.jar");
         JsonObject fixture = AnalysisProtocolFixture.readJsonObject("run-analysis-request-full.json");
         JsonObject payload = fixture.getAsJsonObject("payload");
         JsonObject parseablePayload = payload.deepCopy();
         resolveFixturePathList(parseablePayload, "includeFilterPaths");
         resolveFixturePathList(parseablePayload, "excludeFilterPaths");
         resolveFixturePathList(parseablePayload, "excludeBaselineBugsPaths");
+        JsonArray plugins = parseablePayload.getAsJsonArray("plugins");
+        plugins.get(0).getAsJsonObject().addProperty("path", pluginA.getAbsolutePath());
+        plugins.get(1).getAsJsonObject().addProperty("path", pluginB.getAbsolutePath());
 
         RunAnalysisRequest request = parser.parse(context(
                 fixture.get("targetPath").getAsString(),
@@ -71,12 +81,12 @@ public class RunAnalysisRequestParserTest {
                 request.getConfig().getExecutionOptions().getExcludeBaselineBugsPaths()
         );
         assertEquals(
-                Arrays.asList("/workspace/plugin-a.jar", "/workspace/plugin-b.jar"),
+                Arrays.asList(pluginA.getAbsolutePath(), pluginB.getAbsolutePath()),
                 request.getConfig().getExecutionOptions().getPluginPaths()
         );
         assertTrue(request.isIncludeBaselineXml());
         parseablePayload.getAsJsonArray("plugins").get(0).getAsJsonObject()
-                .addProperty("path", " \t/workspace/plugin-a.jar \n");
+                .addProperty("path", " \t" + pluginA.getAbsolutePath() + " \n");
         assertEquals(request.getConfig().getExecutionOptions().getPluginPaths(),
                 parser.parse(context(fixture.get("targetPath").getAsString(), parseablePayload.toString()))
                         .getConfig().getExecutionOptions().getPluginPaths());
