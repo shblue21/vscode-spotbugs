@@ -506,9 +506,7 @@ describe('analysisRunSession workspace analysis', () => {
       'workspaceResults:1',
       'replaceAll:1',
     ]);
-    assert.deepStrictEqual(harness.infos, [
-      'SpotBugs: Workspace analysis completed - 1 issue found.',
-    ]);
+    assert.deepStrictEqual(harness.infos, ['SpotBugs: Workspace analysis completed. Findings: 1.']);
     assert.deepStrictEqual(harness.workspaceResultUris, ['file:///workspace']);
   });
 
@@ -581,7 +579,7 @@ describe('analysisRunSession workspace analysis', () => {
     ]);
     assert.deepStrictEqual(harness.workspaceResults, [[projectResult]]);
     assert.deepStrictEqual(harness.warnings, [
-      'SpotBugs: Workspace analysis completed - No issues found. 1 project reported warnings; see the SpotBugs output for details.',
+      'SpotBugs: Workspace analysis completed - No issues found. Projects with warnings: 1. See the SpotBugs output for details.',
     ]);
     assert.deepStrictEqual(harness.errors, []);
   });
@@ -626,7 +624,7 @@ describe('analysisRunSession workspace analysis', () => {
       'progress:end',
       'workspaceResults:1',
       'replaceAll:1',
-      'info:SpotBugs: Workspace analysis completed - 1 issue found.',
+      'info:SpotBugs: Workspace analysis completed. Findings: 1.',
     ]);
   });
 
@@ -735,7 +733,7 @@ describe('analysisRunSession workspace analysis', () => {
 
     assert.deepStrictEqual(harness.calls, ['progress:2', 'workspaceResults:2']);
     assert.deepStrictEqual(harness.errors, [
-      'SpotBugs: Workspace analysis failed - 2 projects failed. See the SpotBugs view for project errors.',
+      'SpotBugs: Workspace analysis failed. Failed projects: 2. See the SpotBugs view for project errors.',
     ]);
   });
 
@@ -822,7 +820,7 @@ describe('analysisRunSession workspace analysis', () => {
       'workspaceResults:2',
     ]);
     assert.deepStrictEqual(harness.warnings, [
-      'SpotBugs: Workspace analysis completed with failures - 1 project failed. Successful projects produced no findings.',
+      'SpotBugs: Analysis completed. Failed projects: 1. Successful projects produced no findings.',
     ]);
   });
 

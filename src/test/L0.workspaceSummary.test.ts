@@ -1,7 +1,11 @@
 import * as assert from 'assert';
-import { buildWorkspaceCompletionNotices } from '../orchestration/workspaceSummary';
 import { NO_CLASS_TARGETS_CODE } from '../workspace/analysisTargetCodes';
 import type { ProjectResult } from '../services/projectResult';
+import { installVscodeMock } from './helpers/mockVscode';
+
+installVscodeMock();
+const { buildWorkspaceCompletionNotices } =
+  require('../orchestration/workspaceSummary') as typeof import('../orchestration/workspaceSummary');
 
 function makeProjectResult(overrides: Partial<ProjectResult> = {}): ProjectResult {
   return {
@@ -43,11 +47,30 @@ describe('workspaceSummary', () => {
       {
         level: 'warn',
         message:
-          'SpotBugs skipped 1 project because no compiled classes were found. Run a manual build, then try again.',
+          'Skipped 1 of 2 projects because no compiled classes were found. Run a manual build, then try again.',
       },
       {
         level: 'info',
-        message: 'SpotBugs: Workspace analysis completed - 1 issue found.',
+        message: 'SpotBugs: Workspace analysis completed. Findings: 1.',
+      },
+    ]);
+  });
+
+  it('limits the zero-finding summary to analyzed projects when another project was skipped', () => {
+    const projects = [
+      makeProjectResult(),
+      makeProjectResult({ error: 'no compiled classes', errorCode: NO_CLASS_TARGETS_CODE }),
+    ];
+
+    assert.deepStrictEqual(buildWorkspaceCompletionNotices(projects, 0), [
+      {
+        level: 'warn',
+        message:
+          'Skipped 1 of 2 projects because no compiled classes were found. Run a manual build, then try again.',
+      },
+      {
+        level: 'info',
+        message: 'SpotBugs: Workspace analysis completed - No issues found in analyzed projects.',
       },
     ]);
   });
@@ -61,7 +84,7 @@ describe('workspaceSummary', () => {
       {
         level: 'warn',
         message:
-          'SpotBugs: Workspace analysis completed with failures - 1 project failed. 1 issue found in successful projects.',
+          'SpotBugs: Analysis completed. Failed projects: 1. Findings in successful projects: 1.',
       },
     ];
     assert.deepStrictEqual(buildWorkspaceCompletionNotices(makeProjects(), 1), expectedSummary);
@@ -87,6 +110,24 @@ describe('workspaceSummary', () => {
     );
   });
 
+  it('counts successful projects in the total when failures and skips occur together', () => {
+    const projects = [
+      makeProjectResult(),
+      makeProjectResult({ error: 'analysis failed' }),
+      makeProjectResult({ error: 'another analysis failed' }),
+      makeProjectResult({ errorCode: NO_CLASS_TARGETS_CODE }),
+      makeProjectResult({ errorCode: NO_CLASS_TARGETS_CODE }),
+    ];
+
+    assert.deepStrictEqual(buildWorkspaceCompletionNotices(projects, 0), [
+      {
+        level: 'warn',
+        message:
+          'SpotBugs: Analysis completed. Failed projects: 2. Skipped 2 of 5 projects because no compiled classes were found. Successful projects produced no findings.',
+      },
+    ]);
+  });
+
   it('keeps terminal failure summaries and suppresses Java LS notices', () => {
     const makeProjects = () => [
       makeProjectResult({ error: 'bad aux classpath', errorCode: 'CFG_AUX_CLASSPATH_NOT_FOUND' }),
@@ -96,7 +137,7 @@ describe('workspaceSummary', () => {
       {
         level: 'error',
         message:
-          'SpotBugs: Workspace analysis failed - 1 project failed. 1 project skipped because no compiled classes were found. See the SpotBugs view for project errors.',
+          'SpotBugs: Workspace analysis failed. Failed projects: 1. Skipped 1 of 2 projects because no compiled classes were found. See the SpotBugs view for project errors.',
       },
     ];
     assert.deepStrictEqual(buildWorkspaceCompletionNotices(makeProjects(), 0), expectedSummary);
@@ -152,7 +193,7 @@ describe('workspaceSummary', () => {
       {
         level: 'warn',
         message:
-          'SpotBugs: Workspace analysis completed - No findings reported. 1 project reported warnings; see the SpotBugs output for details.',
+          'SpotBugs: Workspace analysis completed - No findings reported. Projects with warnings: 1. See the SpotBugs output for details.',
       },
     ]);
   });
