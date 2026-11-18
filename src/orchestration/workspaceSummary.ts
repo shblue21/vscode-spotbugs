@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import type { AnalysisNotice } from '../model/analysisOutcome';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { buildResolutionIssueNotices, dedupeNotices } from './analysisNotices';
@@ -27,39 +28,43 @@ export function buildWorkspaceCompletionNotices(
   );
   const notices: AnalysisNotice[] = [];
 
+  const skippedMessage =
+    skippedCount > 0 && skippedCount < projectResults.length
+      ? l10n.t(
+          'Skipped {0} of {1} projects because no compiled classes were found.',
+          skippedCount,
+          projectResults.length,
+        )
+      : '';
+
   if (projectResults.length > 0 && skippedCount === projectResults.length) {
     notices.push({
       level: 'warn',
       message:
-        'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.' +
-        cleanupWarningSentence,
+        l10n.t(
+          'SpotBugs could not find compiled classes to analyze. Run a manual build, then try again.',
+        ) + cleanupWarningSentence,
     });
   } else if (failedCount > 0) {
-    const skippedSentence =
-      skippedCount > 0
-        ? ` ${formatProjectCount(skippedCount)} skipped because no compiled classes were found.`
-        : '';
-
+    const skippedSentence = skippedMessage ? ` ${skippedMessage}` : '';
     if (succeededCount === 0) {
       notices.push({
         level: 'error',
         message:
-          `SpotBugs: Workspace analysis failed - ${formatProjectCount(failedCount)} failed.` +
-          `${skippedSentence} See the SpotBugs view for project errors.` +
+          l10n.t('SpotBugs: Workspace analysis failed. Failed projects: {0}.', failedCount) +
+          `${skippedSentence} ${l10n.t('See the SpotBugs view for project errors.')}` +
           cleanupWarningSentence,
       });
     } else {
       const successSummary =
         findingCount === 0
-          ? 'Successful projects produced no findings.'
-          : `${formatIssueCount(findingCount)} found in successful projects.`;
+          ? l10n.t('Successful projects produced no findings.')
+          : l10n.t('Findings in successful projects: {0}.', findingCount);
 
       notices.push({
         level: 'warn',
         message:
-          `SpotBugs: Workspace analysis completed with failures - ${formatProjectCount(
-            failedCount,
-          )} failed.` +
+          l10n.t('SpotBugs: Analysis completed. Failed projects: {0}.', failedCount) +
           `${skippedSentence} ${successSummary}` +
           cleanupWarningSentence,
       });
@@ -69,8 +74,9 @@ export function buildWorkspaceCompletionNotices(
       notices.push({
         level: 'warn',
         message:
-          `SpotBugs skipped ${formatProjectCount(skippedCount)} because no compiled classes were found. ` +
-          'Run a manual build, then try again.' +
+          skippedMessage +
+          ' ' +
+          l10n.t('Run a manual build, then try again.') +
           cleanupWarningSentence,
       });
     }
@@ -80,9 +86,13 @@ export function buildWorkspaceCompletionNotices(
       message:
         (findingCount === 0
           ? hasIncompleteAnalysisWarnings
-            ? 'SpotBugs: Workspace analysis completed - No findings reported.'
-            : 'SpotBugs: Workspace analysis completed - No issues found.'
-          : `SpotBugs: Workspace analysis completed - ${formatIssueCount(findingCount)} found.`) +
+            ? l10n.t('SpotBugs: Workspace analysis completed - No findings reported.')
+            : skippedCount > 0
+              ? l10n.t(
+                  'SpotBugs: Workspace analysis completed - No issues found in analyzed projects.',
+                )
+              : l10n.t('SpotBugs: Workspace analysis completed - No issues found.')
+          : l10n.t('SpotBugs: Workspace analysis completed. Findings: {0}.', findingCount)) +
         (skippedCount === 0 ? cleanupWarningSentence : ''),
     });
   }
@@ -95,18 +105,13 @@ export function buildWorkspaceCompletionNotices(
   return dedupeNotices(notices);
 }
 
-function formatProjectCount(count: number): string {
-  return `${count} project${count === 1 ? '' : 's'}`;
-}
-
-function formatIssueCount(count: number): string {
-  return `${count} issue${count === 1 ? '' : 's'}`;
-}
-
 function buildCleanupWarningSentence(cleanupWarnings: ProjectCleanupWarning[]): string {
   const uniqueProjectCount = new Set(cleanupWarnings.map((warning) => warning.projectUri)).size;
   if (uniqueProjectCount === 0) {
     return '';
   }
-  return ` ${formatProjectCount(uniqueProjectCount)} reported warnings; see the SpotBugs output for details.`;
+  return (
+    ' ' +
+    l10n.t('Projects with warnings: {0}. See the SpotBugs output for details.', uniqueProjectCount)
+  );
 }

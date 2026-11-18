@@ -184,7 +184,7 @@ async function runWorkspaceBody(args: RunWorkspaceAnalysisSessionArgs): Promise<
     if (!args.lease.isCurrent()) {
       return;
     }
-    progress.report({ message: 'Building Java workspace...' });
+    progress.report({ message: l10n.t('Building Java workspace...') });
     const buildResult = await dependencies.buildWorkspaceAuto(token);
     if (!args.lease.isCurrent()) {
       return;
@@ -204,7 +204,7 @@ async function runWorkspaceBody(args: RunWorkspaceAnalysisSessionArgs): Promise<
     const wsFolder = dependencies.getPrimaryWorkspaceFolder();
     if (!wsFolder) {
       dependencies.logger.error('No workspace folder found.');
-      throw new Error('No workspace folder found.');
+      throw new Error(l10n.t('No workspace folder found.'));
     }
     workspaceFolderUri = wsFolder.uri;
 
@@ -274,7 +274,7 @@ async function runWorkspaceBody(args: RunWorkspaceAnalysisSessionArgs): Promise<
     return;
   }
   if (!workspaceFolderUri) {
-    throw new Error('No workspace folder found.');
+    throw new Error(l10n.t('No workspace folder found.'));
   }
 
   args.tree.showWorkspaceResults(projectResults, workspaceFolderUri);
@@ -298,7 +298,7 @@ function messageFromUnknown(error: unknown): string {
     return error.message.trim();
   }
   const message = String(error);
-  return message.trim().length > 0 ? message.trim() : 'Unknown error';
+  return message.trim().length > 0 ? message.trim() : l10n.t('Unknown error');
 }
 
 function emitNotices(notifier: Notifier, notices: AnalysisNotice[]): void {
@@ -324,9 +324,9 @@ function renderWorkspaceAnalysisFailure(
   if (!args.lease.isCurrent()) {
     return;
   }
-  args.notifier.error(`SpotBugs: Workspace analysis failed - ${errorMessage}`);
+  args.notifier.error(l10n.t('SpotBugs: Workspace analysis failed - {0}', errorMessage));
   args.tree.showAnalysisFailure(
-    `SpotBugs workspace analysis failed: ${errorMessage}`,
+    l10n.t('SpotBugs workspace analysis failed: {0}', errorMessage),
     'WORKSPACE_ANALYSIS_FAILED',
   );
 }
@@ -351,7 +351,7 @@ async function runAnalysisSession(
       renderWorkspaceAnalysisFailure(args.value, error);
       return;
     }
-    const failureMessage = 'SpotBugs analysis failed: ' + messageFromUnknown(error);
+    const failureMessage = l10n.t('SpotBugs analysis failed: {0}', messageFromUnknown(error));
     value.dependencies.logger.error('An error occurred during SpotBugs analysis', error);
     if (!value.lease.isCurrent()) return;
     value.notifier.error(failureMessage);

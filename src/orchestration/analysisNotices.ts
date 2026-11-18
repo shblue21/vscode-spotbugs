@@ -1,3 +1,4 @@
+import { l10n } from 'vscode';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
 import { AnalysisNotice, AnalysisOutcome } from '../model/analysisOutcome';
 import { formatAnalysisErrors } from '../model/analysisErrors';
@@ -30,13 +31,13 @@ export function buildAnalysisNotices(
       if (!outcome.failure) {
         notices.push({
           level: 'error',
-          message: `SpotBugs analysis failed: ${combined}`,
+          message: l10n.t('SpotBugs analysis failed: {0}', combined),
         });
       }
     } else {
       notices.push({
         level: 'warn',
-        message: `SpotBugs analysis completed with warnings: ${combined}`,
+        message: l10n.t('SpotBugs analysis completed with warnings: {0}', combined),
       });
     }
   }
@@ -44,9 +45,10 @@ export function buildAnalysisNotices(
   if (!hasTerminalFailure && Array.isArray(outcome.warnings) && outcome.warnings.length > 0) {
     notices.push({
       level: 'warn',
-      message: `SpotBugs analysis completed with warnings: ${formatAnalysisErrors(
-        outcome.warnings,
-      )}`,
+      message: l10n.t(
+        'SpotBugs analysis completed with warnings: {0}',
+        formatAnalysisErrors(outcome.warnings),
+      ),
     });
   }
 
@@ -121,21 +123,24 @@ function buildHintNotices(targetPath: string, outcome: AnalysisOutcome): Analysi
       if ((targetResolutionRootCount ?? 0) === 0) {
         notices.push({
           level: 'warn',
-          message:
+          message: l10n.t(
             'SpotBugs: No compiled classes found (target-resolution roots unavailable). Make sure the target is inside a Java project and build the workspace.',
+          ),
         });
       } else {
         notices.push({
           level: 'warn',
-          message:
+          message: l10n.t(
             'SpotBugs: No compiled classes found for the selected target. Build the project or select an output folder (e.g. build/classes or target/classes).',
+          ),
         });
       }
     } else if (looksLikeSourceTarget && (targetResolutionRootCount ?? 0) === 0) {
       notices.push({
         level: 'warn',
-        message:
+        message: l10n.t(
           'SpotBugs: Target-resolution roots are unavailable for this target; results may be incomplete. Try building the workspace and re-run.',
+        ),
       });
     }
   }
@@ -156,8 +161,9 @@ function translateResolutionIssue(
       return {
         level: 'warn',
         code: issue.code,
-        message:
+        message: l10n.t(
           'SpotBugs: Java runtime classpath information is unavailable; results may be incomplete.',
+        ),
       };
     case 'WORKSPACE_FALLBACK_USED':
       if (context.hasSpecificWorkspaceCause) {
@@ -166,22 +172,25 @@ function translateResolutionIssue(
       return {
         level: 'info',
         code: issue.code,
-        message:
+        message: l10n.t(
           'SpotBugs: Java project discovery was unavailable, so workspace-folder analysis was used.',
+        ),
       };
     case 'JAVA_LS_PROJECT_SETTINGS_FAILED':
       return {
         level: 'warn',
         code: issue.code,
-        message:
+        message: l10n.t(
           'SpotBugs: Some Java source/output metadata was unavailable; analysis used the available project output information.',
+        ),
       };
     case 'JAVA_PROJECT_METADATA_MISMATCH':
       return {
         level: 'warn',
         code: issue.code,
-        message:
+        message: l10n.t(
           'SpotBugs: Metadata for a different Java project was discarded; analysis continued without it.',
+        ),
       };
     case 'JAVA_LS_REQUEST_FAILED':
       return translateJavaLsLookupFallbackNotice(issue, context);
@@ -189,15 +198,17 @@ function translateResolutionIssue(
       return {
         level: 'info',
         code: issue.code,
-        message:
+        message: l10n.t(
           'SpotBugs: No Java projects were reported by the Java Language Server; workspace-folder analysis was used.',
+        ),
       };
     case 'OUTPUT_FALLBACK_USED':
       return {
         level: 'info',
         code: issue.code,
-        message:
+        message: l10n.t(
           'SpotBugs: Java build output metadata was unavailable or unusable for the selected target; output folder fallback was used.',
+        ),
       };
     case 'JAVA_LS_NO_RESULT':
       return translateJavaLsLookupFallbackNotice(issue, context);
@@ -224,8 +235,9 @@ function translateJavaLsLookupFallbackNotice(
   return {
     level: 'warn',
     code: issue.code,
-    message:
+    message: l10n.t(
       'SpotBugs: Java project metadata lookup failed; analysis continued with fallback behavior.',
+    ),
   };
 }
 

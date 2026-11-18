@@ -1,9 +1,10 @@
 import * as assert from 'assert';
-import {
-  buildAnalysisNotices,
-  buildResolutionIssueNotices,
-} from '../orchestration/analysisNotices';
 import type { AnalysisResolutionIssue } from '../lsp/javaLsOutcome';
+import { installVscodeMock } from './helpers/mockVscode';
+
+installVscodeMock();
+const { buildAnalysisNotices, buildResolutionIssueNotices } =
+  require('../orchestration/analysisNotices') as typeof import('../orchestration/analysisNotices');
 
 const OUTPUT_FALLBACK_NOTICE = {
   level: 'info',
