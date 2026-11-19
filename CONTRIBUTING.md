@@ -5,6 +5,9 @@ Thanks for your interest in improving SpotBugs for VS Code.
 ## Before you start
 
 - Search existing issues and pull requests before opening a new one.
+- Report VS Code extension issues here. If a built-in detector produces the same
+  false positive or misses the same bug in the SpotBugs CLI, report it to
+  [SpotBugs core](https://github.com/spotbugs/spotbugs/issues).
 - For bugs, include VS Code version, extension version, Java version, OS, project
   type, and a minimal example or clear reproduction steps.
 - For feature requests, describe the workflow you want to improve and why.

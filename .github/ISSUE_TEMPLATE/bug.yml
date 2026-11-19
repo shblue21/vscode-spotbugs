@@ -7,6 +7,8 @@ body:
   - type: markdown
     attributes:
       value: |
+        Report VS Code extension issues here. If a built-in detector produces the same false positive or misses the same bug in the SpotBugs CLI, report it to [SpotBugs core](https://github.com/spotbugs/spotbugs/issues).
+
         Search existing issues and pull requests before reporting. Do not include private code, credentials, or sensitive data.
         For security reports, follow [SUPPORT.md](https://github.com/shblue21/vscode-spotbugs/blob/main/SUPPORT.md).
 
