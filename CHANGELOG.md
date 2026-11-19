@@ -1,4 +1,18 @@
 # Changelog
+## [0.15.0](https://github.com/shblue21/vscode-spotbugs/compare/v0.14.1...v0.15.0) (2026-11-19)
+
+
+### Features
+
+* localize analysis notices and clarify workspace summaries ([#206](https://github.com/shblue21/vscode-spotbugs/issues/206)) ([1509193](https://github.com/shblue21/vscode-spotbugs/commit/1509193f4a431f9ed9081c8e2324804ae25fe7bb))
+
+
+### Bug Fixes
+
+* disable analysis commands in Java LightWeight mode ([#203](https://github.com/shblue21/vscode-spotbugs/issues/203)) ([279f2a4](https://github.com/shblue21/vscode-spotbugs/commit/279f2a42baf3769194f635eb32452b2256753846))
+* stop using the server classpath as auxiliary classpath ([#200](https://github.com/shblue21/vscode-spotbugs/issues/200)) ([be62ca0](https://github.com/shblue21/vscode-spotbugs/commit/be62ca0fd9cfb6343bf445b57d6d01a1099393da))
+* use the standard failure message for project analysis errors ([#198](https://github.com/shblue21/vscode-spotbugs/issues/198)) ([8bbf9c3](https://github.com/shblue21/vscode-spotbugs/commit/8bbf9c3a885405c34d3052ef2bc8db0cdc513872))
+
 ## [0.14.1](https://github.com/shblue21/vscode-spotbugs/compare/v0.14.0...v0.14.1) (2026-11-09)
 
 
